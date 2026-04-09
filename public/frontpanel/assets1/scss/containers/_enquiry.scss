@@ -1,0 +1,26 @@
+
+
+.overlay_description {
+    width: 50%;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+    @include max(992px){
+        width: 80%;
+    }
+    @include max(768px){
+        width: 95%;
+    }
+    h4 {
+        color: $white-color;
+        font-size: 1rem;
+        font-weight: 300;
+        margin-bottom: 1rem;
+    }
+    h1 {
+        color: $white-color;
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+}

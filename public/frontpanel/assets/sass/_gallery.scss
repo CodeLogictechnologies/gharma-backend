@@ -1,0 +1,91 @@
+@import "_mixins.scss";
+.gallery-container-main {
+    padding-block: 20px 90px ;
+    .tabs {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 40px;
+    }
+    .tab {
+        cursor: pointer;
+        transition: 0.3s;
+        background-color: white;
+        padding: 8px 0;
+        border: 1px solid $blue;
+        color: $blue;
+        width: 140px;
+        font-weight: 500;
+        font-size: 20px;
+        @include respond-to(tablet) {
+            font-size: 18px;
+        }
+        @include respond-to(mobile) {
+            font-size: 16px !important;
+        }
+    }
+    .tab.active {
+        background-color: $blue;
+        color: white;
+    }
+    .content {
+        display: none;
+        .gallery-content-main {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 20px;
+            @include respond-to(tablet) {
+                grid-template-columns: 1fr 1fr;
+            }
+            @include respond-to(mobile) {
+                grid-template-columns: 1fr !important;
+            }
+            .gallery-r1 {
+                .gallery-g1-title {
+                    padding-top: 20px;
+                    p {
+                        font-weight: 500;
+                        font-size: 20px;
+                        color: #000000;
+                        @include respond-to(tablet) {
+                            font-size: 18px;
+                        }
+                        @include respond-to(mobile) {
+                            font-size: 16px !important;
+                        }
+                    }
+                }
+                .gallery-g1-txt {
+                    margin-block: 15px;
+                    p {
+                        color: #737373;
+                        @include respond-to(tablet) {
+                            font-size: 14px;
+                        }
+                        @include respond-to(mobile) {
+                            font-size: 12px !important;
+                        }
+                    }
+                }
+                .g1-img {
+                    aspect-ratio: 3/2;
+                    iframe {
+                        height: 100%;
+                        width: 100%;
+                        object-fit: cover;
+                        border: none;
+                    }
+                    img {
+                        height: 100%;
+                        width: 100%;
+                        object-fit: cover;
+                    }
+                }
+            }
+        }
+    }
+    .content.active {
+        display: block;
+    }
+}

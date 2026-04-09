@@ -1,0 +1,122 @@
+@import "_mixins.scss";
+.introduction_page {
+    padding-bottom: 20px;
+    position: relative;
+    .img_before {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        height: 220px;
+        width: 220px;
+        z-index: 9;
+        img {
+            object-fit: cover;
+        }
+    }
+    .img_after {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        height: 220px;
+        width: 220px;
+        z-index: 9;
+        transform: rotate(180deg);
+        img {
+            object-fit: cover;
+        }
+    }
+    .common_image_txt {
+        position: relative;
+        .common_bg_wrapper {
+            height: 220px;
+            position: relative;
+            img {
+                filter: grayscale(100%);
+                object-fit: cover;
+            }
+            &::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%; /* Ensures the pseudo-element covers the wrapper */
+                background: linear-gradient(
+                    90deg,
+                    #000000 0%,
+                    rgba(0, 0, 0, 0.5) 50%,
+                    #000000 100%
+                );
+                pointer-events: none; /* Ensures the pseudo-element doesn't block interactions */
+            }
+        }
+        .main_txt {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            p {
+                font-size: 36px;
+                font-weight: 500;
+                color: white;
+            }
+        }
+    }
+}
+.team_detail_flx {
+    padding-block: 60px;
+    .left_rght_txt_img {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        @include respond-to(mobile) {
+            flex-direction: column;
+        }
+        .left_img {
+            width: 40%;
+            height: 400px;
+            @include respond-to(mobile) {
+                width: 100%;
+            }
+            img {
+                object-fit: cover;
+            }
+        }
+        .rght_txt {
+            width: 55%;
+            line-height: 30px;
+            @include respond-to(mobile) {
+                width: 100%;
+            }
+            p {
+                &:nth-child(1) {
+                    font-size: 36px;
+                    font-weight: 500;
+                    margin: 0;
+                    @include respond-to(mobile) {
+                        font-size: 22px;
+                    }
+                }
+                &:nth-child(2) {
+                    font-size: 20px;
+                    font-weight: 500;
+                    color: $grey;
+                    margin-block: 15px;
+                    @include respond-to(mobile) {
+                        font-size: 16px;
+                    }
+                }
+                &:nth-child(3) {
+                    font-size: 16px;
+                    font-weight: 400;
+                    color: $grey;
+                    @include respond-to(mobile) {
+                        font-size: 14px;
+                    }
+                }
+            }
+        }
+    }
+}

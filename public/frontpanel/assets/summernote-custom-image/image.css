@@ -1,0 +1,8 @@
+.shadow-image img {
+    border: 5px solid rgb(220 220 220);
+}
+
+img {
+    margin: 20px 20px 20px 0 !important;
+    height: 50% !important;
+}

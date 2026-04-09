@@ -1,0 +1,18 @@
+#gallery_page{
+    .gallery_col_flx {
+        .gallery_col_wrap{
+            flex: 0 1 33.3%;
+            padding: 0 1%;
+            margin: 0 0 0.2rem 0;
+            a{
+                color: #fff;
+                &:hover{
+                text-decoration: underline !important;
+                }
+            }
+            img{
+                height: 19rem;
+            }
+        }
+    }
+}

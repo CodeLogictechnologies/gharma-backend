@@ -1,0 +1,52 @@
+@import "_mixins.scss";
+.certificate_section {
+    .certificate_container {
+        margin-block: 60px;
+        .certificate_hover_wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            @include respond-to(mobile) {
+                grid-template-columns: 1fr;
+            }
+            .certificate_wrapper {
+                position: relative;
+                cursor: pointer;
+                overflow: hidden;
+                box-shadow: 0 0 5px;
+                .overlapping_content {
+                    position: absolute;
+                    background-color: rgba(2, 131, 199, 0);
+                    bottom: 0;
+                    overflow: hidden;
+                    // top: 0;
+                    text-align: center;
+                    top: 0; /* Start off the screen */
+                    opacity: 0;
+                    transform: translateY(-3%);
+                    transition: transform 1s ease-out, opacity 1s ease-out;
+
+                    p {
+                        font-size: 16px;
+                        font-family: 500;
+                        color: white;
+                        position: absolute;
+                        bottom: 5px;
+                        left: 54px;
+                    }
+                }
+                &:hover {
+                    .overlapping_content {
+                        transform: translateY(
+                            0
+                        ); /* Move container to its final position */
+                        opacity: 1;
+                        background-color: rgba(2, 131, 199, 0.4);
+                        width: 100%;
+                        overflow: visible;
+                    }
+                }
+            }
+        }
+    }
+}

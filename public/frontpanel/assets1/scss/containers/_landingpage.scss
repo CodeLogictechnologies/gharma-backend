@@ -1,0 +1,43 @@
+.landing_page {
+  background-color: red;
+
+  .landing_wrapper {
+    .wrapper_img {
+      position: relative;
+      background-color: $black-color;
+
+      img {
+        width: 100%;
+        height: calc(100vh - 1rem);
+        object-fit: cover;
+        object-position: center;
+        opacity: 0.5;
+      }
+
+      .overlay_details {
+        position: absolute;
+        top: 30%;
+
+        left: 0;
+        // transform: translate(-50%, -50%);
+        width: 100%;
+        color: #fff;
+
+        .container {
+          text-align: center;
+
+          h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+          }
+
+          p {
+            font-size: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+          }
+        }
+      }
+    }
+  }
+}

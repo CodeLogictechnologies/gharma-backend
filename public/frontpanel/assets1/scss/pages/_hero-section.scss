@@ -1,0 +1,18 @@
+#hero_section{
+    height: 30rem;
+    z-index: -1;
+    .bg-overlay-img{
+        // height: 35rem;
+    }
+    .gradient-overlay{
+        background-color: $black-color;
+    }
+    .hero_title{
+        position: relative;
+        z-index: 9;
+        h1{
+            color: $white-color;
+            font-weight: 700;
+        }
+    }
+}

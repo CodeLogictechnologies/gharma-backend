@@ -1,0 +1,119 @@
+#message_sec {
+    .two_col_wrapper_flx {
+        @include max(768px) {
+            flex-direction: column;
+        }
+    .left_col_wrapepr {
+        flex: 0 1 50%;
+
+    }
+
+    .right_col_wrapper {
+        justify-content: flex-start;
+        flex: 0 1 45%;
+        position: relative;
+
+        @include max(768px) {
+            flex-basis: 100%;
+            margin-bottom: 4rem;
+        }
+
+     
+        .right_img_wrap {
+            position:relative;
+
+        .image_wrap {
+            width: 33rem;
+            height: 31rem;
+            position: relative;
+
+            @include max(1200px) {
+                width: 28rem;
+            }
+
+            @include max(992px) {
+                width: 23rem;
+                height: 25rem;
+            }
+
+            @include max(768px) {
+                width: 100%;
+                height: 100%;
+            }
+
+        
+            img {
+                border-radius: 0px;
+            }
+
+
+            &:after {
+                content: "";
+                position: absolute;
+                top: -3rem;
+                left: -3rem;
+                width: 4.5rem;
+                height: 4.5rem;
+                border-radius: 50%;
+                background: linear-gradient(#23fcc6cc, #048664e0);
+                z-index: 9999;
+                @include max(768px){
+                    top: -4.5rem;
+                    left: -1rem;
+                    width: 3.2rem;
+                    height: 3.2rem;
+                }
+            }
+            &:before {
+                content: "";
+                position: absolute;
+                bottom: -1.7rem;
+                right: -1.5rem;
+                width: 3rem;
+                height: 3rem;
+                border-radius: 50%;
+                background: linear-gradient(#23fcc6cc, #048664e0);
+                z-index: 9999;
+                @include max(768px){
+                    bottom: -2.5rem;
+                    right: -0.6rem;
+                    width: 2rem;
+                    height: 2rem;
+                }
+            }
+          }
+          &::after {
+            content: "";
+            position: absolute;
+            border: 2px solid #008060;
+            border-radius: 0.2rem;
+            left: 50%;
+            top: 50%;
+            right: 50%;
+            bottom: 50%;
+            transform: translate(-50%, -55%);
+            width: 70%;
+            height: 100%;
+            z-index: 9 ;
+         }
+        }
+    }
+
+    .message_from {
+        margin-top: 4rem;
+
+        h4 {
+            font-size: 1.25rem;
+            color: $black-color;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        h5 {
+            font-size: 1.25rem;
+            color: $body-color;
+            font-weight: 500;
+        }
+    }
+}
+}

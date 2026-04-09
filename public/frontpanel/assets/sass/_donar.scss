@@ -1,0 +1,49 @@
+@import "_mixins.scss";
+.donation_list_container {
+    margin-block: 40px;
+    table {
+        width: 100%;
+        cursor: pointer;
+        border-collapse: collapse;
+        tr {
+            text-align: center;
+
+            &:nth-child(odd) {
+                background-color: rgba(239, 247, 255, 1);
+            }
+        }
+        th {
+            background-color: $blue;
+            color: $white;
+            padding: 10px 20px;
+            border-left: 2px solid $white;
+
+            &:nth-child(2) {
+                width: 45%;
+                text-align: start !important;
+            }
+        }
+        td {
+            color: $grey;
+            padding-block: 10px;
+            border-spacing: 0;
+            border-collapse: collapse;
+            .image_txt_wrapper {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                .img_container {
+                    img {
+                        height: 30px;
+                        width: 30px;
+                        border-radius: 50%;
+                    }
+                }
+                p {
+                    margin: 0;
+                    color: $grey;
+                }
+            }
+        }
+    }
+}

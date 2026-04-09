@@ -1,0 +1,90 @@
+.container {
+    .nb_details_container {
+        display: flex;
+        gap: 40px;
+        margin-block: 60px;
+        @include respond-to(tablet) {
+            flex-direction: column;
+        }
+        .nb_left_container {
+            width: 60%;
+            @include respond-to(tablet) {
+                width: 100%;
+            }
+            .left_first_text {
+                p {
+                    font-size: 36px;
+                    font-weight: 500;
+                    margin: 0;
+                    @include respond-to(mobile) {
+                        font-size: 20px;
+                    }
+                }
+            }
+            .left_container_content {
+                p {
+                    font-size: 16px;
+                    font-weight: 400;
+                    color: $grey;
+                }
+            }
+        }
+
+        .nb_right_wrapper_wrap {
+            background: #eff7ff;
+            padding: 20px;
+            height: 50%;
+            width: 30%;
+            border-radius: 5px;
+            box-shadow: 0 0 16px rgba(177, 215, 239, 0.2);
+            @include respond-to(tablet) {
+                width: 100%;
+            }
+            .nb_right_container {
+                .right_first_text {
+                    position: relative;
+                    margin-left: 15px;
+                    margin-bottom: 10px;
+
+                    &::before {
+                        position: absolute;
+                        content: " ";
+                        height: 100%;
+                        width: 3px;
+                        background-color: #066ac8;
+                        left: -15px;
+                        border-radius: 2px;
+                    }
+                    p {
+                        font-size: 18px;
+                        font-weight: 500;
+                        margin: 0;
+                    }
+                }
+                .nb_right_wrapper {
+                    margin-block: 20px;
+                    border-top: 1px dashed rgba(180, 218, 254, 1);
+                    .right_calender {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-top: 10px;
+                        .bi {
+                            color: $blue;
+                        }
+                        p {
+                            font-size: 16px;
+                            font-weight: 500;
+                            margin: 0;
+                            .grey_txt {
+                                color: grey;
+                                font-size: 14px;
+                                font-weight: 500;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

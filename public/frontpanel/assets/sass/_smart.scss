@@ -1,0 +1,764 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Kavoon&family=Monda:wght@400..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Rubik:ital,wght@0,300..900;1,300..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap");
+.container {
+    width: 85%;
+    margin: 0 auto;
+    font-family: "Montserrat", serif !important;
+    .team_tab_section {
+        margin-block: 50px;
+        .container_wrapper {
+            display: flex;
+            gap: 20px;
+            .tabs {
+                box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.02);
+                padding: 20px 20px;
+                transition: all 0.3s ease-in-out;
+                width: 100%;
+                .tab {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding-inline: 10px;
+                    cursor: pointer;
+                    margin-bottom: 5px;
+                    padding-block: 10px;
+                    .tab_wrap {
+                        .fa-book-open {
+                            height: 20px;
+                            width: 20px;
+                        }
+                    }
+                    .tab_wrap {
+                        .fa-receipt {
+                            height: 20px;
+                            width: 20px;
+                        }
+                    }
+                    .tab_wrap {
+                        .fa-mobile-screen-button {
+                            height: 20px;
+                            width: 20px;
+                        }
+                    }
+                    .tab_wrap {
+                        .fa-people-roof {
+                            height: 20px;
+                            width: 20px;
+                        }
+                    }
+                    .tab_wrap {
+                        .fa-gears {
+                            height: 20px;
+                            width: 20px;
+                        }
+                    }
+                    .tab_wrap {
+                        .fa-copy {
+                            height: 20px;
+                            width: 20px;
+                        }
+                    }
+
+                    li {
+                        font-size: 16px;
+                        font-weight: 500;
+                        color: $grey;
+                        text-transform: uppercase;
+                        list-style-type: none;
+                       
+                    }
+                    &.active {
+                        background-color: #bc141a;
+                        border-radius: 4px;
+                        .fa-book-open {
+                            color: white;
+                        }
+                        .fa-receipt {
+                            color: white;
+                        }
+                        .fa-mobile-screen-button {
+                            color: white;
+                        }
+                        .fa-people-roof {
+                            color: white;
+                        }
+                        .fa-gears {
+                            color: white;
+                        }
+                        .fa-copy {
+                            color: white;
+                        }
+                        li {
+                            color: white;
+                            text-transform: uppercase;
+                            font-size: 16px;
+                            list-style-type: none;
+                        }
+                    }
+                }
+            }
+            .content {
+                #content1 {
+                    .faq2_section {
+                        .left_faq_container {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                            @include respond-to(mobile) {
+                                padding-inline: 15px;
+                                padding-bottom: 30px;
+                            }
+
+                            .faq_accordion {
+                                box-sizing: border-box;
+                                box-shadow: 0 0 16px rgba(209, 228, 238, 0.9);
+                                border-radius: 4px;
+                                background-color: white;
+                                position: relative;
+
+                                .question {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding-block: 3px;
+                                    padding-inline: 20px;
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 500;
+                                        @include respond-to(tablet) {
+                                            font-size: 18px;
+                                        }
+
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                    &.active {
+                                        background-color: #bc141a;
+                                        color: white;
+                                    }
+                                    .icon_container {
+                                        position: absolute;
+                                        top: 0px;
+                                        right: 0px;
+                                        bottom: 0;
+                                        color: #bc141a;
+                                        background: #bc141a;
+                                        padding-inline: 10px;
+                                        // width: 55px;
+                                        display: flex;
+                                        align-items: center;
+                                        border-radius: 4px;
+                                        @include respond-to(mobile) {
+                                            padding-inline: 6px;
+                                        }
+
+                                        &.active {
+                                            bottom: auto;
+                                            top: 15px !important;
+                                            padding-inline: 15px;
+                                        }
+                                        .icon {
+                                            color: white;
+                                            right: 5px !important;
+                                            top: 6px !important;
+                                            height: 20px;
+                                            width: 20px;
+                                            @include respond-to(mobile) {
+                                                height: 15px;
+                                                width: 15px;
+                                            }
+
+                                            &.active {
+                                                transform: rotate(-180deg);
+                                                color: white !important;
+                                            }
+                                        }
+                                    }
+                                }
+                                .answer {
+                                    max-height: 0;
+                                    overflow: hidden;
+
+                                    @include respond-to(mobile) {
+                                        padding-inline: 10px;
+                                        padding-top: 2px !important;
+                                    }
+                                    &.active {
+                                        max-height: fit-content;
+                                        padding-right: 65px;
+                                        padding-bottom: 20px;
+                                        padding-left: 20px;
+                                        padding-top: 15px;
+
+                                        @include respond-to(mobile) {
+                                            padding-right: 40px;
+                                        }
+                                    }
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 400;
+                                        color: #737373;
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                #content2 {
+                    .faq2_section {
+                        .left_faq_container {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                            @include respond-to(mobile) {
+                                padding-inline: 15px;
+                                padding-bottom: 30px;
+                            }
+
+                            .faq_accordion {
+                                box-sizing: border-box;
+                                box-shadow: 0 0 16px rgba(209, 228, 238, 0.9);
+                                border-radius: 4px;
+                                background-color: white;
+                                position: relative;
+
+                                .question {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding-block: 3px;
+                                    padding-inline: 20px;
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 500;
+                                        @include respond-to(tablet) {
+                                            font-size: 18px;
+                                        }
+
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                    &.active {
+                                        background-color: #bc141a;
+                                        color: white;
+                                    }
+                                    .icon_container {
+                                        position: absolute;
+                                        top: 0px;
+                                        right: 0px;
+                                        bottom: 0;
+                                        color: #bc141a;
+                                        background-color: #bc141a;
+                                        padding-inline: 10px;
+                                        // width: 55px;
+                                        display: flex;
+                                        align-items: center;
+                                        border-radius: 4px;
+                                        @include respond-to(mobile) {
+                                            padding-inline: 6px;
+                                        }
+
+                                        &.active {
+                                            bottom: auto;
+                                            top: 15px !important;
+                                        }
+                                        .icon {
+                                            color: white;
+                                            right: 5px !important;
+                                            top: 6px !important;
+                                            height: 20px;
+                                            width: 20px;
+                                            @include respond-to(mobile) {
+                                                height: 15px;
+                                                width: 15px;
+                                            }
+
+                                            &.active {
+                                                transform: rotate(-180deg);
+                                                color: white !important;
+                                            }
+                                        }
+                                    }
+                                }
+                                .answer {
+                                    max-height: 0;
+                                    overflow: hidden;
+
+                                    @include respond-to(mobile) {
+                                        padding-inline: 10px;
+                                        padding-top: 2px !important;
+                                    }
+                                    &.active {
+                                        max-height: fit-content;
+                                        padding-right: 65px;
+                                        padding-bottom: 20px;
+                                        padding-left: 20px;
+                                        padding-top: 15px;
+
+                                        @include respond-to(mobile) {
+                                            padding-right: 40px;
+                                        }
+                                    }
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 400;
+                                        color: #737373;
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                #content3 {
+                    .faq2_section {
+                        .left_faq_container {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                            @include respond-to(mobile) {
+                                padding-inline: 15px;
+                                padding-bottom: 30px;
+                            }
+
+                            .faq_accordion {
+                                box-sizing: border-box;
+                                box-shadow: 0 0 16px rgba(209, 228, 238, 0.9);
+                                border-radius: 4px;
+                                background-color: white;
+                                position: relative;
+
+                                .question {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding-block: 3px;
+                                    padding-inline: 20px;
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 500;
+                                        @include respond-to(tablet) {
+                                            font-size: 18px;
+                                        }
+
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                    &.active {
+                                        background-color: #bc141a;
+                                        color: white;
+                                    }
+                                    .icon_container {
+                                        position: absolute;
+                                        top: 0px;
+                                        right: 0px;
+                                        bottom: 0;
+                                        color: #bc141a;
+                                        background-color: #bc141a;
+                                        padding-inline: 10px;
+                                        // width: 55px;
+                                        display: flex;
+                                        align-items: center;
+                                        border-radius: 4px;
+                                        @include respond-to(mobile) {
+                                            padding-inline: 6px;
+                                        }
+
+                                        &.active {
+                                            bottom: auto;
+                                            top: 15px !important;
+                                        }
+                                        .icon {
+                                            color: white;
+                                            right: 5px !important;
+                                            top: 6px !important;
+                                            height: 20px;
+                                            width: 20px;
+                                            @include respond-to(mobile) {
+                                                height: 15px;
+                                                width: 15px;
+                                            }
+
+                                            &.active {
+                                                transform: rotate(-180deg);
+                                                color: white !important;
+                                            }
+                                        }
+                                    }
+                                }
+                                .answer {
+                                    max-height: 0;
+                                    overflow: hidden;
+
+                                    @include respond-to(mobile) {
+                                        padding-inline: 10px;
+                                        padding-top: 2px !important;
+                                    }
+                                    &.active {
+                                        max-height: fit-content;
+                                        padding-right: 65px;
+                                        padding-bottom: 20px;
+                                        padding-left: 20px;
+                                        padding-top: 15px;
+
+                                        @include respond-to(mobile) {
+                                            padding-right: 40px;
+                                        }
+                                    }
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 400;
+                                        color: #737373;
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                #content4 {
+                    .faq2_section {
+                        .left_faq_container {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                            @include respond-to(mobile) {
+                                padding-inline: 15px;
+                                padding-bottom: 30px;
+                            }
+
+                            .faq_accordion {
+                                box-sizing: border-box;
+                                box-shadow: 0 0 16px rgba(209, 228, 238, 0.9);
+                                border-radius: 4px;
+                                background-color: white;
+                                position: relative;
+
+                                .question {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding-block: 3px;
+                                    padding-inline: 20px;
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 500;
+                                        @include respond-to(tablet) {
+                                            font-size: 18px;
+                                        }
+
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                    &.active {
+                                        background-color: #bc141a;
+                                        color: white;
+                                    }
+                                    .icon_container {
+                                        position: absolute;
+                                        top: 0px;
+                                        right: 0px;
+                                        bottom: 0;
+                                        color: #bc141a;
+                                        background-color: #bc141a;
+                                        padding-inline: 10px;
+                                        // width: 55px;
+                                        display: flex;
+                                        align-items: center;
+                                        border-radius: 4px;
+                                        @include respond-to(mobile) {
+                                            padding-inline: 6px;
+                                        }
+
+                                        &.active {
+                                            bottom: auto;
+                                            top: 15px !important;
+                                        }
+                                        .icon {
+                                            color: white;
+                                            right: 5px !important;
+                                            top: 6px !important;
+                                            height: 20px;
+                                            width: 20px;
+                                            @include respond-to(mobile) {
+                                                height: 15px;
+                                                width: 15px;
+                                            }
+
+                                            &.active {
+                                                transform: rotate(-180deg);
+                                                color: white !important;
+                                            }
+                                        }
+                                    }
+                                }
+                                .answer {
+                                    max-height: 0;
+                                    overflow: hidden;
+
+                                    @include respond-to(mobile) {
+                                        padding-inline: 10px;
+                                        padding-top: 2px !important;
+                                    }
+                                    &.active {
+                                        max-height: fit-content;
+                                        padding-right: 65px;
+                                        padding-bottom: 20px;
+                                        padding-left: 20px;
+                                        padding-top: 15px;
+
+                                        @include respond-to(mobile) {
+                                            padding-right: 40px;
+                                        }
+                                    }
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 400;
+                                        color: #737373;
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                #content5 {
+                    .faq2_section {
+                        .left_faq_container {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                            @include respond-to(mobile) {
+                                padding-inline: 15px;
+                                padding-bottom: 30px;
+                            }
+
+                            .faq_accordion {
+                                box-sizing: border-box;
+                                box-shadow: 0 0 16px rgba(209, 228, 238, 0.9);
+                                border-radius: 4px;
+                                background-color: white;
+                                position: relative;
+
+                                .question {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding-block: 3px;
+                                    padding-inline: 20px;
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 500;
+                                        @include respond-to(tablet) {
+                                            font-size: 18px;
+                                        }
+
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                    &.active {
+                                        background-color: #bc141a;
+                                        color: white;
+                                    }
+                                    .icon_container {
+                                        position: absolute;
+                                        top: 0px;
+                                        right: 0px;
+                                        bottom: 0;
+                                        color: #bc141a;
+                                        background-color: #bc141a;
+                                        padding-inline: 10px;
+                                        // width: 55px;
+                                        display: flex;
+                                        align-items: center;
+                                        border-radius: 4px;
+                                        @include respond-to(mobile) {
+                                            padding-inline: 6px;
+                                        }
+
+                                        &.active {
+                                            bottom: auto;
+                                            top: 15px !important;
+                                        }
+                                        .icon {
+                                            color: white;
+                                            right: 5px !important;
+                                            top: 6px !important;
+                                            height: 20px;
+                                            width: 20px;
+                                            @include respond-to(mobile) {
+                                                height: 15px;
+                                                width: 15px;
+                                            }
+
+                                            &.active {
+                                                transform: rotate(-180deg);
+                                                color: white !important;
+                                            }
+                                        }
+                                    }
+                                }
+                                .answer {
+                                    max-height: 0;
+                                    overflow: hidden;
+
+                                    @include respond-to(mobile) {
+                                        padding-inline: 10px;
+                                        padding-top: 2px !important;
+                                    }
+                                    &.active {
+                                        max-height: fit-content;
+                                        padding-right: 65px;
+                                        padding-bottom: 20px;
+                                        padding-left: 20px;
+                                        padding-top: 15px;
+
+                                        @include respond-to(mobile) {
+                                            padding-right: 40px;
+                                        }
+                                    }
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 400;
+                                        color: #737373;
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                #content6 {
+                    .faq2_section {
+                        .left_faq_container {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                            @include respond-to(mobile) {
+                                padding-inline: 15px;
+                                padding-bottom: 30px;
+                            }
+
+                            .faq_accordion {
+                                box-sizing: border-box;
+                                box-shadow: 0 0 16px rgba(209, 228, 238, 0.9);
+                                border-radius: 4px;
+                                background-color: white;
+                                position: relative;
+
+                                .question {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding-block: 3px;
+                                    padding-inline: 20px;
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 500;
+                                        @include respond-to(tablet) {
+                                            font-size: 18px;
+                                        }
+
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                    &.active {
+                                        background-color: #bc141a;
+                                        color: white;
+                                    }
+                                    .icon_container {
+                                        position: absolute;
+                                        top: 0px;
+                                        right: 0px;
+                                        bottom: 0;
+                                        color: #bc141a;
+                                        background-color: #bc141a;
+                                        padding-inline: 10px;
+                                        // width: 55px;
+                                        display: flex;
+                                        align-items: center;
+                                        border-radius: 4px;
+                                        @include respond-to(mobile) {
+                                            padding-inline: 6px;
+                                        }
+
+                                        &.active {
+                                            bottom: auto;
+                                            top: 15px !important;
+                                        }
+                                        .icon {
+                                            color: white;
+                                            right: 5px !important;
+                                            top: 6px !important;
+                                            height: 20px;
+                                            width: 20px;
+                                            @include respond-to(mobile) {
+                                                height: 15px;
+                                                width: 15px;
+                                            }
+
+                                            &.active {
+                                                transform: rotate(-180deg);
+                                                color: white !important;
+                                            }
+                                        }
+                                    }
+                                }
+                                .answer {
+                                    max-height: 0;
+                                    overflow: hidden;
+
+                                    @include respond-to(mobile) {
+                                        padding-inline: 10px;
+                                        padding-top: 2px !important;
+                                    }
+                                    &.active {
+                                        max-height: fit-content;
+                                        padding-right: 65px;
+                                        padding-bottom: 20px;
+                                        padding-left: 20px;
+                                        padding-top: 15px;
+
+                                        @include respond-to(mobile) {
+                                            padding-right: 40px;
+                                        }
+                                    }
+                                    p {
+                                        font-size: 16px;
+                                        font-weight: 400;
+                                        color: #737373;
+                                        @include respond-to(mobile) {
+                                            font-size: 14px;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

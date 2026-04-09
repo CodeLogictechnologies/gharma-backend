@@ -1,0 +1,17 @@
+#new_blog_sec {
+    .card_flx {
+        flex-wrap: wrap;
+        row-gap: 1.2rem;
+
+        .card_col {
+            flex: 0 0 33.3%;
+        }
+
+        .card_img_des {
+            h1 {
+                font-size: 1.4rem;
+                margin-bottom: 1rem;
+            }
+        }
+    }
+}

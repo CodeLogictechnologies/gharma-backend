@@ -1,0 +1,62 @@
+
+
+// BREAKPOINTS
+@mixin min($width)
+{
+	@media (min-width: #{$width}) 
+		{
+			@content;
+		}
+}
+@mixin max($width)
+{
+	@media (max-width: #{$width}) 
+	{
+		@content;
+	}
+}
+
+// @mixin breakpoint($point) {
+
+// 	// 481 to Upper
+// 	@if $point == xxsmall {
+// 		@media (min-width: 481px) { 
+// 			@content ; 
+// 		}
+// 	}
+
+// 	// 576 to Upper
+// 	@if $point == xsmall {
+// 		@media (min-width: 576px) { 
+// 			@content ; 
+// 		}
+// 	}
+
+// 	// 768 to Upper
+// 	@if $point == small {
+// 		@media (min-width: 768px) { 
+// 			@content ; 
+// 		}
+// 	}
+
+// 	// 992 to Upper
+// 	@if $point == medium {
+// 		@media (min-width: 992px) { 
+// 			@content ; 
+// 		}
+// 	}
+
+// 	// 1200 to Upper
+// 	@if $point == large {
+// 		@media (min-width: 1200px) { 
+// 			@content ; 
+// 		}
+// 	}
+
+// 	// 1400 to Upper
+// 	@if $point == xlarge {
+// 		@media (min-width: 1400px) { 
+// 			@content ; 
+// 		}
+// 	}
+// } 

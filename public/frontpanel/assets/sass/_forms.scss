@@ -1,0 +1,350 @@
+h2 {
+    color: #2f8d46;
+}
+
+#form {
+    text-align: center;
+    position: relative;
+    margin-top: 20px;
+}
+
+#form fieldset {
+    background: white;
+    border: 0 none;
+    border-radius: 0.5rem;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding-bottom: 20px;
+    position: relative;
+}
+
+.finish {
+    text-align: center;
+}
+
+#form fieldset:not(:first-of-type) {
+    display: none;
+}
+
+#form .previous-step,
+.next-step {
+    width: 100px;
+    font-weight: bold;
+    color: white;
+    border: 0 none;
+    border-radius: 0px;
+    cursor: pointer;
+    padding: 10px 5px;
+    margin: 10px 5px 10px 0px;
+    float: right;
+}
+
+.form,
+.previous-step {
+    background: #616161;
+}
+
+.form,
+.next-step {
+    background: #2f8d46;
+}
+
+#form .previous-step:hover,
+#form .previous-step:focus {
+    background-color: #000000;
+}
+
+#form .next-step:hover,
+#form .next-step:focus {
+    background-color: #2f8d46;
+}
+
+.text {
+    font-weight: normal;
+}
+
+#progressbar {
+    margin-bottom: 30px;
+    overflow: hidden;
+    color: lightgrey;
+    display: flex;
+    justify-content: center;
+    @include respond-to(mobile) {
+        flex-direction: column;
+    }
+}
+
+@media only screen and (max-width: 768) {
+    #progressbar {
+        flex-direction: column;
+    }
+}
+
+@media only screen and (max-width: 992) {
+    #progressbar {
+        width: 100%;
+    }
+}
+
+#progressbar .active {
+    color: #000000;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 20px;
+    @include respond-to(mobile) {
+        width: 100%;
+    }
+}
+#progressbar li {
+    list-style-type: none;
+    font-size: 15px;
+    width: 25%;
+    float: left;
+    position: relative;
+    font-weight: 400;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 20px;
+    @include respond-to(mobile) {
+        width: 100%;
+    }
+}
+
+#progressbar #step1:before {
+    content: "1";
+}
+
+#progressbar #step2:before {
+    content: "2";
+}
+
+#progressbar #step3:before {
+    content: "3";
+}
+
+#progressbar #step4:before {
+    content: "4";
+}
+
+#progressbar li:before {
+    width: 50px;
+    height: 50px;
+    line-height: 45px;
+    display: block;
+    font-size: 20px;
+    color: #ffffff;
+    background: lightgray;
+    border-radius: 50%;
+    margin: 0 auto 10px auto;
+    padding: 2px;
+}
+
+#progressbar li:after {
+    content: "";
+    width: 100%;
+    height: 2px;
+    background: lightgray;
+    position: absolute;
+    left: 0;
+    top: 60px;
+    z-index: -1;
+}
+
+#progressbar li.active:before,
+#progressbar li.active:after {
+    background: rgba(6, 106, 200, 1);
+}
+
+.progress {
+    height: 20px;
+}
+
+.progress-bar {
+    background-color: rgba(217, 217, 217, 1);
+}
+
+.personal_info_container {
+    background-color: rgba(239, 247, 255, 1);
+    padding: 30px 30px;
+    border-radius: 4px;
+    @include respond-to(mobile) {
+        padding: 10px;
+    }
+}
+
+.personal_txt_svg {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-block: 15px;
+}
+
+.personal_txt_svg p {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    @include respond-to(mobile) {
+        font-size: 20px;
+    }
+}
+
+.form_wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.form_left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 40%;
+}
+
+.form_right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 40%;
+}
+
+input {
+    padding: 15px;
+    outline: none;
+    border: none;
+    border-radius: 4px;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 400;
+    @include respond-to(mobile) {
+        padding: 8px;
+    }
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+label {
+    width: 100%;
+}
+
+fieldset {
+    display: flex;
+    justify-content: center;
+}
+
+.form_submit_container {
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+    @include respond-to(mobile) {
+        width: 100% !important;
+    }
+}
+.submit_btn {
+    background: rgba(6, 106, 200, 1) !important;
+    border-radius: 4px;
+    border: none;
+    padding: 12px 8px;
+    margin-block: 20px;
+    width: 20%;
+}
+
+.submit_btn p {
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+    margin: 0;
+}
+
+.permanent_ad_txt {
+    p {
+        text-align: start !important;
+        font-size: 18px;
+        font-weight: 500;
+        @include respond-to(mobile) {
+            font-size: 14px;
+        }
+    }
+}
+
+.form_wrapper_wrap {
+    display: flex;
+    justify-content: space-between;
+}
+
+.form_left_wrap {
+    width: 30%;
+    position: relative;
+
+    label {
+        width: 100%;
+    }
+
+    input {
+        width: 100%;
+    }
+}
+
+.form_right_wrap {
+    width: 30%;
+    position: relative;
+
+    label {
+        width: 100%;
+    }
+
+    input {
+        width: 100%;
+    }
+}
+
+.ward_tole_wrapper {
+    display: flex;
+    justify-content: flex-start !important;
+    gap: 1rem !important;
+    align-items: center;
+    width: 90%;
+    margin-block: 20px;
+}
+
+.form_ward_wrap {
+    width: 53%;
+    position: relative;
+}
+
+.form_tole_wrap {
+    width: 45%;
+    position: relative;
+}
+
+.temp_ad_txt {
+    p {
+        text-align: start !important;
+        font-size: 18px;
+        font-weight: 500;
+        @include respond-to(mobile) {
+            font-size: 14px;
+        }
+    }
+}
+
+.bi-card-text {
+    color: rgba(6, 106, 200, 1);
+    height: 15px;
+    width: 15px;
+}
+
+.form_icon {
+    position: absolute;
+    right: 13px;
+    top: 13px;
+    @include respond-to(mobile) {
+        top: 7px;
+    }
+}

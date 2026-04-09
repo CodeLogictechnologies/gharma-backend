@@ -1,0 +1,306 @@
+.swiper_pagination_wrapper {
+    position: relative;
+
+    .Event_page {
+        .container {
+            position: relative;
+            // &::before {
+            //     content: url("/frontend/images/Untitled-1 1.png");
+            //     height: 30%;
+            //     position: absolute;
+            //     display: inline-block;
+            // }
+            .event_wrapper {
+                display: flex;
+                justify-content: space-between;
+                gap: 15px;
+
+                @include respond-to(tablet) {
+                    flex-direction: column;
+                }
+
+                @include respond-to(mobile) {
+                    flex-direction: column;
+                    gap: 30px;
+                }
+                .left_event_text {
+                    .first_blue_text {
+                        position: relative;
+                        left: 10px;
+                        margin-block: 15px;
+                        &::after {
+                            position: absolute;
+                            content: " ";
+                            background-color: rgb(6, 106, 200);
+                            height: 3px !important;
+                            width: 6% !important;
+                            border-radius: 4px;
+                            top: 8px;
+                            left: 156px;
+                        }
+                        p {
+                            font-size: 16px;
+                            font-weight: 600;
+                            color: $blue;
+                            margin: 0;
+                        }
+                    }
+                    .second_event_text {
+                        margin-block: 15px;
+                        p {
+                            font-size: 34px;
+                            font-weight: 600;
+                            margin: 0;
+                            @include respond-to(tablet) {
+                                font-size: 30px;
+                            }
+                            @include respond-to(mobile) {
+                                font-size: 22px;
+                            }
+
+                            .blue_text {
+                                color: $blue;
+                            }
+                        }
+                    }
+                    .third_event_text {
+                        margin-block: 15px;
+                        p {
+                            font-size: 16px;
+                            font-weight: 400;
+                            color: #737373;
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 14px;
+                            }
+                        }
+                    }
+
+                    .event_notice_container {
+                        background-color: #eff7ff;
+                        margin-block: 20px;
+                        border-radius: 4px;
+                        transition:
+                            background-color 0.3s ease,
+                            transform 0.3s ease;
+
+                        .event_notice_info_cards {
+                            display: flex;
+                            justify-content: space-around;
+                            align-items: center;
+                            box-sizing: border-box;
+                            padding: 10px;
+                            gap: 20px;
+                            box-shadow: 0 0 16px rgba(139, 202, 241, 0.4);
+                            transition: all 0.3s ease-in-out;
+                            @include respond-to(mobile) {
+                                display: grid;
+                                justify-items: center;
+                                gap: 0;
+                            }
+                            .date_info {
+                                width: 15%;
+                                @include respond-to(mobile) {
+                                    width: 100% !important;
+                                }
+                                .date1 {
+                                    p {
+                                        font-size: 20px;
+                                        font-weight: 500;
+                                        margin: 0;
+                                        @include respond-to(mobile) {
+                                            font-size: 16px;
+                                            text-align: center;
+                                        }
+                                    }
+                                }
+                                .date2 {
+                                    margin-block: 20px;
+                                    p {
+                                        font-size: 14px;
+                                        width: 400;
+                                        margin: 0;
+                                        @include respond-to(mobile) {
+                                            font-size: 10px;
+                                            text-align: center;
+                                        }
+                                    }
+                                }
+                            }
+                            .event_info {
+                                border-left: 2px dashed rgba(180, 218, 254, 1);
+                                border-right: 2px dashed rgba(180, 218, 254, 1);
+                                padding-inline: 20px;
+                                width: 60%;
+                                @include respond-to(mobile) {
+                                    width: 100%;
+                                }
+                                @include respond-to(mobile) {
+                                    border: none;
+                                }
+                                p {
+                                    font-size: 24px;
+                                    font-weight: 500;
+                                    margin: 0;
+                                }
+                                .time_date_container {
+                                    display: flex;
+                                    justify-content: space-between;
+                                    gap: 10px;
+                                    @include respond-to(mobile) {
+                                        flex-direction: column;
+                                        align-items: center;
+                                    }
+
+                                    .event_time {
+                                        display: flex;
+                                        gap: 10px;
+                                        .event_img {
+                                            height: 14px;
+                                            width: 14px;
+                                            align-self: center;
+                                            @include respond-to(mobile) {
+                                                height: 19px;
+                                                width: 18px;
+                                            }
+                                        }
+                                    }
+                                    .event_time {
+                                        display: flex;
+                                        gap: 10px;
+                                        p {
+                                            font-size: 14px;
+                                            font-weight: 400;
+                                            margin: 0;
+                                            color: #737373;
+                                        }
+                                        .event_img {
+                                            .bi {
+                                                color: #066ac8;
+                                            }
+                                        }
+                                    }
+                                }
+                                .event_location {
+                                    display: flex;
+                                    gap: 10px;
+                                    align-items: center;
+                                    .event_img {
+                                        .bi {
+                                            color: #066ac8;
+                                        }
+                                    }
+                                    p {
+                                        font-size: 14px;
+                                        font-weight: 400;
+                                        margin: 0;
+                                        color: #737373;
+                                    }
+                                }
+                            }
+                            .main_text {
+                                margin-block: 20px;
+                                @include respond-to(mobile) {
+                                    margin-top: 10px !important;
+                                }
+                                p {
+                                    font-size: 22px;
+                                    font-weight: 500;
+                                    margin: 0;
+                                    @include respond-to(tablet) {
+                                        font-size: 20px !important;
+                                    }
+                                    @include respond-to(mobile) {
+                                        font-size: 16px !important;
+                                        text-align: center;
+                                    }
+                                }
+                            }
+                            .button {
+                                display: inline-block;
+                                border: 1px solid $blue;
+                                padding: 8px 10px;
+
+                                p {
+                                    font-size: 14px;
+                                    font-weight: 500;
+                                    margin: 0;
+                                    color: $blue;
+                                    display: flex;
+                                    @include respond-to(mobile) {
+                                        font-size: 12px;
+                                        white-space: nowrap;
+                                    }
+
+                                    .bi {
+                                        height: 16px;
+                                        width: 16px;
+                                    }
+                                }
+                            }
+                            &:hover {
+                                background-color: $blue;
+                                color: white;
+                                .event_time {
+                                    P {
+                                        color: white !important;
+                                    }
+                                    .bi {
+                                        color: white !important;
+                                    }
+                                }
+                                .event_location {
+                                    P {
+                                        color: white !important;
+                                    }
+                                    .bi {
+                                        color: white !important;
+                                    }
+                                }
+                                .button {
+                                    border: 1px solid white;
+                                    p {
+                                        color: white;
+                                    }
+                                    .bi {
+                                        color: white;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                .right_event_img {
+                    width: 366px;
+                    height: 530px;
+                    position: relative;
+                    @include respond-to(tablet) {
+                        display: none;
+                    }
+                    &::after {
+                        content: " ";
+                        height: 50px;
+                        width: 50px;
+                        border-radius: 50%;
+                        border: 2px solid $blue;
+                        position: absolute;
+                        top: 50px;
+                        right: -25px;
+                    }
+                    @include respond-to(tablet) {
+                        width: 100%;
+                        height: 330px;
+                    }
+                    @include respond-to(mobile) {
+                        width: 100%;
+                        height: 200px !important;
+                    }
+                    img {
+                        border-radius: 5px;
+                    }
+                }
+            }
+        }
+    }
+}

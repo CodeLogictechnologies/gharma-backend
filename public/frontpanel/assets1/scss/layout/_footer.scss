@@ -1,0 +1,111 @@
+#footer {
+    background-color: $dark-primary-color;
+    padding: 3rem 0;
+    .foot_wrapper {
+      .foot_flx {
+        display: flex;
+        flex-wrap: wrap;
+        row-gap: 2rem;
+        .foot_col {
+          flex: 1 0 25%;
+          padding: 0 1%;
+             @include max(992px){
+            flex: 1 0 47%;
+          }
+          @include max(992px){
+            flex: 1 0 47%;
+          }
+              @include max(767px){
+            flex: 1 0 100%;
+          }
+          &.first_col {
+            // flex: 1 0 20%;
+            padding-right: 3rem;
+          }
+          // foot logo
+          .header_logo {
+            margin-bottom: 2rem;
+            background-color: $white-color;
+            padding: 1rem;
+            border-radius: 4px;
+            img {
+            }
+            .logo_name {
+              @include max(1160px){
+                display: block;
+              }
+              h5 {
+                color: $black-color;
+                width: 100% !important;
+              }
+              p {
+                margin-bottom: 0px;
+                color: $black-color;
+              }
+            }
+          }
+          p {
+            color: $white-color;
+          }
+          // social media
+          .social_media {
+            display: flex;
+            .media_icons {
+              color: $white-color;
+              margin-right: 2rem;
+              font-size: 1.5rem;
+            }
+          }
+  
+          // Foot Title
+          .ft_title {
+            h4 {
+              font-size: 1.5rem;
+              color: #fff;
+              margin-bottom: 2rem;
+              font-weight: 700;
+            }
+          }
+          // footer List
+          .ft_list {
+            li {
+              margin-bottom: 1rem;
+              a {
+                font-size: 1rem;
+                color: #fff;
+              }
+                  .mini_icons{
+            color: $white-color;
+            margin-right: 1rem;
+          }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .end_footer{
+    background-color: $primary-color;
+    padding: 1rem 0;
+    .end_ft_list{
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+         @include max(767px){
+            text-align: center;
+            justify-content: center;
+          }
+      li{
+        color: $white-color;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .visit_link{
+        color: $white-color;
+        opacity: 0.8;
+        margin-left: 0.5rem;
+        font-weight: 600;
+      }
+    }
+  }

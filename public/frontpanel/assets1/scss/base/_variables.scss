@@ -1,0 +1,93 @@
+// Noto Sans Font Family 
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+// Pollor One Static Font Family 
+@import url('https://fonts.googleapis.com/css2?family=Poller+One&display=swap');
+
+@font-face {
+    font-family: apra;
+    src: url("../fonts/arap/arap.ttf");
+}
+
+
+//===== Colors =====//
+ 
+$body-color: #505050;
+$primary-color: #008060;
+$dark-primary-color: #004936;
+$primary-color-2: #d9ece7;
+$heading-color: #004936;
+$heading-sm-color: #008060;
+$border-primary: #008060;
+$border-color:#ddd;
+$white-color: #fff;
+$black-color: #000;
+$opacity-color: #008060c7;
+$blue-color: #05204A;
+$blue-color-light: #87CEEB;
+$opacity_05: rgba(0, 128, 96, 0.05);
+// #00806030
+
+//==== Social Media Color =====//
+
+$facebook: #1561b7;  
+$google-plus: #c2080f;
+$pinterest: #c2080f;
+$linkedin: #127bbb;
+$twitter: #4696f0;
+
+// Hover color 
+// $hover-color: #f8777c;
+// $hover-color-two: #ff4d4d;
+// $hover-color-three: #70bdc2;
+
+
+// $bg-color: #fff;
+// $secondary-color: #0e1b47;    
+
+// $color-shark: #929496;
+// $color-silver: #ababab;
+// $color-nevada: #63696a;
+// $color-white: #ffffff;
+// $color-black: #000000;
+// $color-success: #28a745;
+// $color-info:  #17a2b8;
+// $color-warning: #ffc107;
+// $color-danger: #dc3545;
+// $color-light:  #f8f9fa;
+
+// $colorList: $primary-color, $primary-color-2;
+
+ 
+//===== Font Family =====//
+
+$body-font: "Noto Sans", sans-serif;
+$apra-font: 'apra';
+$polar-font: "Poller One", serif;
+
+// $heading-font: $body-font;
+// $seoge: "Segoe Script Regular";
+// $mrack: 'Marck Script', cursive;
+
+
+//==== Font size =====//
+// $body-font-size: 16px;
+
+//==== Line height ====//
+
+// $line-height: 1.714;
+// $heading-line-height: 1.857;
+
+
+//==== Border Radius ====//
+
+// $border-radius: 4px;
+
+//==== Transition =====//
+
+$transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+$left-right-gradient: linear-gradient(to right, $primary-color 5%, $primary-color-2 100%);
+
+// $box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+$box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);

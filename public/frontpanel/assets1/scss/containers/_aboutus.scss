@@ -1,0 +1,168 @@
+.section {
+    &.two_col_sec {
+        padding: 3rem 0;
+        background-color: #f9f9f9;
+
+        .two_col_wrapper {
+            // display: flex;
+            // flex-direction: column;
+            // align-items: center;
+            // text-align: center;
+
+            .two_col_wrapper_flx {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                margin-top: 20px;
+
+                @include max(768px) {
+                    flex-direction: column-reverse;
+                }
+
+                .left_col_wrapepr {
+                    flex: 0 1 45%;
+                    text-align: left;
+
+                    @include max(768px) {
+                        flex-basis: 100%;
+                    }
+
+                    h5 {
+                        font-size: 1rem;
+                        color: $primary-color;
+                        margin-bottom: 1rem;
+                    }
+
+                    h1 {
+                        font-size: 2.25rem;
+                        color: #333;
+                        margin-bottom: 1.3rem;
+                        color: $dark-primary-color;
+                        font-weight: 600;
+                    }
+
+                    p {
+                        font-size: 1rem;
+                        color: $black-color;
+                        margin-bottom: 20px;
+                        font-weight: 500;
+                    }
+
+                }
+
+                .right_col_wrapper {
+                    flex: 0 1 50%;
+                    display: flex;
+                    justify-content: flex-end;
+
+                    @include max(768px) {
+                        flex-basis: 100%;
+                        margin-bottom: 4rem;
+                    }
+
+                    .right_img_wrap {
+                        position: relative;
+                        width: 31rem;
+                        height: 35rem;
+
+                        @include max(1200px) {
+                            width: 28rem;
+                        }
+
+                        @include max(992px) {
+                            width: 23rem;
+                            height: 25rem;
+                        }
+
+                        @include max(768px) {
+                            width: 100%;
+                            height: 100%;
+                        }
+
+                        &:after {
+                            content: "";
+                            position: absolute;
+                            bottom: -1rem;
+                            right: -1rem;
+                            width: 20rem;
+                            height: 8rem;
+                            border: 1px solid $primary-color;
+                            border-radius: 3px;
+                            // z-index: -1;
+                        }
+
+                        img {
+                            width: 100%;
+                            z-index: 999;
+                            height: 100%;
+                            position: relative;
+                            object-fit: cover;
+                            border-radius: 4px 60px 4px 60px;
+                        }
+
+                        .experience_text {
+                            position: absolute;
+                            top: 2rem;
+                            left: -7rem;
+                            color: #fff;
+                            width: 16rem;
+                            border: 1px solid #ddd;
+                            padding: 0.3rem;
+                            border-radius: 5px;
+                            text-align: center;
+                            border-radius: 4px;
+                            z-index: 999;
+
+                            @include max(1200px) {
+                                width: 14rem;
+                                left: -3rem;
+                            }
+
+                            @include max(768px) {
+                                left: 50%;
+                                top: 50%;
+                                transform: translate(-50%, -50%);
+                                width: 16rem;
+
+                            }
+
+                            .exp_flx {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                padding: 2rem 1.5rem;
+                                gap: 0.5rem;
+                                background-color: $primary-color;
+                                border-radius: 4px;
+
+                                @include max(1200px) {
+                                    padding: 1.5rem 0.8rem;
+                                }
+
+                                @include max(768px) {
+                                    background-color: $opacity-color;
+                                }
+
+                                h1 {
+                                    width: fit-content;
+                                    font-size: 3rem;
+                                    margin: 0;
+                                    // font-weight: 800;
+                                    font-family: $polar-font;
+                                }
+
+                                h5 {
+                                    width: fit-content;
+                                    font-size: 1rem;
+                                    margin: 0;
+                                    font-weight: 500;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

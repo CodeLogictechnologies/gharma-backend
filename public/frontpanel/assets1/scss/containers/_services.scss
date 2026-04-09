@@ -1,0 +1,78 @@
+.service_section {
+    margin-top: -6.2rem;
+    z-index: 999;
+    position: relative;
+    margin-bottom: 0px !important;
+
+    .col_card_wrapper {
+        .col_card_flx_wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+
+            .col_card_wrap {
+                flex: 1 0 25%;
+                padding: 0.6rem;
+
+                @include max(991px) {
+                    flex: 1 0 50%;
+                }
+
+                @include max(767px) {
+                    flex: 1 0 100%;
+                }
+
+                .card_icon {
+
+                    svg {
+                        font-size: 2rem;
+                        color: $primary-color;
+                    }
+                }
+
+
+
+                .col_card_inside_wrap {
+                    background-color: #fff;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 4px;
+                    padding: 2.5rem 1rem 2rem;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+                }
+
+                .card_title {
+                    display: flex;
+                    gap: 0.8rem;
+                    // flex-direction: column;
+                    align-items: center;
+                    margin-bottom: 1rem;
+
+                    .card_icon {
+                        width: 2.5rem;
+                        height: 2.5rem;
+                        text-align: center;
+                        background-size: cover;
+
+
+                    }
+
+                    h4 {
+                        font-size: 1.1rem;
+                        margin: 0;
+                        color: $dark-primary-color;
+                        font-weight: 600;
+                    }
+                }
+
+                p {
+                    font-size: 0.8rem;
+                    color: $black-color;
+                    font-weight: 500;
+                }
+
+
+            }
+        }
+    }
+}

@@ -1,0 +1,750 @@
+@import "_mixins.scss";
+.team_tab_section {
+    margin-block: 40px;
+    .container_wrapper {
+        display: flex;
+        gap: 40px;
+        justify-content: space-between;
+        @include respond-to(mobile) {
+            flex-direction: column;
+        }
+        .tabs {
+            box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.1);
+            padding: 20px 20px;
+            transition: all 0.3s ease-in-out;
+            height: 40%;
+            width: 30% !important;
+            @include respond-to(mobile) {
+                width: 90% !important;
+            }
+            .first_txt {
+                padding-inline: 20px;
+                p {
+                    font-size: 18px;
+                    font-weight: 500;
+                    @include respond-to(mobile) {
+                        font-size: 16px;
+                    }
+                }
+            }
+            .tab {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-block: 15px;
+                padding-inline: 10px;
+                cursor: pointer;
+                .bi {
+                    color: $blue;
+                    height: 20px;
+                    width: 17px;
+                }
+                li {
+                    font-size: 16px;
+                    font-weight: 500;
+                    color: $grey;
+                    list-style-type: none;
+                }
+                &.active {
+                    background-color: $blue;
+                    padding-inline: 10px;
+                    border-radius: 4px;
+                    padding-block: 12px;
+                    .bi {
+                        color: $white;
+                    }
+                    li {
+                        color: $white;
+                    }
+                }
+            }
+        }
+        .content {
+            width: 70%;
+            @include respond-to(mobile) {
+                width: 100% !important;
+            }
+            #content-0 {
+                width: 100% !important;
+                .first_content_wrapper {
+                    .first_txt {
+                        p {
+                            font-size: 30px;
+                            font-weight: 500;
+                            color: rgb(13, 19, 23);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 22px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 26px;
+                            }
+                        }
+                    }
+                    .second_txt {
+                        margin-block: 20px;
+                        line-height: 30px;
+                        p {
+                            font-size: 16px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px;
+                            }
+                        }
+                    }
+                    .third_image_wrapper {
+                        display: flex;
+                        gap: 20px;
+                        .left_bigger_image {
+                            height: 110px;
+                            width: 50%;
+                        }
+                        .right_smaller_images {
+                            width: 50%;
+                            gap: 10px;
+                            display: flex;
+                            flex-direction: column;
+                            .first_img {
+                                height: 50px;
+                            }
+                            .second_img {
+                                height: 50px;
+                            }
+                        }
+                    }
+                    .forth_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px;
+                            }
+                        }
+                    }
+                    .fifth_txt {
+                        p {
+                            font-size: 36px;
+                            font-weight: 500;
+                            color: rgba(0, 0, 0, 1);
+                            text-align: start;
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px !important;
+                            }
+                        }
+                    }
+                    .sixth_txt {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-block: 5px;
+                        .bi {
+                            color: $blue;
+                            transform: rotate(90deg);
+                        }
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                                margin-block: 10px;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px;
+                            }
+                        }
+                    }
+                    .blue_bg_image {
+                        margin-top: 20px;
+                        position: relative;
+                        z-index: 90;
+                        height: 300px;
+                        &::after {
+                            content: " ";
+                            position: absolute;
+                            height: 100%;
+                            width: 100%;
+                            background: linear-gradient(
+                                270deg,
+                                rgba(6, 106, 200, 0.8) 50%,
+                                rgba(6, 106, 200, 0.64) 100%,
+                                rgba(6, 106, 200, 0.8) 100%
+                            );
+                            left: 0;
+                            top: 0;
+                            bottom: 0;
+                        }
+                        .img_absolute_txt {
+                            position: absolute;
+                            z-index: 99;
+                            top: 20px;
+                            text-align: center;
+                            width: 100%;
+                            padding-top: 30px;
+                            .bi {
+                                color: $white;
+                                height: 70px;
+                                width: 70px;
+                            }
+                            p {
+                                font-size: 36px;
+                                font-weight: 500;
+                                color: $white;
+                                text-align: center;
+                                margin: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 22px !important;
+                                }
+                            }
+                        }
+                        .youtube_icon {
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            z-index: 99;
+                            .bi {
+                                height: 80px;
+                                width: 80px;
+                                color: white;
+                            }
+                        }
+                        .img_absolute {
+                            position: absolute;
+                            height: 100%;
+                            width: 100%;
+                            img {
+                                object-fit: cover;
+                            }
+                        }
+                    }
+                }
+            }
+
+            #content-1 {
+                width: 100% !important;
+                .first_content_wrapper {
+                    .first_txt {
+                        p {
+                            font-size: 30px;
+                            font-weight: 500;
+                            color: rgb(13, 19, 23);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 22px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 26px;
+                            }
+                        }
+                    }
+                    .second_txt {
+                        margin-block: 20px;
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px;
+                            }
+                        }
+                    }
+                    .third_image_wrapper {
+                        display: flex;
+                        gap: 20px;
+                        .left_bigger_image {
+                            height: 110px;
+                            width: 50%;
+                        }
+                        .right_smaller_images {
+                            width: 50%;
+                            gap: 10px;
+                            display: flex;
+                            flex-direction: column;
+                            .first_img {
+                                height: 50px;
+                            }
+                            .second_img {
+                                height: 50px;
+                            }
+                        }
+                    }
+                    .forth_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px;
+                            }
+                        }
+                    }
+                    .fifth_txt {
+                        p {
+                            font-size: 36px;
+                            font-weight: 500;
+                            color: rgba(0, 0, 0, 1);
+                            text-align: start;
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px !important;
+                            }
+                        }
+                    }
+                    .sixth_txt {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-block: 5px;
+                        .bi {
+                            color: $blue;
+                            transform: rotate(90deg);
+                        }
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                                margin-block: 10px;
+                            }
+                            @include respond-to(tablet) {
+                                font-size: 16px;
+                            }
+                        }
+                    }
+                    .blue_bg_image {
+                        margin-top: 20px;
+                        position: relative;
+                        z-index: 90;
+                        height: 300px;
+                        &::after {
+                            content: " ";
+                            position: absolute;
+                            height: 100%;
+                            width: 100%;
+                            background: linear-gradient(
+                                270deg,
+                                rgba(6, 106, 200, 0.8) 50%,
+                                rgba(6, 106, 200, 0.64) 100%,
+                                rgba(6, 106, 200, 0.8) 100%
+                            );
+                            left: 0;
+                            top: 0;
+                            bottom: 0;
+                        }
+                        .img_absolute_txt {
+                            position: absolute;
+                            z-index: 99;
+                            top: 20px;
+                            text-align: center;
+                            width: 100%;
+                            padding-top: 30px;
+                            .bi {
+                                color: $white;
+                                height: 70px;
+                                width: 70px;
+                            }
+                            p {
+                                font-size: 36px;
+                                font-weight: 500;
+                                color: $white;
+                                text-align: center;
+                                margin: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 22px !important;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            #content-2 {
+                width: 100% !important;
+                .first_content_wrapper {
+                    .first_txt {
+                        p {
+                            font-size: 30px;
+                            font-weight: 500;
+                            color: rgb(13, 19, 23);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 22px !important;
+                            }
+                        }
+                    }
+                    .second_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                        }
+                    }
+                    .third_image_wrapper {
+                        display: flex;
+                        gap: 20px;
+                        .left_bigger_image {
+                            height: 110px;
+                            width: 50%;
+                        }
+                        .right_smaller_images {
+                            width: 50%;
+                            gap: 10px;
+                            display: flex;
+                            flex-direction: column;
+                            .first_img {
+                                height: 50px;
+                            }
+                            .second_img {
+                                height: 50px;
+                            }
+                        }
+                    }
+                    .forth_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                        }
+                    }
+                    .fifth_txt {
+                        p {
+                            font-size: 36px;
+                            font-weight: 500;
+                            color: rgba(0, 0, 0, 1);
+                            text-align: start;
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 22px !important;
+                            }
+                        }
+                    }
+                    .sixth_txt {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-block: 5px;
+                        .bi {
+                            color: $blue;
+                            transform: rotate(90deg);
+                        }
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 14px !important;
+                            }
+                        }
+                    }
+                    .blue_bg_image {
+                        margin-top: 20px;
+                        position: relative;
+                        z-index: 90;
+                        height: 300px;
+                        &::after {
+                            content: " ";
+                            position: absolute;
+                            height: 100%;
+                            width: 100%;
+                            background: linear-gradient(
+                                270deg,
+                                rgba(6, 106, 200, 0.8) 50%,
+                                rgba(6, 106, 200, 0.64) 100%,
+                                rgba(6, 106, 200, 0.8) 100%
+                            );
+                            left: 0;
+                            top: 0;
+                            bottom: 0;
+                        }
+                        .img_absolute_txt {
+                            position: absolute;
+                            z-index: 99;
+                            top: 20px;
+                            text-align: center;
+                            width: 100%;
+                            padding-top: 30px;
+                            .bi {
+                                color: $white;
+                                height: 70px;
+                                width: 70px;
+                            }
+                            p {
+                                font-size: 36px;
+                                font-weight: 500;
+                                color: $white;
+                                text-align: center;
+                                margin: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 22px !important;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            #content-3 {
+                width: 100% !important;
+                .first_content_wrapper {
+                    .first_txt {
+                        p {
+                            font-size: 30px;
+                            font-weight: 500;
+                            color: rgb(13, 19, 23);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 22px !important;
+                            }
+                        }
+                    }
+                    .second_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                        }
+                    }
+                    .third_image_wrapper {
+                        display: flex;
+                        gap: 20px;
+                        .left_bigger_image {
+                            height: 110px;
+                            width: 50%;
+                        }
+                        .right_smaller_images {
+                            width: 50%;
+                            gap: 10px;
+                            display: flex;
+                            flex-direction: column;
+                            .first_img {
+                                height: 50px;
+                            }
+                            .second_img {
+                                height: 50px;
+                            }
+                        }
+                    }
+                    .forth_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                        }
+                    }
+                    .fifth_txt {
+                        p {
+                            font-size: 36px;
+                            font-weight: 500;
+                            color: rgba(0, 0, 0, 1);
+                            text-align: start;
+                            margin: 0;
+                        }
+                    }
+                    .sixth_txt {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-block: 5px;
+                        .bi {
+                            color: $blue;
+                            transform: rotate(90deg);
+                        }
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            margin: 0;
+                        }
+                    }
+                    .blue_bg_image {
+                        margin-top: 20px;
+                        position: relative;
+                        z-index: 90;
+                        height: 300px;
+                        &::after {
+                            content: " ";
+                            position: absolute;
+                            height: 100%;
+                            width: 100%;
+                            background: linear-gradient(
+                                270deg,
+                                rgba(6, 106, 200, 0.8) 50%,
+                                rgba(6, 106, 200, 0.64) 100%,
+                                rgba(6, 106, 200, 0.8) 100%
+                            );
+                            left: 0;
+                            top: 0;
+                            bottom: 0;
+                        }
+                        .img_absolute_txt {
+                            position: absolute;
+                            z-index: 99;
+                            top: 20px;
+                            text-align: center;
+                            width: 100%;
+                            padding-top: 30px;
+                            .bi {
+                                color: $white;
+                                height: 70px;
+                                width: 70px;
+                            }
+                            p {
+                                font-size: 36px;
+                                font-weight: 500;
+                                color: $white;
+                                text-align: center;
+                                margin: 0;
+                            }
+                        }
+                    }
+                }
+            }
+            #content-4 {
+                width: 100% !important;
+                .first_content_wrapper {
+                    .first_txt {
+                        p {
+                            font-size: 30px;
+                            font-weight: 500;
+                            color: rgb(13, 19, 23);
+                            margin: 0;
+                            @include respond-to(mobile) {
+                                font-size: 22px !important;
+                            }
+                        }
+                    }
+                    .second_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                        }
+                    }
+                    .third_image_wrapper {
+                        display: flex;
+                        gap: 20px;
+                        .left_bigger_image {
+                            height: 110px;
+                            width: 50%;
+                        }
+                        .right_smaller_images {
+                            width: 50%;
+                            gap: 10px;
+                            display: flex;
+                            flex-direction: column;
+                            .first_img {
+                                height: 50px;
+                            }
+                            .second_img {
+                                height: 50px;
+                            }
+                        }
+                    }
+                    .forth_txt {
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                        }
+                    }
+                    .fifth_txt {
+                        p {
+                            font-size: 36px;
+                            font-weight: 500;
+                            color: rgba(0, 0, 0, 1);
+                            text-align: start;
+                            margin: 0;
+                        }
+                    }
+                    .sixth_txt {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-block: 5px;
+                        .bi {
+                            color: $blue;
+                            transform: rotate(90deg);
+                        }
+                        p {
+                            font-size: 18px;
+                            font-weight: 400;
+                            color: rgba(115, 115, 115, 1);
+                            margin: 0;
+                        }
+                    }
+                    .blue_bg_image {
+                        margin-top: 20px;
+                        position: relative;
+                        z-index: 90;
+                        height: 300px;
+                        &::after {
+                            content: " ";
+                            position: absolute;
+                            height: 100%;
+                            width: 100%;
+                            background: linear-gradient(
+                                270deg,
+                                rgba(6, 106, 200, 0.8) 50%,
+                                rgba(6, 106, 200, 0.64) 100%,
+                                rgba(6, 106, 200, 0.8) 100%
+                            );
+                            left: 0;
+                            top: 0;
+                            bottom: 0;
+                        }
+                        .img_absolute_txt {
+                            position: absolute;
+                            z-index: 99;
+                            top: 20px;
+                            text-align: center;
+                            width: 100%;
+                            padding-top: 30px;
+                            .bi {
+                                color: $white;
+                                height: 70px;
+                                width: 70px;
+                            }
+                            p {
+                                font-size: 36px;
+                                font-weight: 500;
+                                color: $white;
+                                text-align: center;
+                                margin: 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

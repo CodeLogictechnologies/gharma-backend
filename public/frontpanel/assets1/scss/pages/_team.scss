@@ -1,0 +1,132 @@
+.team_page{
+    .tm_wrapper{
+        .tm_wrapper_flx{
+            display: flex;
+            flex-wrap: wrap;
+            .tm_wrap_content{
+                flex: 0 1 25%;
+                padding: 0 1%;
+                @include max(1024px){
+                    flex-basis: 33.3%;
+                }
+                @include max(992px){
+                    flex-basis: 50%;
+                    margin-bottom: 2rem;
+                }
+                @include max(767px){
+                    flex-basis: 3100%;
+                  
+                }
+                &:hover{
+                    .tm_img_wrap{
+                    background-color: $primary-color;
+                    }
+                    .tm_des{
+                        h4{
+                            color: $primary-color;
+                        }
+                    }
+                    .social_media{
+                        right: 12% !important;
+                    }
+                }
+                .tm_img_wrap{
+                    padding: 1rem;
+                    position: relative;
+                    border-radius: 9px 9px 0px 0px;
+                    transition: $transition;
+                    overflow: hidden;
+                    border: 1px solid $primary-color;
+                    .media_overlay_wrapper{
+                        position: relative;
+                        overflow: hidden;
+                    img{
+                        height: 15rem;
+                        object-fit: cover;
+                        border-radius: 9px 9px 0px 0px;
+                    }
+                    .social_media{
+                        position: absolute;
+                        right: -12%;
+                        bottom: 15%;
+                        transition: $transition;
+                    }
+                }
+                }
+                .tm_des{
+                    box-shadow: $box-shadow;
+                    border-radius: 0px 0px 9px 9px;
+                    h4{
+                        transition: $transition;
+                    }
+                    h6{
+
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TEAM INNER PAGE 
+#team_inner_page{
+    .tm_wrapper_flx{
+        align-items: center;
+      
+        .tm_wrap_content{
+            flex: 1 1 40%;
+            .tm_img_wrap{
+                border-radius: 2px;
+            img{
+                border-radius: 2px;
+                height: 25rem;
+            }
+        }
+        }
+        .tm_des{
+            flex: 1 1 58%;
+            text-align: left;
+            h4{
+                font-size: 2rem;
+            }
+            h6{
+                font-size: 1rem;
+            }
+            .mailing_details{
+                li{
+                    color: $body-color;
+                    font-size: 1.4rem;
+                    margin-bottom: 0.8rem;
+                    display: flex;
+                    @include max(767px){
+                        justify-content: space-between;
+                    }
+                    span{
+                        color: $dark-primary-color;
+                        width: 25%;
+                        display: block;
+                        @include max(767px){
+                            width: 30%;
+                        }
+                    }
+                }
+            }
+            .social_media{
+                margin-top: 2rem;
+            }
+          
+        }
+    }
+    .self_description{
+        margin-top: 3rem;
+        h2{
+            color: $blue-color;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+        p{
+
+        }
+    }
+}

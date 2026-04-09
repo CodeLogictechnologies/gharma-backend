@@ -1,0 +1,680 @@
+@import "_mixins.scss";
+.introduction_page {
+    padding-bottom: 20px;
+    position: relative;
+    .img_before {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        height: 220px;
+        width: 220px;
+        z-index: 9;
+
+        img {
+            object-fit: cover;
+        }
+    }
+    .img_after {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        height: 220px;
+        width: 220px;
+        z-index: 9;
+        transform: rotate(180deg);
+        img {
+            object-fit: cover;
+        }
+    }
+    .common_image_txt {
+        position: relative;
+        .common_bg_wrapper {
+            height: 220px;
+            position: relative;
+
+            img {
+                filter: grayscale(100%);
+                object-fit: cover;
+            }
+            &::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%; /* Ensures the pseudo-element covers the wrapper */
+                background: linear-gradient(90deg, #000000 0%, rgba(0, 0, 0, 0.5) 50%, #000000 100%);
+                pointer-events: none; /* Ensures the pseudo-element doesn't block interactions */
+            }
+        }
+        .main_txt {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            p {
+                font-size: 36px;
+                font-weight: 500;
+                color: white;
+            }
+        }
+    }
+}
+.team_tab_section {
+    margin-block: 40px;
+    .container_wrapper {
+        display: flex;
+        gap: 40px;
+        .tabs {
+            background-color: rgba(239, 247, 255, 1);
+            box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.1);
+            padding: 20px 20px;
+            width: 17%;
+            transition: all 0.3s ease-in-out;
+            height: 40%;
+            .tab {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding-inline: 10px;
+                cursor: pointer;
+                .bi {
+                    color: $blue;
+                    height: 20px;
+                    width: 17px;
+                }
+                li {
+                    font-size: 16px;
+                    font-weight: 500;
+                    color: $grey;
+                    list-style-type: none;
+                }
+                &.active {
+                    background-color: $blue;
+                    padding-inline: 10px;
+                    border-radius: 4px;
+                    padding-block: 12px;
+                    .bi {
+                        color: $white;
+                    }
+                    li {
+                        color: $white;
+                    }
+                }
+            }
+        }
+        .content {
+            #content1 {
+                width: 70%;
+                .container_content_wrapper {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 40px;
+                    @include respond-to(mobile) {
+                        grid-template-columns: 1fr !important;
+                    }
+                    @include respond-to(tablet) {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                    @include respond-to(mobile) {
+                        grid-template-columns: 1fr !important;
+                    }
+                    @include respond-to(tablet) {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                    .image_container_wrap {
+                        position: relative;
+                        cursor: pointer;
+                        .img_hover_bg {
+                            height: 170px;
+                            width: 270px;
+                            background: rgb(6, 106, 200);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            display: none;
+                            transition: all 0.3s ease-in-out;
+                            h3 {
+                                font-size: 20px;
+                                color: $white;
+                                font-weight: 500;
+                                text-align: center;
+                                margin-block: 10px !important;
+                                margin-inline: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: white;
+                                font-weight: 400;
+                                text-align: center;
+                                margin: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 14px;
+                                }
+                            }
+                        }
+                        .img_default_bg {
+                            height: 170px;
+                            width: 270px;
+                            background-color: rgba(180, 218, 254, 0.5);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            box-shadow: 0px 0px 15px 0px rgba(6, 106, 200, 0.1);
+
+                            h3 {
+                                font-size: 20px;
+                                font-weight: 500;
+                                margin-block: 10px !important;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                                text-align: center;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: $grey;
+                                font-weight: 400;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                                text-align: center;
+                                @include respond-to(mobile) {
+                                    font-size: 12px;
+                                }
+                            }
+                        }
+                        .img_wrap {
+                            height: 260px;
+                            width: 240px;
+                            object-fit: cover;
+                            position: relative;
+                            margin-top: 80px;
+                            @include respond-to(mobile) {
+                                height: 200px;
+                            }
+                            .share_icon {
+                                position: absolute;
+                                cursor: pointer;
+                                top: -20px;
+                                right: 10px;
+                                background-color: $blue;
+                                padding: 10px 10px;
+
+                                .bi {
+                                    height: 18px;
+                                    width: 18px;
+                                    color: $white;
+                                }
+                            }
+                            .social_icons_wrapper {
+                                position: absolute;
+                                cursor: pointer;
+                                top: 0;
+                                right: 10px;
+                                display: none;
+                                .social_wrap {
+                                    display: flex;
+                                    flex-direction: column;
+                                    background-color: $blue;
+                                    padding: 10px 10px;
+                                    .bi {
+                                        margin-block: 8px;
+                                        height: 25px;
+                                        width: 25px;
+                                        color: $white;
+                                        &:hover {
+                                            color: rgba(180, 218, 254, 0.5);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        &:hover {
+                            .img_default_bg {
+                                display: none;
+                            }
+                            .share_icon {
+                                display: none;
+                            }
+                            .img_hover_bg {
+                                display: block;
+                            }
+                            .social_icons_wrapper {
+                                display: block;
+                            }
+                        }
+                    }
+                }
+            }
+            #content2 {
+                width: 70%;
+                .container_content_wrapper {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 40px;
+                    @include respond-to(mobile) {
+                        grid-template-columns: 1fr !important;
+                    }
+                    @include respond-to(tablet) {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                    .image_container_wrap {
+                        position: relative;
+                        cursor: pointer;
+                        .img_hover_bg {
+                            height: 170px;
+                            width: 270px;
+                            background: rgb(6, 106, 200);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            display: none;
+                            transition: all 0.3s ease-in-out;
+                            h3 {
+                                font-size: 20px;
+                                color: $white;
+                                font-weight: 500;
+                                text-align: center;
+                                margin-block: 10px !important;
+                                margin-inline: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: white;
+                                font-weight: 400;
+                                text-align: center;
+                                margin: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 14px;
+                                }
+                            }
+                        }
+                        .img_default_bg {
+                            height: 170px;
+                            width: 270px;
+                            background-color: rgba(180, 218, 254, 0.5);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            box-shadow: 0px 0px 15px 0px rgba(6, 106, 200, 0.1);
+
+                            h3 {
+                                font-size: 20px;
+                                font-weight: 500;
+                                margin-block: 10px !important;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: $grey;
+                                font-weight: 400;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                            }
+                        }
+                        .img_wrap {
+                            height: 260px;
+                            width: 240px;
+                            object-fit: cover;
+                            position: relative;
+                            margin-top: 80px;
+                            @include respond-to(mobile) {
+                                height: 200px;
+                            }
+                            .share_icon {
+                                position: absolute;
+                                cursor: pointer;
+                                top: -20px;
+                                right: 10px;
+                                background-color: $blue;
+                                padding: 10px 10px;
+
+                                .bi {
+                                    height: 18px;
+                                    width: 18px;
+                                    color: $white;
+                                }
+                            }
+                            .social_icons_wrapper {
+                                position: absolute;
+                                cursor: pointer;
+                                top: 0;
+                                right: 10px;
+                                display: none;
+                                .social_wrap {
+                                    display: flex;
+                                    flex-direction: column;
+                                    background-color: $blue;
+                                    padding: 10px 10px;
+                                    .bi {
+                                        margin-block: 8px;
+                                        height: 25px;
+                                        width: 25px;
+                                        color: $white;
+                                        &:hover {
+                                            color: rgba(180, 218, 254, 0.5);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        &:hover {
+                            .img_default_bg {
+                                display: none;
+                            }
+                            .share_icon {
+                                display: none;
+                            }
+                            .img_hover_bg {
+                                display: block;
+                            }
+                            .social_icons_wrapper {
+                                display: block;
+                            }
+                        }
+                    }
+                }
+            }
+            #content3 {
+                width: 70%;
+                .container_content_wrapper {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 40px;
+                    @include respond-to(mobile) {
+                        grid-template-columns: 1fr !important;
+                    }
+                    @include respond-to(tablet) {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                    .image_container_wrap {
+                        position: relative;
+                        cursor: pointer;
+                        .img_hover_bg {
+                            height: 170px;
+                            width: 270px;
+                            background: rgb(6, 106, 200);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            display: none;
+                            transition: all 0.3s ease-in-out;
+                            h3 {
+                                font-size: 20px;
+                                color: $white;
+                                font-weight: 500;
+                                text-align: center;
+                                margin-block: 10px !important;
+                                margin-inline: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: white;
+                                font-weight: 400;
+                                text-align: center;
+                                margin: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 14px;
+                                }
+                            }
+                        }
+                        .img_default_bg {
+                            height: 170px;
+                            width: 270px;
+                            background-color: rgba(180, 218, 254, 0.5);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            box-shadow: 0px 0px 15px 0px rgba(6, 106, 200, 0.1);
+
+                            h3 {
+                                font-size: 20px;
+                                font-weight: 500;
+                                margin-block: 10px !important;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: $grey;
+                                font-weight: 400;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 14px;
+                                }
+                            }
+                        }
+                        .img_wrap {
+                            height: 260px;
+                            width: 240px;
+                            object-fit: cover;
+                            position: relative;
+                            margin-top: 80px;
+                            @include respond-to(mobile) {
+                                height: 200px;
+                            }
+                            .share_icon {
+                                position: absolute;
+                                cursor: pointer;
+                                top: -20px;
+                                right: 10px;
+                                background-color: $blue;
+                                padding: 10px 10px;
+
+                                .bi {
+                                    height: 18px;
+                                    width: 18px;
+                                    color: $white;
+                                }
+                            }
+                            .social_icons_wrapper {
+                                position: absolute;
+                                cursor: pointer;
+                                top: 0;
+                                right: 10px;
+                                display: none;
+                                .social_wrap {
+                                    display: flex;
+                                    flex-direction: column;
+                                    background-color: $blue;
+                                    padding: 10px 10px;
+                                    .bi {
+                                        margin-block: 8px;
+                                        height: 25px;
+                                        width: 25px;
+                                        color: $white;
+                                        &:hover {
+                                            color: rgba(180, 218, 254, 0.5);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        &:hover {
+                            .img_default_bg {
+                                display: none;
+                            }
+                            .share_icon {
+                                display: none;
+                            }
+                            .img_hover_bg {
+                                display: block;
+                            }
+                            .social_icons_wrapper {
+                                display: block;
+                            }
+                        }
+                    }
+                }
+            }
+            #content4 {
+                width: 70%;
+                .container_content_wrapper {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 40px;
+                    @include respond-to(mobile) {
+                        grid-template-columns: 1fr !important;
+                    }
+                    @include respond-to(tablet) {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                    .image_container_wrap {
+                        position: relative;
+                        cursor: pointer;
+                        .img_hover_bg {
+                            height: 170px;
+                            width: 270px;
+                            background: rgb(6, 106, 200);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            display: none;
+                            transition: all 0.3s ease-in-out;
+                            h3 {
+                                font-size: 20px;
+                                color: $white;
+                                font-weight: 500;
+                                text-align: center;
+                                margin-block: 10px !important;
+                                margin-inline: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: white;
+                                font-weight: 400;
+                                text-align: center;
+                                margin: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 14px;
+                                }
+                            }
+                        }
+                        .img_default_bg {
+                            height: 170px;
+                            width: 270px;
+                            background-color: rgba(180, 218, 254, 0.5);
+                            position: absolute;
+                            z-index: -1;
+                            top: 0;
+                            left: -15px;
+                            box-shadow: 0px 0px 15px 0px rgba(6, 106, 200, 0.1);
+
+                            h3 {
+                                font-size: 20px;
+                                font-weight: 500;
+                                margin-block: 10px !important;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 16px;
+                                }
+                            }
+                            p {
+                                font-size: 16px;
+                                color: $grey;
+                                font-weight: 400;
+                                margin-inline: 20px;
+                                margin-block: 0;
+                                @include respond-to(mobile) {
+                                    font-size: 14px;
+                                }
+                            }
+                        }
+                        .img_wrap {
+                            height: 260px;
+                            width: 240px;
+                            object-fit: cover;
+                            position: relative;
+                            margin-top: 80px;
+                            @include respond-to(mobile) {
+                                height: 200px;
+                            }
+                            .share_icon {
+                                position: absolute;
+                                cursor: pointer;
+                                top: -20px;
+                                right: 10px;
+                                background-color: $blue;
+                                padding: 10px 10px;
+
+                                .bi {
+                                    height: 18px;
+                                    width: 18px;
+                                    color: $white;
+                                }
+                            }
+                            .social_icons_wrapper {
+                                position: absolute;
+                                cursor: pointer;
+                                top: 0;
+                                right: 10px;
+                                display: none;
+                                .social_wrap {
+                                    display: flex;
+                                    flex-direction: column;
+                                    background-color: $blue;
+                                    padding: 10px 10px;
+                                    .bi {
+                                        margin-block: 8px;
+                                        height: 25px;
+                                        width: 25px;
+                                        color: $white;
+                                        &:hover {
+                                            color: rgba(180, 218, 254, 0.5);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        &:hover {
+                            .img_default_bg {
+                                display: none;
+                            }
+                            .share_icon {
+                                display: none;
+                            }
+                            .img_hover_bg {
+                                display: block;
+                            }
+                            .social_icons_wrapper {
+                                display: block;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

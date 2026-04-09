@@ -1,0 +1,44 @@
+.enquiry_page{
+    .enq_form{
+        form{
+            .form_group{
+                margin-left: 1%;
+                margin-right: 1%;
+                @include max(767px){
+                    flex-basis: 100%;
+                    margin-bottom: 1rem !important;
+                }
+            }
+            .form_flx{
+                display: flex;
+                @include max(767px){
+                    display: inherit;
+                }
+               
+                &.top_row{
+                    .form_group{
+                       margin-left: 1%;
+                       margin-right: 1%;
+                        &:nth-child(1){
+                            flex: 1 1 65%;
+                        }
+                        &:nth-child(2){
+                            flex: 1 1 33%;
+                        }
+                    }
+                }
+                &.btm_row{
+                    .form_group{
+                    
+                        &:nth-child(1){
+                            flex: 1 1 33%;
+                        }
+                        &:nth-child(2){
+                            flex: 1 1 65%;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
