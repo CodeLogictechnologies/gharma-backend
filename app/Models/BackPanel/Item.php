@@ -33,14 +33,13 @@ class Item extends Model
 
 
     protected $casts = [
-        'images'           => 'array',   // auto encode/decode JSON
+        'images'           => 'array',
         'extra_attributes' => 'array',
     ];
 
     public $incrementing = false;
     protected $keyType = 'string';
 
-    // ── Relationships ─────────────────────────────────────────────────────
 
     public function category()
     {
@@ -56,13 +55,8 @@ class Item extends Model
     {
         return $this->belongsTo(Organization::class, 'orgid');
     }
- 
-    // ── Accessors ─────────────────────────────────────────────────────────
 
-    /**
-     * Full public URLs for every stored image path.
-     * Usage: $item->image_urls
-     */
+
     public function getImageUrlsAttribute(): array
     {
         return collect($this->images ?? [])
@@ -70,17 +64,13 @@ class Item extends Model
             ->toArray();
     }
 
-    /**
-     * First path = primary image URL.
-     * Usage: $item->primary_image
-     */
+
     public function getPrimaryImageAttribute(): ?string
     {
         $first = collect($this->images ?? [])->first();
         return $first ? Storage::disk('public')->url($first) : null;
     }
 
-    // ── Scopes ────────────────────────────────────────────────────────────
 
     public function scopeActive($query)
     {
@@ -88,85 +78,92 @@ class Item extends Model
     }
 
 
-
-
-    // ============================================================
-    // In Item.php (Model) — replace your list() static method with this
-    // ============================================================
-
     public static function list(array $post)
     {
-        // Sanitise DataTable column search values
-        $columns = $post['columns'] ?? [];
-        foreach ($columns as &$col) {
-            $col['search']['value'] = trim(strtolower(
-                htmlspecialchars($col['search']['value'] ?? '', ENT_QUOTES)
-            ));
-        }
-        unset($col);
+        $search1 = trim(strtolower($post['sSearch_1'] ?? ''));
+        $search2 = trim(strtolower($post['sSearch_2'] ?? ''));
+        $search3 = trim(strtolower($post['sSearch_3'] ?? ''));
 
-        // ── Base condition ─────────────────────────────────────────────────
-        $conditions = ["items.status = 'Y'"];
+        $limit  = (int) ($post['iDisplayLength'] ?? 15);
+        $offset = (int) ($post['iDisplayStart'] ?? 0);
 
-        // Column[1] search → item title
-        if (!empty($columns[1]['search']['value'])) {
-            $val          = $columns[1]['search']['value'];
-            $conditions[] = "lower(items.title) like '%{$val}%'";
-        }
-
-        // Column[2] search → category name
-        if (!empty($columns[2]['search']['value'])) {
-            $val          = $columns[2]['search']['value'];
-            $conditions[] = "lower(c.name) like '%{$val}%'";
-        }
-
-        $where  = implode(' AND ', $conditions);
-        $limit  = (int) ($post['length'] ?? 15);
-        $offset = (int) ($post['start']  ?? 0);
-
-        // ── Query ──────────────────────────────────────────────────────────
         $query = self::query()
             ->from('items')
-            ->join('categories as c',     'items.category_id',     '=', 'c.id')
-            ->join('sub_categories as s', 'items.subcategory_id', '=', 's.id')
-            ->join('brands as b', 'b.id', '=', 'items.brand_id')
+            ->leftJoin('category_items as ci', 'ci.itemid', '=', 'items.id')
+            ->leftJoin('categories as c', 'c.id', '=', 'ci.categoryid')
+            ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'items.id')
+            ->leftJoin('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
             ->selectRaw("
-            items.id,
-            items.title,
-            items.description,
-            items.status,
-            items.type,
-            b.name,
-            items.created_at,
-            c.title  AS category_name,
-            s.title  AS sub_category_name,
-            (SELECT COUNT(*) FROM items WHERE status = 'Y') AS totalrecs
-        ")
-            ->whereRaw($where);
+        items.id,
+        items.title,
+        items.description,
+        items.status,
+        items.type,
+        items.created_at
+    ")
+            ->where('items.status', 'Y');
 
+        if ($search1 !== '') {
+            $query->whereRaw("LOWER(items.title) LIKE ?", ["%{$search1}%"]);
+        }
 
+        if ($search2 !== '') {
+            $query->whereRaw("LOWER(c.title) LIKE ?", ["%{$search2}%"]);
+        }
 
-        // Total filtered count (before pagination)
+        if ($search3 !== '') {
+            $query->whereRaw("LOWER(s.title) LIKE ?", ["%{$search3}%"]);
+        }
+
+        $totalrecs = self::from('items')->where('status', 'Y')->count();
+
         $filteredCount = (clone $query)->count();
 
-        // Apply pagination
+        $sortColIndex = (int) ($post['iSortCol_0'] ?? 1);
+        $sortDir      = ($post['sSortDir_0'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy('items.id', $sortDir);
+
         if ($limit > -1) {
-            $query->orderBy('items.id', 'desc')->offset($offset)->limit($limit);
-        } else {
-            $query->orderBy('items.id', 'desc');
+            $query->offset($offset)->limit($limit);
         }
 
         $result = $query->get();
 
-        // Attach totals as collection properties via a Collection macro workaround
-        $totalrecs = $result->first()->totalrecs ?? 0;
+        $itemIds = $result->pluck('id');
 
-        $result['totalrecs']         = $totalrecs;
+        $categories = DB::table('category_items as ci')
+            ->join('categories as c', 'c.id', '=', 'ci.categoryid')
+            ->whereIn('ci.itemid', $itemIds)
+            ->select('ci.itemid', 'c.title')
+            ->get()
+            ->groupBy('itemid');
+
+        $subcategories = DB::table('sub_category_items as sci')
+            ->join('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
+            ->whereIn('sci.itemid', $itemIds)
+            ->select('sci.itemid', 's.title')
+            ->get()
+            ->groupBy('itemid');
+
+        $result = $result->map(function ($item) use ($categories, $subcategories) {
+
+            $item->categories = isset($categories[$item->id])
+                ? $categories[$item->id]->pluck('title')->values()
+                : [];
+
+            $item->subcategories = isset($subcategories[$item->id])
+                ? $subcategories[$item->id]->pluck('title')->values()
+                : [];
+
+            return $item;
+        });
+
+        $result['totalrecs'] = $totalrecs;
         $result['totalfilteredrecs'] = $filteredCount;
 
         return $result;
     }
-
 
     public static function deleteItem($post)
     {
@@ -175,7 +172,10 @@ class Item extends Model
                 'status' => 'N',
                 'updated_at' => Carbon::now(),
             ];
-            if (!Item::where(['id' => $post['id']])->update($updateArray)) {
+            if (!DB::table('wholesaler_prices')->where(['id' => $post['id']])->update($updateArray)) {
+                throw new Exception("Couldn't Delete Data. Please try again", 1);
+            }
+            if (!DB::table('wholesaler_price_details')->where(['wholesalermasterid' => $post['id']])->update($updateArray)) {
                 throw new Exception("Couldn't Delete Data. Please try again", 1);
             }
             return true;
@@ -235,11 +235,9 @@ class Item extends Model
                 'title'       => $post['title'],
                 'brand_id'    => $post['brand'],
                 'threshold'   => '1',
-                'category_id'   => '1e9f9787-5c92-47d8-ab19-d466329eae88',
-                'subcategory_id'   => 'c256c64d-70a0-4c55-9b39-5645b6d580ae',
                 'type'        => $post['type']        ?? null,
                 'description' => $post['description'] ?? null,
-                'postedby'    => Auth::id(),
+                'postedby'    => $post['userid'],
                 'orgid'       => $post['orgid']        ?? null,
             ];
 
@@ -250,7 +248,7 @@ class Item extends Model
 
                 $itemId = $post['id'];
 
-                $dataArray['updatedby']  = Auth::id();
+                $dataArray['updatedby']  = $post['userid'];
                 $dataArray['updated_at'] = Carbon::now();
 
                 DB::table('items')->where('id', $itemId)->update($dataArray);
@@ -266,8 +264,8 @@ class Item extends Model
                             'orgid'      => $post['orgid'] ?? null,
                             'categoryid' => $categoryId,
                             'itemid'     => $itemId,
-                            'postedby'   => Auth::id(),
-                            'updatedby'  => Auth::id(),
+                            'postedby'   => $post['userid'],
+                            'updatedby'  => $post['userid'],
                             'created_at' => Carbon::now(),
                             'updated_at' => Carbon::now(),
                         ];
@@ -286,8 +284,8 @@ class Item extends Model
                             'orgid'         => $post['orgid'] ?? null,
                             'subcategoryid' => $subCategoryId,
                             'itemid'        => $itemId,
-                            'postedby'      => Auth::id(),
-                            'updatedby'     => Auth::id(),
+                            'postedby'      => $post['userid'],
+                            'updatedby'     => $post['userid'],
                             'created_at'    => Carbon::now(),
                             'updated_at'    => Carbon::now(),
                         ];
@@ -336,8 +334,8 @@ class Item extends Model
                                 'orgid'      => $post['orgid']          ?? null,
                                 'created_at' => Carbon::now(),
                                 'updated_at' => Carbon::now(),
-                                'postedby'   => Auth::id(),
-                                'updatedby'  => Auth::id(),
+                                'postedby'   => $post['userid'],
+                                'updatedby'  => $post['userid'],
                             ]);
                         }
                     }
@@ -345,18 +343,19 @@ class Item extends Model
                     // Bulk update existing variations
                     if (!empty($ids)) {
                         $idsList = "'" . implode("','", $ids) . "'";
+
                         DB::statement("
-                        UPDATE itemvariations SET
-                            attribute  = CASE id " . implode(' ', $attributeCases) . " END,
-                            value      = CASE id " . implode(' ', $valueCases)     . " END,
-                            price      = CASE id " . implode(' ', $priceCases)     . " END,
-                            stock      = CASE id " . implode(' ', $stockCases)     . " END,
-                            threshold  = CASE id " . implode(' ', $thresholdCases) . " END,
-                            status     = CASE id " . implode(' ', $statusCases)    . " END,
-                            updated_at = NOW(),
-                            updatedby  = " . Auth::id() . "
-                        WHERE id IN ($idsList)
-                    ");
+                            UPDATE itemvariations SET
+                                attribute  = CASE id " . implode(' ', $attributeCases) . " END,
+                                value      = CASE id " . implode(' ', $valueCases)     . " END,
+                                price      = CASE id " . implode(' ', $priceCases)     . " END,
+                                stock      = CASE id " . implode(' ', $stockCases)     . " END,
+                                threshold  = CASE id " . implode(' ', $thresholdCases) . " END,
+                                status     = CASE id " . implode(' ', $statusCases)    . " END,
+                                updated_at = NOW(),
+                                updatedby  = ?
+                            WHERE id IN ($idsList)
+                        ", [$post['userid']]); // ← passed as binding, no quotes needed
                     }
                 }
 
@@ -373,8 +372,8 @@ class Item extends Model
                             'orgid'      => $post['orgid'] ?? null,
                             'created_at' => Carbon::now(),
                             'updated_at' => Carbon::now(),
-                            'postedby'   => Auth::id(),
-                            'updatedby'  => Auth::id(),
+                            'postedby'   => $post['userid'],
+                            'updatedby'  => $post['userid'],
                         ];
                     }
                     DB::table('item_images')->insert($imageRows);
@@ -391,8 +390,7 @@ class Item extends Model
                 $dataArray['slug']       = Str::slug($post['title']) . '-' . time();
                 $dataArray['created_at'] = Carbon::now();
                 $dataArray['updated_at'] = Carbon::now();
-                $dataArray['updatedby']  = Auth::id();
-
+                $dataArray['updatedby']  = $post['userid'];
                 $inserted = DB::table('items')->insert($dataArray);
                 if (!$inserted) {
                     throw new Exception("Couldn't save item.");
@@ -407,8 +405,8 @@ class Item extends Model
                             'orgid'      => $post['orgid'] ?? null,
                             'categoryid' => $categoryId,
                             'itemid'     => $itemId,
-                            'postedby'   => Auth::id(),
-                            'updatedby'  => Auth::id(),
+                            'postedby'   => $post['userid'],
+                            'updatedby'  => $post['userid'],
                             'created_at' => Carbon::now(),
                             'updated_at' => Carbon::now(),
                         ];
@@ -425,8 +423,8 @@ class Item extends Model
                             'orgid'         => $post['orgid'] ?? null,
                             'subcategoryid' => $subCategoryId,
                             'itemid'        => $itemId,
-                            'postedby'      => Auth::id(),
-                            'updatedby'     => Auth::id(),
+                            'postedby'      => $post['userid'],
+                            'updatedby'     => $post['userid'],
                             'created_at'    => Carbon::now(),
                             'updated_at'    => Carbon::now(),
                         ];
@@ -447,8 +445,8 @@ class Item extends Model
                             'orgid'      => $post['orgid'] ?? null,
                             'created_at' => Carbon::now(),
                             'updated_at' => Carbon::now(),
-                            'postedby'   => Auth::id(),
-                            'updatedby'  => Auth::id(),
+                            'postedby'   => $post['userid'],
+                            'updatedby'  => $post['userid'],
                         ];
                     }
                     $imageInserted = DB::table('item_images')->insert($imageRows);
@@ -477,8 +475,8 @@ class Item extends Model
                             'orgid'      => $post['orgid']          ?? null,
                             'created_at' => Carbon::now(),
                             'updated_at' => Carbon::now(),
-                            'postedby'   => Auth::id(),
-                            'updatedby'  => Auth::id(),
+                            'postedby'   => $post['userid'],
+                            'updatedby'  => $post['userid'],
                         ];
                     }
 

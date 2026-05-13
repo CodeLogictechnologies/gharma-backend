@@ -30,8 +30,8 @@ return new class extends Migration
             $table->decimal('price', 12, 2)->default(0);
             $table->enum('status', ['Y', 'N'])->default('Y');
 
-            $table->integer('postedby');
-            $table->integer('updatedby')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

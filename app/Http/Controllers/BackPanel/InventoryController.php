@@ -25,7 +25,7 @@ class InventoryController extends Controller
     {
         $variations = DB::table('itemvariations')
             ->where('item_id', $request->item_id)
-            ->where('status', 'Y')
+            // ->where('status', 'Y')
             ->select('id', 'attribute', 'value')
             ->get();
 
@@ -113,8 +113,8 @@ class InventoryController extends Controller
             $array[$i]["title"]    = $row->title;
             $array[$i]["variation_value"]    = $row->variation_value;
             $array[$i]["stock"]    = $row->stock;
-            $array[$i]["remainingqty"]    = $row->remainingqty;
-            $array[$i]["soldqty"]    = $row->soldqty;
+            $array[$i]["remainingqty"]    = $row->remainingqty ?? 0;
+            $array[$i]["soldqty"]    = $row->soldqty ?? 0;
             $action = '';
             $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewInventory" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
             $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editInventory" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
@@ -180,6 +180,7 @@ class InventoryController extends Controller
 
             $data['id']               = $result->id;
             $data['itemid']           = $result->item_id;
+            $data['expirymonth']           = $result->expirymonth;
             $data['variationid']      = $result->variation_id;
             $data['vendorid']         = $result->vendor_id;
             $data['quantity_available'] = $result->quantity_available;

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\SessionController;
+use App\Models\Transaction;
 use App\Models\User;
 use Exception;
 use Illuminate\Database\QueryException;
@@ -63,12 +64,21 @@ class AuthController extends SessionController
         if (!Auth::attempt($credentials)) {
             throw new Exception('Invalid email/username or password.');
         }
+        $org = DB::table('userorganizations')
+            ->where('userid', $user->id)
+            ->first();
 
-        // ✅ Regenerate session to prevent fixation attacks
-        $request->session()->regenerate();
-        // dd($user);
-        // ✅ Save user session
+        if (!$org) {
+            throw new Exception('Organization not found for this user.');
+        }
+
+        // Save session
         $this->setSession($user);
+
+        session([
+            'orgid' => $org->orgid
+        ]);
+
         return response()->json([
             'type'    => 'success',
             'message' => 'Login successful',
@@ -307,5 +317,41 @@ class AuthController extends SessionController
             $message = $e->getMessage();
         }
         return json_encode(['type' => $type, 'message' => $message]);
+    }
+
+    public function esewa(Request $request)
+    {
+        return view('backend.organization.index');
+    }
+
+    public function success(Request $request)
+    {
+        // $txn = $request->transaction_uuid;
+        $decoded = base64_decode($request->data);
+        dd($decoded);
+        // STEP 1: verify with eSewa (IMPORTANT)
+        $verified = $this->verifyEsewa($txn);
+
+        if ($verified) {
+            // STEP 2: update DB
+            Transaction::where('txncode', $txn)->update([
+                'method' => 'SUCCESS'
+            ]);
+
+            return view('esewa.success');
+        }
+
+        return view('esewa.failed');
+    }
+
+    public function failure(Request $request)
+    {
+        $txn = $request->transaction_uuid;
+
+        Transaction::where('txncode', $txn)->update([
+            'status' => 'FAILED'
+        ]);
+
+        return view('esewa.failed');
     }
 }

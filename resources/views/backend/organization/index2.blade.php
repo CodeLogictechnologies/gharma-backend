@@ -127,7 +127,24 @@
                     {
                         data: 'action'
                     },
-                ]
+                ],
+
+                initComplete: function() {
+                    this.api().columns([1, 2, 3]).every(function() {
+                        var column = this;
+                        var header = $(column.header()).text()
+                            .trim(); // ← gets column header name
+
+                        var input = $(
+                                '<input type="text" class="form-control" placeholder="' +
+                                header + '..." style="width:100%;" />'
+                            )
+                            .appendTo($(column.header()).empty())
+                            .on('keyup change', function() {
+                                column.search(this.value).draw();
+                            });
+                    });
+                }
             });
 
             // ── Helper: open modal via AJAX ───────────────────────────────

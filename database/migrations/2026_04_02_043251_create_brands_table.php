@@ -23,8 +23,8 @@ return new class extends Migration
                 ->references('id')
                 ->on('organizations')
                 ->cascadeOnDelete();
-            $table->unsignedBigInteger('postedby')->nullable();
-            $table->unsignedBigInteger('updatedby')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

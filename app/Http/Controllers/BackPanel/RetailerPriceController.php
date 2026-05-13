@@ -40,51 +40,60 @@ class RetailerPriceController extends Controller
     //function to save team category 
     public function save(Request $request)
     {
-        // try {
+        try {
 
-        $rules = [
-            'itemid'     => 'required|uuid',
-            'variationid' => 'required|uuid',
-            'price'      => 'required|numeric|min:0',
-        ];
+            $rules = [
+                'itemid'     => 'required|uuid',
+                'variationid' => 'required|uuid',
+                'price'      => 'required|numeric|min:0',
+            ];
 
-        $messages = [
-            'itemid.required'      => 'Item is required.',
-            'itemid.uuid'          => 'Invalid item ID format.',
+            $messages = [
+                'itemid.required'      => 'Item is required.',
+                'itemid.uuid'          => 'Invalid item ID format.',
 
-            'variationid.required' => 'Variation is required.',
-            'variationid.uuid'     => 'Invalid variation ID format.',
+                'variationid.required' => 'Variation is required.',
+                'variationid.uuid'     => 'Invalid variation ID format.',
 
-            'price.required'       => 'Price is required.',
-            'price.numeric'        => 'Price must be a number.',
-        ];
+                'price.required'       => 'Price is required.',
+                'price.numeric'        => 'Price must be a number.',
+            ];
 
-        $validation = Validator::make($request->all(), $rules, $messages);
+            $validation = Validator::make($request->all(), $rules, $messages);
 
-        if ($validation->fails()) {
-            throw new Exception($validation->errors()->first(), 1);
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
+            }
+
+            $post = $request->all();
+            $post['orgid'] =  session('orgid');
+            $post['userid'] =  session('userid');
+
+            $exists = RetailerPrice::where('itemid', $post['itemid'])
+                ->where('variation_id', $post['variationid'])
+                ->exists();
+
+            if ($exists) {
+                throw new Exception('This item variation already exists.', 1);
+            }
+
+            $type = 'success';
+            $message = 'Records saved successfully';
+            DB::beginTransaction();
+
+            if (!RetailerPrice::saveData($post)) {
+                throw new Exception('Could not save record', 1);
+            }
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
-
-        $post = $request->all();
-        $post['orgid'] =  session('orgid');
-        $post['userid'] =  session('userid');
-        $type = 'success';
-        $message = 'Records saved successfully';
-        DB::beginTransaction();
-
-        if (!RetailerPrice::saveData($post)) {
-            throw new Exception('Could not save record', 1);
-        }
-        DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -141,15 +150,15 @@ class RetailerPriceController extends Controller
     public function delete(Request $request)
     {
         // try {
-            $type = 'success';
-            $message = "Record deleted successfully";
+        $type = 'success';
+        $message = "Record deleted successfully";
 
-            $post = $request->all();
-            $post['orgid'] = session('orgid');
-            $post['userid'] = session('userid');
-            DB::beginTransaction();
-            $result = RetailerPrice::deleteRetailerPrice($post);
-            DB::commit();
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
+        $post['userid'] = session('userid');
+        DB::beginTransaction();
+        $result = RetailerPrice::deleteRetailerPrice($post);
+        DB::commit();
         // } catch (QueryException $e) {
         //     DB::rollBack();
         //     $type = 'error';

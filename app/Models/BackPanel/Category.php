@@ -137,7 +137,7 @@ class Category extends Model
     {
         try {
             $updateArray = [
-                'status' => 0,
+                'status' => 'N',
                 'updated_at' => Carbon::now(),
             ];
             if (!Category::where(['id' => $post['id']])->update($updateArray)) {

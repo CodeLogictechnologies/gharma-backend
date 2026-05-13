@@ -4,7 +4,44 @@
 <!-- jQuery FIRST -->
 <script src="/assets/vendor/libs/jquery/jquery.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    .image-upload-box {
+        width: 125px;
+        height: 125px;
+        border: 2px dashed #a0aec0;
+        border-radius: 12px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
+    #img_preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border-radius: 10px;
+    }
+
+    #cameraOverlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        border-radius: 0 0 10px 10px;
+    }
+</style>
 <!-- jQuery Validate -->
 @section('content')
 
@@ -52,44 +89,11 @@
                                     style="display:none;" @if (empty($id)) required @endif>
 
                                 <!-- Clickable image preview box -->
-                                <div class="image-upload-box" id="imageUploadBox"
-                                    style="
-            width: 125px;
-            height: 125px;
-            border: 2px dashed #a0aec0;
-            border-radius: 12px;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            background: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        ">
-
-                                    <!-- Preview image -->
-                                    <img id="img_preview" src="{{ asset('/no-image.jpg') }}"
-                                        style="
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                position: absolute;
-                top: 0; left: 0;
-                border-radius: 10px;
-            ">
+                                <div class="image-upload-box" id="imageUploadBox" <!-- Preview image -->
+                                    <img id="img_preview" src="{{ asset('/no-image.jpg') }}">
 
                                     <!-- Camera icon overlay -->
-                                    <div id="cameraOverlay"
-                                        style="
-                position: absolute;
-                bottom: 0; left: 0; right: 0;
-                background: rgba(0,0,0,0.45);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 6px;
-                border-radius: 0 0 10px 10px;
-            ">
+                                    <div id="cameraOverlay">
                                         <i class="fas fa-camera" style="color:#fff; font-size:18px;"></i>
                                     </div>
                                 </div>
@@ -122,11 +126,8 @@
                                                 <th data-dt-column="1" class="">
                                                     S.No
                                                 </th>
-                                                <th class="fs-6">
-                                                    <input type="text" class="form-control" id="defaultFormControlInput"
-                                                        placeholder="Leave Type"
-                                                        aria-describedby="defaultFormControlHelp" />
-                                                </th>
+
+                                                <th>Brand Name</th>
                                                 <th class="">Logo</th>
                                                 <th class="">Actions</th>
                                             </tr>
@@ -234,13 +235,15 @@
                 }
             ],
 
-            // ✅ COLUMN FILTER
             initComplete: function() {
                 this.api().columns([1]).every(function() {
                     var column = this;
+                    var header = $(column.header()).text()
+                        .trim(); // ← gets column header name
 
                     var input = $(
-                            '<input type="text" placeholder="Search title" style="width:100%;" />'
+                            '<input type="text" class="form-control" placeholder="' +
+                            header + '..." style="width:100%;" />'
                         )
                         .appendTo($(column.header()).empty())
                         .on('keyup change', function() {

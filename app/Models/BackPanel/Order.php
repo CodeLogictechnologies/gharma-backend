@@ -4,9 +4,13 @@ namespace App\Models\BackPanel;
 
 use Illuminate\Database\Eloquent\Model;
 use Exception;
+use Illuminate\Support\Facades\DB;
+
 
 class Order extends Model
 {
+    protected $keyType = 'string';
+    public $incrementing = false;
     public static function list($post)
     {
         try {
@@ -17,11 +21,11 @@ class Order extends Model
             $cond = "1=1";
 
             if ($get['sSearch_1']) {
-                $cond .= "and lower(p.username) like'%" . $get['sSearch_1'] . "%'";
+                $cond .= " and lower(u.name) like '%" . strtolower($get['sSearch_1']) . "%'";
             }
 
-            if ($get['sSearch_3']) {
-                $cond .= "and lower(i.title) like'%" . $get['sSearch_3'] . "%'";
+            if ($get['sSearch_2']) {
+                $cond .= " and lower(u.email) like '%" . strtolower($get['sSearch_2']) . "%'";
             }
             $limit = 15;
             $offset = 0;
@@ -30,25 +34,22 @@ class Order extends Model
                 $offset = $get["start"];
             }
 
-            $query = Order::from('orders as o')
-                ->join('profiles as p', 'p.id', '=', 'o.customer_id')
-                ->join('itemvariations as iv', 'iv.id', '=', 'o.variation_id')
-                ->join('items as i', 'i.id', '=', 'o.item_id')
+            $query = Order::from('order_masters as om')
+                ->join('users as u', 'u.id', '=', 'om.userid')
                 ->selectRaw("
-                                (SELECT COUNT(*) FROM sub_categories WHERE {$cond}) as totalrecs,
-                                o.id,
-                                o.qty,
-                                o.price,
-                                p.username,
-                                p.phone,
-                                i.title
-                            ")
+        om.id,
+        om.order_status,
+        u.name as username,
+        om.created_at,
+        u.email,
+        (SELECT COUNT(*) FROM order_masters WHERE {$cond}) as totalrecs
+    ")
                 ->whereRaw($cond);
 
             if ($limit > -1) {
-                $result = $query->orderby('o.id', 'desc')->offset($offset)->limit($limit)->get();
+                $result = $query->orderby('om.id', 'desc')->offset($offset)->limit($limit)->get();
             } else {
-                $result = $query->orderby('o.id', 'desc')->get();
+                $result = $query->orderby('om.id', 'desc')->get();
             }
             if ($result) {
                 $ndata = $result;
@@ -65,24 +66,13 @@ class Order extends Model
 
     public static function getData($post)
     {
-        $result =  Order::from('orders as o')
-            ->join('profiles as p', 'p.id', '=', 'o.customer_id')
-            ->join('itemvariations as iv', 'iv.id', '=', 'o.variation_id')
-            ->join('items as i', 'i.id', '=', 'o.item_id')
-            ->join('categories as c', 'c.id', '=', 'i.category_id')
-            ->join('sub_categories as s', 's.id', '=', 'i.subcategory_id')
-            ->where('o.id', $post['id'])
-            ->select(
-                'o.id',
-                'o.qty',
-                'o.price',
-                'p.username',
-                'p.phone',
-                'c.title as categorytitle',
-                's.title as subcategorytitle',
-                'i.title'
-            )->first();
-
+        $result = DB::table('order_details as od')
+            ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
+            ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
+            ->join('items as i', 'i.id', '=', 'v.item_id')
+            ->where('od.ordermasterid', $post['id'])
+            ->select('i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price')
+            ->get();
         return  $result;
     }
 }

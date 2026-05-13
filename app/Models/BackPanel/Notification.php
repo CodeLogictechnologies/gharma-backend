@@ -21,7 +21,6 @@ class Notification extends Model
     public static function saveData($post)
     {
         try {
-
             $dataArray = [
                 'type'    => $post['type'],
                 'userid'   => $post['user_id'],
@@ -76,11 +75,17 @@ class Notification extends Model
             }
 
             if (!empty($get['sSearch_1'])) {
-                $cond .= " and lower(CONCAT(p.first_name,' ',p.middle_name,' ',p.last_name)) like '%" . $get['sSearch_1'] . "%'";
+                $cond .= " and lower(n.title) like '%" . $get['sSearch_1'] . "%'";
+            }
+            // if (!empty($get['sSearch_2'])) {
+            //     $cond .= " and lower(n.type) like '%" . $get['sSearch_'] . "%'";
+            // }
+            if (!empty($get['sSearch_4'])) {
+                $cond .= " and lower(CONCAT(p.first_name,' ',p.middle_name,' ',p.last_name)) like '%" . $get['sSearch_4'] . "%'";
             }
 
             if (!empty($get['sSearch_3'])) {
-                $cond .= " and lower(p.email) like '%" . $get['sSearch_3'] . "%'";
+                $cond .= " and lower(n.message) like '%" . $get['sSearch_3'] . "%'";
             }
 
             // ✅ FIXED condition (was broken before)
@@ -99,15 +104,15 @@ class Notification extends Model
             }
 
             $query = Notification::from('notifications as n')
-                ->join('profiles as p', 'p.user_id', '=', 'n.userid') // ✅ profiles table
+                ->join('profiles as p', 'p.user_id', '=', 'n.userid')
                 ->selectRaw("
-                (SELECT count(*) FROM notifications) AS totalrecs,
-                n.title,
-                n.message,
-                n.id as id,
-                n.type,
-                CONCAT(p.first_name,' ',COALESCE(p.middle_name,''),' ',p.last_name) as username
-            ")
+        (SELECT count(*) FROM notifications WHERE {$cond}) AS totalrecs,
+        n.title,
+        n.message,
+        n.id        AS id,
+        n.type,
+        CONCAT(p.first_name, ' ', COALESCE(p.middle_name, ''), ' ', p.last_name) AS username
+    ")
                 ->whereRaw($cond);
 
             if ($limit > -1) {

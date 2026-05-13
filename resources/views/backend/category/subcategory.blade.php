@@ -65,11 +65,8 @@
                                 <th data-dt-column="1" class="">
                                     S.No
                                 </th>
-                                <th class="fs-6">
-                                    <input type="text" class="form-control" id="defaultFormControlInput"
-                                        placeholder="Leave Type" aria-describedby="defaultFormControlHelp" />
-                                </th>
-                                <th class="">Sub Category Name</th>
+                                <th>Sub Category Name</th>
+                                <th class="">Image</th>
                                 <th class="">Actions</th>
                             </tr>
                         </thead>
@@ -167,13 +164,15 @@
                 }
             ],
 
-            // ✅ COLUMN FILTER
             initComplete: function() {
                 this.api().columns([1]).every(function() {
                     var column = this;
+                    var header = $(column.header()).text()
+                        .trim(); // ← gets column header name
 
                     var input = $(
-                            '<input type="text" placeholder="Search title" style="width:100%;" />'
+                            '<input type="text" class="form-control" placeholder="' +
+                            header + '..." style="width:100%;" />'
                         )
                         .appendTo($(column.header()).empty())
                         .on('keyup change', function() {
@@ -269,29 +268,34 @@
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         });
 
-        $('#confirmDelete').on('click', function() {
-            if (!deleteId) return;
+        $('#confirmDelete').off('click').on('click', function() {
 
-            $.post('{{ route('subcategory.delete') }}', {
-                    id: deleteId,
-                    _token: '{{ csrf_token() }}'
-                })
-                .done(function(response) {
-                    var result = typeof response === 'string' ? JSON.parse(response) : response;
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        subCategoryTable.fnDraw(); // ✅ old-style API
-                    } else {
-                        showNotification(result.message, 'error');
-                    }
-                })
-                .fail(function() {
-                    showNotification('Delete failed. Please try again.', 'error');
-                })
-                .always(function() {
-                    deleteId = null;
-                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-                });
+            $('#confirmDelete').on('click', function() {
+                if (!deleteId) return;
+
+                $.post('{{ route('subcategory.delete') }}', {
+                        id: deleteId,
+                        _token: '{{ csrf_token() }}'
+                    })
+                    .done(function(response) {
+                        var result = typeof response === 'string' ? JSON.parse(response) :
+                            response;
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            subCategoryTable.fnDraw(); // ✅ old-style API
+                        } else {
+                            showNotification(result.message, 'error');
+                        }
+                    })
+                    .fail(function() {
+                        showNotification('Delete failed. Please try again.', 'error');
+                    })
+                    .always(function() {
+                        deleteId = null;
+                        bootstrap.Modal.getInstance(document.getElementById('deleteModal'))
+                            .hide();
+                    });
+            });
         });
     });
 </script>

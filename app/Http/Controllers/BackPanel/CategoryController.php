@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 
-class CategoryController extends SessionController
+class CategoryController extends Controller
 {
     // construct
     public function __construct()
@@ -135,51 +135,28 @@ class CategoryController extends SessionController
     //function to delete team category
     public function delete(Request $request)
     {
-        try {
-            $type = 'success';
-            $message = "Record deleted successfully";
+        // try {
+        $type = 'success';
+        $message = "Record deleted successfully";
 
-            $post = $request->all();
+        $post = $request->all();
 
-            DB::beginTransaction();
-            $result = Category::deleteCategory($post);
-            DB::commit();
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
-        }
+        DB::beginTransaction();
+        $result = Category::deleteCategory($post);
+        DB::commit();
+        // } catch (QueryException $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $this->queryMessage;
+        // } catch (Exception $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $e->getMessage();
+        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
-    //restore
-    public function restore(Request $request)
-    {
-        try {
-            $post = $request->all();
-            $type = 'success';
-            $message = "Team Category restored successfully";
-            DB::beginTransaction();
-            $result = TeamCategory::restoreData($post);
-            if (!$result) {
-                throw new Exception("Could not restore Team Category. Please try again.", 1);
-            }
-            DB::commit();
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
-        }
-        return response()->json(['type' => $type, 'message' => $message]);
-    } // CategoryController.php
+    // CategoryController.php
     public function tabs(Request $request)
     {
         $tabid = $request->input('tabid');

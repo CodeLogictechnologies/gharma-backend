@@ -52,14 +52,15 @@ return new class extends Migration
             $table->string('manufacturedatebs')->nullable();
             $table->string('expirydatead')->nullable();
             $table->string('expirydatebs')->nullable();
+            $table->string('expirymonth')->nullable();
             // ── Relations ────────────────────────────────────────────
             $table->uuid('orgid');
             $table->foreign('orgid')
                 ->references('id')
                 ->on('organizations')
                 ->cascadeOnDelete();
-            $table->integer('postedby');
-            $table->integer('updatedby')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

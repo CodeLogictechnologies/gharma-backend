@@ -36,6 +36,15 @@
             </a>
         </li>
 
+        <!-- Permission -->
+        <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
+            <a href="{{ route('permission') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-lock-alt"></i>
+                <div>Permission</div>
+            </a>
+        </li>
+
+
         <!-- Role -->
         <li class="menu-item {{ request()->routeIs('role') ? 'active' : '' }}">
             <a href="{{ route('role') }}" class="menu-link">
@@ -44,13 +53,54 @@
             </a>
         </li>
 
-        <!-- Permission -->
-        <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
-            <a href="{{ route('permission') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-lock-alt"></i>
-                <div>Permission</div>
+        <!-- Store -->
+        <li class="menu-item {{ request()->routeIs('store') ? 'active' : '' }}">
+            <a href="{{ route('store') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-store"></i>
+                <div>Store</div>
             </a>
         </li>
+
+        <!-- Refund -->
+        <li class="menu-item {{ request()->routeIs('refund') ? 'active' : '' }}">
+            <a href="{{ route('refund') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-revision"></i>
+                <div>Refund</div>
+            </a>
+        </li>
+
+
+
+        <!-- Report -->
+        <li
+            class="menu-item {{ request()->routeIs('report.sales') || request()->routeIs('inventory.report') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-line-chart"></i>
+                <div>Report</div>
+            </a>
+
+            <ul class="menu-sub">
+
+                <li class="menu-item {{ request()->routeIs('report.sales') ? 'active' : '' }}">
+                    <a href="{{ route('report.sales') }}" class="menu-link">
+                        <i class="bx bx-trending-up me-2"></i>
+                        <div>Sales Report</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('inventory.report') ? 'active' : '' }}">
+                    <a href="{{ route('inventory.report') }}" class="menu-link">
+                        <i class="bx bx-package me-2"></i>
+                        <div>Inventory Report</div>
+                    </a>
+                </li>
+
+
+            </ul>
+        </li>
+
+
+
 
         <!-- Users -->
         <li class="menu-item {{ request()->routeIs('user') ? 'active' : '' }}">
@@ -100,6 +150,13 @@
             </a>
         </li>
 
+        <li class="menu-item {{ request()->routeIs('discount') ? 'active' : '' }}">
+            <a href="{{ route('discount') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
+                <div>Discount</div>
+            </a>
+        </li>
+
         <!-- Inventory -->
         <li class="menu-item {{ request()->routeIs('inventory') ? 'active' : '' }}">
             <a href="{{ route('inventory') }}" class="menu-link">
@@ -120,13 +177,6 @@
                     <a href="{{ route('vendor.info') }}" class="menu-link">
                         <i class="bx bx-id-card me-2"></i>
                         <div>Vendor Info</div>
-                    </a>
-                </li>
-
-                <li class="menu-item {{ request()->routeIs('vendor.info') ? 'active' : '' }}">
-                    <a href="{{ route('vendor.info') }}" class="menu-link">
-                        <i class="bx bx-package me-2"></i>
-                        <div>Product</div>
                     </a>
                 </li>
             </ul>
@@ -164,6 +214,10 @@
                 </li>
             </ul>
         </li>
+
+        <!-- Discount Management -->
+
+
 
     </ul>
 </aside>

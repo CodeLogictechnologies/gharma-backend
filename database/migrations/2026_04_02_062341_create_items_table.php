@@ -44,8 +44,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('type', ['Regular', 'Special', 'Featured'])->default('Regular');
             $table->enum('status', ['Y', 'N'])->default('Y');
-            $table->integer('postedby');
-            $table->integer('updatedby');
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

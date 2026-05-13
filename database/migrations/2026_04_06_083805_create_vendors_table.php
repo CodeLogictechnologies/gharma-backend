@@ -40,8 +40,8 @@ return new class extends Migration
                 ->references('id')
                 ->on('organizations')
                 ->cascadeOnDelete();
-            $table->integer('postedby');
-            $table->integer('updatedby')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
 
 
             $table->softDeletes();

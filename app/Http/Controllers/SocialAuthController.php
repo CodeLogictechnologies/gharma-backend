@@ -18,7 +18,7 @@ class SocialAuthController extends Controller
     {
         if (!in_array($provider, $this->providers)) {
             return response()->json([
-                'success' => false,
+                'type' => 'error',
                 'message' => 'Provider not supported.',
             ], 422);
         }
@@ -30,9 +30,9 @@ class SocialAuthController extends Controller
 
         // ✅ Return unescaped JSON
         return response()->json([
-            'success' => true,
+            'type' => 'success',
             'url'     => $url,
-        ], 200, [], JSON_UNESCAPED_SLASHES); // ✅ this fixes \/  to /
+        ], 200, [], JSON_UNESCAPED_SLASHES);
     }
 
     // ✅ Step 2: Handle callback
@@ -57,7 +57,6 @@ class SocialAuthController extends Controller
             ], 401);
         }
 
-        // dd($socialUser);
         // ✅ Find or create user
         // $user = User::updateOrCreate(
         //     [
@@ -73,20 +72,20 @@ class SocialAuthController extends Controller
         //     ]
         // );
 
-
         $user = User::updateOrCreate(
             [
                 // ✅ Search by email OR provider_id
                 'email' => $socialUser->getEmail(),
             ],
             [
-                // ✅ No id here — boot() auto-generates UUID on create only
+                'id'             => (string) Str::uuid(),
                 'name'           => $socialUser->getName(),
                 'provider'       => $provider,
                 'provider_id'    => $socialUser->getId(),
                 'provider_token' => $socialUser->token,
                 'avatar'         => $socialUser->getAvatar(), // ✅ save avatar too
                 'password'       => null,
+                'phone'       => null,
                 'orgid'          => 'a20a5adb-1679-474d-a30c-3455d030d8e6',
             ]
         );
@@ -100,7 +99,7 @@ class SocialAuthController extends Controller
             'token'      => $token,
             'token_type' => 'bearer',
             'expires_in' => auth('api')->factory()->getTTL() * 60,
-            'user'       => $user,
+            // 'user'       => $user,
         ]);
     }
 }

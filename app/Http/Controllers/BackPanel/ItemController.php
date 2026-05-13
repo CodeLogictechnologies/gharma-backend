@@ -38,6 +38,13 @@ class ItemController extends Controller
         return view('backend.item.index', $data);
     }
 
+
+
+    // ── In your ItemController ────────────────────────────────────────────────────
+
+
+    // ── form() method in your ItemController ─────────────────────────────────────
+
     public function form(Request $request)
     {
         $id   = $request->id ?? null;
@@ -48,20 +55,20 @@ class ItemController extends Controller
         $subCategories = SubCategory::getSubCategory($post);
         $brands        = Brand::getBrand($post);
 
-        // Default empty data
+        // ── Default empty data (Add mode) ────────────────────────────────────────
         $data = [
             'id'             => null,
             'title'          => '',
             'brand'          => '',
             'type'           => 'Regular',
-            'categories'     => [],   // array for in_array() check in blade
-            'sub_categories' => [],   // array for in_array() check in blade
+            'categories'     => [],
+            'sub_categories' => [],
             'description'    => '',
             'images'         => [],
             'variations'     => [
                 [
                     'variationid' => '',
-                    'name'        => 'Size',  // blade uses 'name', not 'attribute'
+                    'name'        => 'Size',
                     'value'       => '',
                     'threshold'   => '',
                     'price'       => '',
@@ -71,35 +78,49 @@ class ItemController extends Controller
             ],
         ];
 
-        // Edit: hydrate with DB values
+        // ── Edit mode: hydrate from DB ────────────────────────────────────────────
         if (!empty($id)) {
             $item = Item::findOrFail($id);
 
-            // Existing images — build HTML cards for preview grid
+            // ── FIX: pivot column is 'categoryid' (no underscore), not 'category_id'
+            $categoryIds = DB::table('category_items')
+                ->where('itemid', $id)
+                ->pluck('categoryid')               // ← correct column name from your insert code
+                ->map(fn($v) => (string) $v)
+                ->toArray();
+
+            // ── FIX: pivot column is 'subcategoryid' (no underscore), not 'sub_category_id'
+            $subCategoryIds = DB::table('sub_category_items')
+                ->where('itemid', $id)
+                ->pluck('subcategoryid')            // ← correct column name from your insert code
+                ->map(fn($v) => (string) $v)
+                ->toArray();
+
+            // ── Fetch existing images ordered by order_number then id
             $existingImages = DB::table('item_images')
                 ->where('item_id', $id)
+                // ->orderBy('order_number')
                 ->orderBy('id')
-                ->get();
+                ->get()
+                ->map(fn($img) => [
+                    'id'           => $img->id,
+                    'filename'     => $img->image,
+                    'order_number' => $img->order_number ?? 0,
+                ])
+                ->toArray();
 
-            $imageCards = [];
-            foreach ($existingImages as $img) {
-                $url          = asset('uploads/items/' . $img->image);
-                $imageCards[] = '<img src="' . $url . '" data-path="' . e($img->image) . '" '
-                    . 'style="width:110px;height:90px;object-fit:cover;display:block;" alt="">';
-            }
-
-            // Existing variations — key must be 'name' to match blade/JS
+            // ── FIX: DB stores status as 'Y'/'N' — map to 'active'/'inactive' for blade
             $existingVariations = DB::table('itemvariations')
                 ->where('item_id', $id)
                 ->get()
                 ->map(fn($v) => [
                     'variationid' => $v->id,
-                    'name'        => $v->attribute,  // map DB 'attribute' → blade 'name'
+                    'name'        => $v->attribute,
                     'value'       => $v->value,
                     'threshold'   => $v->threshold,
                     'price'       => $v->price,
                     'stock'       => $v->stock,
-                    'status'      => $v->status,
+                    'status'      => ($v->status === 'Y') ? 'active' : 'inactive', // ← map Y/N → active/inactive
                 ])
                 ->toArray();
 
@@ -108,19 +129,13 @@ class ItemController extends Controller
                 'title'          => $item->title,
                 'brand'          => $item->brand_id,
                 'type'           => $item->type,
-                'categories'     => $item->category_id
-                    ? (is_array($item->category_id)
-                        ? $item->category_id
-                        : json_decode($item->category_id, true) ?? [])
-                    : [],
-                'sub_categories' => $item->subcategory_id
-                    ? (is_array($item->subcategory_id)
-                        ? $item->subcategory_id
-                        : json_decode($item->subcategory_id, true) ?? [])
-                    : [],
+                'categories'     => $categoryIds,      // string IDs from category_items.categoryid
+                'sub_categories' => $subCategoryIds,   // string IDs from sub_category_items.subcategoryid
                 'description'    => $item->description,
-                'images'         => $imageCards,
-                'variations'     => !empty($existingVariations) ? $existingVariations : $data['variations'],
+                'images'         => $existingImages,
+                'variations'     => !empty($existingVariations)
+                    ? $existingVariations
+                    : $data['variations'],
             ];
         }
 
@@ -147,7 +162,7 @@ class ItemController extends Controller
             'categories'     => 'required|exists:categories,id',
             'sub_categories' => 'required|exists:sub_categories,id',
             'status'         => 'nullable|in:Y,N',
-            'images.*'       => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
+            // 'images.*'       => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
             'variations'     => 'nullable|array',
         ];
 
@@ -237,7 +252,6 @@ class ItemController extends Controller
     {
         $post = $request->all();
         $data = Item::list($post);
-
         $i            = 0;
         $array        = [];
         $totalrecs    = $data['totalrecs']        ?? 0;
@@ -252,8 +266,10 @@ class ItemController extends Controller
 
             // Item columns (matching your items migration)
             $array[$i]['name']         = $row->title           ?? '—';
-            $array[$i]['category']     = $row->category_name   ?? '—';
-            $array[$i]['subcategory'] = $row->sub_category_name ?? '—';
+            $array[$i]['category'] = $row->categories ?? [];
+
+            // ✅ MULTIPLE subcategories
+            $array[$i]['subcategory'] = $row->subcategories ?? [];
             $array[$i]['description'] = $row->description ?? '—';
             $array[$i]['type'] = $row->type ?? '—';
             $array[$i]['brand'] = $row->brand ?? '—';

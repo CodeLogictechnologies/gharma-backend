@@ -15,7 +15,67 @@
     <!-- Favicon -->
     <link rel="shortcut icon" href="erp.png">
     <!-- <link rel="icon" type="image/x-icon" href="/assets/img/favicon/favicon.ico" /> -->
+    <style>
+        /* ── Loader ───────────────────────────────────────────── */
+        #global-loader {
+            display: none;
+            position: fixed;
+            inset: 0;
+            /* top/right/bottom/left: 0 */
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+        }
 
+        #global-loader-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            margin: auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* ── Notification ─────────────────────────────────────── */
+        #global-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999999;
+            background: #fff;
+            border-radius: 10px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #333;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            min-width: 260px;
+            max-width: 380px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(60px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -58,6 +118,7 @@
 
 
 <body>
+
     <!-- Layout wrapper -->
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
@@ -99,7 +160,7 @@
 
 
     <div id="customNotification"
-        style="display:none; padding:10px; margin-bottom:10px; color:white; border-radius:4px;">
+        style="display:block; padding:10px; margin-bottom:10px; color:white; border-radius:4px;">
 
         <!-- / Layout wrapper -->
 
@@ -147,32 +208,72 @@
         <!-- DataTables -->
         <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
         <script>
+            /* =========================================================
+                   LOADER
+                ========================================================= */
             function showLoader() {
-                $('#loadingOverlay').show();
+                if ($('#global-loader').length === 0) {
+                    $('body').append(`
+            <div id="global-loader">
+                <div id="global-loader-inner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        `);
+                }
+                $('#global-loader').fadeIn(200);
             }
 
             function hideLoader() {
-                $('#loadingOverlay').hide();
+                $('#global-loader').fadeOut(200);
             }
 
-            function showNotification(message, type) {
-                var notification = document.getElementById('customNotification');
-                notification.textContent = message;
 
-                if (type === 'success') {
-                    notification.style.backgroundColor = '#28a745'; // Green for success
-                } else if (type === 'error') {
-                    notification.style.backgroundColor = '#dc3545'; // Red for error
-                }
+            /* =========================================================
+               NOTIFICATION
+            ========================================================= */
+            function showNotification(message, type = 'success') {
+                // Remove any existing notification
+                $('#global-notification').remove();
 
-                // Show the notification
-                notification.style.display = 'block';
+                var icons = {
+                    success: 'bx-check-circle',
+                    error: 'bx-x-circle',
+                    warning: 'bx-error',
+                    info: 'bx-info-circle',
+                };
 
-                // Hide the notification after 3 seconds (adjust as needed)
+                var colors = {
+                    success: '#28a745',
+                    error: '#dc3545',
+                    warning: '#ffc107',
+                    info: '#17a2b8',
+                };
+
+                var icon = icons[type] || icons.info;
+                var color = colors[type] || colors.info;
+
+                $('body').append(`
+        <div id="global-notification">
+            <i class='bx ${icon}' style="font-size: 20px; color: ${color};"></i>
+            <span>${message}</span>
+        </div>
+    `);
+
+                // Auto hide after 3 seconds
                 setTimeout(function() {
-                    notification.style.display = 'none';
-                }, 2000);
+                    $('#global-notification').fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                }, 3000);
             }
+
+
+            /* =========================================================
+               CSS — paste in your <style> or .css file
+            ========================================================= */
         </script>
         @yield('main-scripts')
 </body>

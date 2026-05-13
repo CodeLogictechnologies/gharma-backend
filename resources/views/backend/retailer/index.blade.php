@@ -217,10 +217,17 @@
                     data: 'action'
                 }
             ],
+
             initComplete: function() {
-                this.api().columns([1]).every(function() {
+                this.api().columns([1, 2]).every(function() {
                     var column = this;
-                    $('<input type="text" placeholder="Search name" style="width:100%;" />')
+                    var header = $(column.header()).text()
+                        .trim();
+
+                    var input = $(
+                            '<input type="text" class="form-control" placeholder="' +
+                            header + '..." style="width:100%;" />'
+                        )
                         .appendTo($(column.header()).empty())
                         .on('keyup change', function() {
                             column.search(this.value).draw();
