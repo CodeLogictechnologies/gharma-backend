@@ -35,130 +35,30 @@ class RoleController extends Controller
     //function to save role 
     public function save(Request $request)
     {
-        // try {
-
-        $rules = [
-            'name' => 'required|min:3|max:255',
-            'order_number' => [
-                'required',
-                Rule::unique('roles')->where(function ($query) {
-                    return $query->where('status', 'Y');
-                })->ignore($request->id),
-            ],
-        ];
-
-        $message = [
-            'name.required' => 'Please enter  category.',
-            'order_number.required' => 'Please enter  order.',
-            'order_number.unique' => 'Order number should be unique.',
-        ];
-
-        $validation = Validator::make($request->all(), $rules, $message);
-
-        if ($validation->fails()) {
-            throw new Exception($validation->errors()->first(), 1);
-        }
-
-        $post = $request->all();
-        $type = 'success';
-        $message = 'Role saved successfully';
-
-        DB::beginTransaction();
-
-        if (!Role::saveData($post)) {
-            throw new Exception('Could not save record', 1);
-        }
-        DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
-        return json_encode(['type' => $type, 'message' => $message]);
-    }
-
-    //function to list role
-    public function list(Request $request)
-    {
         try {
-            $post = $request->all();
-            $data = Role::list($post);
-            $i = 0;
-            $array = [];
-            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-            $totalrecs = $data["totalrecs"];
 
-            unset($data["totalfilteredrecs"]);
-            unset($data["totalrecs"]);
+            $rules = [
+                'name' => 'required|min:3|max:255',
+            ];
 
-            foreach ($data as $row) {
-                $array[$i]["sno"]          = $i + 1;
-                $array[$i]["name"]         = $row->name;
-                $array[$i]["order_number"] = $row->order_number;
+            $message = [
+                'name.required' => 'Please enter  category.',
+            ];
 
-                $permissions = $row->permissions->pluck('name')->toJson();
+            $validation = Validator::make($request->all(), $rules, $message);
 
-                $action = '';
-
-                // ✅ Edit button - check permission
-                if (auth()->user()->can('role.edit')) {
-                    $action .= '<a href="javascript:;" class="editRole"
-                                data-id="' . $row->id . '"
-                                data-name="' . $row->name . '"
-                                data-order_number="' . $row->order_number . '"
-                                data-permissions=\'' . $permissions . '\'>
-                                <i class="fa-solid fa-pen-to-square text-primary"></i>
-                            </a>';
-                }
-
-                // ✅ Delete button - check permission
-                if (auth()->user()->can('role.delete')) {
-                    $action .= ' | <a href="javascript:;" class="deleteRole"
-                                data-id="' . $row->id . '">
-                                <i class="fa fa-trash text-danger"></i>
-                            </a>';
-                }
-
-                $array[$i]["action"] = $action;
-                $i++;
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
             }
 
-            if (!$filtereddata) $filtereddata = 0;
-            if (!$totalrecs) $totalrecs = 0;
-        } catch (QueryException $e) {
-            $array = [];
-            $totalrecs = 0;
-            $filtereddata = 0;
-        } catch (Exception $e) {
-            $array = [];
-            $totalrecs = 0;
-            $filtereddata = 0;
-        }
-
-        return json_encode([
-            "recordsFiltered" => $filtereddata,
-            "recordsTotal"    => $totalrecs,
-            "data"            => $array
-        ]);
-    }
-
-    //function to delete role
-    public function delete(Request $request)
-    {
-        try {
-            $type = 'success';
-            $message = "Record deleted successfully";
-
             $post = $request->all();
-            $class = new Role();
+            $type = 'success';
+            $message = 'Role saved successfully';
 
             DB::beginTransaction();
-            if (!Common::deleteDataFileDoesnotExists($post, $class)) {
-                throw new Exception("Record does not deleted", 1);
+
+            if (!Role::saveData($post)) {
+                throw new Exception('Could not save record', 1);
             }
             DB::commit();
         } catch (QueryException $e) {
@@ -173,41 +73,94 @@ class RoleController extends Controller
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
+    //function to list role
+    public function list(Request $request)
+    {
+        $post = $request->all();
+        $data = Role::list($post);
+        $i    = 0;
+        $array = [];
 
-    // public function delete(Request $request)
-    // {
-    //     try {
-    //         $post = $request->all();
+        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+        $totalrecs    = $data["totalrecs"];
 
-    //         if (empty($post['id'])) {
-    //             return json_encode([
-    //                 'type'    => 'error',
-    //                 'message' => 'Role not found.'
-    //             ]);
-    //         }
+        unset($data["totalfilteredrecs"]);
+        unset($data["totalrecs"]);
 
-    //         $role = Role::findOrFail($post['id']);
+        foreach ($data as $row) {
+            $array[$i]["sno"]  = $i + 1;
+            $array[$i]["name"] = $row->name;
 
-    //         $role->syncPermissions([]);
+            // ── Fixed: single encode, pluck IDs not names ──────────
+            $permissionIds = $row->permissions->pluck('id')->toArray();
 
-    //         $role->users()->detach();
+            $action  = '';
+            $action .= '<a href="javascript:;" class="editRole"
+                        data-id="'          . $row->id   . '"
+                        data-name="'        . $row->name . '"
+                        data-permissions=\'' . json_encode($permissionIds) . '\'>
+                        <i class="fa-solid fa-pen-to-square text-primary"></i>
+                    </a>';
 
-    //         $role->delete();
+            $action .= ' | <a href="javascript:;" class="deleteRole"
+                        data-id="' . $row->id . '">
+                        <i class="fa fa-trash text-danger"></i>
+                    </a>';
 
-    //         return json_encode([
-    //             'type'    => 'success',
-    //             'message' => 'Role deleted successfully.'
-    //         ]);
-    //     } catch (QueryException $e) {
-    //         return json_encode([
-    //             'type'    => 'error',
-    //             'message' => $this->queryMessage
-    //         ]);
-    //     } catch (Exception $e) {
-    //         return json_encode([
-    //             'type'    => 'error',
-    //             'message' => $e->getMessage()
-    //         ]);
-    //     }
-    // }
+            $array[$i]["action"] = $action;
+            $i++;
+        }
+
+        if (!$filtereddata) $filtereddata = 0;
+        if (!$totalrecs)    $totalrecs    = 0;
+
+        return response()->json([
+            "recordsFiltered" => $filtereddata,
+            "recordsTotal"    => $totalrecs,
+            "data"            => $array,
+        ]);
+    }
+    //function to delete role
+    public function delete(Request $request)
+    {
+        try {
+            $post = $request->all();
+
+            if (empty($post['id'])) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => 'Role ID is required.',
+                ]);
+            }
+
+            $role = Role::findOrFail($post['id']);
+
+            // ── Detach all permissions before deleting ─────────
+            $role->permissions()->detach();
+
+            // ── Soft delete ────────────────────────────────────
+            $role->delete();
+
+            return response()->json([
+                'type'    => 'success',
+                'message' => 'Role deleted successfully.',
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Role not found.',
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
 }

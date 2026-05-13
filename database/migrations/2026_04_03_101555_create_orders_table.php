@@ -34,8 +34,8 @@ return new class extends Migration
 
             $table->integer('qty');
             $table->decimal('price', 10, 2);
-            $table->integer('postedby');
-            $table->integer('updatedby')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

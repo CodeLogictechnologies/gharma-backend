@@ -70,6 +70,9 @@ class RetailerPrice extends Model
             if ($get['columns'][1]['search']['value'])
                 $cond .= " and lower(i.title) like '%" . $get['columns'][1]['search']['value'] . "%'";
 
+            if ($get['columns'][2]['search']['value'])
+                $cond .= " and lower(iv.value) like '%" . $get['columns'][2]['search']['value'] . "%'";
+
             $limit = 15;
             $offset = 0;
 

@@ -3,13 +3,21 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\OTPRequest;
+use App\Models\API\Userdevicetoken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
-
+use Carbon\Carbon;
+use App\Mail\OtpMail;
+use App\Models\Otp;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Database\QueryException;
+use Exception;
+use GrahamCampbell\ResultType\Success;
 use Illuminate\Support\Facades\DB;
 
 class ApiAuthController extends Controller
@@ -46,10 +54,10 @@ class ApiAuthController extends Controller
     // -----------------------------------------------------------------------
     // POST /api/register
     // -----------------------------------------------------------------------
-    public function register(Request $request)
+    public function retailerRegister(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'username'    => 'required|string|max:255',
+            'username'    => 'required|string|max:255|unique:users',
             'email'       => 'required|string|email|max:255|unique:users',
             'password'    => 'required|string|min:6|confirmed',
             'first_name'  => 'required|string|max:255',
@@ -63,12 +71,55 @@ class ApiAuthController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
-                'errors'  => $validator->errors(),
+                'type' => 'error',
+                'message' => $validator->errors()->first()
             ], 422);
         }
 
         $post = $request->all();
+        $post['type'] = 'retailer';
+        User::saveData($post);
+
+        $user  = User::where('email', $post['email'])->first();
+        $token = JWTAuth::fromUser($user);
+
+        return response()->json([
+            'type'    => 'success',
+            'message'    => 'Retailer registered successfully.',
+            'token'      => $token,
+            'token_type' => 'bearer',
+            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
+            // 'user'       => $user,
+        ], 201);
+    }
+
+    public function wholesalerRegister(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'username'    => 'required|string|max:255',
+            'email'       => 'required|string|email|max:255|unique:users',
+            'password'    => 'required|string|min:6|confirmed',
+            'first_name'  => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name'   => 'required|string|max:255',
+            'gender'      => 'required',
+            'address'     => 'required',
+            'phone'       => 'required',
+            'image'       => 'required',
+            'company_name'       => 'required',
+            'tax_number'       => 'required',
+            'registration_number'       => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $post = $request->all();
+        $post['type'] = 'wholesaler';
         User::saveData($post);
 
         $user  = User::where('email', $post['email'])->first();
@@ -76,11 +127,11 @@ class ApiAuthController extends Controller
 
         return response()->json([
             'success'    => true,
-            'message'    => 'User registered successfully.',
+            'message'    => 'Wholesaler registered successfully.',
             'token'      => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60,
-            'user'       => $user,
+            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
+            // 'user'       => $user,
         ], 201);
     }
 
@@ -90,7 +141,7 @@ class ApiAuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email'    => 'required|email',
+            'phone'    => 'required',
             'password' => 'required|string|min:6',
         ]);
 
@@ -101,33 +152,37 @@ class ApiAuthController extends Controller
             ], 422);
         }
 
-        $credentials = $request->only('email', 'password');
-
+        $credentials = $request->only('phone', 'password');
+        $post = $request->all();
         try {
             if (!$token = JWTAuth::attempt($credentials)) {
+
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid email or password.',
+                    'type' => 'error',
+                    'message' => 'Invalid phone number or password.',
                 ], 401);
             }
         } catch (JWTException $e) {
             return response()->json([
-                'success' => false,
+                'type' => 'error',
                 'message' => 'Could not create token. Please try again.',
             ], 500);
         }
 
         $user = auth()->user();
+        $post['userid'] = $user->id;
+        $deviceToke = Userdevicetoken::saveDate($post);
 
         // Merge base response with role-based greeting + redirect
         return response()->json(array_merge([
-            'success'    => true,
+            'type'    => 'success',
             'message'    => 'Login successful.',
             'token'      => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60,
-            'user'       => $user,
-            'roles'      => $user->getRoleNames(),
+            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
+            // 'user'       => $user,
+            // 'roles'      => $user->getRoleNames(),
         ]));
     }
 
@@ -140,12 +195,12 @@ class ApiAuthController extends Controller
             JWTAuth::invalidate(JWTAuth::getToken());
 
             return response()->json([
-                'success' => true,
+                'type' => 'success',
                 'message' => 'Successfully logged out.',
             ]);
         } catch (JWTException $e) {
             return response()->json([
-                'success' => false,
+                'type' => 'error',
                 'message' => 'Failed to logout. Token may already be invalid.',
             ], 500);
         }
@@ -177,90 +232,124 @@ class ApiAuthController extends Controller
     // GET /api/me  (requires Bearer token)
     // -----------------------------------------------------------------------
 
-    public function me(Request $request)
+    public function userDetail(Request $request)
     {
-        $user = auth('api')->user();
+        try {
 
-        $payload = JWTAuth::parseToken()->getPayload();
+            $user = auth('api')->user();
 
-        // ✅ get profile
-        $profile = $payload->get('profile');
+            if (!$user) {
+                throw new Exception("Unauthorized user");
+            }
 
-        // ✅ extract user_id
-        $userId = $profile['first_name'];
+            $post = $request->all();
+            $post['userid'] = $user->id;
 
-        dd($userId);
+            $result = User::getDataUser($post);
 
-        return response()->json([
-            'success' => true,
-            'user'    => $user,
-            'roles'   => $user->getRoleNames(),
-            'user_id' => $userId,
-        ]);
+            if (!$result) {
+                throw new Exception("User not found");
+            }
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'User fetched successfully',
+                'data' => $result
+            ]);
+        } catch (QueryException $e) {
+
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Something went wrong'
+            ], 500);
+        } catch (Exception $e) {
+
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
     // -----------------------------------------------------------------------
     // PUT /api/me/update  (requires Bearer token)
     // -----------------------------------------------------------------------
     public function updateProfile(Request $request)
     {
-        $user = auth()->user();
+        // try {
 
-        $validator = Validator::make($request->all(), [
-            'name'  => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
-        ]);
+            $user = auth('api')->user();
 
-        if ($validator->fails()) {
+            if (!$user) {
+                throw new Exception("Unauthorized user");
+            }
+
+            $post = $request->all();
+            $post['userid'] = $user->id;
+
+            $result = User::updateUser($post);
+
+            // if (!$result) {
+            //     throw new Exception("User not updated");
+            // }
+
             return response()->json([
-                'success' => false,
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
+                'type' => 'success',
+                'message' => 'User updated successfully',
+            ]);
+        // } catch (QueryException $e) {
 
-        $user->update($request->only('name', 'email'));
+        //     return response()->json([
+        //         'type' => 'error',
+        //         'message' => 'Something went wrong'
+        //     ], 500);
+        // } catch (Exception $e) {
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Profile updated successfully.',
-            'user'    => $user->fresh(),
-        ]);
+        //     return response()->json([
+        //         'type' => 'error',
+        //         'message' => $e->getMessage()
+        //     ], 400);
+        // }
     }
-
     // -----------------------------------------------------------------------
     // PUT /api/me/password  (requires Bearer token)
     // -----------------------------------------------------------------------
     public function changePassword(Request $request)
     {
+
+        $user = JWTAuth::parseToken()->authenticate();
         $validator = Validator::make($request->all(), [
-            'current_password' => 'required|string',
-            'password'         => 'required|string|min:6|confirmed',
+            'current_password' => 'required',
+            'password'         => 'required|min:6|confirmed',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
-                'errors'  => $validator->errors(),
+                'type' => "error",
+                'message' => $validator->errors()->first()
             ], 422);
         }
 
-        $user = auth()->user();
+        $user = DB::table('users')->where('id', $user->id)->first();
 
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
-                'success' => false,
+                'type' => "error",
                 'message' => 'Current password is incorrect.',
             ], 400);
         }
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update([
+                'password' => Hash::make($request->password),
+            ]);
 
-        $user->update([
-            'password' => Hash::make($request->password),
-        ]);
 
         return response()->json([
-            'success' => true,
+            'type' => "success",
             'message' => 'Password changed successfully.',
         ]);
     }
+
 
     public function roleCheck(Request $request)
     {
@@ -285,3 +374,105 @@ class ApiAuthController extends Controller
             'message' => $message,
         ]);
     }
+
+    public function sendOtp(OTPRequest $request)
+    {
+        try {
+            $type = 'success';
+            $message = 'OTP send successfully';
+
+            $post = $request->all();
+
+            DB::beginTransaction();
+            if (!Otp::sendOtp($post)) {
+                throw new Exception('Could not send opt', 1);
+            }
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
+
+        return json_encode(['type' => $type, 'message' => $message]);
+    }
+
+    // 2. VERIFY OTP
+    public function verifyOtp(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'otp' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'type' => "error",
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $record = DB::table('otps')
+            ->where('otp', $request->otp)
+            ->where('expires_at', '>=', now())
+            ->first();
+
+        if (!$record) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Invalid or expired OTP'
+            ]);
+        }
+
+        return response()->json([
+            'type' => 'success',
+            'message' => 'OTP verified'
+        ]);
+    }
+
+    // 3. RESET PASSWORD
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'otp' => 'required',
+            'password' => 'required|min:6|confirmed'
+        ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'type' => "error",
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $record = DB::table('otps')
+            ->where('otp', $request->otp)
+            ->where('expires_at', '>=', now())
+            ->first();
+
+        if (!$record) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Invalid OTP or expired OTP'
+            ]);
+        }
+
+        $email = $record->email;
+        $user = User::where('email', $email)->first();
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        // delete OTP
+        DB::table('otps')->where('email', $request->email)->delete();
+
+        return response()->json([
+            'type' => 'success',
+            'message' => 'Password reset successful'
+        ]);
+    }
+}

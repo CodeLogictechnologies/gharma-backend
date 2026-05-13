@@ -1,289 +1,145 @@
-@extends('backend.layouts.main')
+@extends('layouts.main')
+@section('title', 'Organization')
+@section('content')
 
-@section('title')
-    Organization
-@endsection
-<style>
-    input#trashed_file {
-        border: 1px solid rgb(0, 99, 198) !important
-    }
-</style>
-@section('main-content')
-    <!-- Page Header -->
-    <div class="d-md-flex d-block align-items-center justify-content-between my-4 page-header-breadcrumb">
-        <div class="my-auto">
-            <h5 class="page-title fs-21 mb-1">Organizations</h5>
-        </div>
-        <div class="d-flex my-xl-auto right-content">
-            <div class="pe-1 mb-xl-0">
-                <button type="button" class="btn btn-primary addNewsButton" data-bs-toggle="modal"
-                    data-bs-target="#organizationModel"><i class="fa fa-add"></i> Add</button>
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="card">
+            <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+                <h5 class="mb-0">Organization List</h5>
+                <button type="button" id="addOrg" class="btn btn-primary">
+                    <i class="bx bx-plus me-1"></i> Add Organization
+                </button>
+            </div>
+
+            <div class="table-responsive text-nowrap mx-4 mb-4">
+                <table class="table" id="orgTable">
+                    <thead class="table-light">
+                        <tr class="align-middle">
+                            <th>ID</th>
+                            <th>Organization Name</th>
+                            <th>Phone Number</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Logo</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
-    <!-- Modal -->
-    <div class="modal fade" id="organizationModel" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                {{-- Content goes here --}}
-            </div>
-        </div>
-    </div>
-    <!-- Page Header Close -->
-    <!-- Start::row-1 -->
-    {{-- crop modal-start --}}
 
-    <div class="modal cropModel fade" id="cropModel" tabindex="-1" role="dialog" aria-labelledby="modalLabel"
-        aria-hidden="true">
+    {{-- Organization Add/Edit Modal --}}
+    <div class="modal fade" id="organizationModal" tabindex="-1" role="dialog" aria-modal="true">
         <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content" id="organizationModalContent"></div>
+        </div>
+    </div>
+
+    {{-- Delete Confirm Modal --}}
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalLabel">Crop Image</h5>
-                    <button type="button" class="closeCrop" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">×</span>
-                    </button>
+                    <h5 class="modal-title">Delete Organization</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="img-container">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <img id="image" src="#" style="height: 200px; width: 250px;">
-                            </div>
-                            <div class="col-md-12">
-                                <div class="preview"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="controls">
-                        <button id="rotateLeft">Rotate Left</button>
-                        <button id="rotateRight">Rotate Right</button>
-                    </div>
-                </div>
+                <div class="modal-body">Are you sure? You won't be able to revert this.</div>
                 <div class="modal-footer">
-                    <button type="button" class="btn_btn cancel_btn cancelCrop" id="cancelCrop">Cancel</button>
-                    <button type="button" class="btn_btn submit_btn" id="cropImage">Crop</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
                 </div>
             </div>
         </div>
     </div>
-    {{-- crop modal-end --}}
 
-    <div class="row ">
-        <div class="col-xl-12">
-            <div class="card custom-card">
-                <div class="card-header justify-content-between">
-                    <div class="card-title">
-                        Organization List
-                    </div>
-                    {{-- <div class="row ms-0">
-                        <div class="form-check col-xl-12 col-lg-12 col-md-12 col-sm-12">
-                            <input class="form-check-input" type="checkbox" value="Y" id="trashed_file"
-                                name="trashed_file">
-                            <label class="form-check-label" for="trashed_file">
-                                View Trashed
-                            </label>
-                        </div>
-                    </div> --}}
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <div id="datatable-basic_wrapper" class="dataTables_wrapper dt-bootstrap5 no-footer">
-                            <div class="row">
-                                <div class="col-sm-12 col-md-12 mb-3">
-                                    <div class="dataTables_length" id="datatable-basic_length">
-                                        <table id="orgTable"
-                                            class="table table-bordered text-nowrap w-100 dataTable no-footer mt-3"
-                                            aria-describedby="datatable-basic_info">
-                                            <thead>
-                                                <tr>
-                                                    <th width="3%">S.No</th>
-                                                    <th width="15%">Orgnization Name</th>
-                                                    <th width="10%">Phone Number</th>
-                                                    <th width="20%">Email</th>
-                                                    <th width="5%">Address</th>
-                                                    <th width="5%">Logo</th>
-                                                    <th width="5%">Action</th>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!--End::row-1 -->
 @endsection
 
-@section('script')
-    {{-- crop image-start --}}
-    <script>
-        var cropper;
-        $(document).ready(function() {
-
-
-            //to pass image url to crop model ---Start
-            $('.thumbnail_image').off('change');
-            $('.thumbnail_image').on("change", function(e) {
-                var files = e.target.files;
-                var done = function(url) {
-                    $('#image').attr('src', url);
-                    $('#cropModel').modal('show');
-                };
-                var reader;
-                var file;
-                var url;
-
-                if (files && files.length > 0) {
-                    file = files[0];
-                    if (URL) {
-                        done(URL.createObjectURL(file));
-                    }
-                }
-            });
-            //to pass image url to crop model ---End
-
-
-            //to crop images---Start
-            $('#cropModel').off('shown.bs.modal');
-            $('#cropModel').on('shown.bs.modal', function() {
-                var image = document.getElementById('image');
-
-                cropper = new Cropper(image, {
-                    initailAspectRatio: 1,
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    moveable: false,
-                    zoomOnWheel: false,
-
-                    preview: '.preview',
-                });
-
-
-                $("#rotateRight").on("click", e => {
-                    cropper.rotate(90);
-                });
-
-                $("#rotateLeft").on("click", e => {
-                    cropper.rotate(-90);
-                });
-            }).on('hidden.bs.modal', function() {
-                cropper.destroy();
-                cropper = null;
-            });
-            //to crop images---End
-
-            //save crop image ---Start
-            var base64data;
-            $('#cropImage').off('click');
-            $('#cropImage').on('click', function() {
-
-                canvas = cropper.getCroppedCanvas({
-                    width: 160,
-                    height: 160,
-                });
-                canvas.toBlob(function(blob) {
-                    url = URL.createObjectURL(blob);
-                    $('._image').attr('src', url);
-                    var reader = new FileReader();
-                    reader.readAsDataURL(blob);
-                    reader.onloadend = function() {
-                        base64data = reader.result;
-                        $('#cropModel').modal('hide');
-                        $('#croppedImg').val(base64data);
-                    }
-                })
-            });
-            //save crop image ---End
-        });
-    </script>
-    {{-- crop image-end --}}
-
+@section('main-scripts')
     <script>
         var orgTable;
+
         $(document).ready(function() {
 
-            $('.addNewsButton').on('click', function(e) {
-                e.preventDefault();
-                var url = '{{ route('organization.form') }}';
-                $.get(url, function(response) {
-                    $('#organizationModel .modal-content').html(response);
-                    $('#organizationModel').modal('show');
-                });
+            // ── CSRF setup ────────────────────────────────────────────────
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
             });
 
-
-            orgTable = $('#orgTable').DataTable({
-                "sPaginationType": "full_numbers",
-                "bSearchable": false,
-                "lengthMenu": [
-                    [5, 10, 15, 20, 25, -1],
-                    [5, 10, 15, 20, 25, "All"]
-                ],
-                'iDisplayLength': 15,
-                "sDom": 'ltipr',
-                "bAutoWidth": false,
-                "aaSorting": [
-                    [0, 'desc']
-                ],
-                "bSort": false,
-                "bProcessing": true,
-                "bServerSide": true,
-                "oLanguage": {
-                    "sEmptyTable": "<p class='no_data_message'>No data available.</p>"
-                },
-                "aoColumnDefs": [{
-                    "bSortable": false,
-                    "aTargets": [1]
-                }],
-                "aoColumns": [{
-                        "data": "sno"
-                    },
-                    {
-                        "data": "name"
-                    },
-                    {
-                        "data": "phone"
-                    },
-                    {
-                        "data": "email"
-                    },
-                    {
-                        "data": "address"
-                    },
-                    {
-                        "data": "logo"
-                    },
-                    {
-                        "data": "action"
-                    },
-                ],
-                "ajax": {
-                    "url": '{{ route('organization.list') }}',
-                    "type": "POST",
-                    "data": function(d) {
-                        var type = $('#trashed_file').is(':checked') == true ? 'trashed' :
-                            'nottrashed';
-                        d.type = type;
+            // ── DataTable ─────────────────────────────────────────────────
+            orgTable = $('#orgTable').dataTable({
+                sPaginationType: 'full_numbers',
+                bSearchable: false,
+                language: {
+                    paginate: {
+                        first: '<i class="bx bx-chevrons-left"></i>',
+                        previous: '<i class="bx bx-chevron-left"></i>',
+                        next: '<i class="bx bx-chevron-right"></i>',
+                        last: '<i class="bx bx-chevrons-right"></i>'
                     }
                 },
-                "initComplete": function() {
-                    // Ensure text input fields in the header for specific columns with placeholders
-                    this.api().columns([1, 2]).every(function() {
+                lengthMenu: [
+                    [10, 30, 50, 70, 90, -1],
+                    [10, 30, 50, 70, 90, 'All']
+                ],
+                iDisplayLength: 10,
+                sDom: 'ltipr',
+                bAutoWidth: false,
+                aaSorting: [
+                    [0, 'desc']
+                ],
+                bProcessing: true,
+                bServerSide: true,
+                sAjaxSource: '{{ route('organization.list') }}',
+                oLanguage: {
+                    sEmptyTable: "<p class='no_data_message'>No data available.</p>"
+                },
+                aoColumnDefs: [{
+                        bSortable: false,
+                        aTargets: [0, 5, 6]
+                    },
+                    {
+                        sWidth: '10%',
+                        aTargets: [5]
+                    }
+                ],
+                aoColumns: [{
+                        data: 'sno'
+                    },
+                    {
+                        data: 'name'
+                    },
+                    {
+                        data: 'phone'
+                    },
+                    {
+                        data: 'email'
+                    },
+                    {
+                        data: 'address'
+                    },
+                    {
+                        data: 'logo'
+                    },
+                    {
+                        data: 'action'
+                    },
+                ],
+
+                initComplete: function() {
+                    this.api().columns([1, 2, 3]).every(function() {
                         var column = this;
-                        var input = document.createElement("input");
-                        var columnName = column.header().innerText.trim();
-                        // Append input field to the header, set placeholder, and apply CSS styling
-                        $(input).appendTo($(column.header()).empty())
-                            .attr('placeholder', columnName).css('width',
-                                '100%') // Set width to 100%
-                            .addClass(
-                                'search-input-highlight') // Add a CSS class for highlighting
+                        var header = $(column.header()).text()
+                            .trim(); // ← gets column header name
+
+                        var input = $(
+                                '<input type="text" class="form-control" placeholder="' +
+                                header + '..." style="width:100%;" />'
+                            )
+                            .appendTo($(column.header()).empty())
                             .on('keyup change', function() {
                                 column.search(this.value).draw();
                             });
@@ -291,78 +147,163 @@
                 }
             });
 
+            // ── Helper: open modal via AJAX ───────────────────────────────
+            function openOrgModal(url, data, method) {
+                var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
 
-            // Edit news-start
-            $(document).off('click', '.editNews');
-            $(document).on('click', '.editNews', function() {
-                var id = $(this).data('id');
-                var url = '{{ route('organization.form') }}';
-                var data = {
-                    id: id
-                };
-                $.post(url, data, function(response) {
-                    $('#organizationModel .modal-content').html(response);
-                    $('#organizationModel').modal('show');
+                req.done(function(response) {
+                    $('#organizationModalContent').html(response);
+
+                    // Destroy previous instance if any, then show fresh
+                    var modalEl = document.getElementById('organizationModal');
+                    var existing = bootstrap.Modal.getInstance(modalEl);
+                    if (existing) existing.dispose();
+
+                    new bootstrap.Modal(modalEl, {
+                        backdrop: 'static',
+                        keyboard: false
+                    }).show();
+
+                }).fail(function() {
+                    showNotification('Failed to load form. Please try again.', 'error');
                 });
+            }
+
+            // ── Add ───────────────────────────────────────────────────────
+            $('#addOrg').on('click', function() {
+                openOrgModal('{{ route('organization.form') }}', {}, 'GET');
             });
-            //edit news -end
 
+            // ── Edit ──────────────────────────────────────────────────────
+            $(document).on('click', '.editOrg', function(e) {
+                e.preventDefault();
+                openOrgModal(
+                    '{{ route('organization.form') }}', {
+                        id: $(this).data('id'),
+                        _token: '{{ csrf_token() }}'
+                    },
+                    'POST'
+                );
+            });
 
+            // ── Delete ────────────────────────────────────────────────────
+            var deleteId = null;
 
-            // Delete news
-            $(document).off('click', '.deleteNews');
-            $(document).on('click', '.deleteNews', function() {
+            $(document).on('click', '.deleteOrg', function(e) {
+                e.preventDefault();
+                deleteId = $(this).data('id');
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            });
 
-                var type = $('#trashed_file').is(':checked') == true ? 'trashed' :
-                    'nottrashed';
+            $('#confirmDelete').on('click', function() {
+                if (!deleteId) return;
 
-                Swal.fire({
-                    title: type === "nottrashed" ? "Are you sure you want to delete this item" :
-                        "Are you sure you want to delete permanently  this item",
-                    text: "You won't be able to revert it!",
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonColor: "#DB1F48",
-                    cancelButtonColor: "#d33",
-                    confirmButtonText: "Yes, Delete it!"
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        showLoader();
-                        var id = $(this).data('id');
-                        var data = {
-                            id: id,
-                            type: type,
-                        };
-                        var url = '{{ route('admin.post.delete') }}';
-                        $.post(url, data, function(response) {
-                            var result = JSON.parse(response);
-                            if (result) {
-                                if (result.type === 'success') {
-                                    showNotification(result.message, 'success');
-                                    orgTable.draw();
-                                    hideLoader();
-                                } else {
-                                    showNotification(result.message, 'error');
-                                    hideLoader();
-                                }
-                            }
-                        });
+                $.post('{{ route('organization.delete') }}', {
+                        id: deleteId,
+                        _token: '{{ csrf_token() }}'
+                    })
+                    .done(function(response) {
+                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            orgTable.fnDraw(); // ✅ old-style API
+                        } else {
+                            showNotification(result.message, 'error');
+                        }
+                    })
+                    .fail(function() {
+                        showNotification('Delete failed. Please try again.', 'error');
+                    })
+                    .always(function() {
+                        deleteId = null;
+                        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                    });
+            });
+
+            // ── Clear modal content on close ──────────────────────────────
+            document.getElementById('organizationModal').addEventListener('hidden.bs.modal', function() {
+                $('#organizationModalContent').html('');
+            });
+
+            // ── Image preview (delegated - works on AJAX loaded content) ──
+            $(document).on('change', '#image', function() {
+                var file = this.files[0];
+                if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
+            });
+
+            // ── Form submit (delegated - works on AJAX loaded content) ────
+            $(document).on('submit', '#orgForm', function(e) {
+                e.preventDefault();
+
+                // Basic required field check
+                var valid = true;
+                $(this).find('[data-required]').each(function() {
+                    $(this).removeClass('is-invalid');
+                    if (!$(this).val().trim()) {
+                        $(this).addClass('is-invalid');
+                        valid = false;
+                    }
+                });
+                if (!valid) return;
+
+                var $btn = $(this).find('[type=submit]');
+                $btn.prop('disabled', true).text('Saving...');
+                showLoader();
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: new FormData(this),
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        hideLoader();
+                        var result = typeof response === 'string' ? JSON.parse(response) :
+                            response;
+
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            orgTable.fnDraw(); // ✅ old-style API
+
+                            // Close modal
+                            var modalEl = document.getElementById('organizationModal');
+                            bootstrap.Modal.getInstance(modalEl).hide();
+
+                        } else {
+                            showNotification(result.message, 'error');
+                            $btn.prop('disabled', false).text('Save');
+                        }
+                    },
+                    error: function(xhr) {
+                        hideLoader();
+                        $btn.prop('disabled', false).text('Save');
+
+                        if (xhr.status === 422) {
+                            $.each(xhr.responseJSON.errors, function(field, messages) {
+                                $('[name="' + field + '"]').addClass('is-invalid');
+                                showNotification(messages[0], 'error');
+                            });
+                        } else {
+                            showNotification('Something went wrong!', 'error');
+                        }
                     }
                 });
             });
 
-
-            $(document).off('click', '.view');
-            $(document).on('click', '.view', function() {
+            // ── Clear invalid state on input ──────────────────────────────
+            $(document).on('input change', '#orgForm .form-control', function() {
+                $(this).removeClass('is-invalid');
+            });
+            $(document).on('click', '.viewOrg', function(e) {
+                e.preventDefault();
                 var id = $(this).data('id');
-                var url = '{{ route('organization.view') }}';
-                var data = {
-                    id: id
-                };
-                $.post(url, data, function(response) {
-                    $('#organizationModel .modal-content').html(response);
-                    $('#organizationModel').modal('show');
-                });
+                openOrgModal(
+                    '{{ route('organization.view') }}', {
+                        id: id,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    'POST'
+                );
             });
         });
     </script>

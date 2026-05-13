@@ -147,16 +147,9 @@ class WholesalerPrice extends Model
 
     public static function list(array $post)
     {
-        // Sanitise DataTable column search values
         $columns = $post['columns'] ?? [];
-        foreach ($columns as &$col) {
-            $col['search']['value'] = trim(strtolower(
-                htmlspecialchars($col['search']['value'] ?? '', ENT_QUOTES)
-            ));
-        }
-        unset($col);
 
-        // ── Base condition ─────────────────────────────────────────────────
+        // ── Base conditions (keep as array) ────────────────────
         $conditions = ["wp.status = 'Y'"];
         $orgid      = $post['orgid'] ?? null;
 
@@ -164,37 +157,48 @@ class WholesalerPrice extends Model
             $conditions[] = "wp.orgid = '{$orgid}'";
         }
 
-        // Column[1] search → item name
+        // ── Column search (1.9 format) ─────────────────────────
+        if (!empty($post['sSearch_1']) && is_string($post['sSearch_1'])) {
+            $val          = strtolower(trim($post['sSearch_1']));
+            $conditions[] = "lower(i.title) like '%{$val}%'";   // ← [] not .=
+        }
+
+        if (!empty($post['sSearch_2']) && is_string($post['sSearch_2'])) {
+            $val          = strtolower(trim($post['sSearch_2']));
+            $conditions[] = "lower(iv.value) like '%{$val}%'";  // ← [] not .=
+        }
+
+        // ── 1.10 format fallback ───────────────────────────────
         if (!empty($columns[1]['search']['value'])) {
-            $val          = $columns[1]['search']['value'];
+            $val          = strtolower(trim((string) $columns[1]['search']['value']));
             $conditions[] = "lower(i.title) like '%{$val}%'";
         }
 
-        // Column[2] search → variation name
         if (!empty($columns[2]['search']['value'])) {
-            $val          = $columns[2]['search']['value'];
+            $val          = strtolower(trim((string) $columns[2]['search']['value']));
             $conditions[] = "lower(iv.value) like '%{$val}%'";
         }
 
-        $where  = implode(' AND ', $conditions);
-        $limit  = (int) ($post['length'] ?? 15);
-        $offset = (int) ($post['start']  ?? 0);
+        // ── Build where string from array ──────────────────────
+        $where  = implode(' AND ', $conditions);   // ← now works correctly
+        $limit  = (int) ($post['iDisplayLength'] ?? $post['length'] ?? 15);
+        $offset = (int) ($post['iDisplayStart']  ?? $post['start']  ?? 0);
 
-        // ── Total records (master rows only, no detail join) ───────────────
+        // ── Total records ──────────────────────────────────────
         $totalrecs = DB::table('wholesaler_prices as wp')
-            ->join('items as i',        'i.id',   '=', 'wp.itemid')
+            ->join('items as i',           'i.id',  '=', 'wp.itemid')
             ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
             ->whereRaw($where)
             ->count();
 
-        // ── Main query — group by master so details don't multiply rows ────
+        // ── Main query ─────────────────────────────────────────
         $query = DB::table('wholesaler_prices as wp')
-            ->join('items as i',               'i.id',   '=', 'wp.itemid')
-            ->join('itemvariations as iv',     'iv.id',  '=', 'wp.variation_id')
+            ->join('items as i',           'i.id',  '=', 'wp.itemid')
+            ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
             ->selectRaw("
             wp.id,
             i.title,
-            iv.value AS variation_name,
+            iv.value  AS variation_name,
             wp.status,
             wp.created_at,
             (SELECT MIN(wd.min_qty) FROM wholesaler_price_details wd WHERE wd.wholesalermasterid = wp.id) AS min_qty,
@@ -205,10 +209,10 @@ class WholesalerPrice extends Model
         ")
             ->whereRaw($where);
 
-        // ── Filtered count (before pagination) ────────────────────────────
+        // ── Filtered count ─────────────────────────────────────
         $filteredCount = (clone $query)->count();
 
-        // ── Pagination ────────────────────────────────────────────────────
+        // ── Sort + paginate ────────────────────────────────────
         $query->orderBy('wp.id', 'desc');
 
         if ($limit > -1) {

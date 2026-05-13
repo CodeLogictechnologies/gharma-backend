@@ -78,15 +78,19 @@ class Vendor extends Model
             foreach ($get as $key => $value) {
                 $get[$key] = trim(strtolower(htmlspecialchars($get[$key], ENT_QUOTES)));
             }
-
-            // if ($get['sSearch_1']) {
-            //     $cond .= "and lower(name) like'%" . $get['sSearch_1'] . "%'";
-            // }
-
-            // if ($get['sSearch_3']) {
-            //     $cond .= "and lower(email) like'%" . $get['sSearch_3'] . "%'";
-            // }
             $cond = " status = 'Y'";
+            if ($get['sSearch_1']) {
+                $cond .= "and lower(name) like'%" . $get['sSearch_1'] . "%'";
+            }
+
+            if ($get['sSearch_2']) {
+                $cond .= "and lower(phone) like'%" . $get['sSearch_2'] . "%'";
+            }
+
+            if ($get['sSearch_3']) {
+                $cond .= "and lower(email) like'%" . $get['sSearch_3'] . "%'";
+            }
+
 
             // if (!empty($post['type']) && $post['type'] === "trashed") {
             //     $cond = " status = 'N'";
@@ -100,7 +104,7 @@ class Vendor extends Model
                 $offset = $get["start"];
             }
 
-            $query = Vendor::selectRaw("(SELECT count(*) FROM vendors) AS totalrecs,name,email, id as id, phone, address, tax_number, registration_number, company_name")
+            $query = Vendor::selectRaw("(SELECT count(*) FROM vendors where {$cond}) AS totalrecs,name,email, id as id, phone, address, tax_number, registration_number, company_name")
                 ->whereRaw($cond);
 
             if ($limit > -1) {

@@ -29,8 +29,8 @@ return new class extends Migration
                 ->on('organizations')
                 ->cascadeOnDelete();
 
-            $table->integer('postedby');
-            $table->integer('updatedby')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

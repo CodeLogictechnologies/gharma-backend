@@ -20,32 +20,31 @@
                 <table class="table table-bordered">
                     <tbody>
                         <tr>
-                            <th scope="row">User Name</th>
-                            <td>{{ $orderDetails->username ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Phone Number</th>
-                            <td>{{ $orderDetails->phone ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Category</th>
-                            <td>{{ $orderDetails->categorytitle ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Sub Category</th>
-                            <td>{{ $orderDetails->subcategorytitle ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Product</th>
-                            <td>{{ $orderDetails->title ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">QTY</th>
-                            <td>{{ $orderDetails->qty ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Price</th>
-                            <td>{{ $orderDetails->price ?? '-' }}</td>
+                            <th scope="row">Products</th>
+                            <td>
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Variation</th>
+                                            <th>Qty</th>
+                                            <th>Price</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($orderDetails as $item)
+                                            <tr>
+                                                <td>{{ $item->title }}</td>
+                                                <td>{{ $item->value }}</td>
+                                                <td>{{ $item->quantity }}</td>
+                                                <td>{{ $item->price }}</td>
+                                                <td>{{ $item->order_detail_total_price }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </td>
                         </tr>
                     </tbody>
                 </table>

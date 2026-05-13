@@ -142,7 +142,7 @@ class SubCategory extends Model
     {
         try {
             $updateArray = [
-                'status' => 0,
+                'status' => 'N',
                 'updated_at' => Carbon::now(),
             ];
             if (!SubCategory::where(['id' => $post['id']])->update($updateArray)) {

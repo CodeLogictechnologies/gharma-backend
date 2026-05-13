@@ -4,9 +4,12 @@ use App\Http\Controllers\BackPanel\AboutUsController;
 use App\Http\Controllers\BackPanel\AuthController;
 use App\Http\Controllers\BackPanel\BrandController;
 use App\Http\Controllers\BackPanel\CategoryController as BackPanelCategoryController;
+use App\Http\Controllers\BackPanel\DiscountController;
 use App\Http\Controllers\BackPanel\ForgotPasswordController;
+use App\Http\Controllers\BackPanel\HeatmapController;
 use App\Http\Controllers\BackPanel\HomeController;
 use App\Http\Controllers\BackPanel\InventoryController;
+use App\Http\Controllers\BackPanel\InventoryReportController;
 use App\Http\Controllers\BackPanel\OtpController;
 use App\Http\Controllers\BackPanel\ItemController;
 use App\Http\Controllers\BackPanel\NotificationController;
@@ -15,13 +18,18 @@ use App\Http\Controllers\BackPanel\OrganizationController;
 use App\Http\Controllers\BackPanel\PermissionController;
 use App\Http\Controllers\BackPanel\RetailerPriceController;
 use App\Http\Controllers\BackPanel\RoleController;
+use App\Http\Controllers\BackPanel\SalesReportController;
 use App\Http\Controllers\BackPanel\SiteSettingController;
+use App\Http\Controllers\BackPanel\StoreController;
 use App\Http\Controllers\BackPanel\SubCategoryController;
 use App\Http\Controllers\BackPanel\UserController;
 use App\Http\Controllers\DatabaseDumpController;
 use App\Http\Controllers\BackPanel\VendorController;
 use App\Http\Controllers\BackPanel\WholesalerPriceController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SocialAuthController;
+use App\Models\Payment;
 use App\Models\WholesalerPrice;
 use Illuminate\Support\Facades\Route;
 
@@ -67,13 +75,12 @@ Route::post('/admin/resetpassword', [AuthController::class, 'resetPassword'])->n
 Route::group(['middleware' => ['auth']], function () {
 
     /* Dashboard - start */
-    Route::get('/', [HomeController::class, 'dashboard'])->name('admin.dashboard');
     /* Dashboard  - end */
     Route::group(['prefix' => 'admin'], function () {
 
-
+        Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('admin.dashboard');
+        
         Route::get('/organization', [OrganizationController::class, 'index'])->name('organization');
-        Route::post('/organization', [OrganizationController::class, 'create'])->name('organization.create');
         Route::get('/organization/list', [OrganizationController::class, 'list'])->name('organization.list');
         Route::any('/organization/form', [OrganizationController::class, 'form'])->name('organization.form');
         Route::post('/organization/save', [OrganizationController::class, 'save'])->name('organization.save');
@@ -96,7 +103,9 @@ Route::group(['middleware' => ['auth']], function () {
 
         Route::group(['prefix' => 'user'], function () {
             Route::get('/', [UserController::class, 'index'])->name('user');
+            Route::post('/tab', [UserController::class, 'tabs'])->name('user.tab');
             Route::get('/list', [UserController::class, 'list'])->name('user.list');
+            Route::get('/inactiveuserlist', [UserController::class, 'inActivelist'])->name('inactive.user.list');
             Route::any('/form', [UserController::class, 'form'])->name('user.form');
             Route::post('/save', [UserController::class, 'save'])->name('user.save');
             Route::post('/delete', [UserController::class, 'delete'])->name('user.delete');
@@ -145,6 +154,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/', [OrderController::class, 'index'])->name('order');
             Route::get('/list', [OrderController::class, 'list'])->name('order.list');
             Route::post('/view', [OrderController::class, 'view'])->name('order.view');
+            Route::post('/order-status-update', [OrderController::class, 'updateStatus'])->name('order.status.update');
         });
 
         Route::group(['prefix' => 'inventory'], function () {
@@ -203,6 +213,19 @@ Route::group(['middleware' => ['auth']], function () {
             });
         });
 
+        Route::group(['prefix' => 'discount'], function () {
+            Route::get('/', [DiscountController::class, 'index'])->name('discount');
+            Route::post('/save', [DiscountController::class, 'save'])->name('discount.save');
+            Route::get('/list', [DiscountController::class, 'list'])->name('discount.list');
+            Route::post('/delete', [DiscountController::class, 'delete'])->name('discount.delete');
+            Route::any('/form', [DiscountController::class, 'form'])->name('discount.form');
+            Route::post('/view', [DiscountController::class, 'view'])->name('discount.view');
+            Route::get('/items/list', [DiscountController::class, 'lists'])->name('api.items.list');
+
+            // Get variations for a specific item
+            Route::get('/items/{id}/variations', [DiscountController::class, 'variations']);
+        });
+
         /* Profile-start */
         Route::group(['prefix' => 'profile'], function () {
             Route::get('/', [AuthController::class, 'profile'])->name('admin.profile');
@@ -212,22 +235,71 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/editprofile/updateprofile', [AuthController::class, 'updateProfileAll'])->name('admin.updateprofile');
         });
         /* Profile-end */
-
-        /* Site settings - start */
-        Route::group(['prefix' => 'sitesetting'], function () {
-            Route::get('/', [SiteSettingController::class, 'siteSetting'])->name('admin.sitesetting');
-            Route::post('/update', [SiteSettingController::class, 'updateSiteSetting'])->name('admin.sitesetting.update');
+        /* Profile-start */
+        Route::group(['prefix' => 'payment'], function () {
+            Route::get('/esewa', [AuthController::class, 'esewa'])->name('esewa');
         });
-        /** Site settings - end */
 
-        /* About us - start */
-        Route::group(['prefix' => 'aboutus'], function () {
-            Route::get('/', [AboutUsController::class, 'aboutUs'])->name('admin.aboutus');
-            Route::post('/update', [AboutUsController::class, 'updateAboutUs'])->name('admin.aboutus.update');
+
+        /* Profile-end */
+
+
+        Route::group(['prefix' => 'store'], function () {
+            Route::get('', [StoreController::class, 'index'])->name('store');
+            Route::get('/list', [StoreController::class, 'list'])->name('store.list');
+            Route::any('/form', [StoreController::class, 'form'])->name('store.form');
+            Route::post('/save', [StoreController::class, 'save'])->name('store.save');
+            Route::post('/delete', [StoreController::class, 'delete'])->name('store.delete');
+            Route::post('/view', [StoreController::class, 'view'])->name('store.view');
         });
-        /* About us - end */
+
+
+        Route::group(['prefix' => 'refund'], function () {
+            Route::get('', [RefundController::class, 'index'])->name('refund');
+            Route::get('/list', [RefundController::class, 'list'])->name('refund.list');
+            Route::post('/changeStatus', [RefundController::class, 'updateStatus'])->name('refund.update.status');
+            Route::post('/view', [RefundController::class, 'view'])->name('refund.view');
+        });
+
+        Route::group(['prefix' => 'report'], function () {
+            Route::group(['prefix' => 'sales'], function () {
+                Route::get('report/sales',              [SalesReportController::class, 'index'])->name('report.sales');
+                Route::get('report/sales/data',         [SalesReportController::class, 'data'])->name('report.sales.data');
+                Route::get('report/sales/export/excel', [SalesReportController::class, 'exportExcel'])->name('report.sales.export.excel');
+                Route::get('report/sales/export/pdf',   [SalesReportController::class, 'exportPdf'])->name('report.sales.export.pdf');
+            });
+
+            Route::group(['prefix' => 'inventory'], function () {
+                Route::get('', [InventoryReportController::class, 'index'])->name('inventory.report');
+                Route::get('/list', [InventoryReportController::class, 'data'])->name('report.inventory.data');
+
+                Route::get('report/sales/export/excel', [InventoryReportController::class, 'exportExcel'])->name('report.inventory.export.excel');
+                Route::get('report/sales/export/pdf',   [InventoryReportController::class, 'exportPdf'])->name('report.inventory.export.pdf');
+            });
+        });
+
+
+        // routes/web.php
+        Route::get('/heatmap', [HeatmapController::class, 'index'])
+            ->name('admin.heatmap.index');
+
+        // AJAX data endpoint for live filter updates
+        Route::get('/heatmap/data', [HeatmapController::class, 'data'])
+            ->name('admin.heatmap.data');
     });
 });
 
 Route::get('auth/{provider}/redirect',  [SocialAuthController::class, 'redirect'])->name('admin.sitesetting');
-Route::get('auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('admin.sitesetting');
+Route::get('auth/{provider}/call-back', [SocialAuthController::class, 'callback'])->name('admin.sitesetting');
+
+
+Route::get('/success', [PaymentController::class, 'success']);
+Route::get('/failure', [PaymentController::class, 'failure']);
+
+Route::get('/khalti/success', [PaymentController::class, 'success']);
+Route::get('/khalti/failure', [PaymentController::class, 'failure']);
+
+
+Route::get('/payment', [PaymentController::class, 'index']);
+Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('payment.initiate');
+Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
