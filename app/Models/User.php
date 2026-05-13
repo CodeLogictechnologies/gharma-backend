@@ -25,6 +25,8 @@ class User extends Authenticatable implements JWTSubject
     public $incrementing = false;
     protected $keyType = 'string';
 
+
+
     protected $fillable = [
         'id',               // ✅ add id
         'name',
@@ -49,9 +51,9 @@ class User extends Authenticatable implements JWTSubject
 
     public function getJWTCustomClaims()
     {
-        $profile = DB::table('profiles')
-            ->where('user_id', $this->id)
-            ->select('user_id', 'first_name')
+        $profile = DB::table('userorganizations')
+            ->where('userid', $this->id)
+            ->select('userid', 'orgid')
             ->first();
 
         return [
@@ -171,8 +173,7 @@ class User extends Authenticatable implements JWTSubject
             DB::beginTransaction();
 
             $plainPassword = Str::random(6);
-            $imageName     = null; // ✅ Initialize to avoid undefined variable error
-
+            $imageName     = null;
             // Handle image upload
             if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
                 $file      = $post['image'];
@@ -183,96 +184,74 @@ class User extends Authenticatable implements JWTSubject
             $userData = [
                 'name'       => $post['username'],
                 'email'      => $post['email'],
-                'orgid'      => 'a20a5adb-1679-474d-a30c-3455d030d8e6',
+                'phone'      => $post['phone'],
                 'updated_at' => Carbon::now(),
             ];
 
-            if (!empty($post['id'])) {
-                // ---------- UPDATE USER ----------
-                $userId  = $post['id'];
-                $oldData = DB::table('profiles')->where('user_id', $userId)->first(); // ✅ fetch from profiles
 
-                // Delete old image if new one uploaded
-                if ($imageName && $oldData && $oldData->image) {
-                    $oldPath = public_path('uploads/profiles/' . $oldData->image);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
-                }
+            // ---------- CREATE USER ----------
+            $newUuid = (string) Str::uuid(); // ✅ Store UUID separately to reuse
 
-                // Update users table
-                DB::table('users')->where('id', $userId)->update($userData);
+            $userData['id']         = $newUuid;
+            $userData['created_at'] = Carbon::now();
+            $userData['password']   = $post['password'];
 
-                // Update profile
-                $profileData = [
-                    'username'    => $post['username'],
-                    'first_name'  => $post['first_name'],
-                    'middle_name' => $post['middle_name'] ?? null,
-                    'last_name'   => $post['last_name'],
-                    'phone'       => $post['phone'],
-                    'address'     => $post['address'],
-                    'gender'      => $post['gender'],
-                    'updated_at'  => Carbon::now(),
-                ];
+            $inserted = DB::table('users')->insert($userData); // ✅ insert() returns bool
 
-                // ✅ Only update image if new one was uploaded
-                if ($imageName) {
-                    $profileData['image'] = $imageName;
-                }
-
-                DB::table('profiles')->where('user_id', $userId)->update($profileData);
-
-                // Update roles
-                DB::table('model_has_roles')->where('model_id', $userId)->delete();
-                // if (!empty($post['roles'])) {
-                //     $roleData = [];
-                //     foreach ($post['roles'] as $roleId) {
-                //         $roleData[] = [
-                //             'role_id'    => $roleId,
-                //             'model_type' => 'App\\Models\\User',
-                //             'model_id'   => $userId,
-                //         ];
-                //     }
-                //     DB::table('model_has_roles')->insert($roleData);
-                // }
-            } else {
-                // ---------- CREATE USER ----------
-                $newUuid = (string) Str::uuid(); // ✅ Store UUID separately to reuse
-
-                $userData['id']         = $newUuid;
-                $userData['created_at'] = Carbon::now();
-                $userData['password']   = Hash::make($plainPassword);
-
-                $inserted = DB::table('users')->insert($userData); // ✅ insert() returns bool
-
-                if (!$inserted) {
-                    throw new Exception("Couldn't create user");
-                }
-                $newProfileId = (string) Str::uuid(); // ✅ Store UUID separately to reuse
-
-                // Insert profile
-                $profileData = [
-                    'id'     => $newProfileId, // ✅ use stored UUID, not $userData['id'] after insert
-                    'user_id'     => $newUuid, // ✅ use stored UUID, not $userData['id'] after insert
-                    'username'    => $post['username'],
-                    'first_name'  => $post['first_name'],
-                    'middle_name' => $post['middle_name'] ?? null,
-                    'last_name'   => $post['last_name'],
-                    'phone'       => $post['phone'],
-                    'address'     => $post['address'],
-                    'gender'      => $post['gender'],
-                    'created_at'  => Carbon::now(),
-                    'updated_at'  => Carbon::now(),
-                    'orgid'      => 'a20a5adb-1679-474d-a30c-3455d030d8e6',
-
-                ];
-
-                if ($imageName) {
-                    $profileData['image'] = $imageName;
-                }
-
-                DB::table('profiles')->insert($profileData);
+            if (!$inserted) {
+                throw new Exception("Couldn't create user");
             }
+            $post['userorgid'] = (string) Str::uuid();
+
+            $userOrgArray = [
+                'id'      => $post['userorgid'],
+                'userid'      => $newUuid,
+                'orgid'      => 'fef1a6d6-72c6-4591-8f25-e1f477ad2c58',
+                'created_at' => Carbon::now(),
+            ];
+
+            $user = DB::table('userorganizations')->insert($userOrgArray);
+
+            if (!empty($post['type'])) {
+                $user = \App\Models\User::find($newUuid);
+                if ($post['type'] == 'retailer') {
+                    $post['role'] = 1;
+                } else {
+                    $post['role'] = 2;
+                }
+            }
+            // Assign role
+            $user->assignRole($post['role']); // role name or role ID (if configured)
+
+            $newProfileId = (string) Str::uuid(); // ✅ Store UUID separately to reuse
+
+            // Insert profile
+            $profileData = [
+                'id'     => $newProfileId, // ✅ use stored UUID, not $userData['id'] after insert
+                'user_id'     => $newUuid, // ✅ use stored UUID, not $userData['id'] after insert
+                'username'    => $post['username'],
+                'first_name'  => $post['first_name'],
+                'middle_name' => $post['middle_name'] ?? null,
+                'last_name'   => $post['last_name'],
+                'phone'       => $post['phone'],
+                'address'     => $post['address'],
+                'gender'      => $post['gender'],
+                'type'      => $post['type'],
+                'company_name' => $post['company_name'] ?? null,
+                'tax_number' => $post['tax_number'] ?? null,
+                'registration_number' => $post['registration_number'] ?? null,
+                'created_at'  => Carbon::now(),
+                'updated_at'  => Carbon::now(),
+                'orgid'      => 'fef1a6d6-72c6-4591-8f25-e1f477ad2c58',
+
+            ];
+
+            if ($imageName) {
+                $profileData['image'] = $imageName;
+            }
+
+            DB::table('profiles')->insert($profileData);
+
 
             DB::commit();
             return true;
@@ -282,74 +261,83 @@ class User extends Authenticatable implements JWTSubject
         }
     }
 
+    //function to get user list
     public static function list($post)
     {
         try {
             $get = $post;
+
             foreach ($get as $key => $value) {
-                $get[$key] = trim(strtolower(htmlspecialchars($get[$key], ENT_QUOTES)));
-            }
-            $cond = " status = 'Y'";
-
-            // if (!empty($post['type']) && $post['type'] === "trashed") {
-            //     $cond = " status = 'N'";
-            // }
-
-
-            if ($get['sSearch_1']) {
-                $cond .= "and lower(users.name) like'%" . $get['sSearch_1'] . "%'";
+                $get[$key] = trim(strtolower($value));
             }
 
-            if ($get['sSearch_3']) {
-                $cond .= "and lower(users.email) like'%" . $get['sSearch_3'] . "%'";
-            }
-            $limit = 15;
-            $offset = 0;
-            if (!empty($get["length"]) && $get["length"]) {
-                $limit = $get['length'];
-                $offset = $get["start"];
+            $limit  = !empty($get["length"]) ? (int)$get["length"] : 15;
+            $offset = !empty($get["start"]) ? (int)$get["start"] : 0;
+
+            $query = User::query()
+                ->select(
+                    'users.id',
+                    'users.user_status',
+                    'users.name',
+                    'users.email',
+                    'profiles.first_name',
+                    'profiles.middle_name',
+                    'profiles.last_name',
+                    'profiles.username',
+                    'profiles.gender',
+                    'profiles.phone',
+                    'profiles.address',
+                    'profiles.image',
+                    'profiles.type',
+                    'profiles.status'
+                )
+                ->join('profiles', 'profiles.user_id', '=', 'users.id')
+                ->join('userorganizations as u', 'u.userid', '=', 'users.id')
+                ->where('u.orgid', $post['orgid']);
+
+            // ✅ Status condition
+            if (!empty($post['inactiveuser']) && $post['inactiveuser'] == 'Y') {
+                $query->where('users.user_status', '!=', 'Approve');
+            } else {
+                $query->where('users.user_status', '=', 'Approve');
             }
 
-            $query = User::selectRaw("
-        (SELECT count(*) FROM users) AS totalrecs,
-        users.id,
-        users.user_status,
-        users.name,
-        users.email,
-        profiles.first_name,
-        profiles.middle_name,
-        profiles.last_name,
-        profiles.username,
-        profiles.gender,
-        profiles.phone,
-        profiles.address,
-        profiles.image,
-        profiles.status
-    ")
-                ->leftJoin('profiles', 'profiles.user_id', '=', 'users.id')
-                ->whereRaw($cond);
+            // ✅ Search filters (safe)
+            if (!empty($get['sSearch_1'])) {
+                $query->whereRaw('LOWER(users.name) LIKE ?', ['%' . $get['sSearch_1'] . '%']);
+            }
 
+            if (!empty($get['sSearch_2'])) {
+                $query->whereRaw('LOWER(users.email) LIKE ?', ['%' . $get['sSearch_2'] . '%']);
+            }
+
+            // ✅ Clone query for count
+            $total = (clone $query)->count();
+
+            // ✅ Pagination
             if ($limit > -1) {
-                $result = $query->orderBy('users.id', 'asc')->offset($offset)->limit($limit)->get();
+                $result = $query->orderBy('users.id', 'asc')
+                    ->offset($offset)
+                    ->limit($limit)
+                    ->get();
             } else {
                 $result = $query->orderBy('users.id', 'asc')->get();
             }
-            if ($result) {
-                $ndata = $result;
-                $ndata['totalrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-                $ndata['totalfilteredrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-            } else {
-                $ndata = array();
-            }
-            return $ndata;
-        } catch (Exception $e) {
+
+            // ✅ Proper return structure
+            return [
+                'data' => $result,
+                'totalrecs' => $total,
+                'totalfilteredrecs' => $total
+            ];
+        } catch (\Exception $e) {
             throw $e;
         }
     }
 
+    // Fetch user and profile info
     public static function getData($post)
     {
-        // Fetch user and profile info
         $result = DB::table('users as u')
             ->join('profiles as p', 'p.user_id', '=', 'u.id')
             ->select(
@@ -366,6 +354,7 @@ class User extends Authenticatable implements JWTSubject
                 'p.image',
                 'p.status'
             )
+            ->where('u.orgid', $post['orgid'])
             ->where('u.id', $post['id'])
             ->first();
 
@@ -386,11 +375,13 @@ class User extends Authenticatable implements JWTSubject
                 ->toArray();
 
             // Attach role names
-            $result->role_names = $roleNames; // <-- now you can use $user->role_names in Blade
+            $result->role_names = $roleNames;
         }
 
         return $result;
     }
+
+    //function to get user data
     public static function getUserData($post)
     {
         try {
@@ -405,6 +396,103 @@ class User extends Authenticatable implements JWTSubject
                 ->get();
 
             return $data;
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    //funciton to get user data
+    public static function getDataUser($post)
+    {
+        try {
+            $result = DB::table('users as u')
+                ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
+                ->select(
+                    // 'u.id as id',
+                    'u.name as username',
+                    'u.email',
+                    'p.first_name',
+                    'p.middle_name',
+                    'p.last_name',
+                    'p.username as profile_username',
+                    'p.gender',
+                    'p.phone',
+                    'p.address',
+                    DB::raw("CONCAT('" . url('uploads/profiles') . "/', p.image) as image"),
+                    'p.status'
+                )
+                ->where('u.id', $post['userid'])
+                ->first();
+
+            return $result;
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    //function to update user
+    public static function updateUser($post)
+    {
+
+        try {
+
+            $imageName = null;
+
+            // ── upload image ─────────────────────────────
+            if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
+
+                $file = $post['image'];
+
+                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+
+                $file->move(public_path('uploads/profiles'), $imageName);
+            }
+
+            if (empty($post['userid'])) {
+                throw new Exception("User ID is required");
+            }
+
+            $userId = $post['userid'];
+
+            // ── update users table ───────────────────────
+            $userData = [
+                'name'       => $post['username'] ?? '',
+                'email'      => $post['email'] ?? '',
+                'updated_at' => Carbon::now(),
+            ];
+
+            DB::table('users')->where('id', $userId)->update($userData);
+
+            // ── get old profile ─────────────────────────
+            $oldData = DB::table('profiles')->where('user_id', $userId)->first();
+
+            if ($imageName && $oldData && $oldData->image) {
+                $oldPath = public_path('uploads/profiles/' . $oldData->image);
+
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+            }
+
+            // ── update profile ───────────────────────────
+            $profileData = [
+                'username'    => $post['username'] ?? '',
+                'first_name'  => $post['first_name'] ?? '',
+                'middle_name' => $post['middle_name'] ?? null,
+                'last_name'   => $post['last_name'] ?? '',
+                'phone'       => $post['phone'] ?? '',
+                'address'     => $post['address'] ?? '',
+                'gender'      => $post['gender'] ?? '',
+                'updated_at'  => Carbon::now(),
+            ];
+
+            if ($imageName) {
+                $profileData['image'] = $imageName;
+            }
+
+            $result = DB::table('profiles')->where('user_id', $userId)->update($profileData);
+
+            return $result;
         } catch (Exception $e) {
             throw $e;
         }

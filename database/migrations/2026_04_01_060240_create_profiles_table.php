@@ -25,9 +25,13 @@ return new class extends Migration
             $table->string('last_name', 50);
             $table->string('username', 50);
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
-            $table->string('phone', 20)->nullable(); // phone number
-            $table->text('address')->nullable();     // address
+            $table->string('phone', 20)->nullable();
+            $table->text('address')->nullable();
             $table->string('image')->nullable();
+            $table->string('company_name')->nullable();
+            $table->string('tax_number')->nullable();
+            $table->string('registration_number')->nullable();
+            $table->string('type')->nullable();
             $table->enum('status', ['Y', 'N'])->default('Y');
             $table->timestamps();
         });

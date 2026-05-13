@@ -1,86 +1,81 @@
-@extends('backend.layouts.main')
+<!-- jQuery first (KEEP THIS ORDER) -->
+@extends('layouts.main')
+@section('title', 'Permission')
+<!-- jQuery FIRST -->
+<script src="/assets/vendor/libs/jquery/jquery.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<!-- jQuery Validate -->
+@section('content')
 
-@section('title')
-    Permission
-@endsection
-<style>
-    .iconpicker-popover.popover.bottom {
-        opacity: 1;
-    }
-
-    input#trashed_file {
-        border: 1px solid rgb(0, 99, 198) !important
-    }
-</style>
-@section('main-content')
-    <!-- Page Header -->
-    <div class="d-md-flex d-block align-items-center justify-content-between my-4 page-header-breadcrumb">
-        <div class="my-auto">
-            <h5 class="page-title fs-21 mb-1">Permission </h5>
-        </div>
-    </div>
-    <!-- Page Header Close -->
-
-    <!-- Start::row-1 -->
-    <div class="row">
-        <div class="col-xl-4">
-            <div class="card custom-card">
-                <form action="{{ route('permission.save') }}" method="POST" id="permissionForm" enctype="multipart/form-data">
-                    <div class="card-body">
-                        <div class="row gy-4">
-
-                            <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
-                                <input type="hidden" name="id" value="" id="id">
-                                <label for="name" class="form-label">Permission <span
-                                        class="required-field">*</span></label>
-                                <input type="text" class="form-control" id="name" placeholder="Enter permission"
-                                    name="name">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex justify-content-end">
-                        <button type="button" class="btn btn-primary savePermission"><i class="fa fa-save"></i>
-                            Save</button>
-                    </div>
-                </form>
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Permission</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">Are you sure? You won't be able to revert this.</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
+                </div>
             </div>
         </div>
-        <div class="col-xl-8">
-            <div class="card custom-card">
-                <div class="card-header justify-content-between">
-                    <div class="card-title">
-                        Permission List
+    </div>
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="nav-align-top mb-4">
+
+            <div class="tab-content mt-4" id="nav-tabContent">
+                <div class="row g-4">
+                    <div class="col-12 col-lg-4">
+
+                        <h5 class="mb-3">Add Permssion</h5>
+                        <form action="{{ route('permission.save') }}" method="POST" id="permissionForm"
+                            enctype="multipart/form-data">
+
+                            <div class="mb-3">
+                                <input type="hidden" name="id" value="" id="id">
+                                <label class="form-label" for="name">Permission Name</label>
+                                <input type="text" class="form-control" name="name" id="name"
+                                    placeholder="Example: user.view" />
+                            </div>
+
+
+                            <button type="button" class="btn btn-primary savePermission">Save</button>
+                        </form>
+
                     </div>
-                    {{-- <div class="row ms-0">
-                        <div class="form-check col-xl-12 col-lg-12 col-md-12 col-sm-12">
-                            <input class="form-check-input" type="checkbox" value="Y" id="trashed_file"
-                                name="trashed_file">
-                            <label class="form-check-label" for="trashed_file">
-                                View Trashed
-                            </label>
+                    <div class="col-12 col-lg-8" style="flex: 1;">
+                        <div class="table-header mb-3 d-flex justify-content-between align-items-center">
+                            <div class="dt-length">
+                                <label class="d-flex align-items-center gap-2">
+
+                                </label>
+                            </div>
                         </div>
-                    </div> --}}
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <div id="datatable-basic_wrapper" class="dataTables_wrapper dt-bootstrap5 no-footer">
-                            <div class="row">
-                                <div class="col-sm-12 col-md-12 mb-3">
-                                    <div class="dataTables_length" id="datatable-basic_length">
-                                        <table id="permissionTable"
-                                            class="table table-bordered text-nowrap w-100 dataTable no-footer mt-3"
-                                            aria-describedby="datatable-basic_info">
-                                            <thead>
-                                                <tr>
-                                                    <th width="5%">S.No</th>
-                                                    <th width="75%">Permssion</th>
-                                                    <th width="5%">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                        <div class="table-responsive text-nowrap">
+                            <div id="datatable-basic_wrapper" class="dataTables_wrapper dt-bootstrap5 no-footer">
+
+                                <div class="dataTables_length" id="datatable-basic_length">
+
+                                    <table class="table" id="permissionTable" aria-describedby="datatable-basic_info">
+                                        <thead class="table-light">
+                                            <tr class="align-middle">
+                                                <th data-dt-column="1" class="">
+                                                    S.No
+                                                </th>
+                                                <th class="fs-6">
+                                                    <input type="text" class="form-control" id="defaultFormControlInput"
+                                                        placeholder="Permission name"
+                                                        aria-describedby="defaultFormControlHelp" />
+                                                </th>
+                                                <th class="">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="table-border-bottom-0">
+
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -89,175 +84,194 @@
             </div>
         </div>
     </div>
-    <!--End::row-1 -->
+    <!-- delete -->
 @endsection
+<script>
+    var permissionTable;
 
-@section('script')
-    <script>
-        var permissionTable;
-        $(document).ready(function() {
-            permissionTable = $('#permissionTable').DataTable({
-                "sPaginationType": "full_numbers",
-                "bSearchable": false,
-                "lengthMenu": [
-                    [5, 10, 15, 20, 25, -1],
-                    [5, 10, 15, 20, 25, "All"]
-                ],
-                'iDisplayLength': 15,
-                "sDom": 'ltipr',
-                "bAutoWidth": false,
-                "aaSorting": [
-                    [0, 'desc']
-                ],
-                "bSort": false,
-                "bProcessing": true,
-                "bServerSide": true,
-                "oLanguage": {
-                    "sEmptyTable": "<p class='no_data_message'>No data available.</p>"
-                },
-                "aoColumnDefs": [{
-                    "bSortable": false,
-                    "aTargets": [1]
-                }],
-                "aoColumns": [{
-                        "data": "sno"
-                    },
-                    {
-                        "data": "name"
-                    },
-                    {
-                        "data": "action"
-                    },
-                ],
-                "ajax": {
-                    "url": '{{ route('permission.list') }}',
-                    "type": "POST",
-                    "data": function(d) {
-                        var type = $('#trashed_file').is(':checked') == true ? 'trashed' :
-                            'nottrashed';
-                        d.type = type;
-                    }
-                },
-                "initComplete": function() {
-                    // Ensure text input fields in the header for specific columns with placeholders
-                    this.api().columns([1]).every(function() {
-                        var column = this;
-                        var input = document.createElement("input");
-                        var columnName = column.header().innerText.trim();
-                        // Append input field to the header, set placeholder, and apply CSS styling
-                        $(input).appendTo($(column.header()).empty())
-                            .attr('placeholder', columnName).css('width',
-                                '100%') // Set width to 100%
-                            .addClass(
-                                'search-input-highlight') // Add a CSS class for highlighting
-                            .on('keyup change', function() {
-                                column.search(this.value).draw();
-                            });
-                    });
+    $(document).ready(function() {
+
+        // ── CSRF setup ────────────────────────────────────────────────
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+
+        // ── DataTable ─────────────────────────────────────────────────
+        permissionTable = $('#permissionTable').dataTable({
+            sPaginationType: 'full_numbers',
+            bSearchable: false,
+
+            language: {
+                paginate: {
+                    first: '<i class="bx bx-chevrons-left"></i>',
+                    previous: '<i class="bx bx-chevron-left"></i>',
+                    next: '<i class="bx bx-chevron-right"></i>',
+                    last: '<i class="bx bx-chevrons-right"></i>'
                 }
-            });
+            },
 
-            $('#permissionForm').validate({
-                rules: {
-                    name: "required"
-                },
-                message: {
-                    name: {
-                        required: "This field is required."
-                    },
-                },
-                highlight: function(element) {
-                    $(element).addClass("border-danger")
-                },
-                unhighlight: function(element) {
-                    $(element).removeClass("border-danger")
-                },
-            });
+            lengthMenu: [
+                [5, 10, 30, 50, -1],
+                [5, 10, 30, 50, 'All']
+            ],
 
-            // Save permission
-            $('.savePermission').off('click');
-            $('.savePermission').on('click', function() {
-                if ($('#permissionForm').valid()) {
-                    showLoader();
-                    $('#permissionForm').ajaxSubmit(function(response) {
-                        var result = JSON.parse(response);
-                        if (result) {
-                            if (result.type === 'success') {
-                                $('.savePermission').html('<i class="fa fa-save"></i> Save');
-                                showNotification(result.message, 'success');
-                                hideLoader();
-                                permissionTable.draw();
-                                $('#permissionForm')[0].reset();
-                                $('#id').val('');
+            iDisplayLength: 5,
+            sDom: 'ltipr',
+            bAutoWidth: false,
 
-                            } else {
-                                showNotification(result.message, 'error');
-                                hideLoader();
-                            }
-                        } else {
-                            hideLoader();
-                        }
-                    });
+            aaSorting: [
+                [0, 'desc']
+            ],
+
+            bProcessing: true,
+            bServerSide: true,
+
+            // ✅ KEEP ONLY THIS AJAX
+            ajax: {
+                url: '{{ route('permission.list') }}',
+                type: 'POST',
+                data: function(d) {
+                    d.type = $('#trashed_file').is(':checked') ? 'trashed' : 'nottrashed';
                 }
-            });
+            },
 
-            // update permission
-            $(document).off('click', '.editPermission');
-            $(document).on('click', '.editPermission', function(e) {
-                e.preventDefault();
-                $('#id').val($(this).data('id'));
-                $('.savePermission').html('<i class="fa fa-save"></i> Update');
-                $('#name').val($(this).data('name'));
-            });
+            oLanguage: {
+                sEmptyTable: "<p class='no_data_message'>No data available.</p>"
+            },
 
+            aoColumnDefs: [{
+                bSortable: false,
+                aTargets: [2]
+            }],
 
-            // view trashed items-start
-            $('#trashed_file').off('change');
-            $('#trashed_file').on('change', function(e) {
-                permissionTable.draw();
-            });
-            // view trashed items-ends
+            aoColumns: [{
+                    data: "sno"
+                },
+                {
+                    data: "name"
+                },
+                {
+                    data: "action"
+                }
+            ],
 
-            // Delete permission
-            $(document).off('click', '.deletePermission');
-            $(document).on('click', '.deletePermission', function() {
+            // ✅ COLUMN FILTER
+            initComplete: function() {
+                this.api().columns([1]).every(function() {
+                    var column = this;
 
-                var type = $('#trashed_file').is(':checked') == true ? 'trashed' :
-                    'nottrashed';
-
-                Swal.fire({
-                    title: type === "nottrashed" ? "Are you sure you want to delete this item" :
-                        "Are you sure you want to delete permanently  this item",
-                    text: "You won't be able to revert it!",
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonColor: "#DB1F48",
-                    cancelButtonColor: "#d33",
-                    confirmButtonText: "Yes, Delete it!"
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        var id = $(this).data('id');
-                        var data = {
-                            id: id,
-                            type: type,
-                        };
-                        var url = '{{ route('permission.delete') }}';
-                        $.post(url, data, function(response) {
-                            var rep = JSON.parse(response);
-                            if (rep) {
-                                showNotification(rep.message, rep.type);
-                                if (rep.type === 'success') {
-                                    permissionTable.draw();
-                                    $('#permissionForm')[0].reset();
-                                    $('#id').val('');
-                                }
-                            }
+                    var input = $(
+                            '<input type="text"  class="form-control" id="defaultFormControlInput" placeholder="Search name" style="width:100%;" />'
+                        )
+                        .appendTo($(column.header()).empty())
+                        .on('keyup change', function() {
+                            column.search(this.value).draw();
                         });
+                });
+            }
+        });
+
+
+        $('#permissionForm').validate({
+            rules: {
+                name: "required",
+
+            },
+            message: {
+                name: {
+                    required: "This field is required."
+                },
+            },
+            highlight: function(element) {
+                $(element).addClass("border-danger")
+            },
+            unhighlight: function(element) {
+                $(element).removeClass("border-danger")
+            },
+        });
+
+        $('.savePermission').off('click').on('click', function() {
+            if ($('#permissionForm').valid()) {
+
+                let form = document.getElementById('permissionForm');
+                let formData = new FormData(form);
+
+                $.ajax({
+                    url: "{{ route('permission.save') }}",
+                    type: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+
+                        let result = typeof response === 'string' ? JSON.parse(response) :
+                            response;
+
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+
+                            permissionTable.fnDraw();
+
+                            $('#permissionForm')[0].reset();
+                            $('#id').val('');
+                            $('.savePermission').html('<i class="fa fa-save"></i> Save');
+                        } else {
+                            showNotification(result.message, 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Something went wrong!', 'error');
                     }
                 });
-            });
+            }
+        });
+
+
+        $(document).on('click', '.editPermission', function(e) {
+            e.preventDefault();
+            let id = $(this).data('id');
+            let name = $(this).data('name');
+
+
+            $('#id').val(id);
+            $('#name').val(name);
 
 
         });
-    </script>
-@endsection
+
+        var deleteId = null;
+
+        $(document).on('click', '.deletePermission', function(e) {
+            e.preventDefault();
+            deleteId = $(this).data('id');
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        });
+
+        $('#confirmDelete').on('click', function() {
+            if (!deleteId) return;
+
+            $.post('{{ route('permission.delete') }}', {
+                    id: deleteId,
+                    _token: '{{ csrf_token() }}'
+                })
+                .done(function(response) {
+                    var result = typeof response === 'string' ? JSON.parse(response) : response;
+                    if (result.type === 'success') {
+                        showNotification(result.message, 'success');
+                        permissionTable.fnDraw();
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                })
+                .fail(function() {
+                    showNotification('Delete failed. Please try again.', 'error');
+                })
+                .always(function() {
+                    deleteId = null;
+                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                });
+        });
+    });
+</script>

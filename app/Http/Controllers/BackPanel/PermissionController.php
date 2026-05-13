@@ -31,7 +31,6 @@ class PermissionController extends Controller
     public function save(Request $request)
     {
         try {
-
             $rules = [
                 'name' => [
                     'required',

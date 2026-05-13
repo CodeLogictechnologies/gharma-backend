@@ -29,8 +29,8 @@ return new class extends Migration
             $table->string('stock');
             $table->string('threshold');
             $table->enum('status', ['Y', 'N'])->default('Y');
-            $table->integer('postedby');
-            $table->integer('updatedby');
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

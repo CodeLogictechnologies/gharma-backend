@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
+use Illuminate\Validation\Rule;
+
 class VendorController extends Controller
 {
     public function index()
@@ -24,58 +26,62 @@ class VendorController extends Controller
 
     public function save(Request $request)
     {
-        try {
-            $rules = [
-                'name' => 'required|min:5|max:255',
-                'phone' => 'required|min:5|max:5000',
-                'address' => 'required',
-                'email' => 'required',
-                'company' => 'required',
-                'pan' => 'required',
-                'registration_number' => 'required',
-                'city' => 'required',
-                'address' => 'required',
-            ];
+        // try {
+        $rules = [
+            'name' => 'required|min:5|max:255',
+            'phone' => 'required|min:5|max:5000',
+            'address' => 'required',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('vendors', 'email')->ignore($post['id'] ?? null),
+            ],
+            'company' => 'required',
+            'pan' => 'required',
+            'registration_number' => 'required',
+            'city' => 'required',
+            'address' => 'required',
+        ];
 
-            $message = [
-                'name.required' => 'Please enter organization name',
-                'phone.required' => 'Phone number is required',
-                'address.required' => 'Address is required',
-                'registration_number.required' => 'Registration Number is required',
-                'city.required' => 'City is required',
-                'address.required' => 'Address is required',
-                'pan.required' => 'Pan is required',
-                'company.required' => 'Company is required',
-                'email.required' => 'Email is required',
-            ];
+        $message = [
+            'name.required' => 'Please enter organization name',
+            'phone.required' => 'Phone number is required',
+            'address.required' => 'Address is required',
+            'registration_number.required' => 'Registration Number is required',
+            'city.required' => 'City is required',
+            'address.required' => 'Address is required',
+            'pan.required' => 'Pan is required',
+            'company.required' => 'Company is required',
+            'email.required' => 'Email is required',
+        ];
 
-            $validate = Validator::make($request->all(), $rules, $message);
+        $validate = Validator::make($request->all(), $rules, $message);
 
-            if ($validate->fails()) {
-                throw new Exception($validate->errors()->first(), 1);
-            }
-
-            $post = $request->all();
-            $post['orgid'] = session('orgid');
-            $post['userid'] = session('userid');
-            $type = 'success';
-            $message = 'Organization saved successfully';
-
-            DB::beginTransaction();
-
-            if (!Vendor::saveData($post)) {
-                throw new Exception('Could not save record', 1);
-            }
-            DB::commit();
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
+        if ($validate->fails()) {
+            throw new Exception($validate->errors()->first(), 1);
         }
+
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
+        $post['userid'] = session('userid');
+        $type = 'success';
+        $message = 'Organization saved successfully';
+
+        DB::beginTransaction();
+
+        if (!Vendor::saveData($post)) {
+            throw new Exception('Could not save record', 1);
+        }
+        DB::commit();
+        // } catch (QueryException $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $this->queryMessage;
+        // } catch (Exception $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $e->getMessage();
+        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 

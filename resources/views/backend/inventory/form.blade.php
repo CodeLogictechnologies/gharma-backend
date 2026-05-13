@@ -106,9 +106,23 @@
             </div>
 
             <div class="col-md-4">
+                <label class="form-label">Manufacture Date <span class="text-danger">*</span></label>
+                <input type="date" name="manufacturedatead" id="manufactureDate" class="form-control"
+                    value="{{ $manufacturedatead ?? '' }}" data-required />
+                <div class="invalid-feedback">Manufacture date is required.</div>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Expire Time In Months <span class="text-danger">*</span></label>
+                <input type="number" name="expirymonth" id="expiryMonth" class="form-control" placeholder="e.g. 6"
+                    min="1" value="{{ $expirymonth ?? '' }}" data-required />
+                <div class="invalid-feedback">Expiry months is required.</div>
+            </div>
+
+            <div class="col-md-4">
                 <label class="form-label">Expiry Date <span class="text-danger">*</span></label>
-                <input type="date" name="expirydatead" class="form-control" value="{{ $expirydatead ?? '' }}"
-                    data-required />
+                <input type="date" name="expirydatead" id="expiryDate" class="form-control"
+                    value="{{ $expirydatead ?? '' }}" data-required readonly />
                 <div class="invalid-feedback">Expiry date is required.</div>
             </div>
 
@@ -123,3 +137,39 @@
         </button>
     </div>
 </form>
+<script>
+    // ── Auto-calculate expiry date ─────────────────────────
+    function calculateExpiryDate() {
+        var mfgDate = $('#manufactureDate').val();
+        var months = parseInt($('#expiryMonth').val());
+
+        if (!mfgDate || !months || months < 1) {
+            $('#expiryDate').val('');
+            return;
+        }
+
+        var date = new Date(mfgDate);
+
+        // Add months
+        date.setMonth(date.getMonth() + months);
+
+        // Format to YYYY-MM-DD
+        var year = date.getFullYear();
+        var month = String(date.getMonth() + 1).padStart(2, '0');
+        var day = String(date.getDate()).padStart(2, '0');
+
+        $('#expiryDate').val(year + '-' + month + '-' + day);
+    }
+
+    // Trigger on either field change
+    $(document).on('change input', '#manufactureDate, #expiryMonth', function() {
+        calculateExpiryDate();
+    });
+
+    // Auto-calculate on edit mode (pre-filled values)
+    $(document).ready(function() {
+        if ($('#manufactureDate').val() && $('#expiryMonth').val()) {
+            calculateExpiryDate();
+        }
+    });
+</script>

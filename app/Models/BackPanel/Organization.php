@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\File;
 class Organization extends Model
 {
 
-    public $incrementing = false;     
-    protected $keyType = 'string';   
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected static function boot()
     {
@@ -26,10 +26,12 @@ class Organization extends Model
 
         static::creating(function ($model) {
             if (!$model->id) {
-                $model->id = (string) Str::uuid(); 
+                $model->id = (string) Str::uuid();
             }
         });
     }
+
+    //function to save organization
     public static function saveData($post)
     {
         try {
@@ -43,14 +45,9 @@ class Organization extends Model
 
             $imageName = null;
 
-            // ✅ Handle Image Upload
             if (!empty($post['image'])) {
                 $file = $post['image'];
-
-                // Create unique name
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-                // Move image to public folder
                 $file->move(public_path('uploads/organizations'), $imageName);
             }
             if ($imageName) {
@@ -78,7 +75,6 @@ class Organization extends Model
                 }
 
                 $user = DB::table('users')
-                    ->where('orgid', $post['id'])
                     ->where('id', $post['userid'])
                     ->update([
                         'email'      => $post['email'],
@@ -111,16 +107,27 @@ class Organization extends Model
                     'email'      => $post['email'],
                     'name'       => $post['name'],
                     'password'   => Hash::make($plainPassword),
-                    'orgid'      => $orgId,
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
                 ];
 
                 $user = DB::table('users')->insert($userArray);
 
+                $post['userorgid'] = (string) Str::uuid();
+
+
                 if (!$user) {
                     throw new Exception("Couldn't save user", 1);
                 }
+
+                $userOrgArray = [
+                    'id'      => $post['userorgid'],
+                    'userid'      => $post['userid'],
+                    'orgid'      => $orgId,
+                    'created_at' => Carbon::now(),
+                ];
+
+                $user = DB::table('userorganizations')->insert($userOrgArray);
             }
 
             DB::commit();
@@ -131,6 +138,7 @@ class Organization extends Model
         }
     }
 
+    //function got list of organizations
     public static function list($post)
     {
         try {
@@ -138,8 +146,7 @@ class Organization extends Model
             foreach ($get as $key => $value) {
                 $get[$key] = trim(strtolower(htmlspecialchars($get[$key], ENT_QUOTES)));
             }
-            $cond = " U.status != 'N' ";
-
+            $cond = " status = 'Y'";
             if ($get['sSearch_1']) {
                 $cond .= "and lower(name) like'%" . $get['sSearch_1'] . "%'";
             }
@@ -147,11 +154,11 @@ class Organization extends Model
             if ($get['sSearch_3']) {
                 $cond .= "and lower(email) like'%" . $get['sSearch_3'] . "%'";
             }
-            $cond = " status = 'Y'";
 
-            // if (!empty($post['type']) && $post['type'] === "trashed") {
-            //     $cond = " status = 'N'";
-            // }
+
+            if ($get['sSearch_2']) {
+                $cond .= "and lower(phone) like'%" . $get['sSearch_2'] . "%'";
+            }
 
 
             $limit = 15;
@@ -161,7 +168,7 @@ class Organization extends Model
                 $offset = $get["start"];
             }
 
-            $query = Organization::selectRaw("(SELECT count(*) FROM organizations) AS totalrecs,name,email, id as id, phone, address, logo,active, created_at")
+            $query = Organization::selectRaw("(SELECT count(*) FROM organizations where {$cond}) AS totalrecs,name,email, id as id, phone, address, logo,active, created_at")
                 ->whereRaw($cond);
 
             if ($limit > -1) {
@@ -182,16 +189,24 @@ class Organization extends Model
         }
     }
 
+
+    //function to get data of an organization
     public static function getData($post)
     {
-        $result = DB::table('organizations as o')
-            ->join('users as u', 'u.orgid', '=', 'o.id')
-            ->select('o.id as id', 'u.id as userid', 'o.address', 'o.name', 'o.email', 'o.phone', 'o.logo', 'u.name as username')
-            ->where('o.id', $post['id'])
-            ->first();
-        return  $result;
+        try {
+            $result = DB::table('organizations as o')
+                ->join('userorganizations as uo', 'uo.orgid', '=', 'o.id')
+                ->join('users as u', 'u.id', '=', 'uo.userid')
+                ->select('o.id as id', 'u.id as userid', 'o.address', 'o.name', 'o.email', 'o.phone', 'o.logo', 'u.name as username')
+                ->where('o.id', $post['id'])
+                ->first();
+            return  $result;
+        } catch (Exception $e) {
+            throw $e;
+        }
     }
 
+    //function to delete an organization
     public static function deleteDate($post)
     {
         try {

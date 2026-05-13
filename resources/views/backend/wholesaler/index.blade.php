@@ -129,7 +129,22 @@
                         bSortable: false
                     }, // [6]
                 ],
+                initComplete: function() {
+                    this.api().columns([1, 2]).every(function() {
+                        var column = this;
+                        var header = $(column.header()).text()
+                            .trim();
 
+                        var input = $(
+                                '<input type="text" class="form-control" placeholder="' +
+                                header + '..." style="width:100%;" />'
+                            )
+                            .appendTo($(column.header()).empty())
+                            .on('keyup change', function() {
+                                column.search(this.value).draw();
+                            });
+                    });
+                }
             });
 
             // ── Helper: open modal via AJAX ───────────────────────────────

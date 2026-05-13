@@ -33,8 +33,8 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->enum('status', ['Y', 'N'])->default('Y');
 
-            $table->integer('postedby');
-            $table->integer('updatedby')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
         });
     }

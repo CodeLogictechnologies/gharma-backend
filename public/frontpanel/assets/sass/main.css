@@ -4203,13 +4203,13 @@ ol {
     font-size: 14px;
   }
 }
+.container .nb_details_container .nb_right_content_container .nb_right_wrapper .nb_right_container .nb_right_wrapper .right_text .right_calender p .fa-calendar-week {
+  color: #066ac8;
+}
 .container .nb_details_container .nb_right_content_container .nb_right_wrapper .nb_right_container .nb_right_wrapper .right_text .right_calender p {
   font-size: 15px;
   font-weight: 500;
   color: grey;
-}
-.container .nb_details_container .nb_right_content_container .nb_right_wrapper .nb_right_container .nb_right_wrapper .right_text .right_calender p .fa-calendar-week {
-  color: #066ac8;
 }
 @media (max-width: 768px) {
   .container .nb_details_container .nb_right_content_container .nb_right_wrapper .nb_right_container .nb_right_wrapper .right_text .right_calender p {
@@ -5267,8 +5267,7 @@ body .header_container_wrapper .nav_header_wrapper_container .social_icon_conten
   right: 100%;
   width: 20px;
   background-color: rgb(6, 106, 200);
-  -webkit-clip-path: polygon(100% 100%, 100% 1%, 0 100%);
-          clip-path: polygon(100% 100%, 100% 1%, 0 100%);
+  clip-path: polygon(100% 100%, 100% 1%, 0 100%);
   transform: skewX(0deg);
   z-index: 1;
 }

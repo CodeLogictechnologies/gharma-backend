@@ -24,8 +24,8 @@ return new class extends Migration
                 ->on('items')
                 ->cascadeOnDelete();
             $table->string('image');
-            $table->integer('postedby');
-            $table->integer('updatedby');
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->char('status', 1)->default('Y');
             $table->timestamps();
         });

@@ -23,7 +23,7 @@ class Inventory extends Model
                 'variation_id'       => $post['variationid'],
                 'vendor_id'          => $post['vendorid'],
                 'quantity_available' => $post['quantity_available'],
-                // 'quantity_in_hand'   => $post['quantity_available'],
+                'expirymonth'   => $post['expirymonth'] ?? null,
                 'reorder_level'      => $post['reorder_level'],
                 'unit_cost'          => $post['unit_cost'],
                 'selling_price'      => $post['selling_price'],
@@ -60,13 +60,23 @@ class Inventory extends Model
             }
             $cond = "1=1";
 
-            // if ($get['sSearch_1']) {
-            //     $cond .= "and lower(p.username) like'%" . $get['sSearch_1'] . "%'";
-            // }
+            $columns = $post['columns'] ?? [];
 
-            // if ($get['sSearch_3']) {
-            //     $cond .= "and lower(i.title) like'%" . $get['sSearch_3'] . "%'";
-            // }
+            if (!empty($columns[1]['search']['value'])) {
+                $val    = strtolower(trim($columns[1]['search']['value']));
+                $cond  .= " and lower(c.title) like '%{$val}%'";
+            }
+
+            if (!empty($columns[2]['search']['value'])) {
+                $val    = strtolower(trim($columns[2]['search']['value']));
+                $cond  .= " and lower(s.title) like '%{$val}%'";
+            }
+
+            if (!empty($columns[3]['search']['value'])) {
+                $val    = strtolower(trim($columns[3]['search']['value']));
+                $cond  .= " and lower(i.title) like '%{$val}%'";
+            }
+
             $limit = 15;
             $offset = 0;
             if (!empty($get["length"]) && $get["length"]) {
@@ -79,11 +89,10 @@ class Inventory extends Model
                 ->join('itemvariations as iv', 'iv.id', '=', 'inv.variation_id')
                 ->join('categories as c',      'c.id',  '=', 'i.category_id')
                 ->join('sub_categories as s',  's.id',  '=', 'i.subcategory_id')
-                ->leftJoin('orders as o',      function ($join) {
-                    $join->on('o.item_id',      '=', 'inv.item_id')
-                        ->on('o.variation_id', '=', 'inv.variation_id');
+                ->leftJoin('order_details as o',      function ($join) {
+                    $join->on('o.variation_id', '=', 'inv.variation_id');
                 })
-                ->leftJoin('profiles as p',    'p.id',  '=', 'o.customer_id')
+                ->leftJoin('profiles as p',    'p.id',  '=', 'o.userid')
                 ->selectRaw("
         (SELECT COUNT(*) FROM inventories as inv2
             JOIN items i2          ON i2.id  = inv2.item_id
@@ -93,12 +102,12 @@ class Inventory extends Model
             WHERE {$cond}
         ) as totalrecs,
         inv.id,
-        inv.quantity_in_hand           as stock,
-        inv.quantity_available         as remainingqty,
+        inv.quantity_available           as stock,
+        inv.quantity_available - COALESCE(SUM(o.quantity), 0) AS remainingqty,
         inv.selling_price              as price,
         inv.unit_cost,
         inv.reorder_level,
-        SUM(o.qty)                     as soldqty,
+        SUM(o.quantity)                     as soldqty,
         c.title                        as categorytitle,
         s.title                        as subcategorytitle,
         i.title,
@@ -206,6 +215,7 @@ class Inventory extends Model
                 ->where('inv.id', $id)
                 ->select(
                     'inv.id',
+                    'inv.expirymonth',
                     'inv.item_id',
                     'inv.variation_id',
                     'inv.vendor_id',

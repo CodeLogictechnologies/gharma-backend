@@ -7,15 +7,20 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Permission extends Model
 {
     use HasFactory;
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     //function to save permission
     public static function saveData($post)
     {
         try {
+            $dataArray['id'] = (string) Str::uuid();
+
             $dataArray = [
                 'name' => $post['name'],
                 'guard_name' => 'web',
@@ -46,7 +51,7 @@ class Permission extends Model
             foreach ($get['columns'] as $key => $value) {
                 $get['columns'][$key]['search']['value'] = trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
             }
-            $cond = "1=1";
+            $cond = "status = 'Y'";
 
             if ($get['columns'][1]['search']['value'])
                 $cond .= " and lower(name) like '%" . $get['columns'][1]['search']['value'] . "%'";
@@ -59,7 +64,7 @@ class Permission extends Model
                 $offset = $get["start"];
             }
 
-            $query = Permission::selectRaw("(SELECT count(*) FROM permissions) AS totalrecs,name, id as id")
+            $query = Permission::selectRaw("(SELECT count(*) FROM permissions WHERE {$cond}) AS totalrecs,name, id as id")
                 ->whereRaw($cond);
 
             if ($limit > -1) {

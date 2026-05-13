@@ -73,6 +73,8 @@
             itemTable = $('#itemTable').dataTable({
                 sPaginationType: 'full_numbers',
                 bSearchable: false,
+                bSort: false,
+
                 language: {
                     paginate: {
                         first: '<i class="bx bx-chevrons-left"></i>',
@@ -129,6 +131,22 @@
                         bSortable: false
                     }, // [6]
                 ],
+                initComplete: function() {
+                    this.api().columns([1]).every(function() {
+                        var column = this;
+                        var header = $(column.header()).text()
+                            .trim(); // ← gets column header name
+
+                        var input = $(
+                                '<input type="text" class="form-control" placeholder="' +
+                                header + '..." style="width:100%;" />'
+                            )
+                            .appendTo($(column.header()).empty())
+                            .on('keyup change', function() {
+                                column.search(this.value).draw();
+                            });
+                    });
+                }
 
             });
 
