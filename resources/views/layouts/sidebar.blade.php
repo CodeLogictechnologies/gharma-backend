@@ -29,12 +29,12 @@
         </li>
 
         <!-- Organization -->
-        <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
             <a href="{{ route('organization') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-buildings"></i>
                 <div>Organization</div>
             </a>
-        </li>
+        </li> --}}
 
         <!-- Permission -->
         <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
