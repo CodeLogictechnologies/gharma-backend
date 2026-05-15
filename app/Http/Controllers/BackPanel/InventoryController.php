@@ -94,7 +94,7 @@ class InventoryController extends Controller
         // }
     }
 
-    public function list(Request $request)
+    public  function list(Request $request)
     {
         // try {
         $post = $request->all();
@@ -108,8 +108,8 @@ class InventoryController extends Controller
         unset($data["totalrecs"]);
         foreach ($data as $row) {
             $array[$i]["sno"] = $i + 1;
-            $array[$i]["categorytitle"]    = $row->categorytitle;
-            $array[$i]["subcategorytitle"]    = $row->subcategorytitle;
+            // $array[$i]["categorytitle"]    = $row->categorytitle;
+            // $array[$i]["subcategorytitle"]    = $row->subcategorytitle;
             $array[$i]["title"]    = $row->title;
             $array[$i]["variation_value"]    = $row->variation_value;
             $array[$i]["stock"]    = $row->stock;

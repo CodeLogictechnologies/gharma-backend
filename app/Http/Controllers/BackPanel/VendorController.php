@@ -26,7 +26,7 @@ class VendorController extends Controller
 
     public function save(Request $request)
     {
-        // try {
+        try {
         $rules = [
             'name' => 'required|min:5|max:255',
             'phone' => 'required|min:5|max:5000',
@@ -34,7 +34,6 @@ class VendorController extends Controller
             'email' => [
                 'required',
                 'email',
-                Rule::unique('vendors', 'email')->ignore($post['id'] ?? null),
             ],
             'company' => 'required',
             'pan' => 'required',
@@ -73,21 +72,21 @@ class VendorController extends Controller
             throw new Exception('Could not save record', 1);
         }
         DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
     public function list(Request $request)
     {
-        // try {
+        try {
         $post = $request->all();
         $data = Vendor::list($post);
         $i = 0;
@@ -123,15 +122,15 @@ class VendorController extends Controller
         }
         if (!$filtereddata) $filtereddata = 0;
         if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        }
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 
@@ -141,6 +140,7 @@ class VendorController extends Controller
             $data = [];
             if (!empty($request->id)) {
                 $post = $request->all();
+                $post['orgid'] = session('orgid'); 
                 $result = Vendor::getData($post);
                 if (!$result) {
                     throw new Exception("Vendor not found", 1);

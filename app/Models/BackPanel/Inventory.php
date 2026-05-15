@@ -51,7 +51,7 @@ class Inventory extends Model
         }
     }
 
-    public static function list($post)
+public static function list($post)
     {
         try {
             $get = $_GET;
@@ -87,8 +87,7 @@ class Inventory extends Model
             $query = DB::table('inventories as inv')
                 ->join('items as i',           'i.id',  '=', 'inv.item_id')
                 ->join('itemvariations as iv', 'iv.id', '=', 'inv.variation_id')
-                ->join('categories as c',      'c.id',  '=', 'i.category_id')
-                ->join('sub_categories as s',  's.id',  '=', 'i.subcategory_id')
+
                 ->leftJoin('order_details as o',      function ($join) {
                     $join->on('o.variation_id', '=', 'inv.variation_id');
                 })
@@ -97,8 +96,7 @@ class Inventory extends Model
         (SELECT COUNT(*) FROM inventories as inv2
             JOIN items i2          ON i2.id  = inv2.item_id
             JOIN itemvariations iv2 ON iv2.id = inv2.variation_id
-            JOIN categories c2     ON c2.id  = i2.category_id
-            JOIN sub_categories s2 ON s2.id  = i2.subcategory_id
+         
             WHERE {$cond}
         ) as totalrecs,
         inv.id,
@@ -108,8 +106,7 @@ class Inventory extends Model
         inv.unit_cost,
         inv.reorder_level,
         SUM(o.quantity)                     as soldqty,
-        c.title                        as categorytitle,
-        s.title                        as subcategorytitle,
+
         i.title,
         iv.attribute,
         iv.value                       as variation_value
@@ -122,8 +119,7 @@ class Inventory extends Model
                     'inv.selling_price',
                     'inv.unit_cost',
                     'inv.reorder_level',
-                    'c.title',
-                    's.title',
+
                     'i.title',
                     'iv.attribute',
                     'iv.value'
@@ -209,8 +205,8 @@ class Inventory extends Model
             $result = DB::table('inventories as inv')  // ✅ fixed: was 'inventories'
                 ->join('items as i',           'i.id',  '=', 'inv.item_id')
                 ->join('itemvariations as iv', 'iv.id', '=', 'inv.variation_id')
-                ->join('categories as c',      'c.id',  '=', 'i.category_id')
-                ->join('sub_categories as s',  's.id',  '=', 'i.subcategory_id')
+                // ->join('categories as c',      'c.id',  '=', 'i.category_id')
+                // ->join('sub_categories as s',  's.id',  '=', 'i.subcategory_id')
                 ->leftJoin('vendors as v',     'v.id',  '=', 'inv.vendor_id')
                 ->where('inv.id', $id)
                 ->select(
@@ -220,7 +216,7 @@ class Inventory extends Model
                     'inv.variation_id',
                     'inv.vendor_id',
                     'inv.quantity_available',
-                    'inv.quantity_in_hand      as stock',
+                    // 'inv.quantity_in_hand      as stock',
                     'inv.reorder_level',
                     'inv.unit_cost',
                     'inv.selling_price',
@@ -230,8 +226,8 @@ class Inventory extends Model
                     'iv.attribute',
                     'iv.id as variationid',
                     'iv.value                  as variation_value',
-                    'c.title                   as categorytitle',
-                    's.title                   as subcategorytitle',
+                    // 'c.title                   as categorytitle',
+                    // 's.title                   as subcategorytitle',
                     'v.name                    as vendor_name'
                 )
                 ->first();
