@@ -1,6 +1,8 @@
 @extends('layouts.main')
-@section('title', 'Category')
+@section('title', 'Users')
 @section('content')
+
+    {{-- Remark Modal --}}
     <div class="modal fade" id="remarkModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
@@ -17,25 +19,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary" id="cancelRemark">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveRemark">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Delete Modal --}}
-    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Delete Category</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">Are you sure? You won't be able to revert this.</div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
                 </div>
             </div>
         </div>
@@ -47,14 +32,13 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Change Status</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" id="cancelStatusX" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     Are you sure you want to change this user's status?
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    {{-- Fixed: id="confirmStatus", no hardcoded data-id --}}
+                    <button type="button" class="btn btn-outline-secondary" id="cancelStatus">Cancel</button>
                     <button type="button" class="btn btn-success" id="confirmStatus">Confirm</button>
                 </div>
             </div>
@@ -94,6 +78,12 @@
     <script>
         var baseurl = '{{ url('') }}';
 
+        // Shared state for status change flow
+        var pendingStatusUserId = null;
+        var pendingStatusValue = null;
+        var pendingStatusDropdown = null;
+        var previousStatusValue = null;
+
         $(document).ready(function() {
 
             /* =========================================================
@@ -129,14 +119,123 @@
 
             $('#active-tab').trigger('click');
 
-
             /* =========================================================
                STATUS CHANGE FLOW
-               Step 1: dropdown changes  → show Status confirmation modal
-               Step 2: user clicks Confirm in status modal → hide status modal, show Remark modal
-               Step 3: user writes remark & clicks Save → POST status + remark together
+               Step 1: dropdown changes  → store values → show status confirm modal
+               Step 2: Confirm clicked   → hide status modal → show remark modal
+               Step 3: Save remark       → POST status + remark → reload table
+               Cancel at any step        → revert dropdown to previous value
             ========================================================= */
 
+            // Step 1: Dropdown changed
+            $(document).on('change', '.statusDropdown', function() {
+                pendingStatusDropdown = $(this);
+                previousStatusValue = pendingStatusDropdown.data('previous') || pendingStatusDropdown.data(
+                    'original');
+                pendingStatusUserId = pendingStatusDropdown.data('id');
+                pendingStatusValue = pendingStatusDropdown.val();
+
+                // Store current as previous for next change
+                pendingStatusDropdown.data('previous', pendingStatusDropdown.data('original') ??
+                    previousStatusValue);
+
+                new bootstrap.Modal(document.getElementById('statusModal')).show();
+            });
+
+            // Cancel status modal (button or X) → revert dropdown
+            $(document).on('click', '#cancelStatus, #cancelStatusX', function() {
+                revertDropdown();
+                var modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
+                if (modal) modal.hide();
+            });
+
+            // Step 2: Confirmed status change → open remark modal
+            $('#confirmStatus').on('click', function() {
+                var statusModal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
+                if (statusModal) statusModal.hide();
+
+                $('#remark_user_id').val(pendingStatusUserId);
+                $('#remarkText').val('');
+                $('#remarkError').hide();
+
+                document.getElementById('statusModal').addEventListener('hidden.bs.modal',
+                function handler() {
+                    this.removeEventListener('hidden.bs.modal', handler);
+                    new bootstrap.Modal(document.getElementById('remarkModal')).show();
+                });
+            });
+
+            // Cancel remark modal → revert dropdown
+            $('#cancelRemark').on('click', function() {
+                revertDropdown();
+                bootstrap.Modal.getInstance(document.getElementById('remarkModal')).hide();
+                resetStatusState();
+            });
+
+            document.getElementById('remarkModal').addEventListener('hidden.bs.modal', function() {
+                // If closed without saving, revert
+                if (pendingStatusUserId !== null) {
+                    revertDropdown();
+                    resetStatusState();
+                }
+            });
+
+            // Step 3: Save remark + status
+            $('#saveRemark').on('click', function() {
+                var remark = $('#remarkText').val().trim();
+
+                if (!remark) {
+                    $('#remarkError').show();
+                    return;
+                }
+                $('#remarkError').hide();
+
+                $.post('{{ route('user.status') }}', {
+                        id: pendingStatusUserId,
+                        status: pendingStatusValue,
+                        remark: remark,
+                        _token: '{{ csrf_token() }}'
+                    })
+                    .done(function(response) {
+                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            // Update the dropdown's stored "original" value so cancel works correctly next time
+                            if (pendingStatusDropdown) {
+                                pendingStatusDropdown.data('original', pendingStatusValue);
+                                pendingStatusDropdown.data('previous', pendingStatusValue);
+                            }
+                            // Reload the active tab's DataTable if available
+                            if (typeof userTable !== 'undefined' && userTable) {
+                                userTable.fnDraw();
+                            }
+                        } else {
+                            showNotification(result.message, 'error');
+                            revertDropdown();
+                        }
+                    })
+                    .fail(function() {
+                        showNotification('Status update failed. Please try again.', 'error');
+                        revertDropdown();
+                    })
+                    .always(function() {
+                        bootstrap.Modal.getInstance(document.getElementById('remarkModal')).hide();
+                        resetStatusState();
+                    });
+            });
+
+            function revertDropdown() {
+                if (pendingStatusDropdown && previousStatusValue !== null) {
+                    pendingStatusDropdown.val(previousStatusValue);
+                }
+            }
+
+            function resetStatusState() {
+                pendingStatusUserId = null;
+                pendingStatusValue = null;
+                pendingStatusDropdown = null;
+                previousStatusValue = null;
+            }
 
         });
     </script>
