@@ -35,7 +35,7 @@
 
                             <div class="mb-3">
                                 <input type="hidden" name="id" value="" id="id">
-                                <label class="form-label" for="name">Permission Name</label>
+                                <label class="form-label" for="name">Permission Name<span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="name" id="name"
                                     placeholder="Example: user.view" />
                             </div>

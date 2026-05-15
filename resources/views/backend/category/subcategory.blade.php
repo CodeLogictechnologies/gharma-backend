@@ -26,7 +26,7 @@
 
             <div class="mb-3">
                 <input type="hidden" name="id" value="" id="id">
-                <label class="form-label" for="name">Sub Category Name</label>
+                <label class="form-label" for="name">Sub Category Name<span class="text-danger">*</span></label>
                 <input type="text" class="form-control" name="title" id="name" placeholder="Example: " />
             </div>
             <div class="mb-3">

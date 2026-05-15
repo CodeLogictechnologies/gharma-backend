@@ -295,27 +295,43 @@ class ItemController extends Controller
         ]);
     }
 
-
-    public function view(Request $request)
-    {
-        // try {
+public function view(Request $request)
+{
+    try {
         $post = $request->all();
-
         $itemDetails = Item::getData($post);
-
-        $data = [
-            'itemDetails' => $itemDetails,
-        ];
-
+        $data = ['itemDetails' => $itemDetails];
         $data['type'] = 'success';
-        $data['message'] = 'Successfully fetched data of New and Blogs.';
-        // } catch (QueryException $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $e->getMessage();
-        // }
-        return view('backend.item.view', $data);
+        $data['message'] = 'Successfully fetched data.';
+    } catch (QueryException $e) {
+        $data['type'] = 'error';
+        $data['message'] = $this->queryMessage;
+    } catch (Exception $e) {
+        $data['type'] = 'error';
+        $data['message'] = $e->getMessage();
     }
+    return view('backend.item.view', $data);
+}
+    // public function view(Request $request)
+    // {
+    //     // try {
+    //     $post = $request->all();
+
+    //     $itemDetails = Item::getData($post);
+
+    //     $data = [
+    //         'itemDetails' => $itemDetails,
+    //     ];
+
+    //     $data['type'] = 'success';
+    //     $data['message'] = 'Successfully fetched data of New and Blogs.';
+    //     // } catch (QueryException $e) {
+    //     //     $data['type'] = 'error';
+    //     //     $data['message'] = $this->queryMessage;
+    //     // } catch (Exception $e) {
+    //     //     $data['type'] = 'error';
+    //     //     $data['message'] = $e->getMessage();
+    //     // }
+    //     return view('backend.item.view', $data);
+    // }
 }

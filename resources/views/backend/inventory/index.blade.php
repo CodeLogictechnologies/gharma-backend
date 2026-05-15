@@ -16,8 +16,6 @@
                     <thead class="table-light">
                         <tr class="align-middle">
                             <th>ID</th>
-                            <th>Category</th>
-                            <th>Sub Category</th>
                             <th>Product</th>
                             <th>Value</th>
                             <th>Stock</th>
@@ -125,17 +123,17 @@
                 },
                 aoColumnDefs: [{
                     bSortable: false,
-                    aTargets: [0, 8]
+                    aTargets: [0, 6]
                 }],
                 aoColumns: [{
                         data: 'sno'
                     },
-                    {
-                        data: 'categorytitle'
-                    },
-                    {
-                        data: 'subcategorytitle'
-                    },
+                    // {
+                    //     data: 'categorytitle'
+                    // },
+                    // {
+                    //     data: 'subcategorytitle'
+                    // },
                     {
                         data: 'title'
                     },
