@@ -185,18 +185,20 @@ class User extends Authenticatable implements JWTSubject
                 'name'       => $post['username'],
                 'email'      => $post['email'],
                 'phone'      => $post['phone'],
+                'password'   => bcrypt($plainPassword),
                 'updated_at' => Carbon::now(),
             ];
 
 
             // ---------- CREATE USER ----------
-            $newUuid = (string) Str::uuid(); // ✅ Store UUID separately to reuse
+            $newUuid = (string) Str::uuid();
 
             $userData['id']         = $newUuid;
             $userData['created_at'] = Carbon::now();
-            $userData['password']   = $plainPassword;
-
-            $inserted = DB::table('users')->insert($userData); // ✅ insert() returns bool
+            if (!empty($post['type']) && $post['type'] == 'user') {
+                $userData['user_status'] = 'Approve';
+            }
+            $inserted = DB::table('users')->insert($userData);
 
             if (!$inserted) {
                 throw new Exception("Couldn't create user");

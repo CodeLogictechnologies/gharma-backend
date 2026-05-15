@@ -29,7 +29,7 @@ class UserController extends Controller
     //function to save users
     public function save(Request $request)
     {
-        try {
+        // try {
             $post = $request->all();
             $rules = [
                 'first_name' => 'required|min:5|max:255',
@@ -72,15 +72,15 @@ class UserController extends Controller
                 throw new Exception('Could not save record', 1);
             }
             DB::commit();
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
-        }
+        // } catch (QueryException $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $this->queryMessage;
+        // } catch (Exception $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $e->getMessage();
+        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
