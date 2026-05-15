@@ -54,7 +54,7 @@ class OrderHeatmapSeeder extends Seeder
         // ── Fixed IDs from your schema ─────────────────────────────
         $orgId       = DB::table('organizations')->value('id');
         $userId      = DB::table('users')->value('id');
-        $variationId = '2cb1ba69-b1ba-470c-8c87-b98aa5d98e77';
+$variationId = '1e2c5e70-e727-4dfe-b192-38adf3586614';
 
         if (!$orgId || !$userId) {
             $this->command->error('No organization or user found. Run DatabaseSeeder first.');

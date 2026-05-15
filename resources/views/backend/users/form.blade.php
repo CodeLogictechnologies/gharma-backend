@@ -182,7 +182,7 @@
             placeholder: 'Select roles...',
             allowClear: true,
             width: '100%',
-            dropdownParent: $('#userModal'),
+            dropdownParent: $('#userModel'),
         });
 
         // ── Preview image ──────────────────────────────────────────────
