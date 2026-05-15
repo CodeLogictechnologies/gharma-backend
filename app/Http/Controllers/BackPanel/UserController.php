@@ -62,9 +62,10 @@ class UserController extends Controller
             }
 
             $post = $request->all();
+            $post['type'] = 'user';
             $type = 'success';
             $message = 'User saved successfully';
-
+            $post['orgid'] = session('orgid');
             DB::beginTransaction();
 
             if (!User::saveData($post)) {
@@ -102,6 +103,11 @@ class UserController extends Controller
             $array[$i]["sno"] = $i + 1;
             $array[$i]["name"] = $row->name;
             $array[$i]["email"] = $row->email;
+            if ($row->status == 'Y') {
+                $array[$i]["status"] = 'Active';
+            } else {
+                $array[$i]["status"] = 'Inactive';
+            }
             $array[$i]["address"] = $row->address;
             $array[$i]["phone"] = $row->phone;
 
@@ -171,7 +177,7 @@ class UserController extends Controller
         unset($data["totalfilteredrecs"]);
         unset($data["totalrecs"]);
 
-foreach ($data["data"] as $row) {
+        foreach ($data["data"] as $row) {
             $array[$i]["sno"] = $i + 1;
             $array[$i]["name"] = $row->name;
             $array[$i]["email"] = $row->email;
@@ -317,8 +323,7 @@ foreach ($data["data"] as $row) {
     public function updateStatus(Request $request)
     {
         try {
-            $user = User::find($request->id);
-
+            $user = User::find($request->user_id);
             if (!$user) {
                 return response()->json([
                     'type' => 'error',

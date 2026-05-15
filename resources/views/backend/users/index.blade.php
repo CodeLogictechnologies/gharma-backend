@@ -1,3 +1,19 @@
+<style>
+    /* Ensure modal sits above sidebar and everything else */
+    #userModel {
+        z-index: 1060 !important;
+    }
+
+    .modal-backdrop {
+        z-index: 1055 !important;
+    }
+
+    /* Prevent sidebar from overlapping modal */
+    .layout-menu,
+    .layout-navbar {
+        z-index: 1040 !important;
+    }
+</style>
 <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
     <h5 class="mb-0">User List</h5>
     <button type="button" id="addOrg" class="btn btn-primary">
@@ -14,6 +30,7 @@
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Address</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -21,7 +38,7 @@
     </table>
 </div>
 
-{{-- Organization Add/Edit Modal --}}
+{{-- Add / Edit Modal --}}
 <div class="modal fade" id="userModel" tabindex="-1" role="dialog" aria-modal="true">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content" id="userModelContent"></div>
@@ -45,39 +62,18 @@
     </div>
 </div>
 
-{{-- Status Confirm Modal --}}
-<div class="modal fade" id="statusModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Change Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to change user status?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmStatus">Yes, Change</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 <script>
     var userTable;
 
     $(document).ready(function() {
 
-        // ── CSRF setup ────────────────────────────────────────────────
         $.ajaxSetup({
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
 
-        // ── DataTable ─────────────────────────────────────────────────
+        /* ── DataTable ─────────────────────────────────────────────── */
         userTable = $('#userTable').dataTable({
             sPaginationType: 'full_numbers',
             bSearchable: false,
@@ -107,11 +103,11 @@
             },
             aoColumnDefs: [{
                     bSortable: false,
-                    aTargets: [0, 5]
+                    aTargets: [0, 5, 6]
                 },
                 {
                     sWidth: '10%',
-                    aTargets: [5]
+                    aTargets: [6]
                 }
             ],
             aoColumns: [{
@@ -130,6 +126,9 @@
                     data: 'address'
                 },
                 {
+                    data: 'status'
+                }, // status dropdown column
+                {
                     data: 'action'
                 },
             ],
@@ -147,47 +146,58 @@
             }
         });
 
-        // ── Helper: open modal via AJAX ───────────────────────────────
-        function openOrgModal(url, data, method) {
+        /* ── Helper: open modal via AJAX ─────────────────────────── */
+        function openUserModal(url, data, method) {
             var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
             req.done(function(response) {
                 $('#userModelContent').html(response);
+
                 var modalEl = document.getElementById('userModel');
+
+                // Destroy existing instance first
                 var existing = bootstrap.Modal.getInstance(modalEl);
-                if (existing) existing.dispose();
-                new bootstrap.Modal(modalEl, {
+                if (existing) {
+                    existing.dispose();
+                }
+
+                // FIX: move modal to body so z-index stacking works correctly
+                $(modalEl).appendTo('body');
+
+                var modal = new bootstrap.Modal(modalEl, {
                     backdrop: 'static',
                     keyboard: false
-                }).show();
+                });
+                modal.show();
+
             }).fail(function() {
                 showNotification('Failed to load form. Please try again.', 'error');
             });
         }
 
-        // ── Add ───────────────────────────────────────────────────────
+        /* ── Add ─────────────────────────────────────────────────── */
         $('#addOrg').on('click', function() {
-            openOrgModal('{{ route('user.form') }}', {}, 'GET');
+            openUserModal('{{ route('user.form') }}', {}, 'GET');
         });
 
-        // ── Edit ──────────────────────────────────────────────────────
+        /* ── Edit ────────────────────────────────────────────────── */
         $(document).on('click', '.editOrg', function(e) {
             e.preventDefault();
-            openOrgModal('{{ route('user.form') }}', {
+            openUserModal('{{ route('user.form') }}', {
                 id: $(this).data('id'),
                 _token: '{{ csrf_token() }}'
             }, 'POST');
         });
 
-        // ── View ──────────────────────────────────────────────────────
+        /* ── View ────────────────────────────────────────────────── */
         $(document).on('click', '.viewOrg', function(e) {
             e.preventDefault();
-            openOrgModal('{{ route('user.view') }}', {
+            openUserModal('{{ route('user.view') }}', {
                 id: $(this).data('id'),
                 _token: '{{ csrf_token() }}'
             }, 'POST');
         });
 
-        // ── Delete ────────────────────────────────────────────────────
+        /* ── Delete ──────────────────────────────────────────────── */
         var deleteId = null;
 
         $(document).on('click', '.deleteOrg', function(e) {
@@ -220,82 +230,16 @@
                 });
         });
 
-        // ── Clear modal content on close ──────────────────────────────
+        /* ── Clear modal content on close ────────────────────────── */
         document.getElementById('userModel').addEventListener('hidden.bs.modal', function() {
             $('#userModelContent').html('');
         });
 
-        // ── Image preview ─────────────────────────────────────────────
+        /* ── Image preview ───────────────────────────────────────── */
         $(document).on('change', '#image', function() {
             var file = this.files[0];
             if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
         });
-
-        // ── Form submit ───────────────────────────────────────────────
-        $(document).on('submit', '#orgForm', function(e) {
-            e.preventDefault();
-
-            var valid = true;
-            $(this).find('[data-required]').each(function() {
-                $(this).removeClass('is-invalid');
-                if (!$(this).val().trim()) {
-                    $(this).addClass('is-invalid');
-                    valid = false;
-                }
-            });
-            if (!valid) return;
-
-            var $btn = $(this).find('[type=submit]');
-            $btn.prop('disabled', true).text('Saving...');
-            showLoader();
-
-            $.ajax({
-                url: $(this).attr('action'),
-                type: 'POST',
-                data: new FormData(this),
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    hideLoader();
-                    var result = typeof response === 'string' ? JSON.parse(response) :
-                        response;
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        userTable.fnDraw();
-                        bootstrap.Modal.getInstance(document.getElementById('userModel'))
-                            .hide();
-                    } else {
-                        showNotification(result.message, 'error');
-                        $btn.prop('disabled', false).text('Save');
-                    }
-                },
-                error: function(xhr) {
-                    hideLoader();
-                    $btn.prop('disabled', false).text('Save');
-                    if (xhr.status === 422) {
-                        $.each(xhr.responseJSON.errors, function(field, messages) {
-                            $('[name="' + field + '"]').addClass('is-invalid');
-                            showNotification(messages[0], 'error');
-                        });
-                    } else {
-                        showNotification('Something went wrong!', 'error');
-                    }
-                }
-            });
-        });
-
-        $(document).on('input change', '#orgForm .form-control', function() {
-            $(this).removeClass('is-invalid');
-        });
-
-        // ══════════════════════════════════════════════════════════════
-        // STATUS CHANGE FLOW
-        // Step 1: dropdown changed → show status confirm modal
-        // Step 2: confirm → show remark modal
-        // Step 3: save remark → POST status+remark → close modal → reload table
-        // Cancel at any step → revert dropdown
-        // ══════════════════════════════════════════════════════════════
-
 
     });
 </script>
