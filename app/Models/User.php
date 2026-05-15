@@ -194,7 +194,7 @@ class User extends Authenticatable implements JWTSubject
 
             $userData['id']         = $newUuid;
             $userData['created_at'] = Carbon::now();
-            $userData['password']   = $post['password'];
+            $userData['password']   = $plainPassword;
 
             $inserted = DB::table('users')->insert($userData); // ✅ insert() returns bool
 
@@ -203,10 +203,14 @@ class User extends Authenticatable implements JWTSubject
             }
             $post['userorgid'] = (string) Str::uuid();
 
-            $firstOrg = DB::table('userorganizations')->value('orgid');
+            if (!empty($post['type'] == 'user')) {
+                $firstOrg = $post['orgid'];
+            } else {
+                $firstOrg = DB::table('userorganizations')->value('orgid');
 
-            if (!$firstOrg) {
-                throw new Exception("No organization found in userorganizations table.");
+                if (!$firstOrg) {
+                    throw new Exception("No organization found in userorganizations table.");
+                }
             }
 
             $userOrgArray = [
