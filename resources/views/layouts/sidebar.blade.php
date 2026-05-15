@@ -99,7 +99,13 @@
             </ul>
         </li>
 
-
+        <!-- Heatmap -->
+        <li class="menu-item {{ request()->routeIs('heatmap') ? 'active' : '' }}">
+            <a href="{{ route('admin.heatmap.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-map-alt"></i>
+                <div>Heatmap</div>
+            </a>
+        </li>
 
 
         <!-- Users -->

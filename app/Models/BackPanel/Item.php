@@ -193,16 +193,25 @@ class Item extends Model
         }
 
         // ── Core item + category + subcategory names ─────────────────────
+        // $item = DB::table('items as i')
+        //     ->leftJoin('categories as c',    'c.id', '=', 'i.category_id')
+        //     ->leftJoin('sub_categories as s', 's.id', '=', 'i.subcategory_id')
+        //     ->where('i.id', $id)
+        //     ->select(
+        //         'i.*',
+        //         'c.title as category_title',
+        //         's.title as subcategory_title'
+        //     )
+        //     ->first();
+
         $item = DB::table('items as i')
-            ->leftJoin('categories as c',    'c.id', '=', 'i.category_id')
-            ->leftJoin('sub_categories as s', 's.id', '=', 'i.subcategory_id')
-            ->where('i.id', $id)
-            ->select(
-                'i.*',
-                'c.title as category_title',
-                's.title as subcategory_title'
-            )
-            ->first();
+    ->leftJoin('category_items as ci', 'ci.itemid', '=', 'i.id')
+    ->leftJoin('categories as c', 'c.id', '=', 'ci.categoryid')
+    ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
+    ->leftJoin('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
+    ->where('i.id', $id)
+    ->select('i.*', 'c.title as category_title', 's.title as subcategory_title')
+    ->first();
 
         if (!$item) {
             throw new Exception('Item not found.');

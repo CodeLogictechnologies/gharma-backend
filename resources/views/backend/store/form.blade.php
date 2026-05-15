@@ -22,7 +22,7 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Phone</label>
+                <label class="form-label">Phone<span class="text-danger">*</span></label>
                 <input type="text" name="phone" class="form-control" placeholder="98X-XXXXXXX"
                     value="{{ @$phone ?? '' }}" data-required />
                 <div class="invalid-feedback">Store phone number is required.</div>
@@ -30,7 +30,7 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Email</label>
+                <label class="form-label">Email<span class="text-danger">*</span></label>
                 <input type="email" name="email" class="form-control" placeholder="store@example.com"
                     value="{{ @$email ?? '' }}" data-required />
                 <div class="invalid-feedback">Store email is required.</div>
@@ -43,7 +43,7 @@
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
-                <label class="form-label">Address</label>
+                <label class="form-label">Address<span class="text-danger">*</span></label>
                 <input type="text" name="address" class="form-control" placeholder="Enter address"
                     value="{{ @$address ?? '' }}" data-required />
                 <div class="invalid-feedback">Store address is required.</div>
@@ -51,7 +51,7 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">City</label>
+                <label class="form-label">City<span class="text-danger">*</span></label>
                 <input type="text" name="city" class="form-control" placeholder="Enter city"
                     value="{{ @$city ?? '' }}" data-required />
                 <div class="invalid-feedback">Store city is required.</div>
@@ -59,7 +59,7 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Country</label>
+                <label class="form-label">Country<span class="text-danger">*</span></label>
                 <input type="text" name="country" class="form-control" placeholder="Enter country"
                     value="{{ @$country ?? '' }}" data-required />
                 <div class="invalid-feedback">Store country is required.</div>

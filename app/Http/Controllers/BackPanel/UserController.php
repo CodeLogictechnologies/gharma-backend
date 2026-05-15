@@ -95,9 +95,10 @@ class UserController extends Controller
         $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
         $totalrecs = $data["totalrecs"];
 
+        $rows = $data["data"];
         unset($data["totalfilteredrecs"]);
         unset($data["totalrecs"]);
-        foreach ($data as $row) {
+        foreach ($rows  as $row) {
             $array[$i]["sno"] = $i + 1;
             $array[$i]["name"] = $row->name;
             $array[$i]["email"] = $row->email;
@@ -162,7 +163,6 @@ class UserController extends Controller
         $post['orgid'] = session('orgid');
         $post['inactiveuser'] = 'Y';
         $data = User::list($post);
-        dd($data);
         $i = 0;
         $array = [];
         $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
@@ -171,7 +171,7 @@ class UserController extends Controller
         unset($data["totalfilteredrecs"]);
         unset($data["totalrecs"]);
 
-        foreach ($data as $row) {
+foreach ($data["data"] as $row) {
             $array[$i]["sno"] = $i + 1;
             $array[$i]["name"] = $row->name;
             $array[$i]["email"] = $row->email;
@@ -236,6 +236,7 @@ class UserController extends Controller
 
         if (!empty($request->id)) {
             $post = $request->all();
+            $post['orgid'] = session('orgid');
             $result = User::getData($post);
             if (!$result) {
                 throw new Exception("User not found", 1);

@@ -8,7 +8,6 @@
 <form id="inventoryForm" action="{{ route('inventory.save') }}" method="POST" enctype="multipart/form-data">
     @csrf
     <input type="hidden" name="id" value="{{ $id ?? '' }}">
-    {{-- ✅ Pass itemid for edit pre-load trigger in JS --}}
     <input type="hidden" id="preloadItemId" value="{{ $itemid ?? '' }}">
     <input type="hidden" id="preloadVariationId" value="{{ $variationid ?? '' }}">
 
@@ -26,8 +25,8 @@
                 <select name="itemid" id="itemSelect" class="form-select" data-required>
                     <option value="">-- Select Product --</option>
                     @foreach ($items as $item)
-                        {{-- ✅ Fixed: use id and title --}}
-                        <option value="{{ $item->itemid }}" {{ ($itemid ?? '') == $item->itemid ? 'selected' : '' }}>
+                        <option value="{{ $item->itemid }}"
+                            {{ ($itemid ?? '') == $item->itemid ? 'selected' : '' }}>
                             {{ $item->itemname }}
                         </option>
                     @endforeach
@@ -35,16 +34,13 @@
                 <div class="invalid-feedback">Product is required.</div>
             </div>
 
-            {{-- Variation — loads dynamically --}}
+            {{-- Variation --}}
             <div class="col-md-4">
                 <label class="form-label">Variation <span class="text-danger">*</span></label>
                 <select name="variationid" id="variationSelect" class="form-select" data-required>
                     <option value="">-- Select Variation --</option>
-                    {{-- pre-filled on edit — JS will replace with full list --}}
                     @if (isset($variationid) && $variationid)
-                        <option value="{{ $variationid }}" selected>
-                            {{ $variationname ?? 'Loading...' }}
-                        </option>
+                        <option value="{{ $variationid }}" selected>Loading...</option>
                     @endif
                 </select>
                 <div class="invalid-feedback">Variation is required.</div>
@@ -56,7 +52,6 @@
                 <select name="vendorid" id="vendorSelect" class="form-select" data-required>
                     <option value="">-- Select Vendor --</option>
                     @foreach ($vendors as $vendor)
-                        {{-- ✅ Fixed: use id and name --}}
                         <option value="{{ $vendor->vendorid }}"
                             {{ ($vendorid ?? '') == $vendor->vendorid ? 'selected' : '' }}>
                             {{ $vendor->vendorname }}
@@ -72,39 +67,37 @@
 
             <div class="col-md-4">
                 <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                <input type="number" name="quantity_available" class="form-control" placeholder="Enter quantity"
-                    value="{{ $quantity_available ?? '' }}" data-required min="0" />
+                <input type="number" name="quantity_available" class="form-control"
+                    placeholder="Enter quantity" value="{{ $quantity_available ?? '' }}"
+                    data-required min="0" />
                 <div class="invalid-feedback">Quantity is required.</div>
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Reorder Threshold <span class="text-danger">*</span></label>
-                <input type="number" name="reorder_level" class="form-control" placeholder="Enter threshold"
-                    value="{{ $reorder_level ?? '' }}" data-required min="0" />
+                <input type="number" name="reorder_level" class="form-control"
+                    placeholder="Enter threshold" value="{{ $reorder_level ?? '' }}"
+                    data-required min="0" />
                 <div class="invalid-feedback">Threshold is required.</div>
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Unit Cost <span class="text-danger">*</span></label>
-                <input type="number" name="unit_cost" class="form-control" placeholder="Enter unit cost"
-                    value="{{ $unit_cost ?? '' }}" data-required min="0" step="0.01" />
+                <input type="number" name="unit_cost" class="form-control"
+                    placeholder="Enter unit cost" value="{{ $unit_cost ?? '' }}"
+                    data-required min="0" step="0.01" />
                 <div class="invalid-feedback">Unit cost is required.</div>
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Selling Price <span class="text-danger">*</span></label>
-                <input type="number" name="selling_price" class="form-control" placeholder="Enter selling price"
-                    value="{{ $selling_price ?? '' }}" data-required min="0" step="0.01" />
+                <input type="number" name="selling_price" class="form-control"
+                    placeholder="Enter selling price" value="{{ $selling_price ?? '' }}"
+                    data-required min="0" step="0.01" />
                 <div class="invalid-feedback">Selling price is required.</div>
             </div>
 
-            <div class="col-md-4">
-                <label class="form-label">Manufacture Date <span class="text-danger">*</span></label>
-                <input type="date" name="manufacturedatead" class="form-control"
-                    value="{{ $manufacturedatead ?? '' }}" data-required />
-                <div class="invalid-feedback">Manufacture date is required.</div>
-            </div>
-
+            {{-- ✅ Only ONE Manufacture Date --}}
             <div class="col-md-4">
                 <label class="form-label">Manufacture Date <span class="text-danger">*</span></label>
                 <input type="date" name="manufacturedatead" id="manufactureDate" class="form-control"
@@ -114,8 +107,8 @@
 
             <div class="col-md-4">
                 <label class="form-label">Expire Time In Months <span class="text-danger">*</span></label>
-                <input type="number" name="expirymonth" id="expiryMonth" class="form-control" placeholder="e.g. 6"
-                    min="1" value="{{ $expirymonth ?? '' }}" data-required />
+                <input type="number" name="expirymonth" id="expiryMonth" class="form-control"
+                    placeholder="e.g. 6" min="1" value="{{ $expirymonth ?? '' }}" data-required />
                 <div class="invalid-feedback">Expiry months is required.</div>
             </div>
 
@@ -137,39 +130,29 @@
         </button>
     </div>
 </form>
+
 <script>
-    // ── Auto-calculate expiry date ─────────────────────────
     function calculateExpiryDate() {
         var mfgDate = $('#manufactureDate').val();
-        var months = parseInt($('#expiryMonth').val());
-
+        var months  = parseInt($('#expiryMonth').val());
         if (!mfgDate || !months || months < 1) {
             $('#expiryDate').val('');
             return;
         }
-
         var date = new Date(mfgDate);
-
-        // Add months
         date.setMonth(date.getMonth() + months);
-
-        // Format to YYYY-MM-DD
-        var year = date.getFullYear();
-        var month = String(date.getMonth() + 1).padStart(2, '0');
-        var day = String(date.getDate()).padStart(2, '0');
-
-        $('#expiryDate').val(year + '-' + month + '-' + day);
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        $('#expiryDate').val(y + '-' + m + '-' + d);
     }
 
-    // Trigger on either field change
-    $(document).on('change input', '#manufactureDate, #expiryMonth', function() {
+    $(document).on('change input', '#manufactureDate, #expiryMonth', function () {
         calculateExpiryDate();
     });
 
-    // Auto-calculate on edit mode (pre-filled values)
-    $(document).ready(function() {
-        if ($('#manufactureDate').val() && $('#expiryMonth').val()) {
-            calculateExpiryDate();
-        }
-    });
+    // Auto-calculate on edit (pre-filled values)
+    if ($('#manufactureDate').val() && $('#expiryMonth').val()) {
+        calculateExpiryDate();
+    }
 </script>

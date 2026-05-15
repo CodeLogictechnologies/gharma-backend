@@ -1,51 +1,59 @@
-{{-- resources/views/backend/organization/view.blade.php --}}
-
 @if ($type == 'error')
     <div class="modal-header">
-        <h1 class="modal-title fs-5">Error</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title">Error</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
-        {{ $message }}
+        <div class="alert alert-danger">{{ $message }}</div>
     </div>
 @else
     <div class="modal-header">
-        <h5 class="modal-title">View Info</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title">View Inventory</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
     </div>
-
     <div class="modal-body">
-        <div class="card-inner">
-            <div class="nk-block">
-                <table class="table table-bordered">
-                    <tbody>
-                        <tr>
-                            <th scope="row">Category</th>
-                            <td>{{ $inventoryDetails->categorytitle ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Sub Category</th>
-                            <td>{{ $inventoryDetails->subcategorytitle ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Product</th>
-                            <td>{{ $inventoryDetails->title ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Stock</th>
-                            <td>{{ $inventoryDetails->stock ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Quantity Sold</th>
-                            <td>{{ $inventoryDetails->soldqty ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Remaning Stock</th>
-                            <td>{{ $inventoryDetails->remainingqty ?? '-' }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <table class="table table-bordered">
+            <tbody>
+                <tr>
+                    <th>Product</th>
+                    <td>{{ $inventoryDetails->item_title ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Variation</th>
+                    <td>{{ $inventoryDetails->variation_value ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Vendor</th>
+                    <td>{{ $inventoryDetails->vendor_name ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Stock</th>
+                    <td>{{ $inventoryDetails->stock ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Reorder Level</th>
+                    <td>{{ $inventoryDetails->reorder_level ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Unit Cost</th>
+                    <td>{{ $inventoryDetails->unit_cost ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Selling Price</th>
+                    <td>{{ $inventoryDetails->selling_price ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Manufacture Date</th>
+                    <td>{{ $inventoryDetails->manufacturedatead ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <th>Expiry Date</th>
+                    <td>{{ $inventoryDetails->expirydatead ?? '-' }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     </div>
 @endif
