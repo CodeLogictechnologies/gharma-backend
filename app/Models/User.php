@@ -356,6 +356,7 @@ class User extends Authenticatable implements JWTSubject
     {
         $result = DB::table('users as u')
             ->join('profiles as p', 'p.user_id', '=', 'u.id')
+            ->join('userorganizations as uo', 'uo.userid', '=', 'u.id') 
             ->select(
                 'u.id as id',
                 'u.name as username',
@@ -370,7 +371,7 @@ class User extends Authenticatable implements JWTSubject
                 'p.image',
                 'p.status'
             )
-            ->where('u.orgid', $post['orgid'])
+            ->where('uo.orgid', $post['orgid']) 
             ->where('u.id', $post['id'])
             ->first();
 

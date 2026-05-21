@@ -44,7 +44,7 @@ class UserController extends Controller
         ];
 
         if (empty($request->id)) {
-            $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
+            $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
         }
 
         $message = [
@@ -273,30 +273,45 @@ class UserController extends Controller
     // Delete
     public function delete(Request $request)
     {
-        // try {
-        $type = 'success';
-        $message = "Record deleted successfully";
-        $directory = storage_path('app/public/profile');
-        $post = $request->all();
-        $class = new User();
+        try {
+            $type = 'success';
+            $message = "Record deleted successfully";
+            $post = $request->all();
 
-        DB::beginTransaction();
-        if (!Common::deleteSingleData($post, $class, $directory)) {
-            throw new Exception("Record does not deleted", 1);
+            if (empty($post['id'])) {
+                throw new Exception("No ID provided", 1);
+            }
+
+            DB::beginTransaction();
+
+            // Delete profile image if exists
+            $profile = DB::table('profiles')->where('user_id', $post['id'])->first();
+            if ($profile && !empty($profile->image)) {
+                $imagePath = public_path('uploads/profiles/' . $profile->image);
+                if (file_exists($imagePath)) {
+                    unlink($imagePath);
+                }
+            }
+
+            // Delete related records first (foreign key order)
+            DB::table('profiles')->where('user_id', $post['id'])->delete();
+            DB::table('userorganizations')->where('userid', $post['id'])->delete();
+            DB::table('model_has_roles')->where('model_id', $post['id'])->delete();
+            DB::table('users')->where('id', $post['id'])->delete();
+
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
-        DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
-
     //view
     public function view(Request $request)
     {
