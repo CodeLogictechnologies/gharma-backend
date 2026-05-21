@@ -94,10 +94,11 @@ class InventoryController extends Controller
         // }
     }
 
-    public  function list(Request $request)
-    {
-        // try {
+    public function list(Request $request)
+{
+    // try {
         $post = $request->all();
+        $post['orgid'] = session('orgid'); // ← ADD THIS (missing!)
         $data = Inventory::list($post);
         $i = 0;
         $array = [];
@@ -108,34 +109,37 @@ class InventoryController extends Controller
         unset($data["totalrecs"]);
         foreach ($data as $row) {
             $array[$i]["sno"] = $i + 1;
-            // $array[$i]["categorytitle"]    = $row->categorytitle;
-            // $array[$i]["subcategorytitle"]    = $row->subcategorytitle;
-            $array[$i]["title"]    = $row->title;
-            $array[$i]["variation_value"]    = $row->variation_value;
-            $array[$i]["stock"]    = $row->stock;
-            $array[$i]["remainingqty"]    = $row->remainingqty ?? 0;
-            $array[$i]["soldqty"]    = $row->soldqty ?? 0;
-            $action = '';
-            $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewInventory" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
-            $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editInventory" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
+            $array[$i]["title"]          = $row->title;
+            $array[$i]["variation_value"] = $row->variation_value;
+            $array[$i]["stock"]          = $row->stock;
+            $array[$i]["remainingqty"]   = $row->remainingqty ?? 0;
+            $array[$i]["soldqty"]        = $row->soldqty ?? 0;
 
-            $array[$i]["action"]  = $action;
+            $action = '';
+            $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewInventory" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+            $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editInventory" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+
+            $array[$i]["action"] = $action;
             $i++;
         }
 
         if (!$filtereddata) $filtereddata = 0;
         if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
-        return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
-    }
+
+    // } catch (QueryException $e) {
+    //     \Log::error('Inventory list QueryException: ' . $e->getMessage());
+    //     $array = [];
+    //     $totalrecs = 0;
+    //     $filtereddata = 0;
+    // } catch (Exception $e) {
+    //     \Log::error('Inventory list Exception: ' . $e->getMessage());
+    //     $array = [];
+    //     $totalrecs = 0;
+    //     $filtereddata = 0;
+    // }
+
+    return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
+}
 
     public function view(Request $request)
     {
