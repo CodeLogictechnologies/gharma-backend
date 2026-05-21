@@ -30,48 +30,49 @@ class UserController extends Controller
     public function save(Request $request)
     {
         // try {
-            $post = $request->all();
-            $rules = [
-                'first_name' => 'required|min:5|max:255',
-                'phone' => 'required|min:5|max:5000',
-                'address' => 'required',
-                'email' => [
-                    'required',
-                    'email',
-                    Rule::unique('users')->ignore($request->id)
-                ],
-                'username' => 'required',
-            ];
+        $post = $request->all();
+        $rules = [
+            'first_name' => 'required|min:3|max:255',
+            'phone' => 'required|min:5|max:5000',
+            'address' => 'required',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users')->ignore($request->id)
+            ],
+            'username' => 'required',
+        ];
 
-            if (empty($request->id)) {
-                $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
-            }
+        if (empty($request->id)) {
+            $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
+        }
 
-            $message = [
-                'first_name.required' => 'Please enter first name',
-                'phone.required' => 'Phone number is required',
-                'address.required' => 'Address is required',
-                'email.required' => 'Email is required',
-                'username.required' => 'User Name is required',
-            ];
+        $message = [
+            'first_name.required' => 'Please enter first name',
+            'first_name.min'      => 'First name must be at least 3 characters',
+            'phone.required' => 'Phone number is required',
+            'address.required' => 'Address is required',
+            'email.required' => 'Email is required',
+            'username.required' => 'User Name is required',
+        ];
 
-            $validate = Validator::make($request->all(), $rules, $message);
+        $validate = Validator::make($request->all(), $rules, $message);
 
-            if ($validate->fails()) {
-                throw new Exception($validate->errors()->first(), 1);
-            }
+        if ($validate->fails()) {
+            throw new Exception($validate->errors()->first(), 1);
+        }
 
-            $post = $request->all();
-            $post['type'] = 'user';
-            $type = 'success';
-            $message = 'User saved successfully';
-            $post['orgid'] = session('orgid');
-            DB::beginTransaction();
+        $post = $request->all();
+        $post['type'] = 'user';
+        $type = 'success';
+        $message = 'User saved successfully';
+        $post['orgid'] = session('orgid');
+        DB::beginTransaction();
 
-            if (!User::saveData($post)) {
-                throw new Exception('Could not save record', 1);
-            }
-            DB::commit();
+        if (!User::saveData($post)) {
+            throw new Exception('Could not save record', 1);
+        }
+        DB::commit();
         // } catch (QueryException $e) {
         //     DB::rollBack();
         //     $type = 'error';
@@ -272,30 +273,45 @@ class UserController extends Controller
     // Delete
     public function delete(Request $request)
     {
-        // try {
-        $type = 'success';
-        $message = "Record deleted successfully";
-        $directory = storage_path('app/public/profile');
-        $post = $request->all();
-        $class = new User();
+        try {
+            $type = 'success';
+            $message = "Record deleted successfully";
+            $post = $request->all();
 
-        DB::beginTransaction();
-        if (!Common::deleteSingleData($post, $class, $directory)) {
-            throw new Exception("Record does not deleted", 1);
+            if (empty($post['id'])) {
+                throw new Exception("No ID provided", 1);
+            }
+
+            DB::beginTransaction();
+
+            // Delete profile image if exists
+            $profile = DB::table('profiles')->where('user_id', $post['id'])->first();
+            if ($profile && !empty($profile->image)) {
+                $imagePath = public_path('uploads/profiles/' . $profile->image);
+                if (file_exists($imagePath)) {
+                    unlink($imagePath);
+                }
+            }
+
+            // Delete related records first (foreign key order)
+            DB::table('profiles')->where('user_id', $post['id'])->delete();
+            DB::table('userorganizations')->where('userid', $post['id'])->delete();
+            DB::table('model_has_roles')->where('model_id', $post['id'])->delete();
+            DB::table('users')->where('id', $post['id'])->delete();
+
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
-        DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
-
     //view
     public function view(Request $request)
     {

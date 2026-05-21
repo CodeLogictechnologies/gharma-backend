@@ -168,111 +168,114 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     public static function saveData($post)
-    {
-        try {
-            DB::beginTransaction();
+{
+    try {
+        DB::beginTransaction();
 
-            $plainPassword = Str::random(6);
-            $imageName     = null;
-            // Handle image upload
-            if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
-                $file      = $post['image'];
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/profiles'), $imageName);
-            }
+        $plainPassword = Str::random(6);
+        $imageName     = null;
 
-            $userData = [
-                'name'       => $post['username'],
-                'email'      => $post['email'],
-                'phone'      => $post['phone'],
-                'password'   => bcrypt($plainPassword),
-                'updated_at' => Carbon::now(),
-            ];
-
-
-            // ---------- CREATE USER ----------
-            $newUuid = (string) Str::uuid();
-
-            $userData['id']         = $newUuid;
-            $userData['created_at'] = Carbon::now();
-            if (!empty($post['type']) && $post['type'] == 'user') {
-                $userData['user_status'] = 'Approve';
-            }
-            $inserted = DB::table('users')->insert($userData);
-
-            if (!$inserted) {
-                throw new Exception("Couldn't create user");
-            }
-            $post['userorgid'] = (string) Str::uuid();
-
-            if (!empty($post['type'] == 'user')) {
-                $firstOrg = $post['orgid'];
-            } else {
-                $firstOrg = DB::table('userorganizations')->value('orgid');
-
-                if (!$firstOrg) {
-                    throw new Exception("No organization found in userorganizations table.");
-                }
-            }
-
-            $userOrgArray = [
-                'id'         => $post['userorgid'],
-                'userid'     => $newUuid,
-                'orgid'      => $firstOrg,
-                'created_at' => Carbon::now(),
-            ];
-
-
-            $user = DB::table('userorganizations')->insert($userOrgArray);
-
-            if (!empty($post['type'])) {
-                $user = \App\Models\User::find($newUuid);
-                if ($post['type'] == 'retailer') {
-                    $post['role'] = 1;
-                } else {
-                    $post['role'] = 2;
-                }
-            }
-            // Assign role
-            $user->assignRole($post['role']); // role name or role ID (if configured)
-
-            $newProfileId = (string) Str::uuid(); // ✅ Store UUID separately to reuse
-
-            // Insert profile
-            $profileData = [
-                'id'     => $newProfileId, // ✅ use stored UUID, not $userData['id'] after insert
-                'user_id'     => $newUuid, // ✅ use stored UUID, not $userData['id'] after insert
-                'username'    => $post['username'],
-                'first_name'  => $post['first_name'],
-                'middle_name' => $post['middle_name'] ?? null,
-                'last_name'   => $post['last_name'],
-                'phone'       => $post['phone'],
-                'address'     => $post['address'],
-                'gender'      => $post['gender'],
-                'type'      => $post['type'],
-                'company_name' => $post['company_name'] ?? null,
-                'tax_number' => $post['tax_number'] ?? null,
-                'registration_number' => $post['registration_number'] ?? null,
-                'created_at'  => Carbon::now(),
-                'updated_at'  => Carbon::now(),
-                'orgid'      => 'fef1a6d6-72c6-4591-8f25-e1f477ad2c58',
-
-            ];
-
-            if ($imageName) {
-                $profileData['image'] = $imageName;
-            }
-
-            DB::table('profiles')->insert($profileData);
-
-
-            DB::commit();
-            return true;
-        } catch (Exception $e) {
-            DB::rollBack();
-            throw $e;
+        // Handle image upload
+        if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
+            $file      = $post['image'];
+            $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('uploads/profiles'), $imageName);
         }
+
+        $userData = [
+            'name'       => $post['username'],
+            'email'      => $post['email'],
+            'phone'      => $post['phone'],
+            'password'   => bcrypt($post["password"] ?? $plainPassword),
+            'updated_at' => Carbon::now(),
+        ];
+
+        // ---------- CREATE USER ----------
+        $newUuid = (string) Str::uuid();
+
+        $userData['id']         = $newUuid;
+        $userData['created_at'] = Carbon::now();
+
+        if (!empty($post['type']) && $post['type'] == 'user') {
+            $userData['user_status'] = 'Approve';
+        }
+
+        $inserted = DB::table('users')->insert($userData);
+
+        if (!$inserted) {
+            throw new Exception("Couldn't create user");
+        }
+
+        $post['userorgid'] = (string) Str::uuid();
+
+        if (!empty($post['type'] == 'user')) {
+            $firstOrg = $post['orgid'];
+        } else {
+            $firstOrg = DB::table('userorganizations')->value('orgid');
+
+            if (!$firstOrg) {
+                throw new Exception("No organization found in userorganizations table.");
+            }
+        }
+
+        $userOrgArray = [
+            'id'         => $post['userorgid'],
+            'userid'     => $newUuid,
+            'orgid'      => $firstOrg,
+            'created_at' => Carbon::now(),
+        ];
+
+        DB::table('userorganizations')->insert($userOrgArray);
+
+        // ---------- ASSIGN ROLE ----------
+        $user = \App\Models\User::find($newUuid);
+
+        if (!empty($post['type'])) {
+            if ($post['type'] == 'retailer') {
+                $post['role'] = 1;
+            } else {
+                $post['role'] = 2;
+            }
+        }
+
+        $user->assignRole($post['role']);
+
+        // ---------- INSERT PROFILE ----------
+        $newProfileId = (string) Str::uuid();
+
+        $profileData = [
+            'id'                  => $newProfileId,
+            'user_id'             => $newUuid,
+            'username'            => $post['username'],
+            'first_name'          => $post['first_name'],
+            'middle_name'         => $post['middle_name'] ?? null,
+            'last_name'           => $post['last_name'],
+            'phone'               => $post['phone'],
+            'address'             => $post['address'],
+            'gender'              => $post['gender'],
+            'type'                => $post['type'],
+            'company_name'        => $post['company_name'] ?? null,
+            'tax_number'          => $post['tax_number'] ?? null,
+            'registration_number' => $post['registration_number'] ?? null,
+            'orgid'               => $firstOrg,
+            'created_at'          => Carbon::now(),
+            'updated_at'          => Carbon::now(),
+        ];
+
+        if ($imageName) {
+            $profileData['image'] = $imageName;
+        }
+
+        DB::table('profiles')->insert($profileData);
+
+        DB::commit();
+        return true;
+
+    } catch (Exception $e) {
+        DB::rollBack();
+        throw $e;
     }
+}
 
     //function to get user list
     public static function list($post)
@@ -353,6 +356,7 @@ class User extends Authenticatable implements JWTSubject
     {
         $result = DB::table('users as u')
             ->join('profiles as p', 'p.user_id', '=', 'u.id')
+            ->join('userorganizations as uo', 'uo.userid', '=', 'u.id') 
             ->select(
                 'u.id as id',
                 'u.name as username',
@@ -367,7 +371,7 @@ class User extends Authenticatable implements JWTSubject
                 'p.image',
                 'p.status'
             )
-            ->where('u.orgid', $post['orgid'])
+            ->where('uo.orgid', $post['orgid']) 
             ->where('u.id', $post['id'])
             ->first();
 

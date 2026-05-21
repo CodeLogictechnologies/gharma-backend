@@ -55,43 +55,45 @@ class ApiAuthController extends Controller
     // POST /api/register
     // -----------------------------------------------------------------------
     public function retailerRegister(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'username'    => 'required|string|max:255|unique:users',
-            'email'       => 'required|string|email|max:255|unique:users',
-            'password'    => 'required|string|min:6|confirmed',
-            'first_name'  => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name'   => 'required|string|max:255',
-            'gender'      => 'required',
-            'address'     => 'required',
-            'phone'       => 'required',
-            'image'       => 'required',
-        ]);
+{
+    $post = $request->all();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'type' => 'error',
-                'message' => $validator->errors()->first()
-            ], 422);
-        }
+    $validator = Validator::make($post, [
+        'username'    => 'required|string|max:255|unique:users,name',
+        'email'       => 'required|string|email|max:255|unique:users',
+        'password'    => 'required|string|min:6|confirmed',
+        'first_name'  => 'required|string|max:255',
+        'middle_name' => 'nullable|string|max:255',
+        'last_name'   => 'required|string|max:255',
+        'gender'      => 'required',
+        'address'     => 'required',
+        'phone'       => 'required',
+        'image'       => 'required',
+    ]);
 
-        $post = $request->all();
-        $post['type'] = 'retailer';
-        User::saveData($post);
-
-        $user  = User::where('email', $post['email'])->first();
-        $token = JWTAuth::fromUser($user);
-
+    if ($validator->fails()) {
         return response()->json([
-            'type'    => 'success',
-            'message'    => 'Retailer registered successfully.',
-            'token'      => $token,
-            'token_type' => 'bearer',
-            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
-            // 'user'       => $user,
-        ], 201);
+            'type'    => 'error',
+            'message' => $validator->errors()->first(),
+        ], 422);
     }
+
+    $post['type'] = 'retailer';
+
+    User::saveData($post);
+
+    $user  = User::where('email', $post['email'])->first();
+    $token = JWTAuth::fromUser($user);
+
+    return response()->json([
+        'type'       => 'success',
+        'message'    => 'Retailer registered successfully.',
+        'token'      => $token,
+        'token_type' => 'bearer',
+        // 'expires_in' => auth('api')->factory()->getTTL() * 60,
+        // 'user'       => $user,
+    ], 201);
+}
 
     public function wholesalerRegister(Request $request)
     {
@@ -147,7 +149,7 @@ class ApiAuthController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
+                'type' => false,
                 'errors'  => $validator->errors(),
             ], 422);
         }

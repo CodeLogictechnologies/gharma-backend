@@ -23,13 +23,15 @@ class Store extends Model
         try {
 
             $dataArray = [
-                'name'    => $post['name'],
-                'phone'   => $post['phone'],
-                'address' => $post['address'],
-                'email'   => $post['email'],
-                'city'   => $post['city'],
+                'name'      => $post['name'],
+                'phone'     => $post['phone'],
+                'address'   => $post['address'],
+                'email'     => $post['email'],
+                'city'      => $post['city'],
                 'country'   => $post['country'],
-                'orgid'   => $post['orgid'],
+                'orgid'     => $post['orgid'],
+                'latitude'  => !empty($post['latitude'])  ? (float) preg_replace('/[^0-9.\-]/', '', $post['latitude'])  : null,
+                'longitude' => !empty($post['longitude']) ? (float) preg_replace('/[^0-9.\-]/', '', $post['longitude']) : null,
             ];
 
             if (!empty($post['id'])) {
@@ -97,7 +99,7 @@ class Store extends Model
                 $offset = $get["start"];
             }
 
-            $query = Store::selectRaw("(SELECT count(*) FROM stores where {$cond}) AS totalrecs,name,email, id as id, phone, address,country, city")
+            $query = Store::selectRaw("(SELECT count(*) FROM stores where {$cond}) AS totalrecs,name,email, id as id, phone, address,country, city, latitude, longitude")
                 ->whereRaw($cond);
 
             if ($limit > -1) {
@@ -124,8 +126,20 @@ class Store extends Model
     {
         $result = DB::table('stores as o')
             ->where('o.id', $post['id'])
+            ->select(
+                'o.id',
+                'o.name',
+                'o.phone',
+                'o.email',
+                'o.address',
+                'o.city',
+                'o.country',
+                'o.latitude',
+                'o.longitude'
+            )
             ->first();
-        return  $result;
+
+        return $result;
     }
 
 

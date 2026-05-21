@@ -8,6 +8,7 @@ use App\Http\Controllers\API\CategoryListController;
 use App\Http\Controllers\API\ChatController as APIChatController;
 use App\Http\Controllers\API\FavouriteController;
 use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\API\StoreController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -52,10 +53,14 @@ Route::get('/items/latest', [ItemController::class, 'latest']);
 Route::get('/items/search', [ItemController::class, 'search']);
 Route::get('/item/detail/{variationid}', [ItemController::class, 'getDetails']);
 
+// Store public routes{searchid}
+Route::get('stores',       [App\Http\Controllers\API\StoreController::class, 'list']);
+// category list
+    Route::get('/categories/list', [CategoryListController::class, 'getCategoryList']);
 
 Route::middleware('auth:api')->group(function () {
     Route::post('/items/search/save', [SearchHistoryController::class, 'searchSave']);
-    Route::delete('/items/search/delete/{searchid}', [SearchHistoryController::class, 'searchDelete']);
+    Route::delete('/items/search/delete/', [SearchHistoryController::class, 'searchDelete']);
 
     Route::put('/change/password',      [ApiAuthController::class, 'changePassword']);
     Route::post('logout',          [ApiAuthController::class, 'logout']);
@@ -71,12 +76,13 @@ Route::middleware('auth:api')->group(function () {
     Route::put('user/address/update', [UserAddressController::class, 'updateAddress']);
     Route::get('user/address/fetch', [UserAddressController::class, 'fetchAddress']);
     Route::put('user/address/update-active', [UserAddressController::class, 'updateAddressActive']);
+    Route::delete('user/address/delete/{id}', [UserAddressController::class, 'deleteAddress']);
 
     Route::get('/user/location/{customerid}', [UserAddressController::class, 'getLocation']);
     Route::post('/save/tracking/location', [LocationTrackerController::class, 'saveLocation']);
 
     Route::post('/user/order/status', [OrderController::class, 'orderStatus']);
-
+    Route::get('/user/order/history', [ItemController::class, 'getUserOrderHistory']);
 
     // 1. Personalised items based on user's last N orders
     Route::get('/items/recommendation', [ItemController::class, 'recommended']);
@@ -91,7 +97,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/user/favourite/list', [FavouriteController::class, 'getFavouriteList']);
     Route::delete('/user/favourite/delete/{variationid}', [FavouriteController::class, 'deleteFavourite']);
 
-    Route::get('/categories/list', [CategoryListController::class, 'getCategoryList']);
 
 
     Route::post('/addtocart',    [CartController::class, 'saveAddToCart']);
