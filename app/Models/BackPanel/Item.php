@@ -12,7 +12,6 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-
 use Illuminate\Support\Facades\Auth;
 
 class Item extends Model
@@ -30,8 +29,6 @@ class Item extends Model
         'updatedby',
     ];
 
-
-
     protected $casts = [
         'images'           => 'array',
         'extra_attributes' => 'array',
@@ -39,7 +36,6 @@ class Item extends Model
 
     public $incrementing = false;
     protected $keyType = 'string';
-
 
     public function category()
     {
@@ -56,7 +52,6 @@ class Item extends Model
         return $this->belongsTo(Organization::class, 'orgid');
     }
 
-
     public function getImageUrlsAttribute(): array
     {
         return collect($this->images ?? [])
@@ -64,19 +59,16 @@ class Item extends Model
             ->toArray();
     }
 
-
     public function getPrimaryImageAttribute(): ?string
     {
         $first = collect($this->images ?? [])->first();
         return $first ? Storage::disk('public')->url($first) : null;
     }
 
-
     public function scopeActive($query)
     {
         return $query->where('status', 'Y');
     }
-
 
     public static function list(array $post)
     {
@@ -94,42 +86,36 @@ class Item extends Model
             ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'items.id')
             ->leftJoin('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
             ->selectRaw("
-        items.id,
-        items.title,
-        items.description,
-        items.status,
-        items.type,
-        items.created_at
-    ")
+                items.id,
+                items.title,
+                items.description,
+                items.status,
+                items.type,
+                items.created_at
+            ")
             ->where('items.status', 'Y');
 
         if ($search1 !== '') {
             $query->whereRaw("LOWER(items.title) LIKE ?", ["%{$search1}%"]);
         }
-
         if ($search2 !== '') {
             $query->whereRaw("LOWER(c.title) LIKE ?", ["%{$search2}%"]);
         }
-
         if ($search3 !== '') {
             $query->whereRaw("LOWER(s.title) LIKE ?", ["%{$search3}%"]);
         }
 
-        $totalrecs = self::from('items')->where('status', 'Y')->count();
-
+        $totalrecs     = self::from('items')->where('status', 'Y')->count();
         $filteredCount = (clone $query)->count();
 
-        $sortColIndex = (int) ($post['iSortCol_0'] ?? 1);
-        $sortDir      = ($post['sSortDir_0'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
-
+        $sortDir = ($post['sSortDir_0'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy('items.id', $sortDir);
 
         if ($limit > -1) {
             $query->offset($offset)->limit($limit);
         }
 
-        $result = $query->get();
-
+        $result  = $query->get();
         $itemIds = $result->pluck('id');
 
         $categories = DB::table('category_items as ci')
@@ -147,19 +133,16 @@ class Item extends Model
             ->groupBy('itemid');
 
         $result = $result->map(function ($item) use ($categories, $subcategories) {
-
             $item->categories = isset($categories[$item->id])
                 ? $categories[$item->id]->pluck('title')->values()
                 : [];
-
             $item->subcategories = isset($subcategories[$item->id])
                 ? $subcategories[$item->id]->pluck('title')->values()
                 : [];
-
             return $item;
         });
 
-        $result['totalrecs'] = $totalrecs;
+        $result['totalrecs']         = $totalrecs;
         $result['totalfilteredrecs'] = $filteredCount;
 
         return $result;
@@ -169,7 +152,7 @@ class Item extends Model
     {
         try {
             $updateArray = [
-                'status' => 'N',
+                'status'     => 'N',
                 'updated_at' => Carbon::now(),
             ];
             if (!DB::table('wholesaler_prices')->where(['id' => $post['id']])->update($updateArray)) {
@@ -192,38 +175,25 @@ class Item extends Model
             throw new Exception('Item ID is required.');
         }
 
-        // ── Core item + category + subcategory names ─────────────────────
-        // $item = DB::table('items as i')
-        //     ->leftJoin('categories as c',    'c.id', '=', 'i.category_id')
-        //     ->leftJoin('sub_categories as s', 's.id', '=', 'i.subcategory_id')
-        //     ->where('i.id', $id)
-        //     ->select(
-        //         'i.*',
-        //         'c.title as category_title',
-        //         's.title as subcategory_title'
-        //     )
-        //     ->first();
-
         $item = DB::table('items as i')
-    ->leftJoin('category_items as ci', 'ci.itemid', '=', 'i.id')
-    ->leftJoin('categories as c', 'c.id', '=', 'ci.categoryid')
-    ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
-    ->leftJoin('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
-    ->where('i.id', $id)
-    ->select('i.*', 'c.title as category_title', 's.title as subcategory_title')
-    ->first();
+            ->leftJoin('category_items as ci', 'ci.itemid', '=', 'i.id')
+            ->leftJoin('categories as c', 'c.id', '=', 'ci.categoryid')
+            ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
+            ->leftJoin('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
+            ->where('i.id', $id)
+            ->select('i.*', 'c.title as category_title', 's.title as subcategory_title')
+            ->first();
 
         if (!$item) {
             throw new Exception('Item not found.');
         }
 
-        // ── Images ───────────────────────────────────────────────────────
         $item->images = DB::table('item_images')
             ->where('item_id', $id)
+            ->orderBy('order_number')
             ->orderBy('id')
             ->get();
 
-        // ── Variations ───────────────────────────────────────────────────
         $item->variations = DB::table('itemvariations')
             ->where('item_id', $id)
             ->orderBy('id')
@@ -231,9 +201,6 @@ class Item extends Model
 
         return $item;
     }
-
-
-
 
     public static function saveData($post)
     {
@@ -319,18 +286,16 @@ class Item extends Model
                         $status = ($variation['status'] === 'active') ? 'Y' : 'N';
 
                         if (!empty($variation['variationid'])) {
-                            // Existing variation — bulk update
                             $id    = $variation['variationid'];
                             $ids[] = $id;
 
-                            $attributeCases[] = "WHEN '$id' THEN '" . addslashes($variation['name'])      . "'";
-                            $valueCases[]     = "WHEN '$id' THEN '" . addslashes($variation['value'])     . "'";
-                            $priceCases[]     = "WHEN '$id' THEN "  . floatval($variation['price']  ?? 0);
-                            $stockCases[]     = "WHEN '$id' THEN "  . intval($variation['stock']    ?? 0);
+                            $attributeCases[] = "WHEN '$id' THEN '" . addslashes($variation['name'])       . "'";
+                            $valueCases[]     = "WHEN '$id' THEN '" . addslashes($variation['value'])      . "'";
+                            $priceCases[]     = "WHEN '$id' THEN "  . floatval($variation['price']   ?? 0);
+                            $stockCases[]     = "WHEN '$id' THEN "  . intval($variation['stock']     ?? 0);
                             $thresholdCases[] = "WHEN '$id' THEN "  . intval($variation['threshold'] ?? 0);
                             $statusCases[]    = "WHEN '$id' THEN '$status'";
                         } else {
-                            // New variation added during edit
                             DB::table('itemvariations')->insert([
                                 'id'         => (string) Str::uuid(),
                                 'item_id'    => $itemId,
@@ -349,10 +314,8 @@ class Item extends Model
                         }
                     }
 
-                    // Bulk update existing variations
                     if (!empty($ids)) {
                         $idsList = "'" . implode("','", $ids) . "'";
-
                         DB::statement("
                             UPDATE itemvariations SET
                                 attribute  = CASE id " . implode(' ', $attributeCases) . " END,
@@ -364,33 +327,48 @@ class Item extends Model
                                 updated_at = NOW(),
                                 updatedby  = ?
                             WHERE id IN ($idsList)
-                        ", [$post['userid']]); // ← passed as binding, no quotes needed
+                        ", [$post['userid']]);
+                    }
+                }
+
+                // ── Save image order ─────────────────────────────────────  ← NEW
+                if (!empty($post['image_order'])) {
+                    foreach ($post['image_order'] as $order => $imageId) {
+                        DB::table('item_images')
+                            ->where('id', $imageId)
+                            ->where('item_id', $itemId)
+                            ->update(['order_number' => $order + 1]);
                     }
                 }
 
                 // ── New images added during edit ─────────────────────────
                 if (!empty($post['images'])) {
+                    $maxOrder  = DB::table('item_images')
+                        ->where('item_id', $itemId)
+                        ->max('order_number') ?? 0;
+
                     $imageRows = [];
-                    foreach ($post['images'] as $file) {
+                    foreach ($post['images'] as $index => $file) {
                         $imageName   = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
                         $file->move(public_path('uploads/items'), $imageName);
                         $imageRows[] = [
-                            'id'         => (string) Str::uuid(),
-                            'item_id'    => $itemId,
-                            'image'      => $imageName,
-                            'orgid'      => $post['orgid'] ?? null,
-                            'created_at' => Carbon::now(),
-                            'updated_at' => Carbon::now(),
-                            'postedby'   => $post['userid'],
-                            'updatedby'  => $post['userid'],
+                            'id'           => (string) Str::uuid(),
+                            'item_id'      => $itemId,
+                            'image'        => $imageName,
+                            'order_number' => $maxOrder + $index + 1,
+                            'orgid'        => $post['orgid'] ?? null,
+                            'created_at'   => Carbon::now(),
+                            'updated_at'   => Carbon::now(),
+                            'postedby'     => $post['userid'],
+                            'updatedby'    => $post['userid'],
                         ];
                     }
                     DB::table('item_images')->insert($imageRows);
                 }
 
-                // ════════════════════════════════════════
-                // INSERT
-                // ════════════════════════════════════════
+            // ════════════════════════════════════════
+            // INSERT
+            // ════════════════════════════════════════
             } else {
 
                 $itemId = (string) Str::uuid();
@@ -400,6 +378,7 @@ class Item extends Model
                 $dataArray['created_at'] = Carbon::now();
                 $dataArray['updated_at'] = Carbon::now();
                 $dataArray['updatedby']  = $post['userid'];
+
                 $inserted = DB::table('items')->insert($dataArray);
                 if (!$inserted) {
                     throw new Exception("Couldn't save item.");
@@ -444,18 +423,19 @@ class Item extends Model
                 // ── Insert Images ────────────────────────────────────────
                 if (!empty($post['images'])) {
                     $imageRows = [];
-                    foreach ($post['images'] as $file) {
+                    foreach ($post['images'] as $index => $file) {
                         $imageName   = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
                         $file->move(public_path('uploads/items'), $imageName);
                         $imageRows[] = [
-                            'id'         => (string) Str::uuid(),
-                            'item_id'    => $itemId,
-                            'image'      => $imageName,
-                            'orgid'      => $post['orgid'] ?? null,
-                            'created_at' => Carbon::now(),
-                            'updated_at' => Carbon::now(),
-                            'postedby'   => $post['userid'],
-                            'updatedby'  => $post['userid'],
+                            'id'           => (string) Str::uuid(),
+                            'item_id'      => $itemId,
+                            'image'        => $imageName,
+                            'order_number' => $index + 1,
+                            'orgid'        => $post['orgid'] ?? null,
+                            'created_at'   => Carbon::now(),
+                            'updated_at'   => Carbon::now(),
+                            'postedby'     => $post['userid'],
+                            'updatedby'    => $post['userid'],
                         ];
                     }
                     $imageInserted = DB::table('item_images')->insert($imageRows);
@@ -500,6 +480,7 @@ class Item extends Model
 
             DB::commit();
             return true;
+
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -509,7 +490,10 @@ class Item extends Model
     public static function getItem($post)
     {
         try {
-            $data = DB::table('items')->select('id as itemid', 'title as itemname')->where('orgid', $post['orgid'])->get();
+            $data = DB::table('items')
+                ->select('id as itemid', 'title as itemname')
+                ->where('orgid', $post['orgid'])
+                ->get();
             return $data;
         } catch (Exception $e) {
             throw $e;

@@ -1,5 +1,3 @@
-{{-- resources/views/backend/organization/view.blade.php --}}
-
 @if ($type == 'error')
     <div class="modal-header">
         <h1 class="modal-title fs-5">Error</h1>
@@ -20,20 +18,8 @@
                 <table class="table table-bordered">
                     <tbody>
                         <tr>
-                            <th scope="row">Organization Name</th>
+                            <th scope="row">Store Name</th>
                             <td>{{ $orgDetails->name ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">User Name</th>
-                            <td>{{ $orgDetails->username ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Email</th>
-                            <td>{{ $orgDetails->email ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Phone Number</th>
-                            <td>{{ $orgDetails-> ?? '-' }}</td>
                         </tr>
                         <tr>
                             <th scope="row">Email</th>
@@ -48,30 +34,20 @@
                             <td>{{ $orgDetails->address ?? '-' }}</td>
                         </tr>
                         <tr>
-                            <th scope="row">Gender</th>
-                            <td>{{ ucfirst($orgDetails->gender ?? '-') }}</td>
+                            <th scope="row">City</th>
+                            <td>{{ $orgDetails->city ?? '-' }}</td>
                         </tr>
                         <tr>
-                            <th scope="row">Roles</th>
-                            <td>
-                                @if (!empty($orgDetails->role_names))
-                                    {{ implode(', ', $orgDetails->role_names) }}
-                                @else
-                                    -
-                                @endif
-                            </td>
+                            <th scope="row">Country</th>
+                            <td>{{ $orgDetails->country ?? '-' }}</td>
                         </tr>
                         <tr>
-                            <th scope="row">Profile Image</th>
-                            <td>
-                                @php
-                                    $photo = asset('no-image.jpg');
-                                    if (!empty($orgDetails->image)) {
-                                        $photo = asset('storage/profiles/' . $orgDetails->image);
-                                    }
-                                @endphp
-                                <img src="{{ $photo }}" height="100px" alt="Profile Image">
-                            </td>
+                            <th scope="row">Latitude</th>
+                            <td>{{ $orgDetails->latitude ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Longitude</th>
+                            <td>{{ $orgDetails->longitude ?? '-' }}</td>
                         </tr>
                     </tbody>
                 </table>

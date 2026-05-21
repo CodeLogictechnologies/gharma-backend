@@ -1,5 +1,5 @@
 @extends('layouts.main')
-@section('title', 'Item')
+@section('title', 'WholeSaler Price')
 @section('content')
 
     <div class="container-xxl flex-grow-1 container-p-y">
@@ -298,7 +298,7 @@
                 e.preventDefault();
                 var id = $(this).data('id');
                 openItemModel(
-                    '{{ route('wholesaler.save') }}', {
+                    '{{ route('wholesaler.view') }}', {
                         id: id,
                         _token: '{{ csrf_token() }}'
                     },

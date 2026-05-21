@@ -30,10 +30,10 @@
 
         <!-- Organization -->
         {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
-            <a href="{{ route('organization') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-buildings"></i>
-                <div>Organization</div>
-            </a>
+        <a href="{{ route('organization') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-buildings"></i>
+            <div>Organization</div>
+        </a>
         </li> --}}
 
         <!-- Permission -->
@@ -53,6 +53,13 @@
             </a>
         </li>
 
+        <!-- Home Tab -->
+        <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
+            <a href="{{ route('hometab') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-circle"></i>
+                <div>Home Tab</div>
+            </a>
+        </li>
         <!-- Store -->
         <li class="menu-item {{ request()->routeIs('store') ? 'active' : '' }}">
             <a href="{{ route('store') }}" class="menu-link">

@@ -76,38 +76,49 @@ class Item extends Model
         })->values();
         return $result;
     }
+public static function getUserOrderHistory($post)
+{
+    $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
+    $page    = isset($post['page'])     ? (int)$post['page']     : 1;
+    $offset  = ($page - 1) * $perPage;
 
-    public static function getUserOrderHistory($post)
-    {
-        try {
+    $query = DB::table('order_details as od')
+        ->join('itemvariations as iv', 'iv.id', '=', 'od.variation_id')
+        ->join('items as i', 'i.id', '=', 'iv.item_id')
+        ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
+        ->leftJoin(DB::raw('(
+            SELECT item_id, MIN(image) as image
+            FROM item_images
+            GROUP BY item_id
+        ) as im'), 'im.item_id', '=', 'i.id')
+        ->select(
+            DB::raw("CONCAT(i.title, ' ', iv.value) as productname"),
+            DB::raw("iv.value as variation"),
+            DB::raw("CONCAT('" . url('uploads/items') . "/', im.image) as image"),
+            'od.quantity',
+            'od.order_detail_total_price as price',
+            'om.order_status',
+            'od.created_at as time'
+        )
+        ->where('od.userid', $post['userid'])
+        ->orderBy('od.created_at', 'desc');
 
-            $result = DB::table('order_details as od')
-                ->join('itemvariations as isv', 'iv.id', '=', 'od.variation_id')
-                ->join('items as i', 'i.id', '=', 'iv.item_id')
-                ->leftJoin(DB::raw('(
-                SELECT item_id, MIN(image) as image
-                FROM item_images
-                GROUP BY item_id
-            ) as im'), 'im.item_id', '=', 'i.id')
-                ->select(
-                    DB::raw("CONCAT(i.title, ' ', iv.value) as productname"),
-                    DB::raw("CONCAT('" . url('uploads/items') . "/', im.image) as image"),
-                    'od.quantity',
-                    'od.order_detail_total_price'
-                )
-                ->where('od.userid', $post['userid'])
-                ->where('od.status', 'Y')
-                ->get();
+    $total   = (clone $query)->count();   // ← clone before count()
+    $records = $query->offset($offset)->limit($perPage)->get();  // ← then fetch
 
-            if ($result->isEmpty()) {
-                throw new \Exception('No order history found');
-            }
-
-            return $result;
-        } catch (\Exception $e) {
-            throw $e;
-        }
-    }
+    return [
+        'data'       => $records,
+        'pagination' => [
+            'current_page' => $page,
+            'last_page'    => $total > 0 ? (int)ceil($total / $perPage) : 1,
+            'per_page'     => $perPage,
+            'total'        => $total,
+            'has_more'     => ($page * $perPage) < $total,
+            'next_page'    => ($page * $perPage) < $total ? $page + 1 : null,
+            'prev_page'    => $page > 1 ? $page - 1 : null,
+        ]
+    ];
+}
 
     public static function getUserRecommendation($post)
     {

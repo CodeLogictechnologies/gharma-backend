@@ -8,7 +8,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
-    <title>Dashboard - </title>
+    <title>@yield('title')</title>
 
     <meta name="description" content="" />
 
@@ -275,6 +275,9 @@
                CSS — paste in your <style> or .css file
             ========================================================= */
         </script>
+           <!-- ✅ SortableJS — required for drag-to-reorder images -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+
         @yield('main-scripts')
 </body>
 

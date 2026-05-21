@@ -226,4 +226,72 @@ class WholesalerPrice extends Model
 
         return $result;
     }
+
+    public static function getData($post)
+    {
+        try {
+            $master = DB::table('wholesaler_prices as wp')
+                ->join('items as i',           'i.id',  '=', 'wp.itemid')
+                ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
+                ->where('wp.id', $post['id'])
+                ->select(
+                    'wp.id',
+                    'wp.status',
+                    'wp.created_at',
+                    'i.title as itemname',
+                    'iv.value as variationname',
+                    'wp.itemid',
+                    'wp.variation_id'
+                )
+                ->first();
+
+            if (!$master) {
+                return null;
+            }
+
+            $details = DB::table('wholesaler_price_details')
+                ->where('wholesalermasterid', $master->id)
+                ->select('id as wholesaler_price_details_id', 'min_qty', 'max_qty', 'price')
+                ->get()
+                ->map(fn($d) => (array) $d)
+                ->toArray();
+
+            return [
+                'id'                       => $master->id,
+                'itemid'                   => $master->itemid,
+                'itemname'                 => $master->itemname,
+                'variation_id'             => $master->variation_id,
+                'variationname'            => $master->variationname,
+                'status'                   => $master->status,
+                'created_at'               => $master->created_at,
+                'wholesaler_price_details' => $details,
+            ];
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+    public static function deleteData($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            DB::table('wholesaler_price_details')
+                ->where('wholesalermasterid', $id)
+                ->delete();
+
+            $deleted = DB::table('wholesaler_prices')
+                ->where('id', $id)
+                ->delete();
+
+            if (!$deleted) {
+                throw new Exception('Record not found or already deleted.');
+            }
+
+            DB::commit();
+            return true;
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
 }

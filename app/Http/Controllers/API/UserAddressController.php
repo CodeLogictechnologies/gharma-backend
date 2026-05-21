@@ -25,6 +25,35 @@ class UserAddressController extends Controller
             if (empty($post['orgid'])) {
                 throw new Exception('Could not address', 1);
             }
+
+            // ✅ Check for duplicate latitude & longitude for the same user
+            $payload = JWTAuth::parseToken()->getPayload();
+            $profile = $payload->get('profile');
+            $post['userid'] = $profile['userid'];
+
+            $existing = UserAddress::where('userid', $post['userid'])
+                ->where('orgid', $post['orgid'])
+                ->first();
+
+            if ($existing) {
+                $errors = [];
+
+                if (!empty($post['latitude']) && $existing->latitude == $post['latitude']) {
+                    $errors[] = 'Latitude already exists';
+                }
+
+                if (!empty($post['longitude']) && $existing->longitude == $post['longitude']) {
+                    $errors[] = 'Longitude already exists';
+                }
+
+                if (!empty($errors)) {
+                    return json_encode([
+                        'type'    => 'error',
+                        'message' => implode(', ', $errors)
+                    ]);
+                }
+            }
+
             DB::beginTransaction();
             if (!UserAddress::saveData($post)) {
                 throw new Exception('Could not address', 1);
@@ -148,5 +177,41 @@ class UserAddressController extends Controller
             $message = $e->getMessage();
         }
         return json_encode(['type' => $type, 'message' => $message, 'location' => $result]);
+    }
+
+    public function deleteAddress(Request $request)
+    {
+        try {
+            $type    = 'success';
+            $message = 'Address deleted successfully';
+
+            $post    = $request->all();
+            $payload = JWTAuth::parseToken()->getPayload();
+            $profile = $payload->get('profile');
+
+            $post['orgid']   = $profile['orgid'];
+            $post['userid']  = $profile['userid'];
+
+            $post['id'] = $request->route('id');
+            if (empty($post['id'])) {
+                throw new Exception('Address ID is required', 1);
+            }
+
+            DB::beginTransaction();
+            if (!UserAddress::deleteData($post)) {
+                throw new Exception('Could not delete address', 1);
+            }
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = $e->getMessage();
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = $e->getMessage();
+        }
+
+        return json_encode(['type' => $type, 'message' => $message]);
     }
 }

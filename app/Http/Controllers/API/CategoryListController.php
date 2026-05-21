@@ -24,31 +24,45 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class CategoryListController extends Controller
 {
     public function getCategoryList(Request $request)
-    {
+{
+    try {
+        $type    = 'success';
+        $message = 'Categories fetched successfully.';
+        $data    = collect();
+        $orgid   = null;
+
+        // Try to get orgid from JWT token if logged in
         try {
-            $type = 'success';
-            $message = 'Categories fetch successfully.';
-
-            DB::beginTransaction();
             $payload = JWTAuth::parseToken()->getPayload();
-
-            $post = $request->all();
             $profile = $payload->get('profile');
-            $post['orgid'] = $profile['orgid'];
-            $post['userid'] = $profile['userid'];
-            $data = CategoryList::getListData($post);
-            if (!$data) {
-                throw new Exception('Product not found.', 1);
-            }
-            DB::commit();
-        } catch (QueryException $e) {
-            $type = 'error';
-            $message = 'Something went wrong';
-        } catch (Exception $e) {
-            $type = 'error';
-            $message = $e->getMessage();
+            $orgid   = $profile['orgid'] ?? null;
+        } catch (\Exception $e) {
+            // Not logged in — try from query param
+            $orgid = $request->orgid ?? null;
         }
 
-        return json_encode(['type' => $type, 'message' => $message, 'categories' => $data]);
+        $post['orgid'] = $orgid;
+
+        $data = CategoryList::getListData($post);
+
+        if ($data->isEmpty()) {
+            throw new Exception('No categories found.', 1);
+        }
+
+    } catch (QueryException $e) {
+        $type    = 'error';
+        $message = 'Something went wrong';
+        $data    = [];
+    } catch (Exception $e) {
+        $type    = 'error';
+        $message = $e->getMessage();
+        $data    = [];
     }
+
+    return response()->json([
+        'type'       => $type,
+        'message'    => $message,
+        'categories' => $data,
+    ]);
+}
 }
