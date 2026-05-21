@@ -30,27 +30,29 @@ class StoreController extends Controller
     public function save(SaveStoreRequest $request)
     {
         try {
-
-            $post = $request->all();
+            $post           = $request->all();
             $post['userid'] = session('userid');
-            $post['orgid'] = session('orgid');
-            $type = 'success';
-            $message = 'Store saved successfully';
+            $post['orgid']  = session('orgid');
+            $type           = 'success';
+            $message        = 'Store saved successfully';
+
             DB::beginTransaction();
 
             if (!Store::saveData($post)) {
                 throw new Exception('Could not save record', 1);
             }
+
             DB::commit();
         } catch (QueryException $e) {
             DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
+            $type    = 'error';
+            $message = $e->getMessage();
         } catch (Exception $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         }
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -75,6 +77,8 @@ class StoreController extends Controller
                 $array[$i]["phone"]    = $row->phone;
                 $array[$i]["city"]    = $row->city;
                 $array[$i]["country"]    = $row->country;
+                $array[$i]["latitude"]  = $row->latitude  ?? '-';
+                $array[$i]["longitude"] = $row->longitude ?? '-';
 
                 $action = '';
                 $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
@@ -118,6 +122,8 @@ class StoreController extends Controller
                 $data['country']  = $result->country;
                 $data['city']  = $result->city;
                 $data['email']  = $result->email;
+                $data['latitude']  = $result->latitude;
+                $data['longitude'] = $result->longitude;
             }
         } catch (QueryException $e) {
             $data['error'] = $this->queryMessage;

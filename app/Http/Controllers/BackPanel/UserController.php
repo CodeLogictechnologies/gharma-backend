@@ -30,48 +30,49 @@ class UserController extends Controller
     public function save(Request $request)
     {
         // try {
-            $post = $request->all();
-            $rules = [
-                'first_name' => 'required|min:5|max:255',
-                'phone' => 'required|min:5|max:5000',
-                'address' => 'required',
-                'email' => [
-                    'required',
-                    'email',
-                    Rule::unique('users')->ignore($request->id)
-                ],
-                'username' => 'required',
-            ];
+        $post = $request->all();
+        $rules = [
+            'first_name' => 'required|min:3|max:255',
+            'phone' => 'required|min:5|max:5000',
+            'address' => 'required',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users')->ignore($request->id)
+            ],
+            'username' => 'required',
+        ];
 
-            if (empty($request->id)) {
-                $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
-            }
+        if (empty($request->id)) {
+            $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
+        }
 
-            $message = [
-                'first_name.required' => 'Please enter first name',
-                'phone.required' => 'Phone number is required',
-                'address.required' => 'Address is required',
-                'email.required' => 'Email is required',
-                'username.required' => 'User Name is required',
-            ];
+        $message = [
+            'first_name.required' => 'Please enter first name',
+            'first_name.min'      => 'First name must be at least 3 characters',
+            'phone.required' => 'Phone number is required',
+            'address.required' => 'Address is required',
+            'email.required' => 'Email is required',
+            'username.required' => 'User Name is required',
+        ];
 
-            $validate = Validator::make($request->all(), $rules, $message);
+        $validate = Validator::make($request->all(), $rules, $message);
 
-            if ($validate->fails()) {
-                throw new Exception($validate->errors()->first(), 1);
-            }
+        if ($validate->fails()) {
+            throw new Exception($validate->errors()->first(), 1);
+        }
 
-            $post = $request->all();
-            $post['type'] = 'user';
-            $type = 'success';
-            $message = 'User saved successfully';
-            $post['orgid'] = session('orgid');
-            DB::beginTransaction();
+        $post = $request->all();
+        $post['type'] = 'user';
+        $type = 'success';
+        $message = 'User saved successfully';
+        $post['orgid'] = session('orgid');
+        DB::beginTransaction();
 
-            if (!User::saveData($post)) {
-                throw new Exception('Could not save record', 1);
-            }
-            DB::commit();
+        if (!User::saveData($post)) {
+            throw new Exception('Could not save record', 1);
+        }
+        DB::commit();
         // } catch (QueryException $e) {
         //     DB::rollBack();
         //     $type = 'error';

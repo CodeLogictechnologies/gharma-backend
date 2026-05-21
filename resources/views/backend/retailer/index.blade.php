@@ -1,5 +1,5 @@
 @extends('layouts.main')
-@section('title', 'Price')
+@section('title', 'Retailer Price Management')
 
 <script src="/assets/vendor/libs/jquery/jquery.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">

@@ -140,4 +140,22 @@ class UserAddress extends Model
             throw $e;
         }
     }
+
+    public static function deleteData($post)
+    {
+        try {
+            $deleted = UserAddress::where('id', $post['id'])
+                ->where('userid', $post['userid'])
+                ->where('orgid', $post['orgid'])
+                ->delete();
+
+            if (!$deleted) {
+                throw new \Exception("Couldn't delete user address.");
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            throw $e;
+        }
+    }
 }

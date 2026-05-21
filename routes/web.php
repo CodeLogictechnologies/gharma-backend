@@ -26,6 +26,8 @@ use App\Http\Controllers\BackPanel\UserController;
 use App\Http\Controllers\DatabaseDumpController;
 use App\Http\Controllers\BackPanel\VendorController;
 use App\Http\Controllers\BackPanel\WholesalerPriceController;
+use App\Http\Controllers\BackPanel\ItemImageController;
+use App\Http\Controllers\BackPanel\HomeTabController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SocialAuthController;
@@ -50,9 +52,21 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::get('/dump-db-sql', [DatabaseDumpController::class, 'dump']);
+// Root route — redirect based on auth status
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('admin.dashboard');
+    }
+    return redirect()->route('admin.login');
+});
 
-Route::get('/login', [AuthController::class, 'index'])->name('login');
-Route::get('admin/login', [AuthController::class, 'index'])->name('admin.login');
+
+// AFTER
+// web.php — add this 
+
+Route::get('/login', [AuthController::class, 'index'])->name('login')->middleware('guest');
+Route::get('admin/login', [AuthController::class, 'index'])->name('admin.login')->middleware('guest');
+
 Route::get('admin/forgotpassword', [ForgotPasswordController::class, 'index'])->name('admin.forgotpassword');
 Route::post('admin/checkuser', [ForgotPasswordController::class, 'isRegisteredUser'])->name('admin.checkuser');
 Route::get('admin/otp', [OtpController::class, 'index'])->name('admin.otp');
@@ -79,7 +93,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::group(['prefix' => 'admin'], function () {
 
         Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('admin.dashboard');
-        
+
         Route::get('/organization', [OrganizationController::class, 'index'])->name('organization');
         Route::get('/organization/list', [OrganizationController::class, 'list'])->name('organization.list');
         Route::any('/organization/form', [OrganizationController::class, 'form'])->name('organization.form');
@@ -131,6 +145,16 @@ Route::group(['middleware' => ['auth']], function () {
         });
 
 
+
+        Route::group(['prefix' => 'hometab'], function () {
+            Route::get('/',        [HomeTabController::class, 'index'])->name('hometab');
+            Route::get('/list',    [HomeTabController::class, 'list'])->name('hometab.list');
+            Route::any('/form',    [HomeTabController::class, 'form'])->name('hometab.form');
+            Route::post('/save',   [HomeTabController::class, 'save'])->name('hometab.save');
+            Route::post('/delete', [HomeTabController::class, 'delete'])->name('hometab.delete');
+        });
+
+
         Route::group(['prefix' => 'brand'], function () {
             Route::get('/', [BrandController::class, 'index'])->name('brand');
             Route::post('/tabs', [BrandController::class, 'tabs'])->name('brand.tabs');
@@ -147,6 +171,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save', [ItemController::class, 'save'])->name('item.save');
             Route::post('/delete', [ItemController::class, 'delete'])->name('item.delete');
             Route::post('/view', [ItemController::class, 'view'])->name('item.view');
+            Route::post('/images/reorder', [ItemImageController::class, 'reorder'])->name('item.images.reorder'); // ← ADD HERE
+
         });
 
 
@@ -208,6 +234,7 @@ Route::group(['middleware' => ['auth']], function () {
                 Route::get('/', [WholesalerPriceController::class, 'index'])->name('wholesaler');
                 Route::post('/save', [WholesalerPriceController::class, 'save'])->name('wholesaler.save');
                 Route::get('/list', [WholesalerPriceController::class, 'list'])->name('wholesaler.list');
+                Route::post('/view', [WholesalerPriceController::class, 'view'])->name('wholesaler.view');
                 Route::post('/delete', [WholesalerPriceController::class, 'delete'])->name('wholesaler.delete');
                 Route::any('/form', [WholesalerPriceController::class, 'form'])->name('wholesaler.form');
             });
