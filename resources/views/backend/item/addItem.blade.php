@@ -46,6 +46,11 @@
         border: 2px solid #dee2e6;
         background: #fff;
         transition: border-color .2s;
+        cursor: grab;
+    }
+
+    .img-preview-card:active {
+        cursor: grabbing;
     }
 
     .img-preview-card.is-primary {
@@ -104,6 +109,14 @@
 
     .img-preview-card.is-primary .primary-badge {
         display: block;
+    }
+
+    /* ── Sortable ghost ── */
+    .sortable-ghost {
+        opacity: 0.4;
+        border: 2px dashed #0d6efd !important;
+            background: #e8f0fe !important;
+
     }
 
     .variation-row {
@@ -360,7 +373,8 @@
         <div class="row g-3 mb-3">
             <div class="col-md-12">
                 <label class="form-label">Description</label>
-                <textarea name="description" id="description" class="form-control" rows="5">{!! $data['description'] ?? '' !!}</textarea>
+                <textarea name="description" id="description" class="form-control"
+                    rows="5">{!! $data['description'] ?? '' !!}</textarea>
             </div>
         </div>
 
@@ -370,10 +384,6 @@
                 <p class="section-label">Product Images</p>
 
                 <div class="image-drop-zone" id="imageDropZone">
-                    {{--
-                        FIX: Remove 'required' even on add mode.
-                        Validate images in JS instead so edit mode doesn't fail.
-                    --}}
                     <input type="file" id="productImages" name="images[]" accept="image/*" multiple>
                     <div style="font-size:2rem">🖼️</div>
                     <p class="drop-text">
@@ -384,16 +394,14 @@
 
                 <input type="hidden" name="primary_image_index" id="primaryImageIndex" value="0">
 
-                {{--
-                    FIX: Render existing image cards properly.
-                    $data['images'] is now an array of plain image filenames (not HTML strings).
-                    The controller should return image filenames, not pre-built HTML.
-                --}}
                 <div id="imagePreviewGrid">
                     @if (!empty($data['images']))
                         @foreach ($data['images'] as $i => $img)
+                            {{-- ↓ data-db-id added for drag reorder --}}
                             <div class="img-preview-card {{ $i === 0 ? 'is-primary' : '' }}"
-                                data-index="{{ $i }}" data-type="existing">
+                                data-index="{{ $i }}"
+                                data-type="existing"
+                                data-db-id="{{ $img['id'] }}">
                                 <span class="primary-badge">Primary</span>
                                 <img src="{{ asset('uploads/items/' . $img['filename']) }}" alt="product image">
                                 <div class="img-actions">
@@ -410,7 +418,8 @@
                 </div>
 
                 <small class="text-muted d-block mt-1">
-                    Click <strong>★ Primary</strong> to set the main photo. First image is primary by default.
+                    Click <strong>★ Primary</strong> to set the main photo.
+                    <strong>Drag</strong> to reorder. First image is primary by default.
                 </small>
             </div>
         </div>
@@ -430,12 +439,12 @@
                         $variations = $data['variations'] ?? [
                             [
                                 'variationid' => '',
-                                'name' => 'Size',
-                                'value' => '',
-                                'threshold' => '',
-                                'price' => '',
-                                'stock' => '',
-                                'status' => 'active',
+                                'name'        => 'Size',
+                                'value'       => '',
+                                'threshold'   => '',
+                                'price'       => '',
+                                'stock'       => '',
+                                'status'      => 'active',
                             ],
                         ];
                     @endphp
@@ -485,10 +494,12 @@
                                     <label class="form-label mb-1">Status</label>
                                     <select name="variations[{{ $i }}][status]" class="form-select">
                                         <option value="active"
-                                            {{ ($v['status'] ?? 'active') === 'active' ? 'selected' : '' }}>Active
+                                            {{ ($v['status'] ?? 'active') === 'active' ? 'selected' : '' }}>
+                                            Active
                                         </option>
                                         <option value="inactive"
-                                            {{ ($v['status'] ?? '') === 'inactive' ? 'selected' : '' }}>Inactive
+                                            {{ ($v['status'] ?? '') === 'inactive' ? 'selected' : '' }}>
+                                            Inactive
                                         </option>
                                     </select>
                                 </div>
@@ -511,60 +522,55 @@
         </button>
     </div>
 </form>
+{{-- SortableJS --}}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-    $(function() {
-
-        /* ─────────────────────────────────────────────
-           FIX: Reinitialise TinyMCE / any rich editor if used
-        ───────────────────────────────────────────── */
-        // If you use TinyMCE, uncomment:
-        // if (typeof tinymce !== 'undefined') {
-        //     tinymce.remove('#description');
-        //     tinymce.init({ selector: '#description' });
-        // }
+    $(function () {
 
         /* ─────────────────────────────────────────────
            IMAGE UPLOAD & PREVIEW
         ───────────────────────────────────────────── */
-        let newFiles = []; // sparse array — index matches data-index on .new cards
+        let newFiles = [];
 
         const dropZone = document.getElementById('imageDropZone');
 
         dropZone.addEventListener('dragover', e => {
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.add('dragover');
         });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', e => {
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.remove('dragover');
             handleFiles(Array.from(e.dataTransfer.files));
         });
 
-        $('#productImages').on('change', function() {
+        $('#productImages').on('change', function () {
             handleFiles(Array.from(this.files));
-            this.value = ''; // reset so same file can be re-added
+            this.value = '';
         });
 
         function handleFiles(files) {
             files.filter(f => f.type.startsWith('image/')).forEach(file => {
-                const reader = new FileReader();
+                const reader  = new FileReader();
                 const fileIdx = newFiles.length;
                 newFiles.push(file);
 
                 reader.onload = e => {
                     const isPrimary = ($('#imagePreviewGrid .img-preview-card').length === 0);
                     $('#imagePreviewGrid').append(`
-                    <div class="img-preview-card ${isPrimary ? 'is-primary' : ''}"
-                         data-index="${fileIdx}" data-type="new">
-                        <span class="primary-badge">Primary</span>
-                        <img src="${e.target.result}" alt="preview">
-                        <div class="img-actions">
-                            <button type="button" class="btn-primary-img">★ Primary</button>
-                            <button type="button" class="btn-remove-img">✕</button>
-                        </div>
-                    </div>`);
+                        <div class="img-preview-card ${isPrimary ? 'is-primary' : ''}"
+                             data-index="${fileIdx}" data-type="new">
+                            <span class="primary-badge">Primary</span>
+                            <img src="${e.target.result}" alt="preview">
+                            <div class="img-actions">
+                                <button type="button" class="btn-primary-img">★ Primary</button>
+                                <button type="button" class="btn-remove-img">✕</button>
+                            </div>
+                        </div>`);
                     if (isPrimary) syncPrimary();
                     syncFileInput();
                 };
@@ -573,20 +579,19 @@
         }
 
         /* Set primary */
-        $(document).on('click', '.btn-primary-img', function() {
+        $(document).on('click', '.btn-primary-img', function () {
             $('#imagePreviewGrid .img-preview-card').removeClass('is-primary');
             $(this).closest('.img-preview-card').addClass('is-primary');
             syncPrimary();
         });
 
         /* Remove card */
-        $(document).on('click', '.btn-remove-img', function() {
-            const card = $(this).closest('.img-preview-card');
+        $(document).on('click', '.btn-remove-img', function () {
+            const card    = $(this).closest('.img-preview-card');
             const wasPrim = card.hasClass('is-primary');
 
             if (card.data('type') === 'new') {
-                const idx = parseInt(card.data('index'));
-                newFiles[idx] = null; // nullify but keep indices intact
+                newFiles[parseInt(card.data('index'))] = null;
             }
 
             card.remove();
@@ -603,52 +608,96 @@
             }
         });
 
-        /* Sync the hidden primaryImageIndex field */
         function syncPrimary() {
-            const cards = $('#imagePreviewGrid .img-preview-card');
+            const cards   = $('#imagePreviewGrid .img-preview-card');
             const primIdx = cards.index(cards.filter('.is-primary'));
             $('#primaryImageIndex').val(primIdx >= 0 ? primIdx : 0);
         }
 
-        /* Re-build the real file input from newFiles so FormData picks up new uploads */
         function syncFileInput() {
             const dt = new DataTransfer();
-            newFiles.forEach(f => {
-                if (f) dt.items.add(f);
+            const newCards = [
+                ...document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="new"]')
+            ];
+            newCards.forEach(card => {
+                const idx = parseInt(card.dataset.index);
+                if (newFiles[idx]) {
+                    dt.items.add(newFiles[idx]);
+                }
             });
             document.getElementById('productImages').files = dt.files;
         }
 
-        /* Set initial primary index on load (edit mode may have existing cards) */
+        /* Init primary on load */
         syncPrimary();
 
+        /* ─────────────────────────────────────────────
+           DRAG-TO-REORDER (SortableJS)
+        ───────────────────────────────────────────── */
+        const sortable = Sortable.create(document.getElementById('imagePreviewGrid'), {
+            animation: 200,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            delay: 100,
+            delayOnTouchOnly: false,
+            forceFallback: false,
+            filter: '.btn-primary-img, .btn-remove-img',
+            preventOnFilter: false,
+
+            onStart: function () {
+                dropZone.style.pointerEvents = 'none';
+            },
+
+            onEnd: function () {
+                dropZone.style.pointerEvents = '';
+                syncPrimary();
+                syncFileInput();
+            }
+        });
 
         /* ─────────────────────────────────────────────
-           CUSTOM MULTI-SELECT (checkbox list + tags)
+           SYNC IMAGE ORDER (called before save)
+        ───────────────────────────────────────────── */
+        function syncImageOrder() {
+            $('#itemForm input[name="image_order[]"]').remove();
+            document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="existing"]')
+                .forEach((card, index) => {
+                    const dbId = card.dataset.dbId;
+                    if (dbId) {
+                        $('#itemForm').append(
+                            `<input type="hidden" name="image_order[]" value="${dbId}">`
+                        );
+                    }
+                });
+        }
+
+        /* ─────────────────────────────────────────────
+           CUSTOM MULTI-SELECT
         ───────────────────────────────────────────── */
         function initMultiSelect(checkListId, hiddenSelectId, tagsId, errorId) {
-            const $list = $('#' + checkListId);
+            const $list   = $('#' + checkListId);
             const $select = $('#' + hiddenSelectId);
-            const $tags = $('#' + tagsId);
-            const $error = $('#' + errorId);
+            const $tags   = $('#' + tagsId);
+            const $error  = $('#' + errorId);
 
             function rebuildTags() {
                 $tags.empty();
-                $list.find('.ms-option.selected').each(function() {
-                    const id = $(this).data('id');
+                $list.find('.ms-option.selected').each(function () {
+                    const id    = $(this).data('id');
                     const label = $(this).data('label');
                     $tags.append(
                         `<span class="ms-tag" data-id="${id}">
-                        ${label}
-                        <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
-                    </span>`
+                            ${label}
+                            <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
+                        </span>`
                     );
                 });
             }
 
             function syncSelect() {
                 $select.find('option').prop('selected', false);
-                $list.find('.ms-option.selected').each(function() {
+                $list.find('.ms-option.selected').each(function () {
                     $select.find(`option[value="${$(this).data('id')}"]`).prop('selected', true);
                 });
             }
@@ -660,10 +709,9 @@
                 }
             }
 
-            /* Click on the label row (but not directly on the checkbox — handled separately) */
-            $list.on('click', '.ms-option', function(e) {
+            $list.on('click', '.ms-option', function (e) {
                 if (e.target.tagName === 'INPUT') return;
-                const $opt = $(this);
+                const $opt        = $(this);
                 const nowSelected = !$opt.hasClass('selected');
                 $opt.toggleClass('selected', nowSelected);
                 $opt.find('input[type="checkbox"]').prop('checked', nowSelected);
@@ -672,16 +720,14 @@
                 clearError();
             });
 
-            /* Direct checkbox change (keyboard / screen-reader) */
-            $list.on('change', 'input[type="checkbox"]', function() {
+            $list.on('change', 'input[type="checkbox"]', function () {
                 $(this).closest('.ms-option').toggleClass('selected', this.checked);
                 syncSelect();
                 rebuildTags();
                 clearError();
             });
 
-            /* Remove tag */
-            $tags.on('click', '.ms-tag-remove', function() {
+            $tags.on('click', '.ms-tag-remove', function () {
                 const id = $(this).data('id');
                 $list.find(`.ms-option[data-id="${id}"]`)
                     .removeClass('selected')
@@ -690,92 +736,87 @@
                 rebuildTags();
             });
 
-            /* Init: build tags from pre-selected rows (edit mode) */
             syncSelect();
             rebuildTags();
         }
 
-        initMultiSelect('categoryCheckList', 'categorySelect', 'categoryTags', 'categoriesError');
+        initMultiSelect('categoryCheckList',    'categorySelect',    'categoryTags',    'categoriesError');
         initMultiSelect('subCategoryCheckList', 'subCategorySelect', 'subCategoryTags', 'subCategoriesError');
 
-
         /* ─────────────────────────────────────────────
-           CLEAR ERRORS ON CHANGE (text / select fields)
+           CLEAR ERRORS ON CHANGE
         ───────────────────────────────────────────── */
-        $('[name="title"]').on('input', function() {
+        $('[name="title"]').on('input', function () {
             if ($(this).val().trim()) {
                 $(this).removeClass('is-invalid-select');
                 $('#titleError').removeClass('show');
             }
         });
 
-        $('[name="brand"]').on('change', function() {
+        $('[name="brand"]').on('change', function () {
             if ($(this).val()) {
                 $(this).removeClass('is-invalid-select');
                 $('#brandError').removeClass('show');
             }
         });
 
-
         /* ─────────────────────────────────────────────
            VARIATION ROWS
-           FIX: Use a global counter that never resets,
-           so removed rows don't cause name collisions.
         ───────────────────────────────────────────── */
         let varIdx = {{ count($data['variations'] ?? [['']]) }};
 
         function newVariationRow(idx) {
             return `
-        <div class="variation-row" data-index="${idx}">
-            <button type="button" class="remove-variation" title="Remove">✕</button>
-            <div class="row g-2 align-items-end">
-                <div class="col-md-2">
-                    <label class="form-label mb-1">Attribute</label>
-                    <select name="variations[${idx}][name]" class="form-select">
-                        <option value="Size">Size</option>
-                        <option value="Color">Color</option>
-                        <option value="Weight">Weight</option>
-                        <option value="Material">Material</option>
-                        <option value="Other">Other</option>
-                    </select>
+            <div class="variation-row" data-index="${idx}">
+                <button type="button" class="remove-variation" title="Remove">✕</button>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Attribute</label>
+                        <select name="variations[${idx}][name]" class="form-select">
+                            <option value="Size">Size</option>
+                            <option value="Color">Color</option>
+                            <option value="Weight">Weight</option>
+                            <option value="Material">Material</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Value</label>
+                        <input type="hidden" name="variations[${idx}][variationid]" value="">
+                        <input type="text" name="variations[${idx}][value]"
+                               class="form-control" placeholder="e.g. Red, XL">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Threshold</label>
+                        <input type="number" name="variations[${idx}][threshold]"
+                               class="form-control" placeholder="0" min="0" step="1">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Price</label>
+                        <input type="number" name="variations[${idx}][price]"
+                               class="form-control" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Stock</label>
+                        <input type="number" name="variations[${idx}][stock]"
+                               class="form-control" placeholder="0" min="0" step="1">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Status</label>
+                        <select name="variations[${idx}][status]" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1">Value</label>
-                    <input type="hidden" name="variations[${idx}][variationid]" value="">
-                    <input type="text" name="variations[${idx}][value]"
-                           class="form-control" placeholder="e.g. Red, XL">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1">Threshold</label>
-                    <input type="number" name="variations[${idx}][threshold]"
-                           class="form-control" placeholder="0" min="0" step="1">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1">Price</label>
-                    <input type="number" name="variations[${idx}][price]"
-                           class="form-control" placeholder="0.00" min="0" step="0.01">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1">Stock</label>
-                    <input type="number" name="variations[${idx}][stock]"
-                           class="form-control" placeholder="0" min="0" step="1">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1">Status</label>
-                    <select name="variations[${idx}][status]" class="form-select">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-        </div>`;
+            </div>`;
         }
 
         $('#addVariation').on('click', () => {
             $('#variationsContainer').append(newVariationRow(varIdx++));
         });
 
-        $(document).on('click', '.remove-variation', function() {
+        $(document).on('click', '.remove-variation', function () {
             if ($('#variationsContainer .variation-row').length <= 1) {
                 alert('At least one variation row is required.');
                 return;
@@ -783,33 +824,28 @@
             $(this).closest('.variation-row').remove();
         });
 
-
         /* ─────────────────────────────────────────────
            FORM VALIDATION
         ───────────────────────────────────────────── */
         function validateForm() {
             let valid = true;
 
-            // Clear previous errors
             $('.field-error').removeClass('show');
             $('.is-invalid-select').removeClass('is-invalid-select');
             $('.ms-invalid').removeClass('ms-invalid');
 
-            // Title
             if (!$('[name="title"]').val().trim()) {
                 $('[name="title"]').addClass('is-invalid-select');
                 $('#titleError').addClass('show');
                 valid = false;
             }
 
-            // Brand
             if (!$('[name="brand"]').val()) {
                 $('[name="brand"]').addClass('is-invalid-select');
                 $('#brandError').addClass('show');
                 valid = false;
             }
 
-            // Categories
             const cats = $('#categorySelect').val();
             if (!cats || cats.length === 0) {
                 $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
@@ -817,7 +853,6 @@
                 valid = false;
             }
 
-            // Sub Categories
             const subs = $('#subCategorySelect').val();
             if (!subs || subs.length === 0) {
                 $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
@@ -825,9 +860,8 @@
                 valid = false;
             }
 
-            // FIX: Validate images — at least one must exist (new OR kept existing)
             const hasExisting = $('#imagePreviewGrid .img-preview-card[data-type="existing"]').length > 0;
-            const hasNew = newFiles.filter(Boolean).length > 0;
+            const hasNew      = newFiles.filter(Boolean).length > 0;
             if (!hasExisting && !hasNew) {
                 showNotification('Please upload at least one product image.', 'error');
                 valid = false;
@@ -836,20 +870,17 @@
             return valid;
         }
 
-
         /* ─────────────────────────────────────────────
            AJAX SAVE / UPDATE
-           FIX: Use Bootstrap modal instance to hide correctly.
-           FIX: Find the modal wrapper dynamically so this partial
-                works regardless of the modal element's ID.
         ───────────────────────────────────────────── */
-        $('#saveItemBtn').on('click', function() {
+        $('#saveItemBtn').on('click', function () {
 
             if (!validateForm()) return;
 
-            const $btn = $(this);
+            syncImageOrder(); // ← saves drag order before submit
+
+            const $btn     = $(this);
             const origHtml = $btn.html();
-            const isEdit = !!$('[name="id"]').val();
 
             $btn.prop('disabled', true).html(
                 '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
@@ -865,82 +896,65 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
 
-                success: function(response) {
-                    const result = (typeof response === 'string') ? JSON.parse(response) :
-                        response;
+                success: function (response) {
+                    const result = (typeof response === 'string')
+                        ? JSON.parse(response)
+                        : response;
 
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
 
-                        // Refresh DataTable if it exists
                         if (typeof itemTable !== 'undefined' && itemTable.ajax) {
                             itemTable.ajax.reload(null, false);
                         }
-                        // FIX: Close the modal properly using Bootstrap 5 API.
-                        // We walk up from the form to find the nearest .modal wrapper.
+
                         const $modalEl = $('#itemForm').closest('.modal');
                         if ($modalEl.length) {
                             const bsModal = bootstrap.Modal.getInstance($modalEl[0]);
                             if (bsModal) {
                                 bsModal.hide();
                             } else {
-                                // Fallback: create instance and hide
                                 new bootstrap.Modal($modalEl[0]).hide();
                             }
                         }
-
                     } else {
-                        showNotification(result.message || 'Something went wrong.',
-                            'error');
+                        showNotification(result.message || 'Something went wrong.', 'error');
                         $btn.prop('disabled', false).html(origHtml);
                     }
                 },
 
-                error: function(xhr) {
+                error: function (xhr) {
                     $btn.prop('disabled', false).html(origHtml);
 
                     if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
-                        $.each(xhr.responseJSON.errors, function(field, messages) {
-
-                            // Normalise field name: strip [*], [], etc.
+                        $.each(xhr.responseJSON.errors, function (field, messages) {
                             const cleanField = field
                                 .replace(/\.\*$/, '')
                                 .replace(/\[\]$/, '')
-                                .replace(/\.\d+\..+$/,
-                                    ''); // e.g. variations.0.price → variations
+                                .replace(/\.\d+\..+$/, '');
 
                             switch (cleanField) {
                                 case 'categories':
-                                    $('#categoryCheckList').closest('.col-md-6')
-                                        .addClass('ms-invalid');
-                                    $('#categoriesError').text(messages[0])
-                                        .addClass('show');
+                                    $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                    $('#categoriesError').text(messages[0]).addClass('show');
                                     break;
                                 case 'sub_categories':
-                                    $('#subCategoryCheckList').closest('.col-md-6')
-                                        .addClass('ms-invalid');
-                                    $('#subCategoriesError').text(messages[0])
-                                        .addClass('show');
+                                    $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                    $('#subCategoriesError').text(messages[0]).addClass('show');
                                     break;
                                 case 'title':
-                                    $('[name="title"]').addClass(
-                                        'is-invalid-select');
-                                    $('#titleError').text(messages[0]).addClass(
-                                        'show');
+                                    $('[name="title"]').addClass('is-invalid-select');
+                                    $('#titleError').text(messages[0]).addClass('show');
                                     break;
                                 case 'brand':
-                                    $('[name="brand"]').addClass(
-                                        'is-invalid-select');
-                                    $('#brandError').text(messages[0]).addClass(
-                                        'show');
+                                    $('[name="brand"]').addClass('is-invalid-select');
+                                    $('#brandError').text(messages[0]).addClass('show');
                                     break;
                                 default: {
                                     const $field = $(`[name="${cleanField}"]`);
                                     if ($field.length) {
                                         $field.addClass('is-invalid-select');
-                                        $field.closest(
-                                                '.col-md-2, .col-md-4, .col-md-6, .col-md-12'
-                                            )
+                                        $field.closest('.col-md-2, .col-md-4, .col-md-6, .col-md-12')
                                             .find('.field-error')
                                             .text(messages[0])
                                             .addClass('show');
@@ -949,8 +963,7 @@
                             }
                         });
                     } else {
-                        showNotification('Something went wrong. Please try again.',
-                            'error');
+                        showNotification('Something went wrong. Please try again.', 'error');
                     }
                 }
             });

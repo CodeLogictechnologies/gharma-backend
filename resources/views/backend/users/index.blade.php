@@ -1,6 +1,8 @@
 <style>
     /* Ensure modal sits above sidebar and everything else */
-    #userModel {
+    #userModel,
+    #deleteModal {
+        /* ← add deleteModal here */
         z-index: 1060 !important;
     }
 
@@ -183,35 +185,38 @@
         $(document).on('click', '.editOrg', function(e) {
             e.preventDefault();
             openUserModal('{{ route('user.form') }}', {
-                id: $(this).data('id'),
-                _token: '{{ csrf_token() }}'
-            }, 'POST');
+                    id: $(this).data('id'),
+                    _token: '{{ csrf_token() }}'
+                }, 'POST');
         });
 
         /* ── View ────────────────────────────────────────────────── */
         $(document).on('click', '.viewOrg', function(e) {
             e.preventDefault();
             openUserModal('{{ route('user.view') }}', {
-                id: $(this).data('id'),
-                _token: '{{ csrf_token() }}'
-            }, 'POST');
+                    id: $(this).data('id'),
+                    _token: '{{ csrf_token() }}'
+                }, 'POST');
         });
 
         /* ── Delete ──────────────────────────────────────────────── */
         var deleteId = null;
 
+        // AFTER (fixed)
         $(document).on('click', '.deleteOrg', function(e) {
             e.preventDefault();
             deleteId = $(this).data('id');
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        });
 
+            var modalEl = document.getElementById('deleteModal');
+            $(modalEl).appendTo('body'); // ← ADD THIS
+            new bootstrap.Modal(modalEl).show();
+        });
         $('#confirmDelete').on('click', function() {
             if (!deleteId) return;
             $.post('{{ route('user.delete') }}', {
-                    id: deleteId,
-                    _token: '{{ csrf_token() }}'
-                })
+                        id: deleteId,
+                        _token: '{{ csrf_token() }}'
+                    })
                 .done(function(response) {
                     var result = typeof response === 'string' ? JSON.parse(response) : response;
                     if (result.type === 'success') {

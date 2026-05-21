@@ -146,27 +146,44 @@ class WholesalerPriceController extends Controller
     public function delete(Request $request)
     {
         try {
-            $type = 'success';
+            $type    = 'success';
             $message = "Record deleted successfully";
 
-            $post = $request->all();
+            $id = $request->id;
+
+            if (empty($id)) {
+                throw new Exception('ID is required.');
+            }
 
             DB::beginTransaction();
-            $result = Item::deleteItem($post);
+
+            // 1. Delete child details first
+            DB::table('wholesaler_price_details')
+                ->where('wholesalermasterid', $id)
+                ->delete();
+
+            // 2. Delete master record
+            $deleted = DB::table('wholesaler_prices')
+                ->where('id', $id)
+                ->delete();
+
+            if (!$deleted) {
+                throw new Exception('Record not found or already deleted.');
+            }
+
             DB::commit();
         } catch (QueryException $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $this->queryMessage;
         } catch (Exception $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         }
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
-
-
 
     public function list(Request $request)
     {
@@ -213,24 +230,29 @@ class WholesalerPriceController extends Controller
 
     public function view(Request $request)
     {
-        // try {
-        $post = $request->all();
+        try {
+            if (empty($request->id)) {
+                throw new Exception('ID is required.');
+            }
 
-        $itemDetails = Item::getData($post);
+            $post   = $request->all();
+            $result = BackPanelWholesalerPrice::getData($post);
 
-        $data = [
-            'itemDetails' => $itemDetails,
-        ];
+            if (!$result) {
+                throw new Exception('Record not found.');
+            }
 
-        $data['type'] = 'success';
-        $data['message'] = 'Successfully fetched data of New and Blogs.';
-        // } catch (QueryException $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $e->getMessage();
-        // }
-        return view('backend.item.view', $data);
+            $data = [
+                'type'    => 'success',
+                'message' => 'Successfully fetched.',
+                'data'    => $result,
+            ];
+        } catch (QueryException $e) {
+            $data = ['type' => 'error', 'message' => 'Database error.'];
+        } catch (Exception $e) {
+            $data = ['type' => 'error', 'message' => $e->getMessage()];
+        }
+
+        return view('backend.wholesaler.view', $data);
     }
 }

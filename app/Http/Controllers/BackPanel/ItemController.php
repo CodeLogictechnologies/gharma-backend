@@ -99,9 +99,9 @@ class ItemController extends Controller
             // ── Fetch existing images ordered by order_number then id
             $existingImages = DB::table('item_images')
                 ->where('item_id', $id)
-                // ->orderBy('order_number')
-                ->orderBy('id')
-                ->get()
+                    ->orderByRaw('CASE WHEN order_number IS NULL OR order_number = 0 THEN 1 ELSE 0 END')
+                ->orderBy('order_number')
+                ->orderBy('created_at')->get()
                 ->map(fn($img) => [
                     'id'           => $img->id,
                     'filename'     => $img->image,
@@ -295,23 +295,23 @@ class ItemController extends Controller
         ]);
     }
 
-public function view(Request $request)
-{
-    try {
-        $post = $request->all();
-        $itemDetails = Item::getData($post);
-        $data = ['itemDetails' => $itemDetails];
-        $data['type'] = 'success';
-        $data['message'] = 'Successfully fetched data.';
-    } catch (QueryException $e) {
-        $data['type'] = 'error';
-        $data['message'] = $this->queryMessage;
-    } catch (Exception $e) {
-        $data['type'] = 'error';
-        $data['message'] = $e->getMessage();
+    public function view(Request $request)
+    {
+        try {
+            $post = $request->all();
+            $itemDetails = Item::getData($post);
+            $data = ['itemDetails' => $itemDetails];
+            $data['type'] = 'success';
+            $data['message'] = 'Successfully fetched data.';
+        } catch (QueryException $e) {
+            $data['type'] = 'error';
+            $data['message'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['type'] = 'error';
+            $data['message'] = $e->getMessage();
+        }
+        return view('backend.item.view', $data);
     }
-    return view('backend.item.view', $data);
-}
     // public function view(Request $request)
     // {
     //     // try {
