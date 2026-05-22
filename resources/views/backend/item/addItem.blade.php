@@ -403,7 +403,7 @@
                                 data-type="existing"
                                 data-db-id="{{ $img['id'] }}">
                                 <span class="primary-badge">Primary</span>
-                                <img src="{{ asset('uploads/items/' . $img['filename']) }}" alt="product image">
+                                <img src="{{ asset('storage/items/' . $img['filename']) }}" alt="product image">
                                 <div class="img-actions">
                                     <button type="button" class="btn-primary-img">★ Primary</button>
                                     <button type="button" class="btn-remove-img">✕</button>

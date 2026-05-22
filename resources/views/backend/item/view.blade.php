@@ -70,7 +70,7 @@
             <div class="d-flex flex-wrap gap-2 mb-4">
                 @foreach ($itemDetails->images as $img)
                     <div class="position-relative">
-                        <img src="{{ asset('uploads/items/' . $img->image) }}" alt="product image"
+                        <img src="{{ asset('storage/items/' . $img->image) }}" alt="product image"
                             style="width:100px;height:90px;object-fit:cover;border-radius:8px;
                                     border: 2px solid ;">
 

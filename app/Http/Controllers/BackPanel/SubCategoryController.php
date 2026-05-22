@@ -100,10 +100,9 @@ class SubCategoryController extends Controller
             $array[$i]["title"]    = $row->title;
             $array[$i]["category_name"]    = $row->category_name;
             if (!empty($row->image)) {
-                $imagePath = public_path('uploads/subcategories/' . $row->image);
-
+                $imagePath = storage_path('app/public/subcategories/' . $row->image);
                 if (file_exists($imagePath)) {
-                    $imageUrl = asset('uploads/subcategories/' . $row->image);
+                    $imageUrl = asset('storage/subcategories/' . $row->image); // ✅
                 } else {
                     $imageUrl = asset('no-image.jpg');
                 }

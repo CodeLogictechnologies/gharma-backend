@@ -2,8 +2,7 @@
     <div class="app-brand demo">
         <a href="{{ route('admin.dashboard') }}" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img style="width: 200px;" src="logo.png" alt="logo">
-            </span>
+                <img style="width: 200px;" src="{{ asset('logo.png') }}" alt="logo">            </span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
@@ -29,12 +28,12 @@
         </li>
 
         <!-- Organization -->
-        {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
+         <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
         <a href="{{ route('organization') }}" class="menu-link">
             <i class="menu-icon tf-icons bx bx-buildings"></i>
             <div>Organization</div>
         </a>
-        </li> --}}
+        </li> 
 
         <!-- Permission -->
         <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">

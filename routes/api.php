@@ -56,7 +56,9 @@ Route::get('/item/detail/{variationid}', [ItemController::class, 'getDetails']);
 // Store public routes{searchid}
 Route::get('stores',       [App\Http\Controllers\API\StoreController::class, 'list']);
 // category list
-    Route::get('/categories/list', [CategoryListController::class, 'getCategoryList']);
+Route::get('/categories/list', [CategoryListController::class, 'getCategoryList']);
+// Sub category list
+Route::get('/subcategories/list', [CategoryListController::class, 'getSubCategoryList']);
 
 Route::middleware('auth:api')->group(function () {
     Route::post('/items/search/save', [SearchHistoryController::class, 'searchSave']);

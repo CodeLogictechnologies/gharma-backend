@@ -31,13 +31,14 @@ class Category extends Model
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
 
                 // Move image to public folder
-                $file->move(public_path('uploads/categories'), $imageName);
+                $file->storeAs('categories', $imageName, 'public');
+
             }
 
             $dataArray = [
                 'title' => $post['name'],
                 'slug' => Str::slug($post['name']) . '-' . time(),
-                'status' => 1,
+                'status' => 'Y',
                 'orgid' => $post['orgid']
             ];
 
@@ -51,14 +52,13 @@ class Category extends Model
                 // ✅ Update case
                 $oldData = Category::find($post['id']);
 
-                // Delete old image if new uploaded
-                if ($imageName && $oldData && $oldData->image) {
-                    $oldPath = public_path('uploads/categories/' . $oldData->image);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
-                }
-
+// ✅ Delete old image from storage
+if ($imageName && $oldData && $oldData->image) {
+    $oldPath = storage_path('app/public/categories/' . $oldData->image);
+    if (File::exists($oldPath)) {
+        File::delete($oldPath);
+    }
+}
                 $dataArray['updated_at'] = Carbon::now();
 
                 if (!Category::where('id', $post['id'])->update($dataArray)) {
