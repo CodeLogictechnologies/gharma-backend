@@ -119,7 +119,7 @@ public static function list($post)
                     'inv.selling_price',
                     'inv.unit_cost',
                     'inv.reorder_level',
-
+                    'o.id',
                     'i.title',
                     'iv.attribute',
                     'iv.value'

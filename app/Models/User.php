@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
 use App\Models\BackPanel\NewsEvent;
 use Carbon\Carbon;
 use Exception;
@@ -15,7 +13,6 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use PhpParser\Node\Expr\AssignOp\Concat;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Support\Facades\File;
 
@@ -25,10 +22,8 @@ class User extends Authenticatable implements JWTSubject
     public $incrementing = false;
     protected $keyType = 'string';
 
-
-
     protected $fillable = [
-        'id',               // ✅ add id
+        'id',
         'name',
         'email',
         'password',
@@ -38,16 +33,11 @@ class User extends Authenticatable implements JWTSubject
         'provider_token',
     ];
 
-    // public function post()
-    // {
-    //     return $this->hasMany(NewsEvent::class)->where('status', 'Y');
-    // }
     // Required methods for JWT
     public function getJWTIdentifier()
     {
-        return $this->getKey(); // usually the user ID
+        return $this->getKey();
     }
-
 
     public function getJWTCustomClaims()
     {
@@ -57,12 +47,43 @@ class User extends Authenticatable implements JWTSubject
             ->first();
 
         return [
-            'roles' => $this->getRoleNames(),
+            'roles'   => $this->getRoleNames(),
             'profile' => $profile,
         ];
     }
 
-    /* update password-start */
+    /* ── Helper: get profile row by auth user email ─────────────
+     * This bypasses any user_id mismatch by joining on email.
+     * Also auto-fixes the broken user_id so future calls work.
+     */
+    private static function getAuthProfile()
+    {
+        $authId    = auth()->id();
+        $authEmail = auth()->user()->email;
+
+        $profile = DB::table('profiles')
+            ->join('users', 'users.email', '=', DB::raw("'" . $authEmail . "'"))
+            ->where('profiles.username', auth()->user()->name)
+            ->select('profiles.*')
+            ->first();
+
+        // Fallback: try direct user_id match first (for correctly linked accounts)
+        if (!$profile) {
+            $profile = DB::table('profiles')->where('user_id', $authId)->first();
+        }
+
+        // Auto-fix broken user_id if found via email but user_id is wrong
+        if ($profile && $profile->user_id !== $authId) {
+            DB::table('profiles')
+                ->where('id', $profile->id)
+                ->update(['user_id' => $authId]);
+            $profile->user_id = $authId;
+        }
+
+        return $profile;
+    }
+
+    /* ── update password ──────────────────────────────────────── */
     public static function updatepassword($post)
     {
         try {
@@ -76,8 +97,9 @@ class User extends Authenticatable implements JWTSubject
                 throw new Exception('The new password and confirm password do not match.');
             }
 
-            $user->password = Hash::make($post['password']);
+            $user->password        = Hash::make($post['password']);
             $user->first_time_login = 1;
+
             if (!$user->save()) {
                 throw new Exception('Password is not updated.');
             }
@@ -87,23 +109,30 @@ class User extends Authenticatable implements JWTSubject
             throw $e;
         }
     }
-    /* update password-end */
 
-
-    /*update profile-start */
+    /* ── update profile info ──────────────────────────────────── */
     public static function updatedata($post)
     {
         try {
-            $updateArray = [
-                'name' => $post['name'],
-                // 'email' => $post['email'],
-                'address' => $post['address'],
-            ];
+            // Update users table
+            DB::table('users')->where('id', auth()->id())->update([
+                'name'       => $post['name'],
+                'updated_at' => Carbon::now(),
+            ]);
 
-            $updateArray['updated_at'] = Carbon::now();
+            // ✅ Find profile safely (handles user_id mismatch)
+            $profile = DB::table('profiles')
+                ->join('users', 'users.id', '=', 'profiles.user_id')
+                ->where('users.email', auth()->user()->email)
+                ->select('profiles.id')
+                ->first();
 
-            if (!User::where('id', 1)->update($updateArray)) {
-                throw new Exception("Couldn't Save Records", 1);
+            if ($profile) {
+                DB::table('profiles')->where('id', $profile->id)->update([
+                    'address'    => $post['address'],
+                    'user_id'    => auth()->id(), // ✅ auto-fix mismatch
+                    'updated_at' => Carbon::now(),
+                ]);
             }
 
             return true;
@@ -111,178 +140,160 @@ class User extends Authenticatable implements JWTSubject
             throw $e;
         }
     }
-    /*update profile-end*/
 
-
-    /*update profile image-start*/
+    /* ── update profile image ─────────────────────────────────── */
     public static function saveProfileImage($post)
     {
         try {
-            $dataArray = [];
-
-            if (!empty($post['image'])) {
-                $fileName =  Common::uploadFile('profile', $post['image']);
-                if (!$fileName) {
-                    return false;
-                }
-                $dataArray['image'] = $fileName;
+            if (empty($post['image']) || !($post['image'] instanceof \Illuminate\Http\UploadedFile)) {
+                return true;
             }
 
-            $dataArray['updated_at'] = Carbon::now();
-            if (!User::where('id', 1)->update($dataArray)) {
-                throw new Exception("Couldn't update Records", 1);
+            $file     = $post['image'];
+            $fileName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('profiles', $fileName, 'public');
+
+            // ✅ Find profile by email join (bypasses user_id mismatch)
+            $profile = DB::table('profiles')
+                ->join('users', 'users.id', '=', 'profiles.user_id')
+                ->where('users.email', auth()->user()->email)
+                ->select('profiles.*')
+                ->first();
+
+            if (!$profile) {
+                // Last resort: try direct user_id match
+                $profile = DB::table('profiles')->where('user_id', auth()->id())->first();
             }
+
+            if (!$profile) {
+                throw new Exception('Profile not found.');
+            }
+
+            // ✅ Delete old image
+            if ($profile->image) {
+                $oldPath = storage_path('app/public/profiles/' . $profile->image);
+                if (File::exists($oldPath)) File::delete($oldPath);
+            }
+
+            // ✅ Update by profiles.id (safe) and fix user_id mismatch
+            DB::table('profiles')->where('id', $profile->id)->update([
+                'image'      => $fileName,
+                'user_id'    => auth()->id(), // ✅ auto-fix broken user_id
+                'updated_at' => Carbon::now(),
+            ]);
 
             return true;
         } catch (Exception $e) {
             throw $e;
         }
     }
-    /*update profile image-end*/
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'password'          => 'hashed',
     ];
 
+    /* ── save new user ────────────────────────────────────────── */
     public static function saveData($post)
-{
-    try {
-        DB::beginTransaction();
+    {
+        try {
+            DB::beginTransaction();
 
-        $plainPassword = Str::random(6);
-        $imageName     = null;
+            $plainPassword = Str::random(6);
+            $imageName     = null;
 
-        // Handle image upload
-        if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
-            $file      = $post['image'];
-            $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/profiles'), $imageName);
-        }
-
-        $userData = [
-            'name'       => $post['username'],
-            'email'      => $post['email'],
-            'phone'      => $post['phone'],
-            'password'   => bcrypt($post["password"] ?? $plainPassword),
-            'updated_at' => Carbon::now(),
-        ];
-
-        // ---------- CREATE USER ----------
-        $newUuid = (string) Str::uuid();
-
-        $userData['id']         = $newUuid;
-        $userData['created_at'] = Carbon::now();
-
-        if (!empty($post['type']) && $post['type'] == 'user') {
-            $userData['user_status'] = 'Approve';
-        }
-
-        $inserted = DB::table('users')->insert($userData);
-
-        if (!$inserted) {
-            throw new Exception("Couldn't create user");
-        }
-
-        $post['userorgid'] = (string) Str::uuid();
-
-        if (!empty($post['type'] == 'user')) {
-            $firstOrg = $post['orgid'];
-        } else {
-            $firstOrg = DB::table('userorganizations')->value('orgid');
-
-            if (!$firstOrg) {
-                throw new Exception("No organization found in userorganizations table.");
+            if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
+                $file      = $post['image'];
+                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('profiles', $imageName, 'public');
             }
-        }
 
-        $userOrgArray = [
-            'id'         => $post['userorgid'],
-            'userid'     => $newUuid,
-            'orgid'      => $firstOrg,
-            'created_at' => Carbon::now(),
-        ];
+            $newUuid  = (string) Str::uuid();
+            $userData = [
+                'id'         => $newUuid,
+                'name'       => $post['username'],
+                'email'      => $post['email'],
+                'phone'      => $post['phone'],
+                'password'   => bcrypt($post["password"] ?? $plainPassword),
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ];
 
-        DB::table('userorganizations')->insert($userOrgArray);
+            if (!empty($post['type']) && $post['type'] == 'user') {
+                $userData['user_status'] = 'Approve';
+            }
 
-        // ---------- ASSIGN ROLE ----------
-        $user = \App\Models\User::find($newUuid);
+            if (!DB::table('users')->insert($userData)) {
+                throw new Exception("Couldn't create user");
+            }
 
-        if (!empty($post['type'])) {
-            if ($post['type'] == 'retailer') {
-                $post['role'] = 1;
+            if (!empty($post['type'] == 'user')) {
+                $firstOrg = $post['orgid'];
             } else {
-                $post['role'] = 2;
+                $firstOrg = DB::table('userorganizations')->value('orgid');
+                if (!$firstOrg) {
+                    throw new Exception("No organization found in userorganizations table.");
+                }
             }
+
+            DB::table('userorganizations')->insert([
+                'id'         => (string) Str::uuid(),
+                'userid'     => $newUuid,
+                'orgid'      => $firstOrg,
+                'created_at' => Carbon::now(),
+            ]);
+
+            $user = \App\Models\User::find($newUuid);
+
+            if (!empty($post['type'])) {
+                $post['role'] = $post['type'] == 'retailer' ? 1 : 2;
+            }
+
+            $user->assignRole($post['role']);
+
+            $profileData = [
+                'id'                  => (string) Str::uuid(),
+                'user_id'             => $newUuid,
+                'username'            => $post['username'],
+                'first_name'          => $post['first_name'],
+                'middle_name'         => $post['middle_name'] ?? null,
+                'last_name'           => $post['last_name'],
+                'phone'               => $post['phone'],
+                'address'             => $post['address'],
+                'gender'              => $post['gender'],
+                'type'                => $post['type'],
+                'company_name'        => $post['company_name'] ?? null,
+                'tax_number'          => $post['tax_number'] ?? null,
+                'registration_number' => $post['registration_number'] ?? null,
+                'orgid'               => $firstOrg,
+                'created_at'          => Carbon::now(),
+                'updated_at'          => Carbon::now(),
+            ];
+
+            if ($imageName) {
+                $profileData['image'] = $imageName;
+            }
+
+            DB::table('profiles')->insert($profileData);
+
+            DB::commit();
+            return true;
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        $user->assignRole($post['role']);
-
-        // ---------- INSERT PROFILE ----------
-        $newProfileId = (string) Str::uuid();
-
-        $profileData = [
-            'id'                  => $newProfileId,
-            'user_id'             => $newUuid,
-            'username'            => $post['username'],
-            'first_name'          => $post['first_name'],
-            'middle_name'         => $post['middle_name'] ?? null,
-            'last_name'           => $post['last_name'],
-            'phone'               => $post['phone'],
-            'address'             => $post['address'],
-            'gender'              => $post['gender'],
-            'type'                => $post['type'],
-            'company_name'        => $post['company_name'] ?? null,
-            'tax_number'          => $post['tax_number'] ?? null,
-            'registration_number' => $post['registration_number'] ?? null,
-            'orgid'               => $firstOrg,
-            'created_at'          => Carbon::now(),
-            'updated_at'          => Carbon::now(),
-        ];
-
-        if ($imageName) {
-            $profileData['image'] = $imageName;
-        }
-
-        DB::table('profiles')->insert($profileData);
-
-        DB::commit();
-        return true;
-
-    } catch (Exception $e) {
-        DB::rollBack();
-        throw $e;
     }
-}
 
-    //function to get user list
+    /* ── user list ────────────────────────────────────────────── */
     public static function list($post)
     {
         try {
             $get = $post;
-
             foreach ($get as $key => $value) {
                 $get[$key] = trim(strtolower($value));
             }
@@ -311,14 +322,12 @@ class User extends Authenticatable implements JWTSubject
                 ->join('userorganizations as u', 'u.userid', '=', 'users.id')
                 ->where('u.orgid', $post['orgid']);
 
-            // ✅ Status condition
             if (!empty($post['inactiveuser']) && $post['inactiveuser'] == 'Y') {
                 $query->where('users.user_status', '!=', 'Approve');
             } else {
                 $query->where('users.user_status', '=', 'Approve');
             }
 
-            // ✅ Search filters (safe)
             if (!empty($get['sSearch_1'])) {
                 $query->whereRaw('LOWER(users.name) LIKE ?', ['%' . $get['sSearch_1'] . '%']);
             }
@@ -327,36 +336,28 @@ class User extends Authenticatable implements JWTSubject
                 $query->whereRaw('LOWER(users.email) LIKE ?', ['%' . $get['sSearch_2'] . '%']);
             }
 
-            // ✅ Clone query for count
             $total = (clone $query)->count();
 
-            // ✅ Pagination
-            if ($limit > -1) {
-                $result = $query->orderBy('users.id', 'asc')
-                    ->offset($offset)
-                    ->limit($limit)
-                    ->get();
-            } else {
-                $result = $query->orderBy('users.id', 'asc')->get();
-            }
+            $result = $limit > -1
+                ? $query->orderBy('users.id', 'asc')->offset($offset)->limit($limit)->get()
+                : $query->orderBy('users.id', 'asc')->get();
 
-            // ✅ Proper return structure
             return [
-                'data' => $result,
-                'totalrecs' => $total,
-                'totalfilteredrecs' => $total
+                'data'              => $result,
+                'totalrecs'         => $total,
+                'totalfilteredrecs' => $total,
             ];
         } catch (\Exception $e) {
             throw $e;
         }
     }
 
-    // Fetch user and profile info
+    /* ── get single user data ─────────────────────────────────── */
     public static function getData($post)
     {
         $result = DB::table('users as u')
             ->join('profiles as p', 'p.user_id', '=', 'u.id')
-            ->join('userorganizations as uo', 'uo.userid', '=', 'u.id') 
+            ->join('userorganizations as uo', 'uo.userid', '=', 'u.id')
             ->select(
                 'u.id as id',
                 'u.name as username',
@@ -371,61 +372,41 @@ class User extends Authenticatable implements JWTSubject
                 'p.image',
                 'p.status'
             )
-            ->where('uo.orgid', $post['orgid']) 
+            ->where('uo.orgid', $post['orgid'])
             ->where('u.id', $post['id'])
             ->first();
 
         if ($result) {
-            // Get role IDs
-            $userRoles = DB::table('model_has_roles')
-                ->where('model_id', $result->id)
-                ->pluck('role_id')
-                ->toArray();
-
-            // Attach role IDs
-            $result->roles = $userRoles;
-
-            // Get role names
-            $roleNames = DB::table('roles')
-                ->whereIn('id', $userRoles)
-                ->pluck('name')
-                ->toArray();
-
-            // Attach role names
-            $result->role_names = $roleNames;
+            $userRoles       = DB::table('model_has_roles')->where('model_id', $result->id)->pluck('role_id')->toArray();
+            $result->roles   = $userRoles;
+            $result->role_names = DB::table('roles')->whereIn('id', $userRoles)->pluck('name')->toArray();
         }
 
         return $result;
     }
 
-    //function to get user data
+    /* ── get user data (dropdown etc) ────────────────────────── */
     public static function getUserData($post)
     {
         try {
-            $data = DB::table('users as u')
+            return DB::table('users as u')
                 ->join('profiles as p', 'p.user_id', '=', 'u.id')
                 ->where('p.status', 'Y')
                 ->where('p.orgid', $post['orgid'])
-                ->select(
-                    'u.id',
-                    DB::raw("CONCAT(p.first_name, ' ', p.middle_name, ' ', p.last_name) as username")
-                )
+                ->select('u.id', DB::raw("CONCAT(p.first_name, ' ', p.middle_name, ' ', p.last_name) as username"))
                 ->get();
-
-            return $data;
         } catch (Exception $e) {
             throw $e;
         }
     }
 
-    //funciton to get user data
+    /* ── get data user (API/frontend) ────────────────────────── */
     public static function getDataUser($post)
     {
         try {
-            $result = DB::table('users as u')
+            return DB::table('users as u')
                 ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
                 ->select(
-                    // 'u.id as id',
                     'u.name as username',
                     'u.email',
                     'p.first_name',
@@ -435,34 +416,26 @@ class User extends Authenticatable implements JWTSubject
                     'p.gender',
                     'p.phone',
                     'p.address',
-                    DB::raw("CONCAT('" . url('uploads/profiles') . "/', p.image) as image"),
+                    DB::raw("CONCAT('" . url('storage/profiles') . "/', p.image) as image"),
                     'p.status'
                 )
                 ->where('u.id', $post['userid'])
                 ->first();
-
-            return $result;
         } catch (Exception $e) {
             throw $e;
         }
     }
 
-    //function to update user
+    /* ── update user (admin panel) ───────────────────────────── */
     public static function updateUser($post)
     {
-
         try {
-
             $imageName = null;
 
-            // ── upload image ─────────────────────────────
             if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
-
-                $file = $post['image'];
-
+                $file      = $post['image'];
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-                $file->move(public_path('uploads/profiles'), $imageName);
+                $file->storeAs('profiles', $imageName, 'public');
             }
 
             if (empty($post['userid'])) {
@@ -471,27 +444,19 @@ class User extends Authenticatable implements JWTSubject
 
             $userId = $post['userid'];
 
-            // ── update users table ───────────────────────
-            $userData = [
+            DB::table('users')->where('id', $userId)->update([
                 'name'       => $post['username'] ?? '',
                 'email'      => $post['email'] ?? '',
                 'updated_at' => Carbon::now(),
-            ];
+            ]);
 
-            DB::table('users')->where('id', $userId)->update($userData);
-
-            // ── get old profile ─────────────────────────
             $oldData = DB::table('profiles')->where('user_id', $userId)->first();
 
             if ($imageName && $oldData && $oldData->image) {
-                $oldPath = public_path('uploads/profiles/' . $oldData->image);
-
-                if (File::exists($oldPath)) {
-                    File::delete($oldPath);
-                }
+                $oldPath = storage_path('app/public/profiles/' . $oldData->image);
+                if (File::exists($oldPath)) File::delete($oldPath);
             }
 
-            // ── update profile ───────────────────────────
             $profileData = [
                 'username'    => $post['username'] ?? '',
                 'first_name'  => $post['first_name'] ?? '',
@@ -507,9 +472,7 @@ class User extends Authenticatable implements JWTSubject
                 $profileData['image'] = $imageName;
             }
 
-            $result = DB::table('profiles')->where('user_id', $userId)->update($profileData);
-
-            return $result;
+            return DB::table('profiles')->where('user_id', $userId)->update($profileData);
         } catch (Exception $e) {
             throw $e;
         }

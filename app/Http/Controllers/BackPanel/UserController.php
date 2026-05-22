@@ -29,59 +29,59 @@ class UserController extends Controller
     //function to save users
     public function save(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $rules = [
-            'first_name' => 'required|min:3|max:255',
-            'phone' => 'required|min:5|max:5000',
-            'address' => 'required',
-            'email' => [
-                'required',
-                'email',
-                Rule::unique('users')->ignore($request->id)
-            ],
-            'username' => 'required',
-        ];
+        try {
+            $post = $request->all();
+            $rules = [
+                'first_name' => 'required|min:3|max:255',
+                'phone' => 'required|min:5|max:5000',
+                'address' => 'required',
+                'email' => [
+                    'required',
+                    'email',
+                    Rule::unique('users')->ignore($request->id)
+                ],
+                'username' => 'required',
+            ];
 
-        if (empty($request->id)) {
-            $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
+            if (empty($request->id)) {
+                $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
+            }
+
+            $message = [
+                'first_name.required' => 'Please enter first name',
+                'first_name.min'      => 'First name must be at least 3 characters',
+                'phone.required' => 'Phone number is required',
+                'address.required' => 'Address is required',
+                'email.required' => 'Email is required',
+                'username.required' => 'User Name is required',
+            ];
+
+            $validate = Validator::make($request->all(), $rules, $message);
+
+            if ($validate->fails()) {
+                throw new Exception($validate->errors()->first(), 1);
+            }
+
+            $post = $request->all();
+            $post['type'] = 'user';
+            $type = 'success';
+            $message = 'User saved successfully';
+            $post['orgid'] = session('orgid');
+            DB::beginTransaction();
+
+            if (!User::saveData($post)) {
+                throw new Exception('Could not save record', 1);
+            }
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
-
-        $message = [
-            'first_name.required' => 'Please enter first name',
-            'first_name.min'      => 'First name must be at least 3 characters',
-            'phone.required' => 'Phone number is required',
-            'address.required' => 'Address is required',
-            'email.required' => 'Email is required',
-            'username.required' => 'User Name is required',
-        ];
-
-        $validate = Validator::make($request->all(), $rules, $message);
-
-        if ($validate->fails()) {
-            throw new Exception($validate->errors()->first(), 1);
-        }
-
-        $post = $request->all();
-        $post['type'] = 'user';
-        $type = 'success';
-        $message = 'User saved successfully';
-        $post['orgid'] = session('orgid');
-        DB::beginTransaction();
-
-        if (!User::saveData($post)) {
-            throw new Exception('Could not save record', 1);
-        }
-        DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -124,11 +124,10 @@ class UserController extends Controller
             $array[$i]["created_at"] = $row->created_at;
 
             // Image
-            if (!empty($row->logo)) {
-                $imagePath = storage_path('app/public/profile/' . $row->logo);
-
+            if (!empty($row->image)) {
+                $imagePath = storage_path('app/public/profiles/' . $row->image);
                 if (file_exists($imagePath)) {
-                    $imageUrl = asset('storage/profile/' . $row->logo);
+                    $imageUrl = asset('storage/profiles/' . $row->image);
                 } else {
                     $imageUrl = asset('no-image.jpg');
                 }
@@ -137,7 +136,6 @@ class UserController extends Controller
             }
 
             $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-
             // Actions
             $action = '';
             $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
@@ -287,7 +285,7 @@ class UserController extends Controller
             // Delete profile image if exists
             $profile = DB::table('profiles')->where('user_id', $post['id'])->first();
             if ($profile && !empty($profile->image)) {
-                $imagePath = public_path('uploads/profiles/' . $profile->image);
+                $imagePath = storage_path('app/public/profiles/' . $profile->image); // ✅
                 if (file_exists($imagePath)) {
                     unlink($imagePath);
                 }

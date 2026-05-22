@@ -105,11 +105,9 @@ class OrganizationController extends Controller
 
 
                 if (!empty($row->logo)) {
-
-                    $imagePath = public_path('uploads/organizations/' . $row->logo);
-
+                    $imagePath = storage_path('app/public/organizations/' . $row->logo);
                     if (file_exists($imagePath)) {
-                        $imageUrl = asset('uploads/organizations/' . $row->logo);
+                        $imageUrl = asset('storage/organizations/' . $row->logo); // ✅
                     } else {
                         $imageUrl = asset('no-image.jpg');
                     }
@@ -162,9 +160,9 @@ class OrganizationController extends Controller
                 $data['email']  = $result->email;
 
                 if ($result->logo) {
-                    $data['logo'] =  $result->logo;
+                    $data['logo'] = asset('storage/organizations/' . $result->logo); // ✅
                 } else {
-                    $data['logo'] = '<img src="' . asset('/no-image.jpg') . '" class="_image" height="160px" width="160px" alt="No image"/>';
+                    $data['logo'] = asset('no-image.jpg');
                 }
             }
         } catch (QueryException $e) {
