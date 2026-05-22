@@ -350,7 +350,7 @@ class Item extends Model
                     $imageRows = [];
                     foreach ($post['images'] as $index => $file) {
                         $imageName   = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                        $file->move(public_path('uploads/items'), $imageName);
+                        $file->storeAs('items', $imageName, 'public');
                         $imageRows[] = [
                             'id'           => (string) Str::uuid(),
                             'item_id'      => $itemId,
@@ -366,9 +366,9 @@ class Item extends Model
                     DB::table('item_images')->insert($imageRows);
                 }
 
-            // ════════════════════════════════════════
-            // INSERT
-            // ════════════════════════════════════════
+                // ════════════════════════════════════════
+                // INSERT
+                // ════════════════════════════════════════
             } else {
 
                 $itemId = (string) Str::uuid();
@@ -425,7 +425,7 @@ class Item extends Model
                     $imageRows = [];
                     foreach ($post['images'] as $index => $file) {
                         $imageName   = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                        $file->move(public_path('uploads/items'), $imageName);
+                        $file->storeAs('items', $imageName, 'public');
                         $imageRows[] = [
                             'id'           => (string) Str::uuid(),
                             'item_id'      => $itemId,
@@ -480,7 +480,6 @@ class Item extends Model
 
             DB::commit();
             return true;
-
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;

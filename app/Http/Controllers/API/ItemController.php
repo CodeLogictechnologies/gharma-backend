@@ -119,7 +119,7 @@ class ItemController extends Controller
                 // images
                 'images' => $row->images
                     ? array_map(function ($img) {
-                        return url('uploads/items/' . $img);
+                        return url('storage/items/' . $img);
                     }, explode(',', $row->images))
                     : [],
 
@@ -176,115 +176,140 @@ class ItemController extends Controller
      |    — items sorted by created_at DESC, paginated.
      |      Optional: filter by category.
      ========================================================= */
-    public function latest(Request $request)
-    {
-        $request->validate([
-            'per_page'   => 'sometimes|integer|min:1|max:50',
-            'category_id' => 'sometimes|string|nullable',
-            'tab_name'    => 'sometimes|string|nullable',
-        ]);
+   public function latest(Request $request)
+{
+    $request->validate([
+        'per_page'       => 'sometimes|integer|min:1|max:50',
+        'category_id'    => 'sometimes|string|nullable',
+        'tab_name'       => 'sometimes|string|nullable',
+        'subcategory_id' => 'sometimes|string|nullable',
+    ]);
 
-        $perPage    = $request->input('per_page', 15);
-        $categoryId = $request->input('category_id');
-        $tab_name   = $request->input('tab_name');
+    $perPage        = $request->input('per_page', 15);
+    $categoryId     = $request->input('category_id');
+    $tab_name       = $request->input('tab_name');
+    $subcategory_id = $request->input('subcategory_id');
+    $categoryIds    = []; // ← initialize to avoid undefined variable error
 
-        // ── If tab_name passed, get category IDs from home_tabs ──
-        if (!empty($tab_name) && empty($categoryId)) {
-            $tab = DB::table('home_tabs')
-                ->whereRaw('LOWER(tab_name) = ?', [strtolower($tab_name)])
-                ->where('status', 'Y')
-                ->first();
+    // ── If tab_name passed, get category IDs from home_tabs ──
+    if (!empty($tab_name) && empty($categoryId)) {
+        $tab = DB::table('home_tabs')
+            ->whereRaw('LOWER(tab_name) = ?', [strtolower($tab_name)])
+            ->where('status', 'Y')
+            ->first();
 
-            if (!$tab) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'Tab not found or inactive.',
-                    'result'  => []
-                ]);
-            }
-
-            $categoryIds = DB::table('home_tab_categories')
-                ->where('home_tab_id', $tab->id)
-                ->pluck('category_id')
-                ->toArray();
-
-            if (empty($categoryIds)) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'No categories assigned to this tab.',
-                    'result'  => []
-                ]);
-            }
+        if (!$tab) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Tab not found or inactive.',
+                'result'  => []
+            ]);
         }
 
-        $query = DB::table('items as i')
-            ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
-            ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-            ->leftJoin(DB::raw('(
+        // ✅ FIXED: was chaining two pluck() which is wrong
+        $categoryIds = DB::table('home_tab_categories')
+            ->where('home_tab_id', $tab->id)
+            ->pluck('category_id')
+            ->toArray();
+
+        if (empty($categoryIds)) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'No categories assigned to this tab.',
+                'result'  => []
+            ]);
+        }
+    }
+
+    $query = DB::table('items as i')
+        ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+        ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+        ->leftJoin(DB::raw('(
             SELECT item_id, GROUP_CONCAT(image) as images
             FROM item_images
             GROUP BY item_id
         ) as im'), 'im.item_id', '=', 'i.id')
-            ->select(
-                'i.id as productid',
-                'iv.id as variationid',
-                DB::raw("CONCAT(i.title) as title"),
-                'p.price',
-                'im.images'
-            )
-            ->where('p.status', 'Y')
-            ->where('iv.status', 'Y');
+        ->select(
+            'i.id as productid',
+            'iv.id as variationid',
+            DB::raw("CONCAT(i.title) as title"),
+            'p.price',
+            'im.images'
+        )
+        ->where('p.status', 'Y')
+        ->where('iv.status', 'Y');
 
-        // ── Filter by tab's category IDs ──
-        if (!empty($categoryIds)) {
-            $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-                ->whereIn('ci.categoryid', $categoryIds);  // ← whereIn for multiple categories
-        } elseif (!empty($categoryId)) {
-            $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-                ->where('ci.categoryid', $categoryId);
-        }
+   // ── Filter logic ──
+if (!empty($categoryIds) && !empty($subcategory_id)) {
+    $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
+          ->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
+          ->whereIn('ci.categoryid', $categoryIds)
+          ->where('sci.subcategoryid', $subcategory_id);
 
-        $items = $query->distinct()->orderBy('i.created_at', 'desc')->paginate($perPage);
+} elseif (!empty($categoryIds) && !empty($categoryId)) {
+    $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
+          ->where('ci.categoryid', $categoryId);
 
-        if ($items->isEmpty()) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => 'No items found.',
-                'result'  => $this->paginateResponse($items)
-            ]);
-        }
+} elseif (!empty($categoryIds)) {
+    $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
+          ->whereIn('ci.categoryid', $categoryIds);
 
-        $baseUrl    = url('uploads/items');
-        $productIds = collect($items->items())->pluck('productid')->unique()->toArray();
+} elseif (!empty($categoryId) && !empty($subcategory_id)) {
+    $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
+          ->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
+          ->where('ci.categoryid', $categoryId)
+          ->where('sci.subcategoryid', $subcategory_id);
 
-        $allVariations = DB::table('itemvariations as iv')
-            ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-            ->select(
-                'iv.id as variationid',
-                'iv.item_id as productid',
-                DB::raw("CONCAT(iv.value) as name"),
-                'p.price'
-            )
-            ->whereIn('iv.item_id', $productIds)
-            ->where('iv.status', 'Y')
-            ->where('p.status', 'Y')
-            ->get()
-            ->groupBy('productid');
+} elseif (!empty($subcategory_id)) {
+    $query->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
+          ->where('sci.subcategoryid', $subcategory_id);
 
-        $items->getCollection()->transform(function ($item) use ($baseUrl, $allVariations) {
-            $item->images = $item->images
-                ? array_map(fn($img) => $baseUrl . '/' . trim($img), explode(',', $item->images))
-                : [];
-            $item->variations = $allVariations[$item->productid] ?? collect();
-            return $item;
-        });
+} elseif (!empty($categoryId)) {
+    $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
+          ->where('ci.categoryid', $categoryId);
+}
 
+    $items = $query->distinct()->orderBy('i.created_at', 'desc')->paginate($perPage);
+
+    if ($items->isEmpty()) {
         return response()->json([
-            'type'    => 'success',
-            'message' => 'Items fetched successfully.',
+            'type'    => 'error',
+            'message' => 'No items found.',
             'result'  => $this->paginateResponse($items)
         ]);
     }
+
+    $baseUrl    = url('storage/items');
+    $productIds = collect($items->items())->pluck('productid')->unique()->toArray();
+
+    $allVariations = DB::table('itemvariations as iv')
+        ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+        ->select(
+            'iv.id as variationid',
+            'iv.item_id as productid',
+            DB::raw("CONCAT(iv.value) as name"),
+            'p.price'
+        )
+        ->whereIn('iv.item_id', $productIds)
+        ->where('iv.status', 'Y')
+        ->where('p.status', 'Y')
+        ->get()
+        ->groupBy('productid');
+
+    $items->getCollection()->transform(function ($item) use ($baseUrl, $allVariations) {
+        $item->images = $item->images
+            ? array_map(fn($img) => $baseUrl . '/' . trim($img), explode(',', $item->images))
+            : [];
+        $item->variations = $allVariations[$item->productid] ?? collect();
+        return $item;
+    });
+
+    return response()->json([
+        'type'    => 'success',
+        'message' => 'Items fetched successfully.',
+        'result'  => $this->paginateResponse($items)
+    ]);
+}
 
     public function search(Request $request)
     {
@@ -336,7 +361,7 @@ class ItemController extends Controller
                     ->where('item_id', $item->id)
                     ->value('image as images');
                 $item->image  = $image
-                    ? request()->getSchemeAndHttpHost() . '/uploads/items/' . $image
+                    ? request()->getSchemeAndHttpHost() . '/storage/items/' . $image
                     : null;
             }
 
@@ -364,7 +389,7 @@ class ItemController extends Controller
                     ->where('item_id', $v->productid)
                     ->value('image as images');
                 $v->images    = $image
-                    ? request()->getSchemeAndHttpHost() . '/uploads/items/' . $image  // ← change here
+                    ? request()->getSchemeAndHttpHost() . '/storage/items/' . $image  // ← change here
                     : null;
             }
 
@@ -378,7 +403,7 @@ class ItemController extends Controller
             //         'c.title',
             //         DB::raw("NULL as description"),
             //         DB::raw("'category' as type"),
-            //         DB::raw("CONCAT('http://127.0.0.1:8000/uploads/categories/', c.image) as image")
+            //         DB::raw("CONCAT('http://127.0.0.1:8000/storage/categories/', c.image) as image")
             //     )
             //     ->get();
 

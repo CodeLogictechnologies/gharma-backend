@@ -99,16 +99,15 @@ class BrandController extends Controller
             $array[$i]["sno"] = $i + 1;
             $array[$i]["name"]    = $row->name;
             if (!empty($row->logo)) {
-                $imagePath = public_path('uploads/brands/' . $row->logo);
-
-                if (file_exists($imagePath)) {
-                    $imageUrl = asset('uploads/brands/' . $row->logo);
-                } else {
-                    $imageUrl = asset('no-image.jpg');
-                }
-            } else {
-                $imageUrl = asset('no-image.jpg');
-            }
+    $imagePath = storage_path('app/public/brands/' . $row->logo);
+    if (file_exists($imagePath)) {
+        $imageUrl = asset('storage/brands/' . $row->logo); // ✅ storage path
+    } else {
+        $imageUrl = asset('no-image.jpg');
+    }
+} else {
+    $imageUrl = asset('no-image.jpg');
+}
             $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
             $action = '';
 

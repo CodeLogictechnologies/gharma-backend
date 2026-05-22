@@ -92,10 +92,9 @@ class CategoryController extends Controller
                 $array[$i]["sno"] = $i + 1;
                 $array[$i]["title"]    = $row->title;
                 if (!empty($row->image)) {
-                    $imagePath = public_path('uploads/categories/' . $row->image);
-
+                    $imagePath = storage_path('app/public/categories/' . $row->image);
                     if (file_exists($imagePath)) {
-                        $imageUrl = asset('uploads/categories/' . $row->image);
+                        $imageUrl = asset('storage/categories/' . $row->image); // ✅ storage path
                     } else {
                         $imageUrl = asset('no-image.jpg');
                     }

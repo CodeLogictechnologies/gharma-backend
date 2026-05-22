@@ -18,24 +18,23 @@
         <!-- /Search -->
 
         <ul class="navbar-nav flex-row align-items-center ms-auto">
-            @php $authUser = Auth::user(); @endphp
+            @php
+                $authUser    = Auth::user();
+                $authProfile = DB::table('profiles')->where('user_id', $authUser->id)->first();
+                $navAvatar   = (!empty($authProfile->image))
+                                ? asset('storage/profiles/' . $authProfile->image)
+                                : asset('no-user.jpg');
+            @endphp
 
             <!-- User -->
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);"
                     data-bs-toggle="dropdown">
                     <div class="avatar avatar-online">
-                        @if (!empty($authUser->image))
-                            <img src="{{ asset('storage/users/' . $authUser->image) }}"
-                                alt="{{ $authUser->name }}"
-                                class="w-px-40 h-auto rounded-circle"
-                                style="width:40px;height:40px;object-fit:cover;" />
-                        @else
-                            <img src="{{ asset('no-user.jpg') }}"
-                                alt="No User"
-                                class="w-px-40 h-auto rounded-circle"
-                                style="width:40px;height:40px;object-fit:cover;" />
-                        @endif
+                        <img src="{{ $navAvatar }}"
+                             alt="{{ $authUser->name }}"
+                             class="w-px-40 h-auto rounded-circle navbar-avatar"
+                             style="width:40px;height:40px;object-fit:cover;" />
                     </div>
                 </a>
 
@@ -46,17 +45,10 @@
                             <div class="d-flex">
                                 <div class="flex-shrink-0 me-3">
                                     <div class="avatar avatar-online">
-                                        @if (!empty($authUser->image))
-                                            <img src="{{ asset('storage/users/' . $authUser->image) }}"
-                                                alt="{{ $authUser->name }}"
-                                                class="w-px-40 h-auto rounded-circle"
-                                                style="width:40px;height:40px;object-fit:cover;" />
-                                        @else
-                                            <img src="{{ asset('no-user.jpg') }}"
-                                                alt="No User"
-                                                class="w-px-40 h-auto rounded-circle"
-                                                style="width:40px;height:40px;object-fit:cover;" />
-                                        @endif
+                                        <img src="{{ $navAvatar }}"
+                                             alt="{{ $authUser->name }}"
+                                             class="w-px-40 h-auto rounded-circle navbar-avatar"
+                                             style="width:40px;height:40px;object-fit:cover;" />
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
