@@ -34,13 +34,14 @@ class SubCategory extends Model
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
 
                 // Move image to public folder
-                $file->move(public_path('uploads/subcategories'), $imageName);
+                    $file->storeAs('subcategories', $imageName, 'public');
+
             }
 
             $dataArray = [
                 'title' => $post['title'],
                 'slug' => Str::slug($post['title']) . '-' . time(),
-                'status' => 1,
+                'status' => 'Y',
                 'orgid' => $post['orgid']
             ];
 
@@ -55,12 +56,12 @@ class SubCategory extends Model
                 $oldData = SubCategory::find($post['id']);
 
                 // Delete old image if new uploaded
-                if ($imageName && $oldData && $oldData->image) {
-                    $oldPath = public_path('uploads/subcategories/' . $oldData->image);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
-                }
+              if ($imageName && $oldData && $oldData->image) {
+    $oldPath = storage_path('app/public/subcategories/' . $oldData->image);
+    if (File::exists($oldPath)) {
+        File::delete($oldPath);
+    }
+}
 
                 $dataArray['updated_at'] = Carbon::now();
 
@@ -94,7 +95,7 @@ class SubCategory extends Model
             foreach ($get['columns'] as $key => $value) {
                 $get['columns'][$key]['search']['value'] = trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
             }
-            $cond = " s.status = 1";
+            $cond = " s.status = 'Y'";
 
 
             if ($get['columns'][1]['search']['value'])
@@ -168,7 +169,7 @@ class SubCategory extends Model
     public static function getSubCategory($post)
     {
         try {
-            $result = DB::table('sub_categories')->select('id', 'title')->where('orgid', $post['orgid'])->where('status', 1)->get();
+            $result = DB::table('sub_categories')->select('id', 'title')->where('orgid', $post['orgid'])->where('status', 'Y')->get();
             return $result;
         } catch (Exception $e) {
             throw $e;

@@ -48,7 +48,7 @@ class Organization extends Model
             if (!empty($post['image'])) {
                 $file = $post['image'];
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/organizations'), $imageName);
+                $file->storeAs('organizations', $imageName, 'public');
             }
             if ($imageName) {
                 $dataArray['logo'] = $imageName;
@@ -58,8 +58,9 @@ class Organization extends Model
                 $oldData = Organization::find($post['id']);
 
                 // Delete old image if new uploaded
-                if ($imageName && $oldData && $oldData->image) {
-                    $oldPath = public_path('uploads/organizations/' . $oldData->image);
+                // ✅ Delete old image from storage
+                if ($imageName && $oldData && $oldData->logo) {
+                    $oldPath = storage_path('app/public/organizations/' . $oldData->logo);
                     if (File::exists($oldPath)) {
                         File::delete($oldPath);
                     }

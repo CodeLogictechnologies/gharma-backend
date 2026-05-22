@@ -34,7 +34,7 @@ class Brand extends Model
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
 
                 // Move image to public folder
-                $file->move(public_path('uploads/brands'), $imageName);
+                $file->storeAs('brands', $imageName, 'public');
             }
 
             $dataArray = [
@@ -56,14 +56,13 @@ class Brand extends Model
                 // ✅ Update case
                 $oldData = Brand::find($post['id']);
 
-                // Delete old image if new uploaded
-                if ($imageName && $oldData && $oldData->image) {
-                    $oldPath = public_path('uploads/brands/' . $oldData->image);
+                // ✅ Delete old image from storage
+                if ($imageName && $oldData && $oldData->logo) {
+                    $oldPath = storage_path('app/public/brands/' . $oldData->logo);
                     if (File::exists($oldPath)) {
                         File::delete($oldPath);
                     }
                 }
-
                 $dataArray['updated_at'] = Carbon::now();
                 $dataArray['updatedby'] = $post['userid'];
 
@@ -160,7 +159,7 @@ class Brand extends Model
     public static function getBrand($post)
     {
         try {
-            $result = DB::table('brands')->select('id', 'name')->where('orgid', $post['orgid'])->where('status', 1)->get();
+            $result = DB::table('brands')->select('id', 'name')->where('orgid', $post['orgid'])->where('status', 'Y')->get();
 
             return $result;
         } catch (Exception $e) {
