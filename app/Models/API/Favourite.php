@@ -35,7 +35,11 @@ class Favourite extends Model
 
     public static function getListData($post)
     {
-        $result = DB::table('favourites as f')
+        $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
+        $page    = isset($post['page'])     ? (int)$post['page']     : 1;
+        $offset  = ($page - 1) * $perPage;
+
+        $query = DB::table('favourites as f')
             ->join('itemvariations as iv', 'iv.id', '=', 'f.variationid')
             ->join('items as i', 'i.id', '=', 'iv.item_id')
             ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
@@ -43,43 +47,58 @@ class Favourite extends Model
             ->where('f.orgid', $post['orgid'])
             ->where('f.status', 'Y')
             ->select(
-                DB::raw('MIN(f.id) as favouriteid'), // ✅ avoid duplicate ids
+                DB::raw('MIN(f.id) as favouriteid'),
                 'i.id as productid',
                 'p.price',
                 'iv.id as variationid',
                 DB::raw("CONCAT(i.title, ' ', iv.value) as itemname")
             )
-            ->groupBy('iv.id', 'i.id', 'i.title', 'iv.value', 'p.price') // ✅ remove duplicates
-            ->get();
+            ->groupBy('iv.id', 'i.id', 'i.title', 'iv.value', 'p.price');
 
+        $total   = (clone $query)->count();
+        $result  = $query->offset($offset)->limit($perPage)->get();
 
         if ($result->isEmpty()) {
-            throw new \Exception('No favourite item found.');
+            return [
+                'data'       => [],
+                'pagination' => [
+                    'current_page' => $page,
+                    'last_page'    => 1,
+                    'per_page'     => $perPage,
+                    'total'        => 0,
+                    'has_more'     => false,
+                    'next_page'    => null,
+                    'prev_page'    => null,
+                ]
+            ];
         }
 
-        // ✅ Get product IDs
         $productIds = $result->pluck('productid')->unique();
 
-        // ✅ Get ONLY FIRST image per product
         $images = DB::table('item_images')
             ->whereIn('item_id', $productIds)
-            ->orderBy('created_at') // first image
+            ->orderBy('created_at')
             ->get()
             ->groupBy('item_id');
 
-        // ✅ Attach ONLY first image
         $result = $result->map(function ($item) use ($images) {
-
             $firstImage = optional($images[$item->productid]->first())->image ?? null;
-
-            $item->image = $firstImage
-                ? url('uploads/items/' . $firstImage)
-                : null;
-
+            $item->image = $firstImage ? url('uploads/items/' . $firstImage) : null;
             return $item;
         });
 
-        return $result;
+        return [
+            'data'       => $result,
+            'pagination' => [
+                'current_page' => $page,
+                'last_page'    => $total > 0 ? (int)ceil($total / $perPage) : 1,
+                'per_page'     => $perPage,
+                'total'        => $total,
+                'has_more'     => ($page * $perPage) < $total,
+                'next_page'    => ($page * $perPage) < $total ? $page + 1 : null,
+                'prev_page'    => $page > 1 ? $page - 1 : null,
+            ]
+        ];
     }
     public static function deleteFavourite($post)
     {
