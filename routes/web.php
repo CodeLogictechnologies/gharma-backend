@@ -20,6 +20,7 @@ use App\Http\Controllers\BackPanel\RetailerPriceController;
 use App\Http\Controllers\BackPanel\RoleController;
 use App\Http\Controllers\BackPanel\SalesReportController;
 use App\Http\Controllers\BackPanel\SiteSettingController;
+use App\Http\Controllers\BackPanel\DriverController;
 use App\Http\Controllers\BackPanel\StoreController;
 use App\Http\Controllers\BackPanel\SubCategoryController;
 use App\Http\Controllers\BackPanel\UserController;
@@ -100,6 +101,17 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/organization/save', [OrganizationController::class, 'save'])->name('organization.save');
         Route::post('/delete', [OrganizationController::class, 'delete'])->name('organization.delete');
         Route::post('/view', [OrganizationController::class, 'view'])->name('organization.view');
+
+        Route::group(['prefix' => 'driver'], function () {
+            Route::get('/', [DriverController::class, 'index'])->name('driver');
+            Route::post('/tab', [DriverController::class, 'tabs'])->name('driver.tab');
+            Route::get('/list', [DriverController::class, 'list'])->name('driver.list');
+            Route::any('/form', [DriverController::class, 'form'])->name('driver.form');
+            Route::post('/save', [DriverController::class, 'save'])->name('driver.save');
+            Route::post('/delete', [DriverController::class, 'delete'])->name('driver.delete');
+            Route::post('/view', [DriverController::class, 'view'])->name('driver.view');
+            Route::post('/status-update', [DriverController::class, 'updateStatus'])->name('driver.status');
+        });
 
         Route::group(['prefix' => 'role'], function () {
             Route::get('/', [RoleController::class, 'index'])->name('role');

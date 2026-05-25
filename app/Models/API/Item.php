@@ -76,63 +76,80 @@ class Item extends Model
         })->values();
         return $result;
     }
-public static function getUserOrderHistory($post)
-{
-    $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
-    $page    = isset($post['page'])     ? (int)$post['page']     : 1;
-    $offset  = ($page - 1) * $perPage;
+    public static function getUserOrderHistory($post)
+    {
+        $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
+        $page    = isset($post['page'])     ? (int)$post['page']     : 1;
+        $offset  = ($page - 1) * $perPage;
 
-    $query = DB::table('order_details as od')
-        ->join('itemvariations as iv', 'iv.id', '=', 'od.variation_id')
-        ->join('items as i', 'i.id', '=', 'iv.item_id')
-        ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
-        ->leftJoin(DB::raw('(
+        $query = DB::table('order_details as od')
+            ->join('itemvariations as iv', 'iv.id', '=', 'od.variation_id')
+            ->join('items as i', 'i.id', '=', 'iv.item_id')
+            ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
+            ->leftJoin(DB::raw('(
             SELECT item_id, MIN(image) as image
             FROM item_images
             GROUP BY item_id
         ) as im'), 'im.item_id', '=', 'i.id')
-        ->select(
-            DB::raw("CONCAT(i.title, ' ', iv.value) as productname"),
-            DB::raw("iv.value as variation"),
-            DB::raw("CONCAT('" . url('uploads/items') . "/', im.image) as image"),
-            'od.quantity',
-            'od.order_detail_total_price as price',
-            'om.order_status',
-            'od.created_at as time'
-        )
-        ->where('od.userid', $post['userid'])
-        ->orderBy('od.created_at', 'desc');
+            ->select(
+                DB::raw("CONCAT(i.title, ' ', iv.value) as productname"),
+                DB::raw("iv.value as variation"),
+                DB::raw("CONCAT('" . url('uploads/items') . "/', im.image) as image"),
+                'od.quantity',
+                'od.order_detail_total_price as price',
+                'om.order_status',
+                'od.created_at as time'
+            )
+            ->where('od.userid', $post['userid'])
+            ->orderBy('od.created_at', 'desc');
 
-    $total   = (clone $query)->count();   // ← clone before count()
-    $records = $query->offset($offset)->limit($perPage)->get();  // ← then fetch
+        $total   = (clone $query)->count();   // ← clone before count()
+        $records = $query->offset($offset)->limit($perPage)->get();  // ← then fetch
 
-    return [
-        'data'       => $records,
-        'pagination' => [
-            'current_page' => $page,
-            'last_page'    => $total > 0 ? (int)ceil($total / $perPage) : 1,
-            'per_page'     => $perPage,
-            'total'        => $total,
-            'has_more'     => ($page * $perPage) < $total,
-            'next_page'    => ($page * $perPage) < $total ? $page + 1 : null,
-            'prev_page'    => $page > 1 ? $page - 1 : null,
-        ]
-    ];
-}
+        return [
+            'data'       => $records,
+            'pagination' => [
+                'current_page' => $page,
+                'last_page'    => $total > 0 ? (int)ceil($total / $perPage) : 1,
+                'per_page'     => $perPage,
+                'total'        => $total,
+                'has_more'     => ($page * $perPage) < $total,
+                'next_page'    => ($page * $perPage) < $total ? $page + 1 : null,
+                'prev_page'    => $page > 1 ? $page - 1 : null,
+            ]
+        ];
+    }
 
     public static function getUserRecommendation($post)
     {
         try {
-            $result = DB::table('search_histories')
+            $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
+            $page    = isset($post['page'])     ? (int)$post['page']     : 1;
+            $offset  = ($page - 1) * $perPage;
+
+            $query = DB::table('search_histories')
                 ->where('userid', $post['userid'])
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
                 ->select('id as searchid', 'text')
                 ->groupBy('text', 'id')
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get();
-            return $result;
+                ->orderBy('created_at', 'desc');
+
+            $total   = (clone $query)->count();
+            $records = $query->offset($offset)->limit($perPage)->get();
+
+            return [
+                'data'       => $records,
+                'pagination' => [
+                    'current_page' => $page,
+                    'last_page'    => $total > 0 ? (int)ceil($total / $perPage) : 1,
+                    'per_page'     => $perPage,
+                    'total'        => $total,
+                    'has_more'     => ($page * $perPage) < $total,
+                    'next_page'    => ($page * $perPage) < $total ? $page + 1 : null,
+                    'prev_page'    => $page > 1 ? $page - 1 : null,
+                ]
+            ];
         } catch (\Exception $e) {
             throw $e;
         }
