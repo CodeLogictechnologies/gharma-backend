@@ -65,6 +65,8 @@ class FavouriteController extends Controller
 
                     $post['orgid']  = $profile['orgid'] ?? null;
                     $post['userid'] = $profile['userid'] ?? null;
+                    $post['page']     = $request->get('page', 1);
+                    $post['per_page'] = $request->get('per_page', 10);
                 } else {
                     return response()->json([
                         'type' => 'error',
@@ -80,17 +82,23 @@ class FavouriteController extends Controller
                 ], 401);
             }
 
-            // ✅ Get data
-            $data = Favourite::getListData($post);
+            $getData = Favourite::getListData($post);
 
-            // ✅ Empty case (optional)
-            if (empty($data) || count($data) == 0) {
+            if (empty($getData['data']) || count($getData['data']) == 0) {
                 return response()->json([
-                    'type' => 'success',
-                    'message' => 'No favourite items found',
-                    'favourite' => []
+                    'type'       => 'success',
+                    'message'    => 'No favourite items found',
+                    'favourite'  => [],
+                    'pagination' => $getData['pagination'],
                 ], 200);
             }
+
+            return response()->json([
+                'type'       => 'success',
+                'message'    => $message,
+                'favourite'  => $getData['data'],
+                'pagination' => $getData['pagination'],
+            ], 200);
 
             return response()->json([
                 'type' => 'success',
