@@ -179,7 +179,7 @@ class ItemController extends Controller
     public function latest(Request $request)
     {
         $request->validate([
-            '5'       => 'sometimes|integer|min:1|max:50',
+            'per_page'       => 'sometimes|integer|min:1|max:50',
             'category_id'    => 'sometimes|string|nullable',
             'tab_name'       => 'sometimes|string|nullable',
             'subcategory_id' => 'sometimes|string|nullable',
@@ -264,7 +264,7 @@ class ItemController extends Controller
                 ->where('ci.categoryid', $categoryId);
         }
 
-        $items = $query->distinct()->orderBy('i.created_at', 'desc')->paginate($perPage);
+        $items = $query->distinct()->paginate($perPage);
 
         if ($items->isEmpty()) {
             return response()->json([

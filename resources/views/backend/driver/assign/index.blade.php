@@ -1,13 +1,13 @@
 @extends('layouts.main')
-@section('title', 'Store')
+@section('title', 'Assign Driver List')
 @section('content')
 
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="card">
             <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-                <h5 class="mb-0">Store List</h5>
+                <h5 class="mb-0">Assign Driver List</h5>
                 <button type="button" id="addStore" class="btn btn-primary">
-                    <i class="bx bx-plus me-1"></i> Add Store
+                    <i class="bx bx-plus me-1"></i> Add Order To Driver
                 </button>
             </div>
 
@@ -22,8 +22,6 @@
                             {{-- <th>Country</th> --}}
                             <th>City</th>
                             <th>Address</th>
-                            <th>Latitude</th>
-<th>Longitude</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -130,12 +128,6 @@
                     {
                         data: 'address'
                     },
-                    {
-    data: 'latitude'
-},
-{
-    data: 'longitude'
-},
                     {
                         data: 'action'
                     },

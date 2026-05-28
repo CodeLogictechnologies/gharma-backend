@@ -8,6 +8,7 @@ use App\Models\BackPanel\Order;
 use Illuminate\Database\QueryException;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use App\Services\FirebaseService;
 
 class OrderController extends Controller
 {
@@ -57,7 +58,21 @@ class OrderController extends Controller
                 {$options}
             </select>";
 
-            $action  = '<a href="javascript:;" title="View Order" class="tooltipdiv viewOrder" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+            $action  = '<a href="javascript:;" title="View Order"
+                            class="tooltipdiv viewOrder"
+                            style="color:green;"
+                            data-id="' . $row->id . '">
+                            <i class="bx bx-show-alt"></i></a>';
+
+                                        $action .= ' &nbsp;
+
+                            <a href="javascript:;"
+                            title="Assign Driver"
+                            class="tooltipdiv assignDriver"
+                            style="color:blue;"
+                            data-id="' . $row->id . '">
+                            <i class="bx bx-user-plus"></i>
+                            </a>';
             $array[$i]["action"] = $action;
             $i++;
         }
@@ -74,51 +89,78 @@ class OrderController extends Controller
 
     public function view(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $orderDetails = Order::getData($post);
-        $data = [
-            'orderDetails' => $orderDetails,
-        ];
-        $data['type'] = 'success';
-        $data['message'] = 'Successfully fetched data of order.';
-        // } catch (QueryException $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $e->getMessage();
-        // }
+        try {
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+            $orderDetails = Order::getData($post);
+            $data = [
+                'orderDetails' => $orderDetails,
+            ];
+            $data['type'] = 'success';
+            $data['message'] = 'Successfully fetched data of order.';
+        } catch (QueryException $e) {
+            $data['type'] = 'error';
+            $data['message'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['type'] = 'error';
+            $data['message'] = $e->getMessage();
+        }
         return view('backend.order.view', $data);
     }
 
-    public function updateStatus(Request $request)
+
+    public function updateStatus(Request $request, FirebaseService $firebase)
     {
         // ✅ Validate input
         $request->validate([
             'id' => 'required',
-            // 'status' => 'required|in:Pending,Processing,Completed,Cancelled'
+            'status' => 'required'
         ]);
 
-        // ✅ Update query
+        // ✅ Update order status
         $updated = DB::table('order_masters')
             ->where('id', $request->id)
             ->update([
                 'order_status' => $request->status
             ]);
 
-        // ✅ Check result
+        $updateLoyalty = DB::table('loyalties')
+            ->where('ordermasterid', $request->id)
+            ->update([
+                'order_status' => $request->status
+            ]);
+
         if ($updated) {
+
+            $order = DB::table('order_masters')
+                ->where('id', $request->id)
+                ->first();
+
+            $token = DB::table('user_devices')
+                ->where('user_id', $order->userid)
+                ->value('device_token');
+
+            if ($token) {
+                $firebase->sendNotification(
+                    $token,
+                    "Order Update",
+                    "Your order status changed to " . $request->status,
+                    [
+                        'order_id' => $request->id,
+                        'status' => $request->status
+                    ]
+                );
+            }
+
             return response()->json([
                 'type' => 'success',
                 'message' => 'Order status updated successfully'
             ]);
-        } else {
-            return response()->json([
-                'type' => 'error',
-                'message' => 'No changes made or invalid ID'
-            ]);
         }
+
+        return response()->json([
+            'type' => 'error',
+            'message' => 'No changes made or invalid ID'
+        ]);
     }
 }

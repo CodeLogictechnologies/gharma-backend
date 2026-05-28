@@ -29,6 +29,8 @@ use App\Http\Controllers\BackPanel\VendorController;
 use App\Http\Controllers\BackPanel\WholesalerPriceController;
 use App\Http\Controllers\BackPanel\ItemImageController;
 use App\Http\Controllers\BackPanel\HomeTabController;
+use App\Http\Controllers\BackPanel\InvoiceController;
+use App\Http\Controllers\BackPanel\LoyaltySetupController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SocialAuthController;
@@ -104,10 +106,9 @@ Route::group(['middleware' => ['auth']], function () {
 
         Route::group(['prefix' => 'driver'], function () {
             Route::get('/', [DriverController::class, 'index'])->name('driver');
-            Route::post('/tab', [DriverController::class, 'tabs'])->name('driver.tab');
-            Route::get('/list', [DriverController::class, 'list'])->name('driver.list');
-            Route::any('/form', [DriverController::class, 'form'])->name('driver.form');
-            Route::post('/save', [DriverController::class, 'save'])->name('driver.save');
+            Route::get('/assign', [DriverController::class, 'index'])->name('assign.driver');
+            Route::any('/form', [DriverController::class, 'form'])->name('assign.driver.form');
+            Route::post('/save', [DriverController::class, 'save'])->name('assign.driver.save');
             Route::post('/delete', [DriverController::class, 'delete'])->name('driver.delete');
             Route::post('/view', [DriverController::class, 'view'])->name('driver.view');
             Route::post('/status-update', [DriverController::class, 'updateStatus'])->name('driver.status');
@@ -325,8 +326,28 @@ Route::group(['middleware' => ['auth']], function () {
         // AJAX data endpoint for live filter updates
         Route::get('/heatmap/data', [HeatmapController::class, 'data'])
             ->name('admin.heatmap.data');
+
+        Route::group(['prefix' => 'invoice'], function () {
+            Route::get('/', [InvoiceController::class, 'index'])
+                ->name('invoice');
+            Route::get('/list', [InvoiceController::class, 'list'])->name('invoice.list');
+
+            Route::get('/orders/{id}/invoice/download', [InvoiceController::class, 'download'])
+                ->name('invoice.download');
+
+            Route::get('/orders/{id}/invoice/preview', [InvoiceController::class, 'preview'])
+                ->name('invoice.preview');
+        });
+
+        Route::group(['prefix' => 'loyalty'], function () {
+            Route::get('/', [LoyaltySetupController::class, 'index'])->name('loyalty');
+            Route::post('/list', [LoyaltySetupController::class, 'list'])->name('loyalty.list');
+            Route::post('/save', [LoyaltySetupController::class, 'save'])->name('loyalty.save');
+            Route::post('/delete', [LoyaltySetupController::class, 'delete'])->name('loyalty.delete');
+        });
     });
 });
+
 
 Route::get('auth/{provider}/redirect',  [SocialAuthController::class, 'redirect'])->name('admin.sitesetting');
 Route::get('auth/{provider}/call-back', [SocialAuthController::class, 'callback'])->name('admin.sitesetting');

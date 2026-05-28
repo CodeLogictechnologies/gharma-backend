@@ -16,15 +16,15 @@ class Userdevicetoken extends Model
     public static function saveDate($post)
     {
         try {
-            $post['mobilenumber'] = '9876543210';
-            $post['devicetoken'] = 'devicetoken';
+            // $post['mobilenumber'] = $post['mobilenumber'];
+            // $post['devicetoken'] = $post['devicetoken'];
             $post['devicename'] = 'iphone14';
             $post['devicetype'] = 'apple';
 
             $insertUserAddress = [
                 'id'         => (string) Str::uuid(),
                 'userid'     => $post['userid'],
-                'mobilenumber'     => $post['mobilenumber'],
+                'mobilenumber'     => $post['phone'],
                 'devicetoken'     => $post['devicetoken'],
                 'devicename'     => $post['devicename'],
                 'devicetype'      => $post['devicetype'],

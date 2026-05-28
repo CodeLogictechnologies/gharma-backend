@@ -22,8 +22,6 @@
                             {{-- <th>Country</th> --}}
                             <th>City</th>
                             <th>Address</th>
-                            <th>Latitude</th>
-<th>Longitude</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -130,12 +128,6 @@
                     {
                         data: 'address'
                     },
-                    {
-    data: 'latitude'
-},
-{
-    data: 'longitude'
-},
                     {
                         data: 'action'
                     },

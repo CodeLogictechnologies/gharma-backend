@@ -23,6 +23,8 @@ use App\Http\Controllers\BackPanel\OtpController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\API\SearchHistoryController;
+use App\Http\Controllers\AssignDriverController;
+use App\Http\Controllers\BackPanel\AssignDriverController as BackPanelAssignDriverController;
 use App\Http\Controllers\TransactionController;
 
 Route::get('/hello', function () {
@@ -133,4 +135,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/admin/chat/thread/{user}', [APIChatController::class, 'thread']);
         Route::post('/admin/chat/reply',        [APIChatController::class, 'store']);
     });
+
+    Route::get('/driver/getorderlist',       [BackPanelAssignDriverController::class, 'getOrderList']);
+    Route::get('/driver/orders', [BackPanelAssignDriverController::class, 'getOrderDetail']);
 });

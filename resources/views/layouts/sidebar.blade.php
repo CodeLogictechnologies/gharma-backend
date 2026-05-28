@@ -28,12 +28,12 @@
         </li>
 
         <!-- Organization -->
-        <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
             <a href="{{ route('organization') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-buildings"></i>
                 <div>Organization</div>
             </a>
-        </li>
+        </li> --}}
 
         {{-- Driver --}}
         <li class="menu-item {{ request()->routeIs('driver') ? 'active' : '' }}">
@@ -49,7 +49,6 @@
                 <div>Permission</div>
             </a>
         </li>
-
 
         <!-- Role -->
         <li class="menu-item {{ request()->routeIs('role') ? 'active' : '' }}">
@@ -74,6 +73,181 @@
             </a>
         </li>
 
+        <!-- Category / Brand / Item -->
+        <li
+            class="menu-item {{ request()->routeIs('category') || request()->routeIs('brand') || request()->routeIs('item') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-category"></i>
+                <div>Category / Brand / Item</div>
+            </a>
+
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('category') ? 'active' : '' }}">
+                    <a href="{{ route('category') }}" class="menu-link">
+                        <i class="bx bx-category-alt me-2"></i>
+                        <div>Category</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('brand') ? 'active' : '' }}">
+                    <a href="{{ route('brand') }}" class="menu-link">
+                        <i class="bx bx-purchase-tag me-2"></i>
+                        <div>Brand</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('item') ? 'active' : '' }}">
+                    <a href="{{ route('item') }}" class="menu-link">
+                        <i class="bx bx-box me-2"></i>
+                        <div>Item</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Users -->
+        <li class="menu-item {{ request()->routeIs('user') ? 'active' : '' }}">
+            <a href="{{ route('user') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-user"></i>
+                <div>Users</div>
+            </a>
+        </li>
+
+        <!-- Assign Drive -->
+        <li
+            class="menu-item {{ request()->routeIs('driver') || request()->routeIs('assign.driver') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
+                <div>Drive</div>
+            </a>
+
+            <ul class="menu-sub">
+
+                <li class="menu-item {{ request()->routeIs('driver') ? 'active' : '' }}">
+                    <a href="{{ route('driver') }}" class="menu-link">
+                        <i class="bx bx-trending-up me-2"></i>
+                        <div>Driver List</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('assign.driver') ? 'active' : '' }}">
+                    <a href="{{ route('assign.driver') }}" class="menu-link">
+                        <i class="bx bx-package me-2"></i>
+                        <div>Assign Drive</div>
+                    </a>
+                </li>
+
+
+            </ul>
+        </li>
+
+
+        <!-- Inventory -->
+        <li class="menu-item {{ request()->routeIs('inventory') ? 'active' : '' }}">
+            <a href="{{ route('inventory') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-store"></i>
+                <div>Inventory</div>
+            </a>
+        </li>
+
+        <!-- Vendor -->
+        <li class="menu-item {{ request()->routeIs('vendor.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-group"></i>
+                <div>Vendor</div>
+            </a>
+
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('vendor.info') ? 'active' : '' }}">
+                    <a href="{{ route('vendor.info') }}" class="menu-link">
+                        <i class="bx bx-id-card me-2"></i>
+                        <div>Vendor Info</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Price Management -->
+        <li
+            class="menu-item {{ request()->routeIs('retailer') || request()->routeIs('wholesaler') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-dollar-circle"></i>
+                <div>Price Management</div>
+            </a>
+
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('retailer') ? 'active' : '' }}">
+                    <a href="{{ route('retailer') }}" class="menu-link">
+                        <i class="bx bx-user-pin me-2"></i>
+                        <div>Retailer</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('wholesaler') ? 'active' : '' }}">
+                    <a href="{{ route('wholesaler') }}" class="menu-link">
+                        <i class="bx bx-network-chart me-2"></i>
+                        <div>Wholesaler</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Home Tab -->
+        <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
+            <a href="{{ route('hometab') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-circle"></i>
+                <div>Home Tab</div>
+            </a>
+        </li>
+
+
+        <!-- Discount / Loyalty -->
+        <li
+            class="menu-item {{ request()->routeIs('loyalty') || request()->routeIs('discount') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
+                <div>Discount / Loyalty</div>
+            </a>
+
+            <ul class="menu-sub">
+
+                <li class="menu-item {{ request()->routeIs('discount') ? 'active' : '' }}">
+                    <a href="{{ route('discount') }}" class="menu-link">
+                        <i class="bx bx-trending-up me-2"></i>
+                        <div>Discount</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('loyalty') ? 'active' : '' }}">
+                    <a href="{{ route('loyalty') }}" class="menu-link">
+                        <i class="bx bx-package me-2"></i>
+                        <div>Loyalty</div>
+                    </a>
+                </li>
+
+
+            </ul>
+        </li>
+
+
+        <!-- Order -->
+        <li class="menu-item {{ request()->routeIs('order') ? 'active' : '' }}">
+            <a href="{{ route('order') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-cart"></i>
+                <div>Order</div>
+            </a>
+        </li>
+
+        {{-- Invoice --}}
+        <li class="menu-item {{ request()->routeIs('invoice') ? 'active' : '' }}">
+            <a href="{{ route('invoice') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-receipt"></i>
+                <div>Invoice</div>
+            </a>
+        </li>
+
+
+
         <!-- Refund -->
         <li class="menu-item {{ request()->routeIs('refund') ? 'active' : '' }}">
             <a href="{{ route('refund') }}" class="menu-link">
@@ -81,8 +255,6 @@
                 <div>Refund</div>
             </a>
         </li>
-
-
 
         <!-- Report -->
         <li
@@ -121,86 +293,6 @@
         </li>
 
 
-        <!-- Users -->
-        <li class="menu-item {{ request()->routeIs('user') ? 'active' : '' }}">
-            <a href="{{ route('user') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-user"></i>
-                <div>Users</div>
-            </a>
-        </li>
-
-        <!-- Category / Brand / Item -->
-        <li
-            class="menu-item {{ request()->routeIs('category') || request()->routeIs('brand') || request()->routeIs('item') ? 'active open' : '' }}">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-category"></i>
-                <div>Category / Brand / Item</div>
-            </a>
-
-            <ul class="menu-sub">
-                <li class="menu-item {{ request()->routeIs('category') ? 'active' : '' }}">
-                    <a href="{{ route('category') }}" class="menu-link">
-                        <i class="bx bx-category-alt me-2"></i>
-                        <div>Category</div>
-                    </a>
-                </li>
-
-                <li class="menu-item {{ request()->routeIs('brand') ? 'active' : '' }}">
-                    <a href="{{ route('brand') }}" class="menu-link">
-                        <i class="bx bx-purchase-tag me-2"></i>
-                        <div>Brand</div>
-                    </a>
-                </li>
-
-                <li class="menu-item {{ request()->routeIs('item') ? 'active' : '' }}">
-                    <a href="{{ route('item') }}" class="menu-link">
-                        <i class="bx bx-box me-2"></i>
-                        <div>Item</div>
-                    </a>
-                </li>
-            </ul>
-        </li>
-
-        <!-- Order -->
-        <li class="menu-item {{ request()->routeIs('order') ? 'active' : '' }}">
-            <a href="{{ route('order') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-cart"></i>
-                <div>Order</div>
-            </a>
-        </li>
-
-        <li class="menu-item {{ request()->routeIs('discount') ? 'active' : '' }}">
-            <a href="{{ route('discount') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
-                <div>Discount</div>
-            </a>
-        </li>
-
-        <!-- Inventory -->
-        <li class="menu-item {{ request()->routeIs('inventory') ? 'active' : '' }}">
-            <a href="{{ route('inventory') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-store"></i>
-                <div>Inventory</div>
-            </a>
-        </li>
-
-        <!-- Vendor -->
-        <li class="menu-item {{ request()->routeIs('vendor.*') ? 'active open' : '' }}">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-group"></i>
-                <div>Vendor</div>
-            </a>
-
-            <ul class="menu-sub">
-                <li class="menu-item {{ request()->routeIs('vendor.info') ? 'active' : '' }}">
-                    <a href="{{ route('vendor.info') }}" class="menu-link">
-                        <i class="bx bx-id-card me-2"></i>
-                        <div>Vendor Info</div>
-                    </a>
-                </li>
-            </ul>
-        </li>
-
         <!-- Notification -->
         <li class="menu-item {{ request()->routeIs('notification') ? 'active' : '' }}">
             <a href="{{ route('notification') }}" class="menu-link">
@@ -208,34 +300,6 @@
                 <div>Notification</div>
             </a>
         </li>
-
-        <!-- Price Management -->
-        <li
-            class="menu-item {{ request()->routeIs('retailer') || request()->routeIs('wholesaler') ? 'active open' : '' }}">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-dollar-circle"></i>
-                <div>Price Management</div>
-            </a>
-
-            <ul class="menu-sub">
-                <li class="menu-item {{ request()->routeIs('retailer') ? 'active' : '' }}">
-                    <a href="{{ route('retailer') }}" class="menu-link">
-                        <i class="bx bx-user-pin me-2"></i>
-                        <div>Retailer</div>
-                    </a>
-                </li>
-
-                <li class="menu-item {{ request()->routeIs('wholesaler') ? 'active' : '' }}">
-                    <a href="{{ route('wholesaler') }}" class="menu-link">
-                        <i class="bx bx-network-chart me-2"></i>
-                        <div>Wholesaler</div>
-                    </a>
-                </li>
-            </ul>
-        </li>
-
-        <!-- Discount Management -->
-
 
 
     </ul>

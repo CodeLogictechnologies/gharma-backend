@@ -32,7 +32,6 @@ class Category extends Model
 
                 // Move image to public folder
                 $file->storeAs('categories', $imageName, 'public');
-
             }
 
             $dataArray = [
@@ -52,13 +51,13 @@ class Category extends Model
                 // ✅ Update case
                 $oldData = Category::find($post['id']);
 
-// ✅ Delete old image from storage
-if ($imageName && $oldData && $oldData->image) {
-    $oldPath = storage_path('app/public/categories/' . $oldData->image);
-    if (File::exists($oldPath)) {
-        File::delete($oldPath);
-    }
-}
+                // ✅ Delete old image from storage
+                if ($imageName && $oldData && $oldData->image) {
+                    $oldPath = storage_path('app/public/categories/' . $oldData->image);
+                    if (File::exists($oldPath)) {
+                        File::delete($oldPath);
+                    }
+                }
                 $dataArray['updated_at'] = Carbon::now();
 
                 if (!Category::where('id', $post['id'])->update($dataArray)) {
@@ -66,7 +65,6 @@ if ($imageName && $oldData && $oldData->image) {
                 }
             } else {
 
-                // ✅ Insert case
                 $dataArray['id'] = (string) Str::uuid();
 
                 $dataArray['created_at'] = Carbon::now();
