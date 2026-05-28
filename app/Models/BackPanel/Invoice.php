@@ -4,13 +4,21 @@ namespace App\Models\BackPanel;
 
 use Illuminate\Database\Eloquent\Model;
 use Exception;
-use Illuminate\Support\Facades\DB;
 
-
-class Order extends Model
+class Invoice extends Model
 {
-    protected $keyType = 'string';
+    protected $table = 'invoices';
+
+    protected $fillable = [
+        'ordermasterid',
+        'orgid',
+        'invoicenumber',
+        'postedby',
+        'updatedby',
+    ];
     public $incrementing = false;
+    protected $keyType = 'string';
+
     public static function list($post)
     {
         try {
@@ -40,8 +48,10 @@ class Order extends Model
 
             $query = Order::from('order_masters as om')
                 ->join('users as u', 'u.id', '=', 'om.userid')
+                ->leftJoin('invoices as i', 'i.ordermasterid', '=', 'om.id')
                 ->selectRaw("
                         om.id,
+                        i.invoicenumber,
                         om.order_status,
                         u.name as username,
                         om.created_at,
@@ -65,58 +75,6 @@ class Order extends Model
             return $ndata;
         } catch (Exception $e) {
             throw $e;
-        }
-    }
-
-    public static function getData($post)
-    {
-        $result = DB::table('order_details as od')
-            ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
-            ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
-            ->join('items as i', 'i.id', '=', 'v.item_id')
-            ->where('od.ordermasterid', $post['id'])
-            ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price')
-            ->get();
-        return  $result;
-    }
-
-    public static function getDataInvoice($post)
-    {
-        try {
-
-            $order = DB::table('order_masters as om')
-                ->join('users as u', 'u.id', '=', 'om.userid')
-                ->leftJoin('user_addresses as ad', 'ad.id', '=', 'om.addressid')
-                ->where('om.id', $post['id'])
-                ->select(
-                    'om.*',
-                    'u.name',
-                    'u.email',
-                    'u.phone',
-                    'ad.address_name'
-                )
-                ->first();
-
-            if (!$order) {
-                return null;
-            }
-
-            $order->items = DB::table('order_details as od')
-                ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
-                ->join('items as i', 'i.id', '=', 'v.item_id')
-                ->where('od.ordermasterid', $post['id'])
-                ->select(
-                    'i.title',
-                    'v.value',
-                    'od.price',
-                    'od.quantity',
-                    'od.order_detail_total_price'
-                )
-                ->get();
-
-            return $order;
-        } catch (\Exception $e) {
-            return null;
         }
     }
 }

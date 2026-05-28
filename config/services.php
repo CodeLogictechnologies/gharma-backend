@@ -42,9 +42,13 @@ return [
     ],
 
     'facebook' => [
-        'client_id'     => env('FACEBOOK_CLIENT_ID'),     // ✅ all uppercase
-        'client_secret' => env('FACEBOOK_CLIENT_SECRET'), // ✅ all uppercase
-        'redirect'      => env('FACEBOOK_REDIRECT_URI'),  // ✅ correct key name
+        'client_id'     => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect'      => env('FACEBOOK_REDIRECT_URI'),
+    ],
+
+    'firebase' => [
+        'credentials' => storage_path('app/firebase/firebase.json'),
     ],
 
 ];

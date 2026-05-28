@@ -51,7 +51,7 @@ class Order extends Model
             }
             // ── Build Order Details Array ──────────────────────
             $insertOrderDetails = [];
-            $variationIds       = []; // collect variation ids for cart cleanup
+            $variationIds       = [];
 
             foreach ($post['items'] as $item) {
                 $insertOrderDetails[] = [
@@ -65,10 +65,9 @@ class Order extends Model
                     'created_at'    => Carbon::now(),
                 ];
 
-                $variationIds[] = $item['variation_id']; // collect for cart delete
+                $variationIds[] = $item['variation_id'];
             }
 
-            // ── Insert Order Details (outside loop) ────────────
             if (!OrderDetail::insert($insertOrderDetails)) {
                 throw new \Exception("Couldn't save order details.");
             }
@@ -82,8 +81,53 @@ class Order extends Model
                 ->where('userid', $post['userid'])
                 ->whereIn('variation_id', $variationIds)
                 ->where('status', 'Y')
-                ->update($cartArray);
+                ->delete();
+            // ->update($cartArray);
+            
+            $setup = DB::table('loyalty_setups')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->where('minprice', '<=', $post['total'])
+                ->where('maxprice', '>=', $post['total'])
+                ->first();
 
+            if ($setup) {
+
+                // Calculate points
+                $earnedPoint = ($post['total'] * $setup->percentage) / 100;
+
+                // Check existing loyalty
+                $existingLoyalty = DB::table('loyalties')
+                    ->where('userid', $post['userid'])
+                    ->where('orgid', $post['orgid'])
+                    ->first();
+
+                if ($existingLoyalty) {
+
+                    // Update existing point
+                    DB::table('loyalties')
+                        ->where('id', $existingLoyalty->id)
+                        ->update([
+                            'loyaltypoint' => $existingLoyalty->loyaltypoint + $earnedPoint,
+                            'updated_at'   => Carbon::now(),
+                            'updatedby'    => $post['userid'],
+                        ]);
+                } else {
+
+                    // Insert new loyalty
+                    DB::table('loyalties')->insert([
+                        'id'              => (string) Str::uuid(),
+                        'userid'          => $post['userid'],
+                        'orgid'           => $post['orgid'],
+                        'order_detail_id' => $insertOrderDetails[0]['id'],
+                        'loyaltypoint'    => $earnedPoint,
+                        'status'          => 'Y',
+                        'postedby'        => $post['userid'],
+                        'created_at'      => Carbon::now(),
+                    ]);
+                }
+            }
+            
             return true;
         } catch (\Exception $e) {
             throw $e;

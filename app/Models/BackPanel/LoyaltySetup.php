@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models\BackPanel;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,62 +10,33 @@ use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 
-class Brand extends Model
+class LoyaltySetup extends Model
 {
     use HasFactory;
 
     public $incrementing = false;
     protected $keyType = 'string';
 
-    //function to save team category
-
+    //function to save loyalty
     public static function saveData($post)
     {
         try {
-
-            $imageName = null;
-
-            // ✅ Handle Image Upload
-            if (!empty($post['image'])) {
-                $file = $post['image'];
-
-                // Create unique name
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-                // Move image to public folder
-                $file->storeAs('brands', $imageName, 'public');
-            }
-
             $dataArray = [
-                'name' => $post['name'],
-                'description' => $post['description'],
-                'slug' => Str::slug($post['name']) . '-' . time(),
+                'minprice' => $post['minprice'],
+                'maxprice' => $post['maxprice'],
+                'percentage' => $post['percentage'],
                 'status' => 'Y',
                 'orgid' => $post['orgid'],
+                'userid' => $post['userid'],
                 'postedby' => $post['userid']
             ];
 
-            // Save image if exists
-            if ($imageName) {
-                $dataArray['logo'] = $imageName;
-            }
 
             if (!empty($post['id'])) {
-
-                // ✅ Update case
-                $oldData = Brand::find($post['id']);
-
-                // ✅ Delete old image from storage
-                if ($imageName && $oldData && $oldData->logo) {
-                    $oldPath = storage_path('app/public/brands/' . $oldData->logo);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
-                }
                 $dataArray['updated_at'] = Carbon::now();
                 $dataArray['updatedby'] = $post['userid'];
 
-                if (!Brand::where('id', $post['id'])->update($dataArray)) {
+                if (!LoyaltySetup::where('id', $post['id'])->update($dataArray)) {
                     throw new \Exception("Couldn't update Records");
                 }
             } else {
@@ -75,7 +45,7 @@ class Brand extends Model
 
                 $dataArray['created_at'] = Carbon::now();
 
-                if (!Brand::insert($dataArray)) {
+                if (!LoyaltySetup::insert($dataArray)) {
                     throw new \Exception("Couldn't Save Records");
                 }
             }
@@ -86,7 +56,7 @@ class Brand extends Model
         }
     }
 
-    //function to list team category
+    //function to get list of loyaties
     public static function list($post)
     {
         try {
@@ -102,21 +72,27 @@ class Brand extends Model
             $orgid = $post['orgid'];
 
             // Build WHERE condition as string
-            $cond = "status = 'Y' and orgid = '{$orgid}'"; // ✅ wrap UUID in quotes
-            if (!empty($post['type']) && $post['type'] === "trashed") {
-                $cond = "status = 'R' and orgid = '{$orgid}'";
-            }
+            $cond = "status = 'Y' and orgid = '{$orgid}'";
+
 
             if (!empty($get['columns'][1]['search']['value'])) {
                 $search = $get['columns'][1]['search']['value'];
-                $cond .= " and lower(name) like '%{$search}%'";
+                $cond .= " and lower(minprice) like '%{$search}%'";
+            }
+            if (!empty($get['columns'][2]['search']['value'])) {
+                $search = $get['columns'][2]['search']['value'];
+                $cond .= " and lower(maxprice) like '%{$search}%'";
+            }
+
+            if (!empty($get['columns'][3]['search']['value'])) {
+                $search = $get['columns'][3]['search']['value'];
+                $cond .= " and lower(percentage) like '%{$search}%'";
             }
 
             $limit = !empty($get["length"]) ? (int)$get['length'] : 15;
             $offset = !empty($get["start"]) ? (int)$get["start"] : 0;
 
-            // Use selectRaw with fully built string
-            $query = Brand::selectRaw("(SELECT count(*) FROM brands WHERE {$cond}) AS totalrecs, name, logo, description, id")
+            $query = LoyaltySetup::selectRaw("(SELECT count(*) FROM loyalty_setups WHERE {$cond}) AS totalrecs, minprice, maxprice, percentage, id")
                 ->whereRaw($cond);
 
             if ($limit > -1) {
@@ -139,29 +115,14 @@ class Brand extends Model
         }
     }
 
-    //restore 
-    public static function deletBrand($post)
+    //delete function
+    public static function deleteLoyalty($post)
     {
         try {
-            $updateArray = [
-                'status' => 'N',
-                'updated_at' => Carbon::now(),
-            ];
-            if (!Brand::where(['id' => $post['id']])->update($updateArray)) {
+            if (!LoyaltySetup::where(['id' => $post['id']])->delete()) {
                 throw new Exception("Couldn't Delete Data. Please try again", 1);
             }
             return true;
-        } catch (Exception $e) {
-            throw $e;
-        }
-    }
-
-    public static function getBrand($post)
-    {
-        try {
-            $result = DB::table('brands')->select('id', 'name')->where('orgid', $post['orgid'])->where('status', 'Y')->get();
-
-            return $result;
         } catch (Exception $e) {
             throw $e;
         }

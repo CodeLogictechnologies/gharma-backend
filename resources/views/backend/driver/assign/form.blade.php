@@ -69,8 +69,8 @@
 </div>
 
 <div class="modal-body">
-    {{-- FIX: id="userForm" (was "orgForm" in the tab partial), action uses correct route --}}
-    <form action="{{ route('user.save') }}" method="POST" id="userForm" enctype="multipart/form-data">
+    {{-- FIX: id="assignDriverForm" (was "orgForm" in the tab partial), action uses correct route --}}
+    <form action="{{ route('user.save') }}" method="POST" id="assignDriverForm" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="id" value="{{ @$id }}">
 
@@ -95,73 +95,6 @@
             </div>
         </div>
 
-        {{-- Username, Email, Phone --}}
-        <div class="row mb-2">
-            <div class="col-md-4">
-                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="username" id="username" placeholder="Enter username"
-                    value="{{ @$username }}">
-                <div class="invalid-feedback">Enter username</div>
-            </div>
-            <div class="col-md-4">
-                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                <input type="email" class="form-control" name="email" id="email" placeholder="Enter email"
-                    value="{{ @$email }}">
-                <div class="invalid-feedback">Enter email</div>
-            </div>
-            <div class="col-md-4">
-                <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" name="phone" id="phone" placeholder="Enter phone"
-                    value="{{ @$phone }}">
-                <div class="invalid-feedback">Enter phone</div>
-            </div>
-        </div>
-
-        {{-- Address, Gender, Roles --}}
-        <div class="row mb-2">
-            <div class="col-md-4">
-                <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="address" id="address" placeholder="Enter address"
-                    value="{{ @$address }}">
-                <div class="invalid-feedback">Enter address</div>
-            </div>
-            <div class="col-md-4">
-                <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
-                <select name="gender" id="gender" class="form-control">
-                    <option value="">Select Gender</option>
-                    <option value="Male" @if (@$gender == 'Male') selected @endif>Male</option>
-                    <option value="Female" @if (@$gender == 'Female') selected @endif>Female</option>
-                    <option value="Other" @if (@$gender == 'Other') selected @endif>Other</option>
-                </select>
-                <div class="invalid-feedback">Select gender</div>
-            </div>
-            <div class="col-md-4">
-                <label for="roles" class="form-label">Roles <span class="text-danger">*</span></label>
-                <select name="roles[]" id="roles" class="form-control" multiple>
-                    @foreach ($rolesList as $role)
-                        <option value="{{ $role->id }}" @if (!empty($userRoles) && in_array($role->id, $userRoles)) selected @endif>
-                            {{ $role->name }}
-                        </option>
-                    @endforeach
-                </select>
-                <div class="invalid-feedback">Select at least one role</div>
-            </div>
-        </div>
-
-        {{-- Profile Image --}}
-        <div class="row mb-2">
-            <div class="col-md-12">
-                <label for="image" class="form-label">Profile Image</label>
-                <input type="file" class="form-control" name="image" id="image" accept="image/*">
-                <div class="mt-2">
-                    @if (!empty($image))
-                        <img src="{{ asset('storage/profiles/' . $image) }}" id="img_preview" class="_image">
-                    @else
-                        <img src="{{ asset('/no-image.jpg') }}" id="img_preview" class="_image">
-                    @endif
-                </div>
-            </div>
-        </div>
 
     </form>
 </div>
@@ -169,7 +102,7 @@
 <div class="modal-footer">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     {{-- FIX: button is type="button", not submit — disabled state is controlled manually --}}
-    <button type="button" class="btn btn-primary" id="saveUser">
+    <button type="button" class="btn btn-primary" id="assignDriver">
         <i class="fa fa-save"></i> {{ empty($id) ? 'Save' : 'Update' }}
     </button>
 </div>
@@ -198,33 +131,13 @@
         });
 
         /* ── jQuery Validation ────────────────────────────────────── */
-        $('#userForm').validate({
+        $('#assignDriverForm').validate({
             ignore: [], // include hidden Select2 elements
             rules: {
-                first_name: 'required',
-                last_name: 'required',
-                username: 'required',
-                email: {
-                    required: true,
-                    email: true
-                },
-                phone: 'required',
-                address: 'required',
-                gender: 'required',
-                'roles[]': {
-                    required: true,
-                    minlength: 1
-                }
+                first_name: 'required'
             },
             messages: {
                 first_name: 'Enter first name',
-                last_name: 'Enter last name',
-                username: 'Enter username',
-                email: 'Enter a valid email',
-                phone: 'Enter phone',
-                address: 'Enter address',
-                gender: 'Select gender',
-                'roles[]': 'Select at least one role'
             },
             highlight: function(el) {
                 $(el).addClass('border-danger');
@@ -242,20 +155,20 @@
         });
 
         /* ── Save / Update ────────────────────────────────────────────
-           FIX: uses #saveUser (not .saveUser class), calls userTable.fnDraw()
+           FIX: uses #assignDriver (not .assignDriver class), calls userTable.fnDraw()
                 closes '#userModel' (correct modal id)
         ──────────────────────────────────────────────────────────── */
-        $('#saveUser').on('click', function() {
-            if (!$('#userForm').valid()) return;
+        $('#assignDriver').on('click', function() {
+            if (!$('#assignDriverForm').valid()) return;
 
             var $btn = $(this);
             $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
             showLoader();
 
             $.ajax({
-                url: $('#userForm').attr('action'),
+                url: $('#assignDriverForm').attr('action'),
                 type: 'POST',
-                data: new FormData(document.getElementById('userForm')),
+                data: new FormData(document.getElementById('assignDriverForm')),
                 processData: false,
                 contentType: false,
                 success: function(response) {
@@ -295,7 +208,7 @@
         });
 
         /* ── Clear validation styles on input ────────────────────── */
-        $(document).on('input change', '#userForm .form-control', function() {
+        $(document).on('input change', '#assignDriverForm .form-control', function() {
             $(this).removeClass('is-invalid border-danger');
         });
 

@@ -3,65 +3,58 @@
 namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Driver\AssignDriverRequest;
+use App\Models\BackPanel\AssignDriver;
+use App\Models\BackPanel\Driver;
+use App\Models\BackPanel\Order;
 use App\Models\BackPanel\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use Exception;
+use FontLib\Table\Type\post;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use App\Services\FirebaseService;          // ← add this
 
 class DriverController extends Controller
 {
     public function index()
     {
-        return view('backend.driver.main');
+        return view('backend.driver.list.index');
     }
 
-    public function save(Request $request)
+    public function assignIndex()
     {
-        try {
-            $rules = [
-                'first_name' => 'required|min:3|max:255',
-                'phone'      => 'required|min:5|max:5000',
-                'address'    => 'required',
-                'email'      => [
-                    'required', 'email',
-                    Rule::unique('users')->ignore($request->id)
-                ],
-                'username'   => 'required',
-            ];
+        return view('backend.driver.assign.index');
+    }
 
-            $validate = Validator::make($request->all(), $rules);
-            if ($validate->fails()) {
-                throw new Exception($validate->errors()->first(), 1);
-            }
+    public function save(AssignDriverRequest $request)
+    {
+        // try {
 
-            $post           = $request->all();
-            $post['type']   = 'driver';
-            $post['role']   = 4;          // ← Driver role ID hardcoded
-            $post['orgid']  = session('orgid');
 
-            DB::beginTransaction();
-            if (!User::saveData($post)) {
-                throw new Exception('Could not save record', 1);
-            }
-            DB::commit();
+        $post = $request->all();
+        $post['orgid'] =  session('orgid');
+        $type = 'success';
+        $message = 'Records saved successfully';
+        DB::beginTransaction();
 
-            $type    = 'success';
-            $message = 'Driver saved successfully';
-
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type    = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type    = 'error';
-            $message = $e->getMessage();
+        if (!FirebaseService::AssignDriverNotice($post)) {
+            throw new Exception('Could not assign driver', 1);
         }
-
+        DB::commit();
+        // } catch (QueryException $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $this->queryMessage;
+        // } catch (Exception $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $e->getMessage();
+        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -105,30 +98,27 @@ class DriverController extends Controller
         ]);
     }
 
+
     public function form(Request $request)
     {
-        $data = [];
+        try {
 
-        if (!empty($request->id)) {
-            $post          = $request->all();
+            $data = [];
+
+            $post = $request->all();
             $post['orgid'] = session('orgid');
-            $result        = User::getData($post);
 
-            if (!$result) throw new Exception("Driver not found", 1);
+            $data['drivers'] = Driver::getDrivers($post);
+            // dd($post);
+            $data['ordermasterid'] = $post['id'] ?? null;
 
-            $data['id']          = $result->id;
-            $data['username']    = $result->username;
-            $data['first_name']  = $result->first_name;
-            $data['middle_name'] = $result->middle_name;
-            $data['last_name']   = $result->last_name;
-            $data['gender']      = $result->gender;
-            $data['phone']       = $result->phone;
-            $data['address']     = $result->address;
-            $data['email']       = $result->email;
-            if ($result->image) $data['image'] = $result->image;
+            return view('backend.order.form', $data);
+        } catch (\Exception $e) {
+
+            // Log::error('Order form error: ' . $e->getMessage());
+
+            return back()->with('error', 'Something went wrong. Please try again.');
         }
-
-        return view('backend.driver.form', $data);
     }
 
     public function delete(Request $request)
@@ -179,8 +169,10 @@ class DriverController extends Controller
     {
         $tabid = $request->input('tabid');
         switch ($tabid) {
-            case 'active':   return view('backend.driver.index');
-            default:         return '<div class="alert alert-warning">Invalid tab</div>';
+            case 'active':
+                return view('backend.driver.index');
+            default:
+                return '<div class="alert alert-warning">Invalid tab</div>';
         }
     }
 }

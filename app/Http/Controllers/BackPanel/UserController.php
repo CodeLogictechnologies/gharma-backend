@@ -363,7 +363,7 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'type' => 'error',
-                'message' => $e->getMessage() // for debugging
+                'message' => $e->getMessage()
             ]);
         }
     }

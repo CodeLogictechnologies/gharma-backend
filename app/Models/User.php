@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
+use App\Jobs\SendUserPasswordMail;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -204,7 +206,9 @@ class User extends Authenticatable implements JWTSubject
         try {
             DB::beginTransaction();
 
-            $plainPassword = Str::random(6);
+            $plainPassword = !empty($post['password'])
+                ? $post['password']
+                : Str::random(6);
             $imageName     = null;
 
             if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
@@ -219,7 +223,7 @@ class User extends Authenticatable implements JWTSubject
                 'name'       => $post['username'],
                 'email'      => $post['email'],
                 'phone'      => $post['phone'],
-                'password'   => bcrypt($post["password"] ?? $plainPassword),
+                'password' => bcrypt($plainPassword),
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ];
@@ -282,6 +286,13 @@ class User extends Authenticatable implements JWTSubject
             DB::table('profiles')->insert($profileData);
 
             DB::commit();
+
+            SendUserPasswordMail::dispatch([
+                'name' => $post['username'],
+                'email' => $post['email'],
+                'password' => $plainPassword,
+            ]);
+
             return true;
         } catch (Exception $e) {
             DB::rollBack();

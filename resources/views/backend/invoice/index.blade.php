@@ -1,5 +1,5 @@
 @extends('layouts.main')
-@section('title', 'Order')
+@section('title', 'Invoice')
 <style>
     th .status {
         width: 15% !important;
@@ -10,17 +10,17 @@
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="card">
             <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-                <h5 class="mb-0">Order List</h5>
+                <h5 class="mb-0">Order/Invoice List</h5>
             </div>
 
             <div class="table-responsive text-nowrap mx-4 mb-4">
-                <table class="table" id="orderTable">
+                <table class="table" id="itemTable">
                     <thead class="table-light">
                         <tr class="align-middle">
                             <th>ID</th>
                             <th>User Name</th>
-                            <th>Email</th>
                             <th>Order Time</th>
+                            <th>Invoice Number</th>
                             <th class="status">Status</th>
                             <th>Actions</th>
                         </tr>
@@ -35,13 +35,6 @@
     <div class="modal fade" id="itemModel" tabindex="-1" role="dialog" aria-modal="true">
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" id="d"></div>
-        </div>
-    </div>
-
-    {{-- View Form Modal --}}
-    <div class="modal fade" id="storeModel" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content" id="storeModelContainer"></div>
         </div>
     </div>
 
@@ -69,44 +62,9 @@
 
 @section('main-scripts')
     <script>
-        var orderTable;
+        var itemTable;
 
         $(document).ready(function() {
-            function openOrgModal(url, data, method) {
-                var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
-
-                req.done(function(response) {
-                    $('#storeModelContainer').html(response);
-
-                    // Destroy previous instance if any, then show fresh
-                    var modalEl = document.getElementById('storeModel');
-                    var existing = bootstrap.Modal.getInstance(modalEl);
-                    if (existing) existing.dispose();
-
-                    new bootstrap.Modal(modalEl, {
-                        backdrop: 'static',
-                        keyboard: false
-                    }).show();
-
-                }).fail(function() {
-                    showNotification('Failed to load form. Please try again.', 'error');
-                });
-            }
-
-
-            $(document).on('click', '.assignDriver', function(e) {
-                e.preventDefault();
-
-                let id = $(this).data('id');
-
-                openOrgModal(
-                    '{{ route('assign.driver.form') }}', {
-                        id: id,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    'GET'
-                );
-            });
 
             // ── CSRF setup ────────────────────────────────────────────────
             $.ajaxSetup({
@@ -116,7 +74,7 @@
             });
 
             // ── DataTable ─────────────────────────────────────────────────
-            orderTable = $('#orderTable').dataTable({
+            itemTable = $('#itemTable').dataTable({
                 sPaginationType: 'full_numbers',
                 bSearchable: false,
                 language: {
@@ -139,7 +97,7 @@
                 ],
                 bProcessing: true,
                 bServerSide: true,
-                sAjaxSource: '{{ route('order.list') }}',
+                sAjaxSource: '{{ route('invoice.list') }}',
                 oLanguage: {
                     sEmptyTable: "<p class='no_data_message'>No data available.</p>"
                 },
@@ -159,10 +117,9 @@
                         data: 'username'
                     },
                     {
-                        data: 'email'
-                    },
-                    {
                         data: 'created_at'
+                    }, {
+                        data: 'invoicenumber'
                     },
                     {
                         data: 'order_status'
@@ -267,7 +224,7 @@
                                 $activeDropdown.data('current', selectedStatus);
                             }
                             showNotification(result.message, 'success');
-                            orderTable.fnDraw(); // ← fixed: was userTable
+                            itemTable.fnDraw(); // ← fixed: was userTable
                         } else {
                             // Revert dropdown on failure
                             if ($activeDropdown) {
@@ -313,73 +270,6 @@
                 $activeDropdown = null;
             });
 
-
-            $(document).on('submit', '#assignDriverForm', function(e) {
-                e.preventDefault();
-
-                var valid = true;
-
-                $(this).find('[data-required]').each(function() {
-                    $(this).removeClass('is-invalid');
-
-                    if (!$(this).val() || !$(this).val().trim()) {
-                        $(this).addClass('is-invalid');
-                        valid = false;
-                    }
-                });
-
-                if (!valid) return;
-
-                var $btn = $(this).find('[type=submit]');
-                $btn.prop('disabled', true).text('Saving...');
-                showLoader();
-
-                $.ajax({
-                    url: $(this).attr('action'),
-                    type: 'POST',
-                    data: new FormData(this),
-                    processData: false,
-                    contentType: false,
-
-                    success: function(response) {
-                        hideLoader();
-
-                        let result = (typeof response === 'string') ?
-                            JSON.parse(response) :
-                            response;
-
-                        console.log(result); // 🔥 DEBUG
-
-                        if (result.type === 'success') {
-
-                            showNotification(result.message, 'success');
-
-                            orderTable.fnDraw();
-
-                            let modalEl = document.getElementById('storeModel');
-                            bootstrap.Modal.getInstance(modalEl).hide();
-
-                        } else {
-                            showNotification(result.message, 'error');
-                            $btn.prop('disabled', false).text('Save');
-                        }
-                    },
-
-                    error: function(xhr) {
-                        hideLoader();
-                        $btn.prop('disabled', false).text('Save');
-
-                        if (xhr.status === 422) {
-                            $.each(xhr.responseJSON.errors, function(field, messages) {
-                                $('[name="' + field + '"]').addClass('is-invalid');
-                                showNotification(messages[0], 'error');
-                            });
-                        } else {
-                            showNotification('Something went wrong!', 'error');
-                        }
-                    }
-                });
-            });
         });
     </script>
 @endsection

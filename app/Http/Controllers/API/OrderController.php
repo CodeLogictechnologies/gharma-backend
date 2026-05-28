@@ -20,7 +20,7 @@ class OrderController extends Controller
 {
     public function save(OrderPlaceRequest $request)
     {
-        // try {
+        try {
             $type = 'success';
             $message = 'Order place successfully';
 
@@ -28,24 +28,24 @@ class OrderController extends Controller
             $post = $request->all();
             if (!APIOrder::saveData($post)) {
                 throw new Exception('Could not place order', 1);
-        }
+            }
             DB::commit();
             return response()->json([
                 'type'    => $type,
                 'message' => $message
             ], 200);
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => 'Something went wrong'
-        //     ], 500);
-        // } catch (Exception $e) {
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'message' => $e->getMessage(),
-        //     ], 500);
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong'
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
 
         return json_encode(['type' => $type, 'message' => $message]);
     }
