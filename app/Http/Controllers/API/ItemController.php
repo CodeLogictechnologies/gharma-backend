@@ -179,7 +179,7 @@ class ItemController extends Controller
     public function latest(Request $request)
     {
         $request->validate([
-            'per_page'       => 'sometimes|integer|min:1|max:50', // ← was '5', wrong key
+            'per_page'       => 'sometimes|integer|min:1|max:50',
             'category_id'    => 'sometimes|string|nullable',
             'tab_name'       => 'sometimes|string|nullable',
             'subcategory_id' => 'sometimes|string|nullable',

@@ -35,6 +35,13 @@
             </a>
         </li> --}}
 
+        {{-- Driver --}}
+        <li class="menu-item {{ request()->routeIs('driver') ? 'active' : '' }}">
+            <a href="{{ route('driver') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-car"></i>
+                <div>Driver</div>
+            </a>
+        </li>
         <!-- Permission -->
         <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
             <a href="{{ route('permission') }}" class="menu-link">
@@ -51,6 +58,13 @@
             </a>
         </li>
 
+        <!-- Home Tab -->
+        <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
+            <a href="{{ route('hometab') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-circle"></i>
+                <div>Home Tab</div>
+            </a>
+        </li>
         <!-- Store -->
         <li class="menu-item {{ request()->routeIs('store') ? 'active' : '' }}">
             <a href="{{ route('store') }}" class="menu-link">
