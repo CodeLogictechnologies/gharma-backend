@@ -106,10 +106,14 @@ Route::group(['middleware' => ['auth']], function () {
 
         Route::group(['prefix' => 'driver'], function () {
             Route::get('/', [DriverController::class, 'index'])->name('driver');
-            Route::get('/assign', [DriverController::class, 'index'])->name('assign.driver');
-            Route::any('/form', [DriverController::class, 'form'])->name('assign.driver.form');
-            Route::post('/save', [DriverController::class, 'save'])->name('assign.driver.save');
+            Route::get('/list', [DriverController::class, 'list'])->name('driver.list');
+            Route::post('/save', [DriverController::class, 'saveDriver'])->name('driver.save');
             Route::post('/delete', [DriverController::class, 'delete'])->name('driver.delete');
+            // Route::get('/delete', [DriverController::class, 'delete'])->name('driver.delete');
+
+            Route::get('/assign', [DriverController::class, 'assignIndex'])->name('assign.driver');
+            Route::any('/form', [DriverController::class, 'form'])->name('driver.form');
+            Route::post('/assign/save', [DriverController::class, 'save'])->name('assign.driver.save');
             Route::post('/view', [DriverController::class, 'view'])->name('driver.view');
             Route::post('/status-update', [DriverController::class, 'updateStatus'])->name('driver.status');
         });

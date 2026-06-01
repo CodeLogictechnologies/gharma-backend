@@ -36,12 +36,6 @@
         </li> --}}
 
         {{-- Driver --}}
-        <li class="menu-item {{ request()->routeIs('driver') ? 'active' : '' }}">
-            <a href="{{ route('driver') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-car"></i>
-                <div>Driver</div>
-            </a>
-        </li>
         <!-- Permission -->
         <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
             <a href="{{ route('permission') }}" class="menu-link">
@@ -117,7 +111,7 @@
         <li
             class="menu-item {{ request()->routeIs('driver') || request()->routeIs('assign.driver') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
+                <i class="menu-icon tf-icons bx bx-car"></i>
                 <div>Drive</div>
             </a>
 

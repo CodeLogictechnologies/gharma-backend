@@ -27,7 +27,7 @@ return new class extends Migration
                 ->references('id')->on('users')
                 ->nullOnDelete();
             $table->string('order_status')->default('Pending');
-            $table->string('deivery_date')->nullable();
+            $table->string('delivery_date')->nullable();
             $table->string('status')->default('Y');
             $table->string('postedby')->nullable();
             $table->string('modified')->nullable();
