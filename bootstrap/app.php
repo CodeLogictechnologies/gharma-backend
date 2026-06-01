@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
+    ->withCommands([
+        // ── Custom commands ────────────────────────────────────────
+        \App\Console\Commands\MakeHelper::class,
+    ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

@@ -100,7 +100,7 @@
                 let id = $(this).data('id');
 
                 openOrgModal(
-                    '{{ route('assign.driver.form') }}', {
+                    '{{ route('assign.driver') }}', {
                         id: id,
                         _token: '{{ csrf_token() }}'
                     },

@@ -9,12 +9,34 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Profiler\Profile;
+use Illuminate\Support\Facades\DB;
 
 class Common extends Model
 {
     use HasFactory;
 
+    public static function deleteUser($post)
+    {
+        try {
+            $updateArray = [
+                'status' => 'N',
+                'updated_at' => Carbon::now(),
+            ];
+            // if (!User::where(['id' => $post['id']])->update($updateArray)) {
+            //     throw new Exception("Couldn't Delete Data. Please try again", 1);
+            // }
 
+
+            if (!DB::table('profiles')->where('user_id', $post['id'])->update($updateArray)) {
+                throw new Exception("Couldn't Delete Data. Please try again", 1);
+            }
+
+            return true;
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
     public static function uploadFile($location, $file)
     {
         try {

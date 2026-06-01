@@ -51,36 +51,102 @@ class AssignDriver extends Model
     public static function getOrderListApi($post)
     {
         try {
-            if (!empty($post['type'] == 'all')) {
-                $result = DB::table('order_masters as m')
+            $page    = (int) ($post['page']     ?? 1);
+            $perPage = (int) ($post['per_page'] ?? 10);
+            $offset  = ($page - 1) * $perPage;
+
+            // FIX: operator precedence bug
+            if (!empty($post['type']) && $post['type'] === 'all') {
+
+                $query = DB::table('order_masters as m')
                     ->join('users as u', 'u.id', '=', 'm.userid')
                     ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', 'a.userid', '=', 'm.userid')
-                    ->join('assign_drivers as d', 'd.ordermasterid', '=', 'm.id')
+                    ->join('user_addresses as a', function ($join) {
+                        $join->on('a.userid', '=', 'm.userid')
+                            ->on('a.id', '=', 'm.addressid');
+                    })
+                    ->join('assign_drivers as d', function ($join) use ($post) {
+                        $join->on('d.ordermasterid', '=', 'm.id')
+                            ->where('d.driverid', $post['userid']);
+                    })
                     ->select(
-                        DB::raw("CONCAT_WS(' ', p.first_name, p.middle_name, p.last_name) AS customer_name"),
+                        'm.id as order_id',
+                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
                         'u.phone',
                         'a.address_name',
                         'a.longitude',
-                        'a.latitude'
+                        'a.latitude',
+                        'm.created_at as order_date',
+                        'm.order_master_total_price as total_price',
+                        'd.id as assignorderid',
+                        'd.created_at as assigned_at',
+                        'd.order_status as order_status',
+                    )
+                    ->where('m.orgid', $post['orgid'])
+                    ->orderBy('m.created_at', 'desc');
+
+                $total   = $query->count();
+                $results = $query->offset($offset)->limit($perPage)->get();
+
+                // FIX: was checking 'assignmasterid' but should be 'assignorderid'
+            } elseif (!empty($post['type']) && $post['type'] === 'datewise') {
+
+                // ── Driver summary grouped by date ─────────────────────────────
+                $query = DB::table('assign_drivers as d')
+                    ->join('order_masters as m', 'm.id', '=', 'd.ordermasterid')
+                    ->select(
+                        DB::raw('DATE(d.delivery_date) as delivery_date'),
+                        DB::raw('COUNT(*) as total_orders'),
+                        DB::raw('SUM(m.order_master_total_price) as total_price'), 
+                        DB::raw("SUM(CASE WHEN m.status = 'Completed' THEN 1 ELSE 0 END) as completed_orders"),
+                        DB::raw("SUM(CASE WHEN m.status = 'Pending'   THEN 1 ELSE 0 END) as pending_orders"),
                     )
                     ->where('d.driverid', $post['userid'])
-                    ->where('m.orgid', $post['orgid'])
-                    ->get();
+                    ->where('d.orgid',    $post['orgid'])
+                    ->groupBy(DB::raw('DATE(d.delivery_date)'))
+                    ->orderBy(DB::raw('DATE(d.delivery_date)'), 'desc');
+
+                $total   = $query->count();
+                $results = $query->offset($offset)->limit($perPage)->get();
             } else {
-                $result = DB::table('assign_drivers as d')
+
+                $query = DB::table('order_masters as m')
+                    ->join('users as u', 'u.id', '=', 'm.userid')
+                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
+                    ->join('user_addresses as a', function ($join) {
+                        $join->on('a.userid', '=', 'm.userid')
+                            ->on('a.id', '=', 'm.addressid');
+                    })
+                    ->join('assign_drivers as d', function ($join) use ($post) {
+                        $join->on('d.ordermasterid', '=', 'm.id')
+                            ->where('d.driverid', $post['userid'])
+                            ->where('d.id', $post['assignorderid']);
+                    })
                     ->select(
-                        DB::raw('DATE(delivi) as assign_date'),
-                        DB::raw('COUNT(*) as total_orders'),
-                        DB::raw("SUM(CASE WHEN order_status = 'Completed' THEN 1 ELSE 0 END) as completed_orders")
+                        'm.id as order_id',
+                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
+                        'u.phone',
+                        'a.address_name',
+                        'a.longitude',
+                        'a.latitude',
+                        'm.created_at as order_date',
+                        'd.id as assignorderid',
+                        'd.created_at as assigned_at',
+                        'd.order_status as order_status',
                     )
-                    ->where('driverid', $post['userid'])
-                    ->where('orgid', $post['orgid'])
-                    ->groupBy(DB::raw('DATE(del)'))
-                    ->orderBy('assign_date', 'desc')
-                    ->get();
+                    ->where('m.orgid', $post['orgid'])
+                    ->orderBy('m.created_at', 'desc');
+
+                $total   = $query->count();
+                $results = $query->offset($offset)->limit($perPage)->get();
             }
-            return $result;
+
+            return [
+                'list'  => $results,
+                'total' => $total,
+                'page'  => $page,
+                'per_page' => $perPage,
+            ];
         } catch (\Exception $e) {
             throw $e;
         }

@@ -41,7 +41,7 @@ class FirebaseService
             $dataArray = [
                 'status'       => 'Y',
                 'orgid'        => $post['orgid'],
-                'deivery_date' => $post['deivery_date'],
+                'delivery_date' => $post['delivery_date'],
                 'id'           => (string) Str::uuid(),
                 'ordermasterid' => $post['ordermasterid'],
                 'driverid'     => $post['driver_id'],
@@ -62,33 +62,33 @@ class FirebaseService
                 ->where('id', $post['ordermasterid'])
                 ->first();
 
-            if ($order) {
-                // Fetch all device tokens for that user
-                $tokens = DB::table('userdevicetokens')
-                    ->where('userid', $order->userid)
-                    ->pluck('devicetoken');
+            // if ($order) {
+            //     // Fetch all device tokens for that user
+            //     $tokens = DB::table('userdevicetokens')
+            //         ->where('userid', $order->userid)
+            //         ->pluck('devicetoken');
 
-                if ($tokens->isNotEmpty()) {
-                    $firebase = new self(); // instantiate to use sendNotification()
+            //     if ($tokens->isNotEmpty()) {
+            //         $firebase = new self(); // instantiate to use sendNotification()
 
-                    foreach ($tokens as $token) {
-                        try {
-                            $firebase->sendNotification(
-                                $token,
-                                'Order Shipped',
-                                'Your order has been assigned to a driver and is on the way!',
-                                [
-                                    'ordermasterid' => (string) $post['ordermasterid'],
-                                    'order_status'  => 'Shipped',
-                                ]
-                            );
-                        } catch (\Exception $e) {
-                            // log bad token but don't break the flow
-                            \Log::warning('FCM send failed for token ' . $token . ': ' . $e->getMessage());
-                        }
-                    }
-                }
-            }
+            //         foreach ($tokens as $token) {
+            //             try {
+            //                 $firebase->sendNotification(
+            //                     $token,
+            //                     'Order Shipped',
+            //                     'Your order has been assigned to a driver and is on the way!',
+            //                     [
+            //                         'ordermasterid' => (string) $post['ordermasterid'],
+            //                         'order_status'  => 'Shipped',
+            //                     ]
+            //                 );
+            //             } catch (\Exception $e) {
+            //                 // log bad token but don't break the flow
+            //                 \Log::warning('FCM send failed for token ' . $token . ': ' . $e->getMessage());
+            //             }
+            //         }
+            //     }
+            // }
             // ───────────────────────────────────────────────────
 
             return true;

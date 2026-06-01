@@ -134,7 +134,7 @@ class CategoryController extends Controller
     //function to delete team category
     public function delete(Request $request)
     {
-        // try {
+        try {
         $type = 'success';
         $message = "Record deleted successfully";
 
@@ -143,15 +143,15 @@ class CategoryController extends Controller
         DB::beginTransaction();
         $result = Category::deleteCategory($post);
         DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 

@@ -31,6 +31,7 @@ Route::get('/hello', function () {
     return response()->json(['message' => 'Hello']);
 }); // Public routes
 Route::post('login',    [ApiAuthController::class, 'login']);
+Route::post('refresh', [ApiAuthController::class, 'refresh']);
 Route::post('retailer/register', [ApiAuthController::class, 'retailerRegister']);
 Route::post('wholesaler/register', [ApiAuthController::class, 'wholesalerRegister']);
 
@@ -136,6 +137,8 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/admin/chat/reply',        [APIChatController::class, 'store']);
     });
 
-    Route::get('/driver/getorderlist',       [BackPanelAssignDriverController::class, 'getOrderList']);
+    Route::get('/driver/orderlist/all',       [BackPanelAssignDriverController::class, 'getOrderListAll']);
+    Route::get('/driver/orderlist/datewise',       [BackPanelAssignDriverController::class, 'getOrderListDatewise']);
+    Route::get('/driver/orderlist',       [BackPanelAssignDriverController::class, 'getOrderList']);
     Route::get('/driver/orders', [BackPanelAssignDriverController::class, 'getOrderDetail']);
 });

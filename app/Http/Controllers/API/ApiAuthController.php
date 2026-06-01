@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Carbon\Carbon;
 use App\Mail\OtpMail;
 use App\Models\Otp;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\QueryException;
 use Exception;
 use GrahamCampbell\ResultType\Success;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class ApiAuthController extends Controller
@@ -55,45 +57,45 @@ class ApiAuthController extends Controller
     // POST /api/register
     // -----------------------------------------------------------------------
     public function retailerRegister(Request $request)
-{
-    $post = $request->all();
+    {
+        $post = $request->all();
 
-    $validator = Validator::make($post, [
-        'username'    => 'required|string|max:255|unique:users,name',
-        'email'       => 'required|string|email|max:255|unique:users',
-        'password'    => 'required|string|min:6|confirmed',
-        'first_name'  => 'required|string|max:255',
-        'middle_name' => 'nullable|string|max:255',
-        'last_name'   => 'required|string|max:255',
-        'gender'      => 'required',
-        'address'     => 'required',
-        'phone'       => 'required',
-        'image'       => 'required',
-    ]);
+        $validator = Validator::make($post, [
+            'username'    => 'required|string|max:255|unique:users,name',
+            'email'       => 'required|string|email|max:255|unique:users',
+            'password'    => 'required|string|min:6|confirmed',
+            'first_name'  => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name'   => 'required|string|max:255',
+            'gender'      => 'required',
+            'address'     => 'required',
+            'phone'       => 'required',
+            'image'       => 'required',
+        ]);
 
-    if ($validator->fails()) {
+        if ($validator->fails()) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $post['type'] = 'retailer';
+
+        User::saveData($post);
+
+        $user  = User::where('email', $post['email'])->first();
+        $token = JWTAuth::fromUser($user);
+
         return response()->json([
-            'type'    => 'error',
-            'message' => $validator->errors()->first(),
-        ], 422);
+            'type'       => 'success',
+            'message'    => 'Retailer registered successfully.',
+            'token'      => $token,
+            'token_type' => 'bearer',
+            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
+            // 'user'       => $user,
+        ], 201);
     }
-
-    $post['type'] = 'retailer';
-
-    User::saveData($post);
-
-    $user  = User::where('email', $post['email'])->first();
-    $token = JWTAuth::fromUser($user);
-
-    return response()->json([
-        'type'       => 'success',
-        'message'    => 'Retailer registered successfully.',
-        'token'      => $token,
-        'token_type' => 'bearer',
-        // 'expires_in' => auth('api')->factory()->getTTL() * 60,
-        // 'user'       => $user,
-    ], 201);
-}
 
     public function wholesalerRegister(Request $request)
     {
@@ -158,8 +160,6 @@ class ApiAuthController extends Controller
         $post = $request->all();
         try {
             if (!$token = JWTAuth::attempt($credentials)) {
-
-
                 return response()->json([
                     'type' => 'error',
                     'message' => 'Invalid phone number or password.',
@@ -172,9 +172,18 @@ class ApiAuthController extends Controller
             ], 500);
         }
 
-        $user = auth()->user();
+        $user           = auth()->user();
         $post['userid'] = $user->id;
-        $deviceToke = Userdevicetoken::saveDate($post);
+
+        // ── Get Spatie roles ───────────────────────────────────────────
+        $roles     = $user->getRoleNames();           // collection of role names
+        $firstRole = $roles->first() ?? null;
+        // $deviceToke = Userdevicetoken::saveDate($post);
+
+        $refreshToken = JWTAuth::claims([
+            'type' => 'refresh',
+            'exp'  => now()->addDays(30)->timestamp,
+        ])->fromUser($user);
 
         // Merge base response with role-based greeting + redirect
         return response()->json(array_merge([
@@ -182,6 +191,9 @@ class ApiAuthController extends Controller
             'message'    => 'Login successful.',
             'token'      => $token,
             'token_type' => 'bearer',
+            'refresh_token' => $refreshToken,
+            'rolenamenote'         => $roles,                // e.g. ["Driver"]
+            // 'expires_in'    => config('jwt.ttl') * 60, 
             // 'expires_in' => auth('api')->factory()->getTTL() * 60,
             // 'user'       => $user,
             // 'roles'      => $user->getRoleNames(),
@@ -214,21 +226,61 @@ class ApiAuthController extends Controller
     public function refresh()
     {
         try {
-            $newToken = JWTAuth::refresh(JWTAuth::getToken());
+            $oldToken = JWTAuth::getToken();
+            if (!$oldToken) {
+                return new JsonResponse([
+                    "type"    => "error",
+                    "message" => "Token not provided."
+                ], 400);
+            }
 
-            return response()->json([
-                'success'    => true,
-                'token'      => $newToken,
-                'token_type' => 'bearer',
-                'expires_in' => auth('api')->factory()->getTTL() * 60,
+            // ── Decode and verify this is actually a refresh token ─────────
+            $payload = JWTAuth::setToken($oldToken)->getPayload();
+
+            if ($payload->get('type') !== 'refresh') {
+                return new JsonResponse([
+                    "type"    => "error",
+                    "message" => "Invalid token type. Please provide the refresh token."
+                ], 401);
+            }
+
+            // ── Check refresh token not expired ────────────────────────────
+            if ($payload->get('exp') < now()->timestamp) {
+                return new JsonResponse([
+                    "type"    => "error",
+                    "message" => "Refresh token expired. Please login again."
+                ], 401);
+            }
+
+            // ── Issue a fresh access token for the user ────────────────────
+            $user        = JWTAuth::setToken($oldToken)->toUser();
+            $newAccess   = JWTAuth::fromUser($user);
+
+            // ── Optionally issue a new refresh token too ───────────────────
+            $newRefresh  = JWTAuth::claims([
+                'type' => 'refresh',
+                'exp'  => now()->addDays(30)->timestamp,
+            ])->fromUser($user);
+
+            return new JsonResponse([
+                "type"          => "success",
+                "token"         => $newAccess,
+                "token_type"    => "bearer",
+                "refresh_token" => $newRefresh,
             ]);
+        } catch (TokenExpiredException $e) {
+            return new JsonResponse([
+                "type"    => "error",
+                "message" => "Refresh token expired. Please login again."
+            ], 401);
         } catch (JWTException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token cannot be refreshed. Please login again.',
+            return new JsonResponse([
+                "type"    => "error",
+                "message" => "Token cannot be refreshed."
             ], 401);
         }
     }
+
 
     // -----------------------------------------------------------------------
     // GET /api/me  (requires Bearer token)
@@ -279,25 +331,25 @@ class ApiAuthController extends Controller
     {
         // try {
 
-            $user = auth('api')->user();
+        $user = auth('api')->user();
 
-            if (!$user) {
-                throw new Exception("Unauthorized user");
-            }
+        if (!$user) {
+            throw new Exception("Unauthorized user");
+        }
 
-            $post = $request->all();
-            $post['userid'] = $user->id;
+        $post = $request->all();
+        $post['userid'] = $user->id;
 
-            $result = User::updateUser($post);
+        $result = User::updateUser($post);
 
-            // if (!$result) {
-            //     throw new Exception("User not updated");
-            // }
+        // if (!$result) {
+        //     throw new Exception("User not updated");
+        // }
 
-            return response()->json([
-                'type' => 'success',
-                'message' => 'User updated successfully',
-            ]);
+        return response()->json([
+            'type' => 'success',
+            'message' => 'User updated successfully',
+        ]);
         // } catch (QueryException $e) {
 
         //     return response()->json([

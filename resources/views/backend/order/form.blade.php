@@ -22,8 +22,8 @@
 
             <div class="col-md-4">
                 <label class="form-label">Assign Date</label>
-                <input type="date" name="deivery_date" class="form-control"
-                    value="{{ old('deivery_date', date('Y-m-d')) }}">
+                <input type="date" name="delivery_date" class="form-control"
+                    value="{{ old('delivery_date', date('Y-m-d')) }}">
             </div>
 
         </div>
@@ -33,7 +33,7 @@
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="submit" class="btn btn-primary">
             <i class="bx {{ @$id ? 'bx-save' : 'bx-plus' }} me-1"></i>
-            {{ @$id ? 'Update' : 'Save' }}
+            {{ @$id ? 'Update' : 'Assign' }}
         </button>
     </div>
 </form>
