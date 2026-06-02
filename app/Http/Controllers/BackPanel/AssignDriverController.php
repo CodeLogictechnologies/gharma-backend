@@ -9,16 +9,20 @@ use App\Http\Requests\API\GetLoactionDataRequest;
 use App\Http\Requests\API\UserAddressRequest;
 use App\Models\API\UserAddress;
 use App\Models\BackPanel\AssignDriver;
+use App\Models\OrderNotificationOtp;
 use Illuminate\Database\QueryException;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use App\Services\FirebaseService;
 
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AssignDriverController extends Controller
 {
-    public static function getOrderList(Request $request)
+    public  function getOrderList(Request $request)
     {
         try {
             $payload = JWTAuth::parseToken()->getPayload();
@@ -100,7 +104,7 @@ class AssignDriverController extends Controller
         }
     }
 
-    public static function getOrderListDatewise(Request $request)
+    public  function getOrderListDatewise(Request $request)
     {
         try {
             $payload = JWTAuth::parseToken()->getPayload();
@@ -180,7 +184,7 @@ class AssignDriverController extends Controller
             ], 500);
         }
     }
-    public static function getOrderListAll(Request $request)
+    public  function getOrderListAll(Request $request, $type)
     {
         try {
             $payload = JWTAuth::parseToken()->getPayload();
@@ -191,8 +195,7 @@ class AssignDriverController extends Controller
             $post['orgid']    = $profile['orgid']  ?? null;
             $post['page']     = (int) $request->input('page', 1);
             $post['per_page'] = (int) $request->input('per_page', 10);
-            $post['type'] = 'all';
-
+            $post['type'] = $type;
             // ── Validate token payload ─────────────────────────────────
             if (empty($post['userid']) || empty($post['orgid'])) {
                 return new JsonResponse([
@@ -261,7 +264,7 @@ class AssignDriverController extends Controller
         }
     }
 
-    public static function getOrderDetail(Request $request)
+    public  function getOrderDetail(Request $request)
     {
         $type = 'success';
         $message = 'Orders fetched successfully';
@@ -291,5 +294,155 @@ class AssignDriverController extends Controller
             'message' => $message,
             'data' => $data
         ], $type === 'success' ? 200 : 500);
+    }
+
+    public function getCustomerDetail(Request $request)
+    {
+        $type = 'success';
+        $message = 'Customer detail fetched successfully';
+        $data = [];
+
+        try {
+
+            $payload = JWTAuth::parseToken()->getPayload();
+            $profile = $payload->get('profile');
+            $post = $request->all();
+            $post['userid'] = $profile['userid'] ?? null;
+            $post['orgid'] = $profile['orgid'] ?? null;
+
+            $data = AssignDriver::getCustomerDetail($post);
+        } catch (QueryException $e) {
+
+            $type = 'error';
+            $message = $e->getMessage();
+        } catch (\Exception $e) {
+
+            $type = 'error';
+            $message = $e->getMessage();
+        }
+
+        return response()->json([
+            'type' => $type,
+            'message' => $message,
+            'data' => $data
+        ], $type === 'success' ? 200 : 500);
+    }
+
+    public function changeOrderStatus(Request $request, FirebaseService $firebase)
+    {
+        $type    = 'error';
+        $message = 'Something went wrong.';
+        $data = [];
+        try {
+            $payload = JWTAuth::parseToken()->getPayload();
+            $profile = $payload->get('profile');
+
+            $post = $request->all();
+            $post['userid'] = $profile['userid'] ?? null;
+            $post['orgid']  = $profile['orgid'] ?? null;
+
+            if (empty($post['assignorderid'])) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'Order ID is required.',
+                ], 422);
+            }
+
+            if (empty($post['status'])) {
+                return response()->json([
+                    'type' => 'error',
+                    'message' => 'Status is required.',
+                ], 422);
+            }
+            if ($post['status'] === 'Start') {
+                if (empty($post['latitude'])) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Latitude is required.',
+                    ], 422);
+                }
+                if (empty($post['longitude'])) {
+                    return response()->json([
+                        'type' => 'error',
+                        'message' => 'Longitude is required.',
+                    ], 422);
+                }
+            }
+            $data = AssignDriver::changeOrderStatus($post, $firebase);
+
+            if ($data) {
+                $type = 'success';
+                $message = 'Order status updated successfully.';
+            } else {
+                $type = 'error';
+                $message = 'Order not found or already updated.';
+            }
+        } catch (TokenExpiredException $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Token expired. Please login again.',
+                'location' => $data
+            ], 401);
+        } catch (JWTException $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Invalid token.',
+                'location' => $data
+            ], 401);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Something went wrong.',
+                'location' => $data
+            ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage(),
+                'location' => $data
+            ], 500);
+        }
+
+        return response()->json([
+            'type' => $type,
+            'message' => $message,
+            'location' => $data
+        ], $type === 'success' ? 200 : 400);
+    }
+
+
+    public function verifyOtp(Request $request)
+    {
+        // try {
+        $post = $request->all();
+        $payload = JWTAuth::parseToken()->getPayload();
+        $profile = $payload->get('profile');
+
+        $orgid  = $profile['orgid'];
+        $userid = $profile['userid'];
+
+        $post['orgid']  = $orgid;
+        $post['userid'] = $userid;
+
+        $type    = 'success';
+        $message = 'OTP Match';
+
+        DB::beginTransaction();
+
+        if (!OrderNotificationOtp::verifyOrderOtp($post)) {
+            throw new Exception('Could not save record', 1);
+        }
+
+        DB::commit();
+        // } catch (QueryException $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $this->queryMessage;
+        // } catch (Exception $e) {
+        //     DB::rollBack();
+        //     $type = 'error';
+        //     $message = $e->getMessage();
+        // }
+        return json_encode(['type' => $type, 'message' => $message]);
     }
 }

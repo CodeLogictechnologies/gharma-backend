@@ -22,6 +22,7 @@ class LocationTracker extends Model
                 'riderid'     => $post['userid'],
                 'latitude'      => $post['latitude'],
                 'longitude'      => $post['longitude'],
+                'orderid'      => $post['order_id'],
                 'created_at' => Carbon::now(),
             ];
 
@@ -32,6 +33,22 @@ class LocationTracker extends Model
             $data = DB::table('location_trackers')
                 ->select('longitude', 'latitude')
                 ->where('riderid', $post['userid'])
+                ->first();
+            return $data;
+        } catch (\Exception $e) {
+            throw $e;
+        }
+    }
+
+
+    public static function getLocation($post)
+    {
+        try {
+
+            $data = DB::table('location_trackers')
+                ->where('orderid', $post['order_id'])
+                ->select('longitude', 'latitude')
+                ->latest()
                 ->first();
             return $data;
         } catch (\Exception $e) {
