@@ -16,7 +16,7 @@ class AssignDriverRequest extends FormRequest
         return [
             'ordermasterid' => 'required|exists:order_masters,id',
             'driver_id'     => 'required|exists:users,id',
-            'deivery_date'     => 'required',
+            'delivery_date'     => 'required',
         ];
     }
 

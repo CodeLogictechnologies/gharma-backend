@@ -85,6 +85,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::get('/user/location/{customerid}', [UserAddressController::class, 'getLocation']);
     Route::post('/save/tracking/location', [LocationTrackerController::class, 'saveLocation']);
+    Route::get('/driver/lastest/location', [LocationTrackerController::class, 'getOrderLocation']);
 
     Route::post('/user/order/status', [OrderController::class, 'orderStatus']);
     Route::get('/user/order/history', [ItemController::class, 'getUserOrderHistory']);
@@ -137,8 +138,11 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/admin/chat/reply',        [APIChatController::class, 'store']);
     });
 
-    Route::get('/driver/orderlist/all',       [BackPanelAssignDriverController::class, 'getOrderListAll']);
+    Route::get('/driver/orderlist/{type}', [BackPanelAssignDriverController::class, 'getOrderListAll']);
     Route::get('/driver/orderlist/datewise',       [BackPanelAssignDriverController::class, 'getOrderListDatewise']);
     Route::get('/driver/orderlist',       [BackPanelAssignDriverController::class, 'getOrderList']);
     Route::get('/driver/orders', [BackPanelAssignDriverController::class, 'getOrderDetail']);
+    Route::get('/driver/order/customerdetail', [BackPanelAssignDriverController::class, 'getCustomerDetail']);
+    Route::post('/driver/order/status/change', [BackPanelAssignDriverController::class, 'changeOrderStatus']);
+    Route::post('customer/order/checkotp', [BackPanelAssignDriverController::class, 'verifyOtp']);
 });

@@ -6,19 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Services\FirebaseService;
 
 class OrderNotificationOtp extends Model
 {
     public $incrementing = false;
     protected $keyType = 'string';
 
-    public static function saveOtp($post)
+    public function saveOtp($post)
     {
         try {
-            $otp = (string) random_int(100000, 999999);
+            $otp = (string) random_int(1000, 9999);
+
             $insertTransaction = [
                 'id'            => (string) Str::uuid(),
-                'orgid'    => $post['orgid'],
+                'orgid'         => $post['orgid'],
                 'customerid'    => $post['customerid'],
                 'ordermasterid' => $post['ordermasterid'],
                 'title'         => $post['title'],
@@ -34,8 +36,7 @@ class OrderNotificationOtp extends Model
                 throw new \Exception("Couldn't send OTP.");
             }
 
-            return true; // ← was missing
-
+            return true;
         } catch (\Exception $e) {
             throw $e;
         }
@@ -44,10 +45,10 @@ class OrderNotificationOtp extends Model
     public static function verifyOrderOtp($post)
     {
         try {
-            // ── Find the latest OTP record for this order ──────────
+
             $otpRecord = DB::table('order_notification_otps')
-                ->where('ordermasterid', $post['ordermasterid'])
-                ->where('customerid',   $post['customerid'])
+                ->where('otp', $post['otp'])
+                ->where('ordermasterid',   $post['order_id'])
                 ->whereNull('verified_at')
                 ->latest('created_at')
                 ->first();
@@ -57,10 +58,10 @@ class OrderNotificationOtp extends Model
             }
 
             // ── Check if OTP is expired (10 minutes) ───────────────
-            $createdAt = Carbon::parse($otpRecord->created_at);
-            if ($createdAt->diffInMinutes(Carbon::now()) > 10) {
-                throw new \Exception('OTP has expired. Please request a new one.');
-            }
+            // $createdAt = Carbon::parse($otpRecord->created_at);
+            // if ($createdAt->diffInMinutes(Carbon::now()) > 10) {
+            //     throw new \Exception('OTP has expired. Please request a new one.');
+            // }
 
             // ── Check if OTP matches ───────────────────────────────
             if (strtoupper($post['otp']) !== strtoupper($otpRecord->otp)) {
@@ -68,12 +69,18 @@ class OrderNotificationOtp extends Model
             }
 
 
-            $changeStatus = DB::table('order_statuses')
-                ->where('ordermasterid', $post['ordermasterid'])
+            // $changeStatus = DB::table('order_statuses')
+            //     ->where('ordermasterid', $post['order_id'])
+            //     ->update([
+            //         'order_status' => 'Delivered'
+            //     ]);
+
+
+            $changeStatus = DB::table('order_masters')
+                ->where('id', $post['order_id'])
                 ->update([
                     'order_status' => 'Delivered'
                 ]);
-
             if (!$changeStatus) {
                 throw new \Exception('Please try again.');
             }

@@ -161,7 +161,7 @@ class ApiAuthController extends Controller
         try {
             if (!$token = JWTAuth::attempt($credentials)) {
                 return response()->json([
-                    'type' => 'error',
+                    'type'    => 'error',
                     'message' => 'Invalid phone number or password.',
                 ], 401);
             }
