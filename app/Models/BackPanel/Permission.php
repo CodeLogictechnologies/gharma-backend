@@ -19,24 +19,31 @@ class Permission extends Model
     public static function saveData($post)
     {
         try {
-            $dataArray['id'] = (string) Str::uuid();
-
-            $dataArray = [
-                'name' => $post['name'],
-                'guard_name' => 'web',
-            ];
-
             if (!empty($post['id'])) {
-                $permission = DB::table('permissions')->where('id', $post['id'])->update($dataArray);
-                if (!$permission) {
-                    throw new Exception("Couldn't update permissions", 1);
-                }
+                // ── UPDATE ────────────────────────────────────────────
+                $dataArray = [
+                    'name'       => $post['name'],
+                    'guard_name' => 'web',
+                ];
+
+                // ✅ update() returns rows affected (0 = nothing changed, still OK)
+                DB::table('permissions')->where('id', $post['id'])->update($dataArray);
             } else {
-                $permission = DB::table('permissions')->where('id', $post['id'])->insert($dataArray);
-                if (!$permission) {
-                    throw new Exception("Couldn't save permissions", 1);
+                // ── INSERT ────────────────────────────────────────────
+                $dataArray = [
+                    'id'         => (string) Str::uuid(),  // ✅ moved here, only for insert
+                    'name'       => $post['name'],
+                    'guard_name' => 'web',
+                ];
+
+                // ✅ use insert(), not where()->insert()
+                $inserted = DB::table('permissions')->insert($dataArray);
+
+                if (!$inserted) {
+                    throw new Exception("Couldn't save permission", 1);
                 }
             }
+
             return true;
         } catch (Exception $e) {
             throw $e;

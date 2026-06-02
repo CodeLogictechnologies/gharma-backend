@@ -3,6 +3,7 @@
 use App\Http\Controllers\BackPanel\AboutUsController;
 use App\Http\Controllers\BackPanel\AuthController;
 use App\Http\Controllers\BackPanel\BrandController;
+use App\Http\Controllers\BackPanel\FaviconController;
 use App\Http\Controllers\BackPanel\CategoryController as BackPanelCategoryController;
 use App\Http\Controllers\BackPanel\DiscountController;
 use App\Http\Controllers\BackPanel\ForgotPasswordController;
@@ -96,7 +97,10 @@ Route::group(['middleware' => ['auth']], function () {
     Route::group(['prefix' => 'admin'], function () {
 
         Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('admin.dashboard');
-
+        Route::group(['prefix' => 'favicon'], function () {
+                Route::get('/',      [FaviconController::class, 'index'])->name('favicon');
+                Route::put('/update',[FaviconController::class, 'update'])->name('favicon.update');
+            });
         Route::get('/organization', [OrganizationController::class, 'index'])->name('organization');
         Route::get('/organization/list', [OrganizationController::class, 'list'])->name('organization.list');
         Route::any('/organization/form', [OrganizationController::class, 'form'])->name('organization.form');

@@ -1,7 +1,5 @@
-{{-- Select2 CSS --}}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
-    rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
 <style>
     ._image {
@@ -69,7 +67,6 @@
 </div>
 
 <div class="modal-body">
-    {{-- FIX: id="userForm" (was "orgForm" in the tab partial), action uses correct route --}}
     <form action="{{ route('user.save') }}" method="POST" id="userForm" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="id" value="{{ @$id }}">
@@ -89,8 +86,8 @@
             </div>
             <div class="col-md-4">
                 <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="last_name" id="last_name" placeholder="Enter last name"
-                    value="{{ @$last_name }}">
+                <input type="text" class="form-control" name="last_name" id="last_name"
+                    placeholder="Enter last name" value="{{ @$last_name }}">
                 <div class="invalid-feedback">Enter last name</div>
             </div>
         </div>
@@ -99,20 +96,20 @@
         <div class="row mb-2">
             <div class="col-md-4">
                 <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="username" id="username" placeholder="Enter username"
-                    value="{{ @$username }}">
+                <input type="text" class="form-control" name="username" id="username"
+                    placeholder="Enter username" value="{{ @$username }}">
                 <div class="invalid-feedback">Enter username</div>
             </div>
             <div class="col-md-4">
                 <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                <input type="email" class="form-control" name="email" id="email" placeholder="Enter email"
-                    value="{{ @$email }}">
+                <input type="email" class="form-control" name="email" id="email"
+                    placeholder="Enter email" value="{{ @$email }}">
                 <div class="invalid-feedback">Enter email</div>
             </div>
             <div class="col-md-4">
                 <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" name="phone" id="phone" placeholder="Enter phone"
-                    value="{{ @$phone }}">
+                <input type="number" class="form-control" name="phone" id="phone"
+                    placeholder="Enter phone" value="{{ @$phone }}">
                 <div class="invalid-feedback">Enter phone</div>
             </div>
         </div>
@@ -121,17 +118,17 @@
         <div class="row mb-2">
             <div class="col-md-4">
                 <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="address" id="address" placeholder="Enter address"
-                    value="{{ @$address }}">
+                <input type="text" class="form-control" name="address" id="address"
+                    placeholder="Enter address" value="{{ @$address }}">
                 <div class="invalid-feedback">Enter address</div>
             </div>
             <div class="col-md-4">
                 <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
                 <select name="gender" id="gender" class="form-control">
                     <option value="">Select Gender</option>
-                    <option value="Male" @if (@$gender == 'Male') selected @endif>Male</option>
-                    <option value="Female" @if (@$gender == 'Female') selected @endif>Female</option>
-                    <option value="Other" @if (@$gender == 'Other') selected @endif>Other</option>
+                    <option value="Male"   @if(@$gender == 'Male')   selected @endif>Male</option>
+                    <option value="Female" @if(@$gender == 'Female') selected @endif>Female</option>
+                    <option value="Other"  @if(@$gender == 'Other')  selected @endif>Other</option>
                 </select>
                 <div class="invalid-feedback">Select gender</div>
             </div>
@@ -139,7 +136,8 @@
                 <label for="roles" class="form-label">Roles <span class="text-danger">*</span></label>
                 <select name="roles[]" id="roles" class="form-control" multiple>
                     @foreach ($rolesList as $role)
-                        <option value="{{ $role->id }}" @if (!empty($userRoles) && in_array($role->id, $userRoles)) selected @endif>
+                        <option value="{{ $role->id }}"
+                            @if (!empty($userRoles) && in_array($role->id, $userRoles)) selected @endif>
                             {{ $role->name }}
                         </option>
                     @endforeach
@@ -168,136 +166,117 @@
 
 <div class="modal-footer">
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-    {{-- FIX: button is type="button", not submit — disabled state is controlled manually --}}
     <button type="button" class="btn btn-primary" id="saveUser">
         <i class="fa fa-save"></i> {{ empty($id) ? 'Save' : 'Update' }}
     </button>
 </div>
 
-{{-- Select2 JS --}}
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
+{{-- ❌ NO <script src="select2..."> here — it causes a race condition.
+     Select2 JS must already be loaded by the parent layout before this runs. --}}
 <script>
-    $(document).ready(function() {
+(function ($) {
 
-        /* ── Select2 init ─────────────────────────────────────────────
-           FIX: dropdownParent must be '#userModel' (the actual modal id), not '#userModal'
-        ──────────────────────────────────────────────────────────── */
-        $('#roles').select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Select roles...',
-            allowClear: true,
-            width: '100%',
-            dropdownParent: $('#userModel'), // ← FIXED (was #userModal)
-        });
+    /* ── Select2 init ──────────────────────────────────────────── */
+    $('#roles').select2({
+        theme         : 'bootstrap-5',
+        placeholder   : 'Select roles...',
+        allowClear    : true,
+        width         : '100%',
+        dropdownParent: $('#userModel'),
+    });
 
-        /* ── Image preview ────────────────────────────────────────── */
-        $('#image').on('change', function(e) {
-            const file = e.target.files[0];
-            if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
-        });
+    /* ── Image preview ─────────────────────────────────────────── */
+    $('#image').on('change', function (e) {
+        const file = e.target.files[0];
+        if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
+    });
 
-        /* ── jQuery Validation ────────────────────────────────────── */
-        $('#userForm').validate({
-            ignore: [], // include hidden Select2 elements
-            rules: {
-                first_name: 'required',
-                last_name: 'required',
-                username: 'required',
-                email: {
-                    required: true,
-                    email: true
-                },
-                phone: 'required',
-                address: 'required',
-                gender: 'required',
-                'roles[]': {
-                    required: true,
-                    minlength: 1
+    /* ── jQuery Validation ─────────────────────────────────────── */
+    $('#userForm').validate({
+        ignore: [],
+        rules: {
+            first_name : 'required',
+            last_name  : 'required',
+            username   : 'required',
+            email      : { required: true, email: true },
+            phone      : 'required',
+            address    : 'required',
+            gender     : 'required',
+            'roles[]'  : { required: true, minlength: 1 }
+        },
+        messages: {
+            first_name : 'Enter first name',
+            last_name  : 'Enter last name',
+            username   : 'Enter username',
+            email      : 'Enter a valid email',
+            phone      : 'Enter phone',
+            address    : 'Enter address',
+            gender     : 'Select gender',
+            'roles[]'  : 'Select at least one role'
+        },
+        highlight  : function (el) { $(el).addClass('border-danger'); },
+        unhighlight: function (el) { $(el).removeClass('border-danger'); },
+        errorPlacement: function (error, element) {
+            if (element.attr('id') === 'roles') {
+                error.insertAfter(element.next('.select2-container'));
+            } else {
+                error.insertAfter(element);
+            }
+        }
+    });
+
+    /* ── Save / Update ─────────────────────────────────────────── */
+    $('#saveUser').on('click', function () {
+        if (!$('#userForm').valid()) return;
+
+        var $btn     = $(this);
+        var origHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+        showLoader();
+
+        $.ajax({
+            url         : $('#userForm').attr('action'),
+            type        : 'POST',
+            data        : new FormData(document.getElementById('userForm')),
+            processData : false,
+            contentType : false,
+
+            success: function (response) {
+                hideLoader();
+                var result = (typeof response === 'string') ? JSON.parse(response) : response;
+
+                if (result.type === 'success') {
+                    showNotification(result.message, 'success');
+                    if (typeof userTable !== 'undefined' && userTable) {
+                        userTable.fnDraw();
+                    }
+                    bootstrap.Modal.getInstance(document.getElementById('userModel')).hide();
+                } else {
+                    showNotification(result.message, 'error');
+                    $btn.prop('disabled', false).html(origHtml);
                 }
             },
-            messages: {
-                first_name: 'Enter first name',
-                last_name: 'Enter last name',
-                username: 'Enter username',
-                email: 'Enter a valid email',
-                phone: 'Enter phone',
-                address: 'Enter address',
-                gender: 'Select gender',
-                'roles[]': 'Select at least one role'
-            },
-            highlight: function(el) {
-                $(el).addClass('border-danger');
-            },
-            unhighlight: function(el) {
-                $(el).removeClass('border-danger');
-            },
-            errorPlacement: function(error, element) {
-                if (element.attr('id') === 'roles') {
-                    error.insertAfter(element.next('.select2-container'));
+
+            error: function (xhr) {
+                hideLoader();
+                $btn.prop('disabled', false).html(origHtml);
+
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    $.each(xhr.responseJSON.errors, function (field, messages) {
+                        $('[name="' + field + '"]').addClass('is-invalid border-danger');
+                        showNotification(messages[0], 'error');
+                    });
                 } else {
-                    error.insertAfter(element);
+                    showNotification('Something went wrong!', 'error');
                 }
             }
         });
-
-        /* ── Save / Update ────────────────────────────────────────────
-           FIX: uses #saveUser (not .saveUser class), calls userTable.fnDraw()
-                closes '#userModel' (correct modal id)
-        ──────────────────────────────────────────────────────────── */
-        $('#saveUser').on('click', function() {
-            if (!$('#userForm').valid()) return;
-
-            var $btn = $(this);
-            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
-            showLoader();
-
-            $.ajax({
-                url: $('#userForm').attr('action'),
-                type: 'POST',
-                data: new FormData(document.getElementById('userForm')),
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    hideLoader();
-                    var result = typeof response === 'string' ? JSON.parse(response) :
-                        response;
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        if (typeof userTable !== 'undefined' && userTable) {
-                            userTable.fnDraw(); // FIX: fnDraw() not draw()
-                        }
-                        bootstrap.Modal.getInstance(document.getElementById('userModel'))
-                            .hide(); // FIX: userModel
-                    } else {
-                        showNotification(result.message, 'error');
-                        $btn.prop('disabled', false).html(
-                            '<i class="fa fa-save"></i> {{ empty($id) ? 'Save' : 'Update' }}'
-                        );
-                    }
-                },
-                error: function(xhr) {
-                    hideLoader();
-                    $btn.prop('disabled', false).html(
-                        '<i class="fa fa-save"></i> {{ empty($id) ? 'Save' : 'Update' }}'
-                    );
-                    if (xhr.status === 422) {
-                        $.each(xhr.responseJSON.errors, function(field, messages) {
-                            $('[name="' + field + '"]').addClass(
-                                'is-invalid border-danger');
-                            showNotification(messages[0], 'error');
-                        });
-                    } else {
-                        showNotification('Something went wrong!', 'error');
-                    }
-                }
-            });
-        });
-
-        /* ── Clear validation styles on input ────────────────────── */
-        $(document).on('input change', '#userForm .form-control', function() {
-            $(this).removeClass('is-invalid border-danger');
-        });
-
     });
+
+    /* ── Clear validation styles on input ──────────────────────── */
+    $('#userForm').on('input change', '.form-control', function () {
+        $(this).removeClass('is-invalid border-danger');
+    });
+
+})(jQuery);
 </script>

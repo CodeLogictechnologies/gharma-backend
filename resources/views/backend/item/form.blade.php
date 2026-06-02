@@ -522,45 +522,42 @@
             unhighlight: el => $(el).removeClass('border-danger'),
         });
 
-        {{-- Replace your saveItem click handler with this --}}
 
         $('.saveItem').on('click', function() {
-            if ($('#itemForm').valid()) {
-                showLoader();
-                $('#itemForm').ajaxSubmit({
-                    dataType: 'json', // jquery.form auto-parses the JSON response
-                    success: function(result) {
-                        // result is already a plain object — DO NOT use JSON.parse()
-                        if (result.type === 'success') {
-                            showNotification(result.message, 'success');
-                            hideLoader();
-                            itemTable.draw();
-                            $('#itemForm')[0].reset();
-                            $('#imagePreviewGrid').empty();
-                            newFiles = [];
-                            $('#organizationModal').modal('hide');
-                        } else {
-                            showNotification(result.message, 'error');
-                            hideLoader();
-                        }
-                    },
-                    error: function(xhr) {
-                        // Handles Laravel 422 validation errors and 500 server errors
-                        var msg = 'Something went wrong.';
-                        if (xhr.responseJSON) {
-                            if (xhr.responseJSON.message) {
-                                msg = xhr.responseJSON.message;
-                            } else if (xhr.responseJSON.errors) {
-                                msg = Object.values(xhr.responseJSON.errors).flat().join(
-                                    '\n');
-                            }
-                        }
-                        showNotification(msg, 'error');
-                        hideLoader();
+    if ($('#itemForm').valid()) {
+        showLoader();
+        $('#itemForm').ajaxSubmit({
+            dataType: 'json',
+            success: function(result) {
+                if (result.type === 'success') {
+                    showNotification(result.message, 'success');
+                    hideLoader();
+                    itemTable.fnDraw(); // ✅ old-style API (matches your dataTable() init)
+                    $('#itemForm')[0].reset();
+                    $('#imagePreviewGrid').empty();
+                    newFiles = [];
+                    // ✅ correct modal ID
+                    bootstrap.Modal.getInstance(document.getElementById('itemModel')).hide();
+                } else {
+                    showNotification(result.message, 'error');
+                    hideLoader();
+                }
+            },
+            error: function(xhr) {
+                var msg = 'Something went wrong.';
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON.errors) {
+                        msg = Object.values(xhr.responseJSON.errors).flat().join('\n');
                     }
-                });
+                }
+                showNotification(msg, 'error');
+                hideLoader();
             }
         });
+    }
+});
 
     });
 </script>
