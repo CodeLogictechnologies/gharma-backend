@@ -9,10 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
 
 class Item extends Model
 {
@@ -37,6 +35,10 @@ class Item extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
+    /* ─────────────────────────────────────────────────────────────────
+       RELATIONSHIPS
+    ───────────────────────────────────────────────────────────────── */
+
     public function category()
     {
         return $this->belongsTo(Category::class, 'categories');
@@ -52,6 +54,10 @@ class Item extends Model
         return $this->belongsTo(Organization::class, 'orgid');
     }
 
+    /* ─────────────────────────────────────────────────────────────────
+       ACCESSORS
+    ───────────────────────────────────────────────────────────────── */
+
     public function getImageUrlsAttribute(): array
     {
         return collect($this->images ?? [])
@@ -65,10 +71,18 @@ class Item extends Model
         return $first ? Storage::disk('public')->url($first) : null;
     }
 
+    /* ─────────────────────────────────────────────────────────────────
+       SCOPES
+    ───────────────────────────────────────────────────────────────── */
+
     public function scopeActive($query)
     {
         return $query->where('status', 'Y');
     }
+
+    /* ─────────────────────────────────────────────────────────────────
+       LIST (DataTable)
+    ───────────────────────────────────────────────────────────────── */
 
     public static function list(array $post)
     {
@@ -77,14 +91,14 @@ class Item extends Model
         $search3 = trim(strtolower($post['sSearch_3'] ?? ''));
 
         $limit  = (int) ($post['iDisplayLength'] ?? 15);
-        $offset = (int) ($post['iDisplayStart'] ?? 0);
+        $offset = (int) ($post['iDisplayStart']  ?? 0);
 
         $query = self::query()
             ->from('items')
-            ->leftJoin('category_items as ci', 'ci.itemid', '=', 'items.id')
-            ->leftJoin('categories as c', 'c.id', '=', 'ci.categoryid')
+            ->leftJoin('category_items as ci',     'ci.itemid',  '=', 'items.id')
+            ->leftJoin('categories as c',           'c.id',       '=', 'ci.categoryid')
             ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'items.id')
-            ->leftJoin('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
+            ->leftJoin('sub_categories as s',       's.id',       '=', 'sci.subcategoryid')
             ->selectRaw("
                 items.id,
                 items.title,
@@ -132,13 +146,24 @@ class Item extends Model
             ->get()
             ->groupBy('itemid');
 
-        $result = $result->map(function ($item) use ($categories, $subcategories) {
+        $brands = DB::table('brands')
+            ->select('id', 'name')
+            ->get()
+            ->keyBy('id');
+
+        $result = $result->map(function ($item) use ($categories, $subcategories, $brands) {
             $item->categories = isset($categories[$item->id])
                 ? $categories[$item->id]->pluck('title')->values()
-                : [];
+                : collect([]);
+
             $item->subcategories = isset($subcategories[$item->id])
                 ? $subcategories[$item->id]->pluck('title')->values()
-                : [];
+                : collect([]);
+
+            $item->brand = isset($brands[$item->brand_id])
+                ? $brands[$item->brand_id]->name
+                : '—';
+
             return $item;
         });
 
@@ -148,59 +173,9 @@ class Item extends Model
         return $result;
     }
 
-    public static function deleteItem($post)
-    {
-        try {
-            $updateArray = [
-                'status'     => 'N',
-                'updated_at' => Carbon::now(),
-            ];
-            if (!DB::table('wholesaler_prices')->where(['id' => $post['id']])->update($updateArray)) {
-                throw new Exception("Couldn't Delete Data. Please try again", 1);
-            }
-            if (!DB::table('wholesaler_price_details')->where(['wholesalermasterid' => $post['id']])->update($updateArray)) {
-                throw new Exception("Couldn't Delete Data. Please try again", 1);
-            }
-            return true;
-        } catch (Exception $e) {
-            throw $e;
-        }
-    }
-
-    public static function getData($post)
-    {
-        $id = $post['id'] ?? null;
-
-        if (empty($id)) {
-            throw new Exception('Item ID is required.');
-        }
-
-        $item = DB::table('items as i')
-            ->leftJoin('category_items as ci', 'ci.itemid', '=', 'i.id')
-            ->leftJoin('categories as c', 'c.id', '=', 'ci.categoryid')
-            ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
-            ->leftJoin('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
-            ->where('i.id', $id)
-            ->select('i.*', 'c.title as category_title', 's.title as subcategory_title')
-            ->first();
-
-        if (!$item) {
-            throw new Exception('Item not found.');
-        }
-
-        $item->images = DB::table('item_images')
-            ->where('item_id', $id)
-            ->orderBy('order_number')
-            ->orderBy('id')
-            ->get();
-
-        $item->variations = DB::table('itemvariations')
-            ->where('item_id', $id)
-            ->orderBy('id')
-            ->get();
-
-        return $item;
-    }
+    /* ─────────────────────────────────────────────────────────────────
+       SAVE (INSERT + UPDATE)
+    ───────────────────────────────────────────────────────────────── */
 
     public static function saveData($post)
     {
@@ -217,9 +192,9 @@ class Item extends Model
                 'orgid'       => $post['orgid']        ?? null,
             ];
 
-            // ════════════════════════════════════════
-            // UPDATE
-            // ════════════════════════════════════════
+            /* ══════════════════════════════════════
+               UPDATE
+            ══════════════════════════════════════ */
             if (!empty($post['id'])) {
 
                 $itemId = $post['id'];
@@ -331,19 +306,44 @@ class Item extends Model
                     }
                 }
 
-                // ── Save image order ─────────────────────────────────────  ← NEW
+                // ── DELETE removed images ────────────────────────────────
+                // kept_image_ids[] contains the IDs the user left on the form.
+                // Any DB image NOT in that list was removed by the user — delete it.
+                $keptImageIds = array_filter((array) ($post['kept_image_ids'] ?? []));
+
+                $existingImageIds = DB::table('item_images')
+                    ->where('item_id', $itemId)
+                    ->pluck('id')
+                    ->toArray();
+
+                $toDelete = array_diff($existingImageIds, $keptImageIds);
+
+                if (!empty($toDelete)) {
+                    // Remove physical files from storage
+                    $filenames = DB::table('item_images')
+                        ->whereIn('id', $toDelete)
+                        ->pluck('image');
+
+                    foreach ($filenames as $filename) {
+                        Storage::disk('public')->delete('items/' . $filename);
+                    }
+
+                    DB::table('item_images')->whereIn('id', $toDelete)->delete();
+                }
+
+                // ── Save image order for kept images ─────────────────────
                 if (!empty($post['image_order'])) {
                     foreach ($post['image_order'] as $order => $imageId) {
                         DB::table('item_images')
                             ->where('id', $imageId)
                             ->where('item_id', $itemId)
-                            ->update(['order_number' => $order + 1]);
+                            ->update(['order_number' => (int) $order + 1]);
                     }
                 }
 
-                // ── New images added during edit ─────────────────────────
+                // ── Upload new images added during edit ──────────────────
                 if (!empty($post['images'])) {
-                    $maxOrder  = DB::table('item_images')
+                    $maxOrder = DB::table('item_images')
                         ->where('item_id', $itemId)
                         ->max('order_number') ?? 0;
 
@@ -366,9 +366,9 @@ class Item extends Model
                     DB::table('item_images')->insert($imageRows);
                 }
 
-                // ════════════════════════════════════════
-                // INSERT
-                // ════════════════════════════════════════
+            /* ══════════════════════════════════════
+               INSERT
+            ══════════════════════════════════════ */
             } else {
 
                 $itemId = (string) Str::uuid();
@@ -480,20 +480,96 @@ class Item extends Model
 
             DB::commit();
             return true;
+
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
 
+    /* ─────────────────────────────────────────────────────────────────
+       DELETE
+    ───────────────────────────────────────────────────────────────── */
+
+    public static function deleteItem($post)
+    {
+        try {
+            $id = $post['id'] ?? null;
+            if (empty($id)) {
+                throw new Exception('Item ID is required.');
+            }
+
+            DB::beginTransaction();
+
+            // Soft-delete the item
+            DB::table('items')
+                ->where('id', $id)
+                ->update([
+                    'status'     => 'N',
+                    'updated_at' => Carbon::now(),
+                ]);
+
+            DB::commit();
+            return true;
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       GET SINGLE ITEM (View)
+    ───────────────────────────────────────────────────────────────── */
+
+    public static function getData($post)
+    {
+        $id = $post['id'] ?? null;
+
+        if (empty($id)) {
+            throw new Exception('Item ID is required.');
+        }
+
+        $item = DB::table('items as i')
+            ->leftJoin('category_items as ci',     'ci.itemid',  '=', 'i.id')
+            ->leftJoin('categories as c',           'c.id',       '=', 'ci.categoryid')
+            ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
+            ->leftJoin('sub_categories as s',       's.id',       '=', 'sci.subcategoryid')
+            ->where('i.id', $id)
+            ->select('i.*', 'c.title as category_title', 's.title as subcategory_title')
+            ->first();
+
+        if (!$item) {
+            throw new Exception('Item not found.');
+        }
+
+        $item->images = DB::table('item_images')
+            ->where('item_id', $id)
+            ->orderByRaw('CASE WHEN order_number IS NULL OR order_number = 0 THEN 1 ELSE 0 END')
+            ->orderBy('order_number')
+            ->orderBy('created_at')
+            ->get();
+
+        $item->variations = DB::table('itemvariations')
+            ->where('item_id', $id)
+            ->orderBy('id')
+            ->get();
+
+        return $item;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────
+       GET ITEMS (Dropdown)
+    ───────────────────────────────────────────────────────────────── */
+
     public static function getItem($post)
     {
         try {
-            $data = DB::table('items')
+            return DB::table('items')
                 ->select('id as itemid', 'title as itemname')
                 ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
                 ->get();
-            return $data;
         } catch (Exception $e) {
             throw $e;
         }

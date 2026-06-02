@@ -75,43 +75,53 @@
 @endsection
 
 @section('main-scripts')
+    {{-- ✅ Load Select2 JS here once — guaranteed available before any form opens --}}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         var baseurl = '{{ url('') }}';
 
-        // Shared state for status change flow
-        var pendingStatusUserId = null;
-        var pendingStatusValue = null;
+        var pendingStatusUserId   = null;
+        var pendingStatusValue    = null;
         var pendingStatusDropdown = null;
-        var previousStatusValue = null;
+        var previousStatusValue   = null;
 
-        $(document).ready(function() {
+        $(document).ready(function () {
 
             /* =========================================================
                TAB LOADING
+               FIX: $.globalEval() after .html(response) so the IIFE
+               inside each tab partial actually executes.
             ========================================================= */
-            $(document).off('click', '.nav-link').on('click', '.nav-link', function(e) {
+            $(document).off('click', '.nav-link').on('click', '.nav-link', function (e) {
                 e.preventDefault();
 
-                var $tab = $(this);
+                var $tab  = $(this);
                 var tabid = $tab.attr('id').replace('-tab', '');
 
                 $('#loading').show();
                 $('#nav-tabContent').empty();
 
                 $.post('{{ route('user.tab') }}', {
-                        tabid: tabid,
-                        _token: '{{ csrf_token() }}'
-                    })
-                    .done(function(response) {
-                        $('#nav-tabContent').html(response);
-                    })
-                    .fail(function() {
-                        $('#nav-tabContent').html(
-                            '<div class="alert alert-danger">Error loading content.</div>');
-                    })
-                    .always(function() {
-                        $('#loading').hide();
+                    tabid  : tabid,
+                    _token : '{{ csrf_token() }}'
+                })
+                .done(function (response) {
+                    $('#nav-tabContent').html(response);
+
+                    // ✅ KEY FIX — execute scripts injected by .html()
+                    // Without this the IIFE in the tab partial never runs,
+                    // so DataTable, openUserModal, and all event bindings are missing.
+                    $('#nav-tabContent').find('script').each(function () {
+                        $.globalEval($(this).text());
                     });
+                })
+                .fail(function () {
+                    $('#nav-tabContent').html('<div class="alert alert-danger">Error loading content.</div>');
+                })
+                .always(function () {
+                    $('#loading').hide();
+                });
 
                 $('.nav-link').removeClass('active');
                 $tab.addClass('active');
@@ -121,36 +131,29 @@
 
             /* =========================================================
                STATUS CHANGE FLOW
-               Step 1: dropdown changes  → store values → show status confirm modal
-               Step 2: Confirm clicked   → hide status modal → show remark modal
-               Step 3: Save remark       → POST status + remark → reload table
-               Cancel at any step        → revert dropdown to previous value
             ========================================================= */
 
             // Step 1: Dropdown changed
-            $(document).on('change', '.statusDropdown', function() {
+            $(document).on('change', '.statusDropdown', function () {
                 pendingStatusDropdown = $(this);
-                previousStatusValue = pendingStatusDropdown.data('previous') || pendingStatusDropdown.data(
-                    'original');
-                pendingStatusUserId = pendingStatusDropdown.data('id');
-                pendingStatusValue = pendingStatusDropdown.val();
+                previousStatusValue   = pendingStatusDropdown.data('previous') || pendingStatusDropdown.data('original');
+                pendingStatusUserId   = pendingStatusDropdown.data('id');
+                pendingStatusValue    = pendingStatusDropdown.val();
 
-                // Store current as previous for next change
-                pendingStatusDropdown.data('previous', pendingStatusDropdown.data('original') ??
-                    previousStatusValue);
+                pendingStatusDropdown.data('previous', pendingStatusDropdown.data('original') ?? previousStatusValue);
 
                 new bootstrap.Modal(document.getElementById('statusModal')).show();
             });
 
-            // Cancel status modal (button or X) → revert dropdown
-            $(document).on('click', '#cancelStatus, #cancelStatusX', function() {
+            // Cancel status modal
+            $(document).on('click', '#cancelStatus, #cancelStatusX', function () {
                 revertDropdown();
                 var modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
                 if (modal) modal.hide();
             });
 
-            // Step 2: Confirmed status change → open remark modal
-            $('#confirmStatus').on('click', function() {
+            // Step 2: Confirmed → open remark modal
+            $('#confirmStatus').on('click', function () {
                 var statusModal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
                 if (statusModal) statusModal.hide();
 
@@ -158,22 +161,20 @@
                 $('#remarkText').val('');
                 $('#remarkError').hide();
 
-                document.getElementById('statusModal').addEventListener('hidden.bs.modal',
-                function handler() {
+                document.getElementById('statusModal').addEventListener('hidden.bs.modal', function handler() {
                     this.removeEventListener('hidden.bs.modal', handler);
                     new bootstrap.Modal(document.getElementById('remarkModal')).show();
                 });
             });
 
-            // Cancel remark modal → revert dropdown
-            $('#cancelRemark').on('click', function() {
+            // Cancel remark modal
+            $('#cancelRemark').on('click', function () {
                 revertDropdown();
                 bootstrap.Modal.getInstance(document.getElementById('remarkModal')).hide();
                 resetStatusState();
             });
 
-            document.getElementById('remarkModal').addEventListener('hidden.bs.modal', function() {
-                // If closed without saving, revert
+            document.getElementById('remarkModal').addEventListener('hidden.bs.modal', function () {
                 if (pendingStatusUserId !== null) {
                     revertDropdown();
                     resetStatusState();
@@ -181,9 +182,8 @@
             });
 
             // Step 3: Save remark + status
-            $('#saveRemark').on('click', function() {
+            $('#saveRemark').on('click', function () {
                 var remark = $('#remarkText').val().trim();
-
                 if (!remark) {
                     $('#remarkError').show();
                     return;
@@ -191,37 +191,35 @@
                 $('#remarkError').hide();
 
                 $.post('{{ route('user.status') }}', {
-                        id: pendingStatusUserId,
-                        status: pendingStatusValue,
-                        remark: remark,
-                        _token: '{{ csrf_token() }}'
-                    })
-                    .done(function(response) {
-                        var result = typeof response === 'string' ? JSON.parse(response) : response;
-                        if (result.type === 'success') {
-                            showNotification(result.message, 'success');
-                            // Update the dropdown's stored "original" value so cancel works correctly next time
-                            if (pendingStatusDropdown) {
-                                pendingStatusDropdown.data('original', pendingStatusValue);
-                                pendingStatusDropdown.data('previous', pendingStatusValue);
-                            }
-                            // Reload the active tab's DataTable if available
-                            if (typeof userTable !== 'undefined' && userTable) {
-                                userTable.fnDraw();
-                            }
-                        } else {
-                            showNotification(result.message, 'error');
-                            revertDropdown();
+                    id     : pendingStatusUserId,
+                    status : pendingStatusValue,
+                    remark : remark,
+                    _token : '{{ csrf_token() }}'
+                })
+                .done(function (response) {
+                    var result = (typeof response === 'string') ? JSON.parse(response) : response;
+                    if (result.type === 'success') {
+                        showNotification(result.message, 'success');
+                        if (pendingStatusDropdown) {
+                            pendingStatusDropdown.data('original', pendingStatusValue);
+                            pendingStatusDropdown.data('previous', pendingStatusValue);
                         }
-                    })
-                    .fail(function() {
-                        showNotification('Status update failed. Please try again.', 'error');
+                        if (typeof userTable !== 'undefined' && userTable) {
+                            userTable.fnDraw();
+                        }
+                    } else {
+                        showNotification(result.message, 'error');
                         revertDropdown();
-                    })
-                    .always(function() {
-                        bootstrap.Modal.getInstance(document.getElementById('remarkModal')).hide();
-                        resetStatusState();
-                    });
+                    }
+                })
+                .fail(function () {
+                    showNotification('Status update failed. Please try again.', 'error');
+                    revertDropdown();
+                })
+                .always(function () {
+                    bootstrap.Modal.getInstance(document.getElementById('remarkModal')).hide();
+                    resetStatusState();
+                });
             });
 
             function revertDropdown() {
@@ -231,10 +229,10 @@
             }
 
             function resetStatusState() {
-                pendingStatusUserId = null;
-                pendingStatusValue = null;
+                pendingStatusUserId   = null;
+                pendingStatusValue    = null;
                 pendingStatusDropdown = null;
-                previousStatusValue = null;
+                previousStatusValue   = null;
             }
 
         });

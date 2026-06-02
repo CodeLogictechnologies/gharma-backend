@@ -22,6 +22,14 @@
             </a>
         </li>
 
+         <!-- Favicon -->
+        <li class="menu-item {{ request()->routeIs('favicon') ? 'active' : '' }}">
+            <a href="{{ route('favicon') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-image-alt"></i>
+                <div>Favicon</div>
+            </a>
+        </li>
+
         <!-- Manager -->
         <li class="menu-header small text-uppercase">
             <span class="menu-header-text">Manager View</span>
@@ -187,12 +195,12 @@
         </li>
 
         <!-- Home Tab -->
-        <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
+        <!-- <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
             <a href="{{ route('hometab') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-home-circle"></i>
                 <div>Home Tab</div>
             </a>
-        </li>
+        </li> -->
 
 
         <!-- Discount / Loyalty -->
@@ -279,7 +287,7 @@
         </li>
 
         <!-- Heatmap -->
-        <li class="menu-item {{ request()->routeIs('heatmap') ? 'active' : '' }}">
+        <li class="menu-item {{ request()->routeIs('admin.heatmap.index') ? 'active' : '' }}">
             <a href="{{ route('admin.heatmap.index') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-map-alt"></i>
                 <div>Heatmap</div>
@@ -294,7 +302,6 @@
                 <div>Notification</div>
             </a>
         </li>
-
 
     </ul>
 </aside>

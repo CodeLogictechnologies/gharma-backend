@@ -10,8 +10,9 @@
     <meta name="description" content="" />
 
     <!-- Favicon -->
-    <link rel="shortcut icon" href="erp.png">
-
+    <!-- Favicon -->
+    @php $favicon = \App\Models\BackPanel\Favicon::first(); @endphp
+    <link rel="shortcut icon" href="{{ !empty($favicon?->image) ? asset('storage/favicon/' . $favicon->image) : asset('erp.png') }}">
     <style>
         /* ── Loader ─────────────────────────────────────────────── */
         #global-loader {
@@ -23,6 +24,7 @@
             align-items: center;
             justify-content: center;
         }
+
         #global-loader-inner {
             display: flex;
             align-items: center;
@@ -31,12 +33,13 @@
             height: 64px;
             background: #fff;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
         }
+
         /* ── Notification ────────────────────────────────────────── */
         #global-notification {
             position: fixed;
@@ -51,14 +54,22 @@
             gap: 10px;
             font-size: 14px;
             color: #333;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             min-width: 260px;
             max-width: 380px;
             animation: slideIn 0.3s ease;
         }
+
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(60px); }
-            to   { opacity: 1; transform: translateX(0); }
+            from {
+                opacity: 0;
+                transform: translateX(60px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
     </style>
 
@@ -146,7 +157,9 @@
 
     <script>
         $.ajaxSetup({
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
         });
 
         /* ── Loader ─────────────────────────────────────────────── */
@@ -163,6 +176,7 @@
             }
             $('#global-loader').fadeIn(200);
         }
+
         function hideLoader() {
             $('#global-loader').fadeOut(200);
         }
@@ -170,17 +184,29 @@
         /* ── Notification ────────────────────────────────────────── */
         function showNotification(message, type = 'success') {
             $('#global-notification').remove();
-            var icons  = { success:'bx-check-circle', error:'bx-x-circle', warning:'bx-error', info:'bx-info-circle' };
-            var colors = { success:'#28a745', error:'#dc3545', warning:'#ffc107', info:'#17a2b8' };
-            var icon  = icons[type]  || icons.info;
+            var icons = {
+                success: 'bx-check-circle',
+                error: 'bx-x-circle',
+                warning: 'bx-error',
+                info: 'bx-info-circle'
+            };
+            var colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+            var icon = icons[type] || icons.info;
             var color = colors[type] || colors.info;
             $('body').append(`
                 <div id="global-notification">
                     <i class='bx ${icon}' style="font-size:20px;color:${color};"></i>
                     <span>${message}</span>
                 </div>`);
-            setTimeout(function () {
-                $('#global-notification').fadeOut(400, function () { $(this).remove(); });
+            setTimeout(function() {
+                $('#global-notification').fadeOut(400, function() {
+                    $(this).remove();
+                });
             }, 3000);
         }
     </script>
@@ -188,4 +214,5 @@
     @yield('main-scripts')
 
 </body>
+
 </html>

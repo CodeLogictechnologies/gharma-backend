@@ -152,7 +152,8 @@ class ItemController extends Controller
      * Save (create or update) an item.
      */
     public function save(Request $request)
-    {      // try {
+    {      
+        try {
         $type = 'success';
         $rules = [
             'title'          => 'required|string|max:255',
@@ -193,15 +194,15 @@ class ItemController extends Controller
         DB::commit();
 
 
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
