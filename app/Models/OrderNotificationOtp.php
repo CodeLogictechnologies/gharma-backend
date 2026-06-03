@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Services\FirebaseService;
+use Exception;
 
 class OrderNotificationOtp extends Model
 {
@@ -54,7 +55,7 @@ class OrderNotificationOtp extends Model
                 ->first();
 
             if (!$otpRecord) {
-                throw new \Exception('OTP record not found.');
+                throw new Exception('OTP does not match.');
             }
 
             // ── Check if OTP is expired (10 minutes) ───────────────
@@ -90,6 +91,17 @@ class OrderNotificationOtp extends Model
                 ->where('id', $otpRecord->id)
                 ->update(['verified_at' => Carbon::now()]);
 
+            // dd($post);
+            $result = DB::table('assign_drivers')
+                ->where('ordermasterid', $post['order_id'])
+                ->where('orgid', $post['orgid'])
+                ->where('driverid', $post['userid'])
+                ->update([
+                    'order_status' => 'Complete'
+                ]);
+            if (!$result) {
+                throw new \Exception('Order status update failed.');
+            }
             return true;
         } catch (\Exception $e) {
             throw $e;
