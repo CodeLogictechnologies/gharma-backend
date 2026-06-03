@@ -359,14 +359,15 @@ class AssignDriver extends Model
     {
         try {
             $data = [];
-            $result = DB::table('assign_drivers')
-                ->where('id', $post['assignorderid'])
-                ->where('orgid', $post['orgid'])
-                ->where('driverid', $post['userid'])
-                ->update([
-                    'order_status' => $post['status']
-                ]);
-
+            if ($post['status'] != 'Complete') {
+                $result = DB::table('assign_drivers')
+                    ->where('id', $post['assignorderid'])
+                    ->where('orgid', $post['orgid'])
+                    ->where('driverid', $post['userid'])
+                    ->update([
+                        'order_status' => $post['status']
+                    ]);
+            }
 
             if ($post['status'] === 'Start') {
                 $insertOrderMaster = [
@@ -429,11 +430,11 @@ class AssignDriver extends Model
                     );
                 }
 
-                DB::table('order_masters')
-                    ->where('id', $post['order_id'])
-                    ->update([
-                        'order_status' => $post['status']
-                    ]);
+                // DB::table('order_masters')
+                //     ->where('id', $post['order_id'])
+                //     ->update([
+                //         'order_status' => $post['Delivered']
+                //     ]);
                 return true;
             }
 
