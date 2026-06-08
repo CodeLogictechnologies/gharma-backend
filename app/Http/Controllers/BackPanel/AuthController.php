@@ -230,7 +230,7 @@ class AuthController extends SessionController
 
             // Update profiles table (find by username to handle user_id mismatch)
             $profile = DB::table('profiles')
-                ->where('username', auth()->user()->name)
+                ->where('user_id', auth()->id())
                 ->first();
 
             if ($profile) {

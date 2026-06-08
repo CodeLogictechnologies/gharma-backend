@@ -236,12 +236,12 @@ class User extends Authenticatable implements JWTSubject
                 throw new Exception("Couldn't create user");
             }
 
-            if (!empty($post['type'] == 'user')) {
+            if (!empty($post['type']) && $post['type'] == 'user') {
                 $firstOrg = $post['orgid'];
             } else {
                 $firstOrg = DB::table('userorganizations')->value('orgid');
                 if (!$firstOrg) {
-                    throw new Exception("No organization found in userorganizations table.");
+                    throw new Exception("No organization found.");
                 }
             }
 
@@ -490,7 +490,17 @@ class User extends Authenticatable implements JWTSubject
                 $profileData['image'] = $imageName;
             }
 
-            return DB::table('profiles')->where('user_id', $userId)->update($profileData);
+            DB::table('profiles')->where('user_id', $userId)->update($profileData);
+
+            // ADD HERE — sync roles after profile update
+            if (!empty($post['roles'])) {
+                $user = \App\Models\User::find($userId);
+                if ($user) {
+                    $user->syncRoles($post['roles']);
+                }
+            }
+
+            return true;
         } catch (Exception $e) {
             throw $e;
         }

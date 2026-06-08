@@ -141,6 +141,75 @@ class ItemController extends Controller
         ]);
     }
 
+    
+    public function getByProductCode(Request $request, $product_code)
+{
+    try {
+        $item = DB::table('items as i')
+            ->leftJoin('brands as b', 'b.id', '=', 'i.brand_id')
+            ->leftJoin(DB::raw('(
+                SELECT item_id, GROUP_CONCAT(image) as images
+                FROM item_images
+                GROUP BY item_id
+            ) as img'), 'img.item_id', '=', 'i.id')
+            ->where('i.product_code', $product_code)
+            ->where('i.status', 'Y')
+            ->select(
+                'i.id as productid',
+                'i.title',
+                'i.product_code',
+                'i.company_product_code',
+                'i.description',
+                'i.type',
+                'b.name as brand',
+                'img.images'
+            )
+            ->first();
+
+        if (!$item) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Product not found.',
+                'result'  => null,
+            ], 404);
+        }
+
+        $item->images = $item->images
+            ? array_map(
+                fn($img) => url('storage/items/' . trim($img)),
+                explode(',', $item->images)
+            )
+            : [];
+
+        $variations = DB::table('itemvariations as iv')
+            ->where('iv.item_id', $item->productid)
+            ->where('iv.status', 'Y')
+            ->select(
+                'iv.id as variationid',
+                'iv.attribute',
+                'iv.value',
+                'iv.product_code as variation_product_code',
+                'iv.company_product_code as variation_company_code',
+                'iv.threshold',
+                'iv.price'
+            )
+            ->get();
+
+        $item->variations = $variations;
+
+        return response()->json([
+            'type'    => 'success',
+            'message' => 'Product fetched successfully.',
+            'result'  => $item,
+        ], 200);
+
+    } catch (QueryException $e) {
+        return response()->json(['type' => 'error', 'message' => 'Database error.'], 500);
+    } catch (Exception $e) {
+        return response()->json(['type' => 'error', 'message' => $e->getMessage()], 400);
+    }
+}
+
 
     /* =============================================================
  | PRIVATE HELPERS

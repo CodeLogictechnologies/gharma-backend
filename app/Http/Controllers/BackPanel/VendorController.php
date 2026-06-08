@@ -170,7 +170,7 @@ class VendorController extends Controller
     // Delete
     public function delete(Request $request)
     {
-        // try {
+        try {
         $type = 'success';
         $message = "Record deleted successfully";
         $post = $request->all();
@@ -184,15 +184,15 @@ class VendorController extends Controller
         }
 
         DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 

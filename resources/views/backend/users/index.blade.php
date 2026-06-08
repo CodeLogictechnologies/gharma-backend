@@ -63,173 +63,191 @@
 </div>
 
 <script>
-    // ✅ IIFE — this tab partial is injected via AJAX into #nav-tabContent.
-    //    $(document).ready() is a no-op at that point, so we use an IIFE
-    //    that runs immediately when $.globalEval executes this script block.
-    (function ($) {
+(function ($) {
 
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    $.ajaxSetup({
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+    });
+
+    /* ── Helper: fully clean up any open modal/backdrop ─────── */
+    function cleanupModal() {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('padding-right', '');
+    }
+
+    /* ── DataTable ──────────────────────────────────────────── */
+    if ($.fn.DataTable.isDataTable('#userTable')) {
+        $('#userTable').DataTable().destroy();
+    }
+
+    userTable = $('#userTable').dataTable({
+        sPaginationType : 'full_numbers',
+        bSearchable     : false,
+        language: {
+            paginate: {
+                first    : '<i class="bx bx-chevrons-left"></i>',
+                previous : '<i class="bx bx-chevron-left"></i>',
+                next     : '<i class="bx bx-chevron-right"></i>',
+                last     : '<i class="bx bx-chevrons-right"></i>'
             }
-        });
-
-        /* ── DataTable ─────────────────────────────────────────────── */
-        // Destroy existing instance first to avoid "already initialised" error
-        // when the tab is reloaded (e.g. switching tabs back and forth)
-        if ($.fn.DataTable.isDataTable('#userTable')) {
-            $('#userTable').DataTable().destroy();
-        }
-
-        userTable = $('#userTable').dataTable({
-            sPaginationType: 'full_numbers',
-            bSearchable: false,
-            language: {
-                paginate: {
-                    first: '<i class="bx bx-chevrons-left"></i>',
-                    previous: '<i class="bx bx-chevron-left"></i>',
-                    next: '<i class="bx bx-chevron-right"></i>',
-                    last: '<i class="bx bx-chevrons-right"></i>'
-                }
-            },
-            lengthMenu: [
-                [10, 30, 50, 70, 90, -1],
-                [10, 30, 50, 70, 90, 'All']
-            ],
-            iDisplayLength: 10,
-            sDom: 'ltipr',
-            bAutoWidth: false,
-            aaSorting: [[0, 'desc']],
-            bProcessing: true,
-            bServerSide: true,
-            sAjaxSource: '{{ route('user.list') }}',
-            oLanguage: {
-                sEmptyTable: "<p class='no_data_message'>No data available.</p>"
-            },
-            aoColumnDefs: [
-                { bSortable: false, aTargets: [0, 5, 6] },
-                { sWidth: '10%', aTargets: [6] }
-            ],
-            aoColumns: [
-                { data: 'sno' },
-                { data: 'name' },
-                { data: 'email' },
-                { data: 'phone' },
-                { data: 'address' },
-                { data: 'status' },
-                { data: 'action' },
-            ],
-            initComplete: function () {
-                this.api().columns([1, 2]).every(function () {
-                    var column = this;
-                    var header = $(column.header()).text().trim();
-                    $('<input type="text" class="form-control" placeholder="Search ' + header + '..." style="width:100%;" />')
-                        .appendTo($(column.header()).empty())
-                        .on('keyup change', function () {
-                            column.search(this.value).draw();
-                        });
-                });
-            }
-        });
-
-        /* ── Helper: open modal via AJAX ─────────────────────────── */
-        function openUserModal(url, data, method) {
-            var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
-
-            req.done(function (response) {
-                $('#userModelContent').html(response);
-
-                // ✅ Execute injected scripts FIRST (IIFE in form.blade.php fires here)
-                // This ensures Select2, validation, etc. are all ready before modal shows
-                $('#userModelContent').find('script').each(function () {
-                    $.globalEval($(this).text());
-                });
-
-                // THEN show modal — user only ever sees the fully initialised form
-                var modalEl = document.getElementById('userModel');
-                var existing = bootstrap.Modal.getInstance(modalEl);
-                if (existing) existing.dispose();
-                $(modalEl).appendTo('body');
-
-                new bootstrap.Modal(modalEl, {
-                    backdrop: 'static',
-                    keyboard: false
-                }).show();
-
-            }).fail(function () {
-                showNotification('Failed to load form. Please try again.', 'error');
+        },
+        lengthMenu    : [[10, 30, 50, 70, 90, -1], [10, 30, 50, 70, 90, 'All']],
+        iDisplayLength: 10,
+        sDom          : 'ltipr',
+        bAutoWidth    : false,
+        aaSorting     : [[0, 'desc']],
+        bProcessing   : true,
+        bServerSide   : true,
+        sAjaxSource   : '{{ route('user.list') }}',
+        oLanguage     : { sEmptyTable: "<p class='no_data_message'>No data available.</p>" },
+        aoColumnDefs  : [
+            { bSortable: false, aTargets: [0, 5, 6] },
+            { sWidth: '10%',   aTargets: [6] }
+        ],
+        aoColumns: [
+            { data: 'sno'     },
+            { data: 'name'    },
+            { data: 'email'   },
+            { data: 'phone'   },
+            { data: 'address' },
+            { data: 'status'  },
+            { data: 'action'  },
+        ],
+        initComplete: function () {
+            this.api().columns([1, 2]).every(function () {
+                var column = this;
+                var header = $(column.header()).text().trim();
+                $('<input type="text" class="form-control" placeholder="Search ' + header + '..." style="width:100%;" />')
+                    .appendTo($(column.header()).empty())
+                    .on('keyup change', function () {
+                        column.search(this.value).draw();
+                    });
             });
         }
+    });
 
-        /* ── Add ─────────────────────────────────────────────────── */
-        $('#addOrg').on('click', function () {
-            openUserModal('{{ route('user.form') }}', {}, 'GET');
-        });
+    /* ── Helper: open modal via AJAX ────────────────────────── */
+    function openUserModal(url, data, method) {
+        var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
 
-        /* ── Edit ────────────────────────────────────────────────── */
-        $(document).on('click', '.editOrg', function (e) {
-            e.preventDefault();
-            openUserModal('{{ route('user.form') }}', {
-                id: $(this).data('id'),
-                _token: '{{ csrf_token() }}'
-            }, 'POST');
-        });
+        req.done(function (response) {
+            $('#userModelContent').html(response);
 
-        /* ── View ────────────────────────────────────────────────── */
-        $(document).on('click', '.viewOrg', function (e) {
-            e.preventDefault();
-            openUserModal('{{ route('user.view') }}', {
-                id: $(this).data('id'),
-                _token: '{{ csrf_token() }}'
-            }, 'POST');
-        });
+            $('#userModelContent').find('script').each(function () {
+                $.globalEval($(this).text());
+            });
 
-        /* ── Delete ──────────────────────────────────────────────── */
-        var deleteId = null;
-
-        $(document).on('click', '.deleteOrg', function (e) {
-            e.preventDefault();
-            deleteId = $(this).data('id');
-            var modalEl = document.getElementById('deleteModal');
+            var modalEl  = document.getElementById('userModel');
+            var existing = bootstrap.Modal.getInstance(modalEl);
+            if (existing) existing.dispose();
             $(modalEl).appendTo('body');
-            new bootstrap.Modal(modalEl).show();
+
+            new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false }).show();
+
+        }).fail(function () {
+            showNotification('Failed to load form. Please try again.', 'error');
         });
+    }
 
-        $(document).on('click', '#confirmDelete', function () {
-            if (!deleteId) return;
+    /* ── Add ─────────────────────────────────────────────────── */
+    $('#addOrg').on('click', function () {
+        openUserModal('{{ route('user.form') }}', {}, 'GET');
+    });
 
-            $.post('{{ route('user.delete') }}', {
-                id: deleteId,
-                _token: '{{ csrf_token() }}'
-            })
-            .done(function (response) {
-                var result = (typeof response === 'string') ? JSON.parse(response) : response;
+    /* ── Edit ────────────────────────────────────────────────── */
+    $(document).on('click', '.editOrg', function (e) {
+        e.preventDefault();
+        openUserModal('{{ route('user.form') }}', {
+            id     : $(this).data('id'),
+            _token : '{{ csrf_token() }}'
+        }, 'POST');
+    });
+
+    /* ── View ────────────────────────────────────────────────── */
+    $(document).on('click', '.viewOrg', function (e) {
+        e.preventDefault();
+        openUserModal('{{ route('user.view') }}', {
+            id     : $(this).data('id'),
+            _token : '{{ csrf_token() }}'
+        }, 'POST');
+    });
+
+    /* ── Delete ──────────────────────────────────────────────── */
+    var deleteId = null;
+
+    $(document).on('click', '.deleteOrg', function (e) {
+        e.preventDefault();
+        deleteId    = $(this).data('id');
+        var modalEl = document.getElementById('deleteModal');
+        $(modalEl).appendTo('body');
+        new bootstrap.Modal(modalEl).show();
+    });
+
+    $(document).on('click', '#confirmDelete', function () {
+        if (!deleteId) return;
+
+        var $btn     = $(this);
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Deleting...');
+
+        $.post('{{ route('user.delete') }}', {
+            id     : deleteId,
+            _token : '{{ csrf_token() }}'
+        })
+        .done(function (response) {
+            var result = (typeof response === 'string') ? JSON.parse(response) : response;
+
+            // ✅ Step 1: Hide delete modal first
+            var deleteModalEl  = document.getElementById('deleteModal');
+            var deleteInstance = bootstrap.Modal.getInstance(deleteModalEl);
+            if (deleteInstance) deleteInstance.hide();
+
+            // ✅ Step 2: Show notification + redraw table after backdrop is gone
+            setTimeout(function () {
+                cleanupModal();
+
                 if (result.type === 'success') {
                     showNotification(result.message, 'success');
-                    userTable.fnDraw();
+                    if (typeof userTable !== 'undefined' && userTable) {
+                        userTable.fnDraw();
+                    }
                 } else {
                     showNotification(result.message, 'error');
                 }
-            })
-            .fail(function () {
+            }, 350);
+        })
+        .fail(function () {
+            // ✅ Also clean up on failure
+            var deleteModalEl  = document.getElementById('deleteModal');
+            var deleteInstance = bootstrap.Modal.getInstance(deleteModalEl);
+            if (deleteInstance) deleteInstance.hide();
+
+            setTimeout(function () {
+                cleanupModal();
                 showNotification('Delete failed. Please try again.', 'error');
-            })
-            .always(function () {
-                deleteId = null;
-                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-            });
+            }, 350);
+        })
+        .always(function () {
+            deleteId = null;
+            $btn.prop('disabled', false).html('Yes, Delete');
         });
+    });
 
-        /* ── Clear modal content on close ────────────────────────── */
-        document.getElementById('userModel').addEventListener('hidden.bs.modal', function () {
-            $('#userModelContent').html('');
-        });
+    /* ── Clean up userModel on close ────────────────────────── */
+    document.getElementById('userModel').addEventListener('hidden.bs.modal', function () {
+        $('#userModelContent').html('');
+        cleanupModal();
+    });
 
-        /* ── Image preview ───────────────────────────────────────── */
-        $(document).on('change', '#image', function () {
-            var file = this.files[0];
-            if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
-        });
+    /* ── Clean up deleteModal on close ──────────────────────── */
+    document.getElementById('deleteModal').addEventListener('hidden.bs.modal', function () {
+        cleanupModal();
+    });
 
-    })(jQuery);
+    /* ── Image preview ───────────────────────────────────────── */
+    $(document).on('change', '#image', function () {
+        var file = this.files[0];
+        if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
+    });
+
+})(jQuery);
 </script>

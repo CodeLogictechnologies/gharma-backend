@@ -85,7 +85,7 @@ class SubCategoryController extends Controller
     //function to list team category
     public function list(Request $request)
     {
-        // try {
+        try {
         $post = $request->all();
         $data = SubCategory::list($post);
         $i = 0;
@@ -127,15 +127,15 @@ class SubCategoryController extends Controller
 
         if (!$filtereddata) $filtereddata = 0;
         if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        }
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 

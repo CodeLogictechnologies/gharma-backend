@@ -7,7 +7,7 @@ use App\Models\BackPanel\Category;
 use App\Models\BackPanel\Inventory;
 use App\Models\BackPanel\Item;
 use App\Models\BackPanel\SubCategory;
-
+use App\Models\Common;
 use Illuminate\Support\Facades\DB;
 use App\Models\BackPanel\Vendor;
 use Illuminate\Http\Request;
@@ -34,7 +34,7 @@ class InventoryController extends Controller
 
     public function save(Request $request)
     {
-        // try {
+        try {
         $rules = [
             'itemid'             => 'required',
             'variationid'        => 'required',
@@ -85,18 +85,18 @@ class InventoryController extends Controller
             'type'    => 'success',
             'message' => 'Inventory saved successfully.'
         ]);
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     public function list(Request $request)
 {
-    // try {
+    try {
         $post = $request->all();
         $post['orgid'] = session('orgid'); // ← ADD THIS (missing!)
         $data = Inventory::list($post);
@@ -126,17 +126,17 @@ class InventoryController extends Controller
         if (!$filtereddata) $filtereddata = 0;
         if (!$totalrecs) $totalrecs = 0;
 
-    // } catch (QueryException $e) {
-    //     \Log::error('Inventory list QueryException: ' . $e->getMessage());
-    //     $array = [];
-    //     $totalrecs = 0;
-    //     $filtereddata = 0;
-    // } catch (Exception $e) {
-    //     \Log::error('Inventory list Exception: ' . $e->getMessage());
-    //     $array = [];
-    //     $totalrecs = 0;
-    //     $filtereddata = 0;
-    // }
+    } catch (QueryException $e) {
+        \Log::error('Inventory list QueryException: ' . $e->getMessage());
+        $array = [];
+        $totalrecs = 0;
+        $filtereddata = 0;
+    } catch (Exception $e) {
+        \Log::error('Inventory list Exception: ' . $e->getMessage());
+        $array = [];
+        $totalrecs = 0;
+        $filtereddata = 0;
+    }
 
     return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
 }
@@ -164,7 +164,7 @@ class InventoryController extends Controller
 
     public function form(Request $request)
     {
-        // try {
+        try {
         $post            = $request->all();
         $post['orgid']   = session('orgid');
 
@@ -194,11 +194,11 @@ class InventoryController extends Controller
             $data['manufacturedatead'] = $result->manufacturedatead ?? '';
             $data['expirydatead']     = $result->expirydatead ?? '';
         }
-        // } catch (QueryException $e) {
-        //     $data['error'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['error'] = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            $data['error'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['error'] = $e->getMessage();
+        }
 
         return view('backend.inventory.form', $data);
     }

@@ -55,7 +55,7 @@ Route::get('/items/latest', [ItemController::class, 'latest']);
 
 Route::get('/items/search', [ItemController::class, 'search']);
 Route::get('/item/detail/{variationid}', [ItemController::class, 'getDetails']);
-
+Route::get('/item/byproductcode/{product_code}', [ItemController::class, 'getByProductCode']);
 // Store public routes{searchid}
 Route::get('stores',       [App\Http\Controllers\API\StoreController::class, 'list']);
 // category list

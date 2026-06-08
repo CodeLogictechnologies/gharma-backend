@@ -17,6 +17,8 @@ class Item extends Model
     protected $fillable = [
         'category_id',
         'subcategory_id',
+        'product_code',
+        'company_product_code',
         'title',
         'slug',
         'description',
@@ -184,6 +186,8 @@ class Item extends Model
 
             $dataArray = [
                 'title'       => $post['title'],
+                'product_code'         => $post['product_code'],
+                'company_product_code' => $post['company_product_code'],
                 'brand_id'    => $post['brand'],
                 'threshold'   => '1',
                 'type'        => $post['type']        ?? null,
@@ -251,7 +255,9 @@ class Item extends Model
                     $attributeCases = [];
                     $valueCases     = [];
                     $priceCases     = [];
-                    $stockCases     = [];
+                    $productCodeCases        = [];  // ← ADD THIS
+                    $companyProductCodeCases = [];
+                    // $stockCases     = [];
                     $thresholdCases = [];
                     $statusCases    = [];
 
@@ -263,11 +269,13 @@ class Item extends Model
                         if (!empty($variation['variationid'])) {
                             $id    = $variation['variationid'];
                             $ids[] = $id;
+                            $productCodeCases[]         = "WHEN '$id' THEN '" . addslashes($variation['product_code'])         . "'";
+                            $companyProductCodeCases[]  = "WHEN '$id' THEN '" . addslashes($variation['company_product_code']) . "'";
 
                             $attributeCases[] = "WHEN '$id' THEN '" . addslashes($variation['name'])       . "'";
                             $valueCases[]     = "WHEN '$id' THEN '" . addslashes($variation['value'])      . "'";
                             $priceCases[]     = "WHEN '$id' THEN "  . floatval($variation['price']   ?? 0);
-                            $stockCases[]     = "WHEN '$id' THEN "  . intval($variation['stock']     ?? 0);
+                            // $stockCases[]     = "WHEN '$id' THEN "  . intval($variation['stock']     ?? 0);
                             $thresholdCases[] = "WHEN '$id' THEN "  . intval($variation['threshold'] ?? 0);
                             $statusCases[]    = "WHEN '$id' THEN '$status'";
                         } else {
@@ -277,8 +285,10 @@ class Item extends Model
                                 'attribute'  => $variation['name'],
                                 'value'      => $variation['value'],
                                 'threshold'  => $variation['threshold'] ?? 0,
+                                'product_code'         => $variation['product_code']         ?? null,
+                                'company_product_code' => $variation['company_product_code'] ?? null,
                                 'price'      => $variation['price']     ?? 0,
-                                'stock'      => $variation['stock']     ?? 0,
+                                // 'stock'      => $variation['stock']     ?? 0,
                                 'status'     => $status,
                                 'orgid'      => $post['orgid']          ?? null,
                                 'created_at' => Carbon::now(),
@@ -292,17 +302,18 @@ class Item extends Model
                     if (!empty($ids)) {
                         $idsList = "'" . implode("','", $ids) . "'";
                         DB::statement("
-                            UPDATE itemvariations SET
-                                attribute  = CASE id " . implode(' ', $attributeCases) . " END,
-                                value      = CASE id " . implode(' ', $valueCases)     . " END,
-                                price      = CASE id " . implode(' ', $priceCases)     . " END,
-                                stock      = CASE id " . implode(' ', $stockCases)     . " END,
-                                threshold  = CASE id " . implode(' ', $thresholdCases) . " END,
-                                status     = CASE id " . implode(' ', $statusCases)    . " END,
-                                updated_at = NOW(),
-                                updatedby  = ?
-                            WHERE id IN ($idsList)
-                        ", [$post['userid']]);
+        UPDATE itemvariations SET
+            attribute            = CASE id " . implode(' ', $attributeCases)          . " END,
+            value                = CASE id " . implode(' ', $valueCases)              . " END,
+            product_code         = CASE id " . implode(' ', $productCodeCases)        . " END,
+            company_product_code = CASE id " . implode(' ', $companyProductCodeCases) . " END,
+            price                = CASE id " . implode(' ', $priceCases)              . " END,
+            threshold            = CASE id " . implode(' ', $thresholdCases)          . " END,
+            status               = CASE id " . implode(' ', $statusCases)             . " END,
+            updated_at           = NOW(),
+            updatedby            = ?
+        WHERE id IN ($idsList)
+    ", [$post['userid']]);
                     }
                 }
 
@@ -366,7 +377,7 @@ class Item extends Model
                     DB::table('item_images')->insert($imageRows);
                 }
 
-            /* ══════════════════════════════════════
+                /* ══════════════════════════════════════
                INSERT
             ══════════════════════════════════════ */
             } else {
@@ -458,8 +469,10 @@ class Item extends Model
                             'attribute'  => $variation['name'],
                             'value'      => $variation['value'],
                             'threshold'  => $variation['threshold'] ?? 0,
+                            'product_code'         => $variation['product_code']         ?? null, // ← ADD
+                            'company_product_code' => $variation['company_product_code'] ?? null,
                             'price'      => $variation['price']     ?? 0,
-                            'stock'      => $variation['stock']     ?? 0,
+                            // 'stock'      => $variation['stock']     ?? 0,
                             'status'     => $status,
                             'orgid'      => $post['orgid']          ?? null,
                             'created_at' => Carbon::now(),
@@ -480,7 +493,6 @@ class Item extends Model
 
             DB::commit();
             return true;
-
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -511,7 +523,6 @@ class Item extends Model
 
             DB::commit();
             return true;
-
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;

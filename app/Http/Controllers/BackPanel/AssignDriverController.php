@@ -270,7 +270,7 @@ class AssignDriverController extends Controller
         $message = 'Orders fetched successfully';
         $data = [];
 
-        // try {
+        try {
 
         $payload = JWTAuth::parseToken()->getPayload();
         $profile = $payload->get('profile');
@@ -279,15 +279,15 @@ class AssignDriverController extends Controller
         $post['orgid'] = $profile['orgid'] ?? null;
 
         $data = AssignDriver::getOrderListApi($post);
-        // } catch (QueryException $e) {
+        } catch (QueryException $e) {
 
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // } catch (\Exception $e) {
+            $type = 'error';
+            $message = $e->getMessage();
+        } catch (\Exception $e) {
 
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+            $type = 'error';
+            $message = $e->getMessage();
+        }
 
         return response()->json([
             'type' => $type,
@@ -333,7 +333,7 @@ class AssignDriverController extends Controller
         $type    = 'error';
         $message = 'Something went wrong.';
         $data = [];
-        // try {
+        try {
         $payload = JWTAuth::parseToken()->getPayload();
         $profile = $payload->get('profile');
 
@@ -377,31 +377,31 @@ class AssignDriverController extends Controller
             $type = 'error';
             $message = 'Order not found or already updated.';
         }
-        // } catch (TokenExpiredException $e) {
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => 'Token expired. Please login again.',
-        //         'location' => $data
-        //     ], 401);
-        // } catch (JWTException $e) {
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => 'Invalid token.',
-        //         'location' => $data
-        //     ], 401);
-        // } catch (QueryException $e) {
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => 'Something went wrong.',
-        //         'location' => $data
-        //     ], 500);
-        // } catch (\Exception $e) {
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => $e->getMessage(),
-        //         'location' => $data
-        //     ], 500);
-        // }
+        } catch (TokenExpiredException $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Token expired. Please login again.',
+                'location' => $data
+            ], 401);
+        } catch (JWTException $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Invalid token.',
+                'location' => $data
+            ], 401);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Something went wrong.',
+                'location' => $data
+            ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage(),
+                'location' => $data
+            ], 500);
+        }
 
         return response()->json([
             'type' => $type,

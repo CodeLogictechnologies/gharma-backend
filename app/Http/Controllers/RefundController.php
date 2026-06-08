@@ -74,7 +74,7 @@ class RefundController extends Controller
 
     public function view(Request $request)
     {
-        // try {
+        try {
         $post = $request->all();
         $post['orgid'] = session('orgid');
         $refundDetails = Refund::getData($post);
@@ -83,13 +83,13 @@ class RefundController extends Controller
         ];
         $data['type'] = 'success';
         $data['message'] = 'Successfully fetched data of refund.';
-        // } catch (QueryException $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            $data['type'] = 'error';
+            $data['message'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['type'] = 'error';
+            $data['message'] = $e->getMessage();
+        }
         return view('backend.refund.view', $data);
     }
 

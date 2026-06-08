@@ -30,132 +30,138 @@ class UserController extends Controller
     public function save(Request $request)
     {
         try {
-            $post = $request->all();
             $rules = [
                 'first_name' => 'required|min:3|max:255',
-                'phone' => 'required|min:5|max:5000',
-                'address' => 'required',
-                'email' => [
+                'last_name'  => 'required',
+                'phone'      => 'required|min:5|max:5000',
+                'address'    => 'required',
+                'email'      => [
                     'required',
                     'email',
-                    Rule::unique('users')->ignore($request->id)
+                    empty($request->id)
+                        ? Rule::unique('users')
+                        : Rule::unique('users')->ignore($request->id),
                 ],
-                'username' => 'required',
+                'username'   => 'required',
+                'gender'     => 'required',
+                'roles'      => 'required|array|min:1',
             ];
-
-            if (empty($request->id)) {
-                $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
-            }
 
             $message = [
                 'first_name.required' => 'Please enter first name',
                 'first_name.min'      => 'First name must be at least 3 characters',
-                'phone.required' => 'Phone number is required',
-                'address.required' => 'Address is required',
-                'email.required' => 'Email is required',
-                'username.required' => 'User Name is required',
+                'last_name.required'  => 'Please enter last name',
+                'phone.required'      => 'Phone number is required',
+                'address.required'    => 'Address is required',
+                'email.required'      => 'Email is required',
+                'email.unique'        => 'This email is already taken',
+                'username.required'   => 'User Name is required',
+                'gender.required'     => 'Please select gender',
+                'roles.required'      => 'Please select at least one role',
             ];
 
             $validate = Validator::make($request->all(), $rules, $message);
-
             if ($validate->fails()) {
                 throw new Exception($validate->errors()->first(), 1);
             }
 
-            $post = $request->all();
-            $post['type'] = 'user';
-            $type = 'success';
-            $message = 'User saved successfully';
+            $post          = $request->all();
+            $post['type']  = 'user';
             $post['orgid'] = session('orgid');
-            DB::beginTransaction();
+            $post['roles'] = $request->input('roles', []);
+            $type          = 'success';
 
-            if (!User::saveData($post)) {
-                throw new Exception('Could not save record', 1);
+            // ✅ Route to save or update — NO outer transaction here
+            if (!empty($request->id)) {
+                $post['userid'] = $request->id;
+                User::updateUser($post);
+                $message = 'User updated successfully';
+            } else {
+                User::saveData($post);  // saveData() manages its own transaction
+                $message = 'User saved successfully';
             }
-            DB::commit();
         } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $this->queryMessage;
         } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         }
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
     //function to get active user list
     public function list(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $data = User::list($post);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs = $data["totalrecs"];
+        try {
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+            $data = User::list($post);
+            $i = 0;
+            $array = [];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs = $data["totalrecs"];
 
-        $rows = $data["data"];
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
-        foreach ($rows  as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["name"] = $row->name;
-            $array[$i]["email"] = $row->email;
-            if ($row->status == 'Y') {
-                $array[$i]["status"] = 'Active';
-            } else {
-                $array[$i]["status"] = 'Inactive';
-            }
-            $array[$i]["address"] = $row->address;
-            $array[$i]["phone"] = $row->phone;
+            $rows = $data["data"];
+            unset($data["totalfilteredrecs"]);
+            unset($data["totalrecs"]);
+            foreach ($rows  as $row) {
+                $array[$i]["sno"] = $i + 1;
+                $array[$i]["name"] = $row->name;
+                $array[$i]["email"] = $row->email;
+                if ($row->status == 'Y') {
+                    $array[$i]["status"] = 'Active';
+                } else {
+                    $array[$i]["status"] = 'Inactive';
+                }
+                $array[$i]["address"] = $row->address;
+                $array[$i]["phone"] = $row->phone;
 
-            // ✅ DROPDOWN STATUS
-            $array[$i]["user_status"] = '
+                // ✅ DROPDOWN STATUS
+                $array[$i]["user_status"] = '
     <select class="form-select changeStatus" data-id="' . $row->id . '">
         <option value="Pending" ' . ($row->user_status == "Pending" ? "selected" : "") . '>Pending</option>
         <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Approve</option>
         <option value="Reject" ' . ($row->user_status == "Reject" ? "selected" : "") . '>Reject</option>
     </select>';
 
-            $array[$i]["profile"] = $row->profile;
-            $array[$i]["created_at"] = $row->created_at;
+                $array[$i]["profile"] = $row->profile;
+                $array[$i]["created_at"] = $row->created_at;
 
-            // Image
-            if (!empty($row->image)) {
-                $imagePath = storage_path('app/public/profiles/' . $row->image);
-                if (file_exists($imagePath)) {
-                    $imageUrl = asset('storage/profiles/' . $row->image);
+                // Image
+                if (!empty($row->image)) {
+                    $imagePath = storage_path('app/public/profiles/' . $row->image);
+                    if (file_exists($imagePath)) {
+                        $imageUrl = asset('storage/profiles/' . $row->image);
+                    } else {
+                        $imageUrl = asset('no-image.jpg');
+                    }
                 } else {
                     $imageUrl = asset('no-image.jpg');
                 }
-            } else {
-                $imageUrl = asset('no-image.jpg');
+
+                $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
+                // Actions
+                $action = '';
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+
+                $array[$i]["action"] = $action;
+
+                $i++;
             }
 
-            $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-            // Actions
-            $action = '';
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-
-            $array[$i]["action"] = $action;
-
-            $i++;
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs) $totalrecs = 0;
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         }
-
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 
@@ -163,73 +169,73 @@ class UserController extends Controller
     //function to get inactive users list
     public function inActivelist(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $post['inactiveuser'] = 'Y';
-        $data = User::list($post);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs = $data["totalrecs"];
+        try {
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+            $post['inactiveuser'] = 'Y';
+            $data = User::list($post);
+            $i = 0;
+            $array = [];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs = $data["totalrecs"];
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
+            unset($data["totalfilteredrecs"]);
+            unset($data["totalrecs"]);
 
-        foreach ($data["data"] as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["name"] = $row->name;
-            $array[$i]["email"] = $row->email;
-            $array[$i]["address"] = $row->address;
-            $array[$i]["phone"] = $row->phone;
-            $array[$i]["type"] = $row->type;
+            foreach ($data["data"] as $row) {
+                $array[$i]["sno"] = $i + 1;
+                $array[$i]["name"] = $row->name;
+                $array[$i]["email"] = $row->email;
+                $array[$i]["address"] = $row->address;
+                $array[$i]["phone"] = $row->phone;
+                $array[$i]["type"] = $row->type;
 
-            // ✅ DROPDOWN STATUS
-            $array[$i]["user_status"] = '
+                // ✅ DROPDOWN STATUS
+                $array[$i]["user_status"] = '
     <select class="form-select changeStatus" data-id="' . $row->id . '">
         <option value="Pending" ' . ($row->user_status == "Pending" ? "selected" : "") . '>Pending</option>
         <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Approve</option>
         <option value="Reject" ' . ($row->user_status == "Reject" ? "selected" : "") . '>Reject</option>
     </select>';
 
-            $array[$i]["profile"] = $row->profile;
-            $array[$i]["created_at"] = $row->created_at;
+                $array[$i]["profile"] = $row->profile;
+                $array[$i]["created_at"] = $row->created_at;
 
-            // Image
-            if (!empty($row->logo)) {
-                $imagePath = storage_path('app/public/profile/' . $row->logo);
+                // Image
+                if (!empty($row->logo)) {
+                    $imagePath = storage_path('app/public/profile/' . $row->logo);
 
-                if (file_exists($imagePath)) {
-                    $imageUrl = asset('storage/profile/' . $row->logo);
+                    if (file_exists($imagePath)) {
+                        $imageUrl = asset('storage/profile/' . $row->logo);
+                    } else {
+                        $imageUrl = asset('no-image.jpg');
+                    }
                 } else {
                     $imageUrl = asset('no-image.jpg');
                 }
-            } else {
-                $imageUrl = asset('no-image.jpg');
+
+                $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
+
+                // Actions
+                $action = '';
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+
+                $array[$i]["action"] = $action;
+
+                $i++;
             }
 
-            $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-
-            // Actions
-            $action = '';
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-
-            $array[$i]["action"] = $action;
-
-            $i++;
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs) $totalrecs = 0;
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         }
-
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 

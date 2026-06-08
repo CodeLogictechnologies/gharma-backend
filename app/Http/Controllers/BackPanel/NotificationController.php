@@ -26,7 +26,7 @@ class NotificationController extends Controller
 
     public function save(Request $request)
     {
-        // try {
+        try {
             $rules = [
                 'type' => 'required',
                 'user_id' => 'required',
@@ -63,21 +63,21 @@ class NotificationController extends Controller
                 throw new Exception('Could not save notice', 1);
             }
             DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
     public function list(Request $request)
     {
-        // try {
+        try {
         $post = $request->all();
         $post['orgid'] = session('orgid');
         $data = Notification::list($post);
@@ -111,21 +111,21 @@ class NotificationController extends Controller
         }
         if (!$filtereddata) $filtereddata = 0;
         if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        }
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 
     public function form(Request $request)
     {
-        // try {
+        try {
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -144,11 +144,11 @@ class NotificationController extends Controller
                 $data['title']   = $result->title;
                 $data['message'] = $result->message;
             }
-        // } catch (QueryException $e) {
-        //     $data['error'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['error'] = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            $data['error'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['error'] = $e->getMessage();
+        }
 
         return view('backend.notification.form', $data);
     }
@@ -157,7 +157,7 @@ class NotificationController extends Controller
     // Delete
     public function delete(Request $request)
     {
-        // try {
+        try {
         $type = 'success';
         $message = "Record deleted successfully";
         $post = $request->all();
@@ -171,15 +171,15 @@ class NotificationController extends Controller
         }
 
         DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 

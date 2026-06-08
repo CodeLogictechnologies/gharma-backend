@@ -16,7 +16,7 @@ class PaymentController extends Controller
 {
     public function success(Request $request)
     {
-        // try {
+        try {
         $user = auth('api')->user();
 
         // if (!$user) {
@@ -48,21 +48,21 @@ class PaymentController extends Controller
         }
         return view('backend.organization.index2');
 
-        // return response()->json([
-        //     'type'    => 'success',
-        //     'message' => 'Payment saved successfully',
-        //     // ]);
-        // } catch (QueryException $e) {
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => 'Something went wrong'
-        //     ], 500);
-        // } catch (Exception $e) {
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => $e->getMessage()
-        //     ], 400);
-        // }
+        return response()->json([
+            'type'    => 'success',
+            'message' => 'Payment saved successfully',
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong'
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
     public function successEsewa(Request $request)
