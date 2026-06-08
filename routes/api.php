@@ -9,6 +9,7 @@ use App\Http\Controllers\API\ChatController as APIChatController;
 use App\Http\Controllers\API\FavouriteController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\API\StoreController;
+use App\Http\Controllers\API\HomeTabController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -47,7 +48,6 @@ Route::get('auth/{provider}/call-back',  [SocialAuthController::class, 'callback
 //save user address 
 Route::post('user/address/save', [UserAddressController::class, 'save']);
 
-
 Route::post('/send-otp', [ApiAuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [ApiAuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [ApiAuthController::class, 'resetPassword']);
@@ -62,6 +62,8 @@ Route::get('stores',       [App\Http\Controllers\API\StoreController::class, 'li
 Route::get('/categories/list', [CategoryListController::class, 'getCategoryList']);
 // Sub category list
 Route::get('/subcategories/list', [CategoryListController::class, 'getSubCategoryList']);
+// Home tab list with categories
+Route::get('/home', [HomeTabController::class, 'index']); 
 
 Route::middleware('auth:api')->group(function () {
     Route::post('/items/search/save', [SearchHistoryController::class, 'searchSave']);
@@ -109,7 +111,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/cart/list',    [CartController::class, 'getList']);
     Route::delete('/cart/delete/{variationid}',    [CartController::class, 'deleteCart']);
     Route::delete('/cart/remove/{variationid}',    [CartController::class, 'removeCart']);
-
 
     Route::post('/order/save',    [OrderController::class, 'save']);
 

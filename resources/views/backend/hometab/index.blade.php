@@ -17,6 +17,8 @@
                     <tr class="align-middle">
                         <th>S.N</th>
                         <th>Tab Name</th>
+                        <th>Icon</th>
+                        <th>Color</th>
                         <th>Category</th>
                         <th>Actions</th>
                     </tr>
@@ -55,92 +57,127 @@
 
 @section('main-scripts')
 <script>
-$(document).ready(function () {
+    $(document).ready(function() {
 
-    $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-
-    // ── DataTable ─────────────────────────────────────────────────────────────
-    window.homeTabTable = $('#homeTabTable').dataTable({
-        sPaginationType: 'full_numbers',
-        bSort: false,
-        language: {
-            paginate: {
-                first: '<i class="bx bx-chevrons-left"></i>',
-                previous: '<i class="bx bx-chevron-left"></i>',
-                next: '<i class="bx bx-chevron-right"></i>',
-                last: '<i class="bx bx-chevrons-right"></i>'
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
-        },
-        lengthMenu: [[10, 30, 50, -1], [10, 30, 50, 'All']],
-        iDisplayLength: 10,
-        sDom: 'ltipr',
-        bProcessing: true,
-        bServerSide: true,
-        sAjaxSource: '{{ route('hometab.list') }}',
-        oLanguage: { sEmptyTable: "<p class='no_data_message'>No data available.</p>" },
-        aoColumns: [
-            { data: 'sno' },
-            { data: 'tab_name' },
-            { data: 'category_names' },  
-            { data: 'action', bSortable: false },
-        ],
-    });
-
-    // ── Open modal helper ──────────────────────────────────────────────────────
-    function openModal(url, params, method) {
-        var req = method === 'POST' ? $.post(url, params) : $.get(url, params);
-        req.done(function (response) {
-            $('#homeTabModalContent').html(response);
-            var modalEl  = document.getElementById('homeTabModal');
-            var existing = bootstrap.Modal.getInstance(modalEl);
-            if (existing) existing.dispose();
-            new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false }).show();
-        }).fail(function () {
-            showNotification('Failed to load form.', 'error');
         });
-    }
 
-    // ── Add ────────────────────────────────────────────────────────────────────
-    $('#addHomeTab').on('click', function () {
-        openModal('{{ route('hometab.form') }}', {}, 'GET');
-    });
-
-    // ── Edit ───────────────────────────────────────────────────────────────────
-    $(document).on('click', '.editHomeTab', function () {
-        openModal('{{ route('hometab.form') }}', { id: $(this).data('id'), _token: '{{ csrf_token() }}' }, 'POST');
-    });
-
-    // ── Delete ─────────────────────────────────────────────────────────────────
-    var deleteId = null;
-
-    $(document).on('click', '.deleteHomeTab', function () {
-        deleteId = $(this).data('id');
-        new bootstrap.Modal(document.getElementById('deleteModal')).show();
-    });
-
-    $('#confirmDelete').on('click', function () {
-        if (!deleteId) return;
-        $.post('{{ route('hometab.delete') }}', { id: deleteId, _token: '{{ csrf_token() }}' })
-            .done(function (res) {
-                var result = typeof res === 'string' ? JSON.parse(res) : res;
-                if (result.type === 'success') {
-                    showNotification(result.message, 'success');
-                    homeTabTable.fnDraw();
-                } else {
-                    showNotification(result.message, 'error');
+        // ── DataTable ─────────────────────────────────────────────────────────────
+        window.homeTabTable = $('#homeTabTable').dataTable({
+            sPaginationType: 'full_numbers',
+            bSort: false,
+            language: {
+                paginate: {
+                    first: '<i class="bx bx-chevrons-left"></i>',
+                    previous: '<i class="bx bx-chevron-left"></i>',
+                    next: '<i class="bx bx-chevron-right"></i>',
+                    last: '<i class="bx bx-chevrons-right"></i>'
                 }
-            })
-            .fail(function () { showNotification('Delete failed.', 'error'); })
-            .always(function () {
-                deleteId = null;
-                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-            });
-    });
+            },
+            lengthMenu: [
+                [10, 30, 50, -1],
+                [10, 30, 50, 'All']
+            ],
+            iDisplayLength: 10,
+            sDom: 'ltipr',
+            bProcessing: true,
+            bServerSide: true,
+            sAjaxSource: '{{ route('hometab.list') }}',
+            oLanguage: {
+                sEmptyTable: "<p class='no_data_message'>No data available.</p>"
+            },
+            aoColumns: [{
+                    data: 'sno'
+                },
+                {
+                    data: 'tab_name'
+                },
+                {
+                    data: 'icon_name'
+                },
+                {
+                    data: 'bg_color',
+                    bSortable: false
+                },
+                {
+                    data: 'category_names'
+                },
+                {
+                    data: 'action',
+                    bSortable: false
+                },
+            ],
+        });
 
-    // ── Clear modal on close ───────────────────────────────────────────────────
-    document.getElementById('homeTabModal').addEventListener('hidden.bs.modal', function () {
-        $('#homeTabModalContent').html('');
+        // ── Open modal helper ──────────────────────────────────────────────────────
+        function openModal(url, params, method) {
+            var req = method === 'POST' ? $.post(url, params) : $.get(url, params);
+            req.done(function(response) {
+                $('#homeTabModalContent').html(response);
+                var modalEl = document.getElementById('homeTabModal');
+                var existing = bootstrap.Modal.getInstance(modalEl);
+                if (existing) existing.dispose();
+                new bootstrap.Modal(modalEl, {
+                    backdrop: 'static',
+                    keyboard: false
+                }).show();
+            }).fail(function() {
+                showNotification('Failed to load form.', 'error');
+            });
+        }
+
+        // ── Add ────────────────────────────────────────────────────────────────────
+        $('#addHomeTab').on('click', function() {
+            openModal('{{ route('hometab.form') }}', {}, 'GET');
+        });
+
+        // ── Edit ───────────────────────────────────────────────────────────────────
+        $(document).on('click', '.editHomeTab', function() {
+            openModal('{{ route('hometab.form') }}', {
+                    id: $(this).data('id'),
+                    _token: '{{ csrf_token() }}'
+                }, 'POST');
+        });
+
+        // ── Delete ─────────────────────────────────────────────────────────────────
+        var deleteId = null;
+
+        $(document).on('click', '.deleteHomeTab', function() {
+            deleteId = $(this).data('id');
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        });
+
+        $('#confirmDelete').on('click', function() {
+            if (!deleteId) return;
+            $.post('{{ route('hometab.delete') }}', {
+                        id: deleteId,
+                        _token: '{{ csrf_token() }}'
+                    })
+                .done(function(res) {
+                    var result = typeof res === 'string' ? JSON.parse(res) : res;
+                    if (result.type === 'success') {
+                        showNotification(result.message, 'success');
+                        homeTabTable.fnDraw();
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                })
+                .fail(function() {
+                    showNotification('Delete failed.', 'error');
+                })
+                .always(function() {
+                    deleteId = null;
+                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                });
+        });
+
+        // ── Clear modal on close ───────────────────────────────────────────────────
+        document.getElementById('homeTabModal').addEventListener('hidden.bs.modal', function() {
+            $('#homeTabModalContent').html('');
+        });
     });
-});
 </script>
 @endsection

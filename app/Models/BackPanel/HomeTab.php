@@ -14,8 +14,15 @@ class HomeTab extends Model
     protected $keyType   = 'string';
 
     protected $fillable = [
-        'id', 'tab_name', 'category_id', 'status',
-        'orgid', 'postedby', 'updatedby',
+        'id',
+        'tab_name',
+        'icon_name',
+        'bg_color',
+        'category_id',
+        'status',
+        'orgid',
+        'postedby',
+        'updatedby',
     ];
 
     public static function list(array $post)
@@ -24,7 +31,7 @@ class HomeTab extends Model
         $offset = (int) ($post['iDisplayStart']  ?? 0);
 
         $query = DB::table('home_tabs as ht')
-            ->select('ht.id', 'ht.tab_name', 'ht.status', 'ht.created_at')
+            ->select('ht.id', 'ht.tab_name', 'ht.icon_name', 'ht.bg_color','ht.status', 'ht.created_at')
             ->where('ht.status', 'Y');
 
         $totalrecs     = DB::table('home_tabs')->where('status', 'Y')->count();
@@ -73,6 +80,8 @@ class HomeTab extends Model
                 // UPDATE
                 DB::table('home_tabs')->where('id', $tabId)->update([
                     'tab_name'   => $post['tab_name'],
+                    'icon_name'  => $post['icon_name'] ?? null,
+                    'bg_color'   => $post['bg_color']  ?? null,
                     'updatedby'  => $post['userid'],
                     'updated_at' => Carbon::now(),
                 ]);
@@ -82,6 +91,8 @@ class HomeTab extends Model
                 DB::table('home_tabs')->insert([
                     'id'         => $tabId,
                     'tab_name'   => $post['tab_name'],
+                    'icon_name'  => $post['icon_name'] ?? null,
+                    'bg_color'   => $post['bg_color']  ?? null,
                     'status'     => 'Y',
                     'orgid'      => $post['orgid']  ?? null,
                     'postedby'   => $post['userid'],
