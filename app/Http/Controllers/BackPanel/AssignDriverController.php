@@ -29,14 +29,14 @@ class AssignDriverController extends Controller
             $profile = $payload->get('profile');
 
             $post             = $request->all();
+            $ids = array_filter(explode(',', $request->input('ids', '')));
             $post['userid']   = $profile['userid'] ?? null;
             $post['orgid']    = $profile['orgid']  ?? null;
             $post['page']     = (int) $request->input('page', 1);
             $post['per_page'] = (int) $request->input('per_page', 10);
-            if (empty($post['assignorderid'])) {
+            if (empty($post['ids'])) {
                 throw new Exception('Order ID is required.');
             }
-            // ── Validate token payload ─────────────────────────────────
             if (empty($post['userid']) || empty($post['orgid'])) {
                 return new JsonResponse([
                     'type'    => 'error',
@@ -44,7 +44,7 @@ class AssignDriverController extends Controller
                     'result'  => [],
                 ], 401);
             }
-
+            dd($post);
             $data = AssignDriver::getOrderListApi($post);
 
             $page     = $post['page'];
@@ -184,7 +184,7 @@ class AssignDriverController extends Controller
             ], 500);
         }
     }
-    public  function getOrderListAll(Request $request, $type)
+    public  function getOrderListAll(Request $request)
     {
         try {
             $payload = JWTAuth::parseToken()->getPayload();
@@ -195,7 +195,8 @@ class AssignDriverController extends Controller
             $post['orgid']    = $profile['orgid']  ?? null;
             $post['page']     = (int) $request->input('page', 1);
             $post['per_page'] = (int) $request->input('per_page', 10);
-            $post['type'] = $type;
+            // $post['type'] = $type;
+            // dd($post);
             // ── Validate token payload ─────────────────────────────────
             if (empty($post['userid']) || empty($post['orgid'])) {
                 return new JsonResponse([
@@ -303,31 +304,44 @@ class AssignDriverController extends Controller
         $data = [];
 
         try {
-
             $payload = JWTAuth::parseToken()->getPayload();
             $profile = $payload->get('profile');
-            $post = $request->all();
-            $post['userid'] = $profile['userid'] ?? null;
-            $post['orgid'] = $profile['orgid'] ?? null;
+
+            $post             = $request->all();
+            $post['userid']   = $profile['userid'] ?? null;
+            $post['orgid']    = $profile['orgid']  ?? null;
+            $post['orderids']      = array_filter(explode(',', $request->input('orderids', '')));
+            if (empty($post['userid']) || empty($post['orgid'])) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => 'Invalid token payload.',
+                    'data'    => [],
+                ], 401);
+            }
+
+            if (empty($post['orderids'])) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => 'No delivery dates provided.',
+                    'data'    => [],
+                ], 400);
+            }
 
             $data = AssignDriver::getCustomerDetail($post);
         } catch (QueryException $e) {
-
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         } catch (\Exception $e) {
-
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         }
 
         return response()->json([
-            'type' => $type,
+            'type'    => $type,
             'message' => $message,
-            'data' => $data
+            'data'    => $data,
         ], $type === 'success' ? 200 : 500);
     }
-
     public function changeOrderStatus(Request $request, FirebaseService $firebase)
     {
         $type    = 'error';

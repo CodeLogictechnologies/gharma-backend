@@ -47,32 +47,40 @@ class LocationTrackerController extends Controller
             $payload = JWTAuth::parseToken()->getPayload();
             $profile = $payload->get('profile');
 
-            $userId = $profile['userid'];
-            $orgId  = $profile['orgid'];
+            $post['userid'] = $profile['userid'];
+            $post['orgid']  = $profile['orgid'];
 
             // No need transaction for SELECT
             $result = LocationTracker::getLocation($post);
+
+            $result2 = LocationTracker::getLocationCustomer($post);
             if (!$result) {
+                throw new Exception('Location failed to fetch', 1);
+            }
+            if (!$result2) {
                 throw new Exception('Location failed to fetch', 1);
             }
             return response()->json([
                 'type' => 'success',
                 'message' => 'Location fetched successfully.',
-                'location' => $result
+                'driverlocation' => $result,
+                'customerlocation' => $result2
             ], 200);
         } catch (QueryException $e) {
 
             return response()->json([
                 'type' => 'error',
-                'message' => 'Database error: ' . $e->getMessage(),
-                'location' => null
+                'message' => 'Something went wrong',
+                'driverlocation' => null,
+                'customerlocation' => null,
             ], 500);
         } catch (\Exception $e) {
 
             return response()->json([
                 'type' => 'error',
                 'message' => $e->getMessage(),
-                'location' => null
+                'driverlocation' => null,
+                'customerlocation' => null,
             ], 500);
         }
     }

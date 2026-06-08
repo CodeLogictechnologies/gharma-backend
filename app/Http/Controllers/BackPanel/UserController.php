@@ -168,6 +168,7 @@ class UserController extends Controller
         $post['orgid'] = session('orgid');
         $post['inactiveuser'] = 'Y';
         $data = User::list($post);
+        // dd($data);
         $i = 0;
         $array = [];
         $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
@@ -186,11 +187,13 @@ class UserController extends Controller
 
             // ✅ DROPDOWN STATUS
             $array[$i]["user_status"] = '
-    <select class="form-select changeStatus" data-id="' . $row->id . '">
-        <option value="Pending" ' . ($row->user_status == "Pending" ? "selected" : "") . '>Pending</option>
-        <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Approve</option>
-        <option value="Reject" ' . ($row->user_status == "Reject" ? "selected" : "") . '>Reject</option>
-    </select>';
+<select class="form-select changeStatus" 
+    data-id="' . $row->id . '" 
+    data-current-val="' . $row->user_status . '">
+    <option value="Pending" ' . ($row->user_status == "Pending" ? "selected" : "") . '>Pending</option>
+    <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Approve</option>
+    <option value="Reject" ' . ($row->user_status == "Reject" ? "selected" : "") . '>Reject</option>
+</select>';
 
             $array[$i]["profile"] = $row->profile;
             $array[$i]["created_at"] = $row->created_at;
@@ -346,7 +349,7 @@ class UserController extends Controller
             }
 
             $user->user_status = $request->status;
-            $user->remarks = $request->remarks;
+            $user->remarks = $request->remark;
             $user->save();
 
             // ✅ Send Mail based on status

@@ -11,8 +11,8 @@ use Exception;
 class StoreController extends Controller
 {
     public function list(Request $request)
-{
-    try {
+    {
+        // try {
         $data = Store::getList();
 
         return response()->json([
@@ -21,46 +21,45 @@ class StoreController extends Controller
             'data'    => $data,
         ], 200);
 
-    } catch (QueryException $e) {
-        return response()->json([
-            'type'    => 'error',
-            'message' => 'Database error. Please try again.',
-        ], 500);
-    } catch (Exception $e) {
-        return response()->json([
-            'type'    => 'error',
-            'message' => $e->getMessage(),
-        ], 500);
+        // } catch (QueryException $e) {
+        //     return response()->json([
+        //         'type'    => 'error',
+        //         'message' => 'Database error. Please try again.',
+        //     ], 500);
+        // } catch (Exception $e) {
+        //     return response()->json([
+        //         'type'    => 'error',
+        //         'message' => $e->getMessage(),
+        //     ], 500);
+        // }
     }
-}
 
-// detail() stays the same 
-public function detail(Request $request)
-{
-    try {
-        if (empty($request->id)) {
-            throw new Exception('Store ID is required.');
+    // detail() stays the same 
+    public function detail(Request $request)
+    {
+        try {
+            if (empty($request->id)) {
+                throw new Exception('Store ID is required.');
+            }
+
+            $post = $request->all();
+            $data = Store::getDetail($post);
+
+            return response()->json([
+                'type'    => 'success',
+                'message' => 'Store fetched successfully.',
+                'data'    => $data,
+            ], 200);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong. Please try again.',
+            ], 500);
+        } catch (Exception $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        $post = $request->all();
-        $data = Store::getDetail($post);
-
-        return response()->json([
-            'type'    => 'success',
-            'message' => 'Store fetched successfully.',
-            'data'    => $data,
-        ], 200);
-
-    } catch (QueryException $e) {
-        return response()->json([
-            'type'    => 'error',
-            'message' => 'Something went wrong. Please try again.',
-        ], 500);
-    } catch (Exception $e) {
-        return response()->json([
-            'type'    => 'error',
-            'message' => $e->getMessage(),
-        ], 500);
     }
-}
 }
