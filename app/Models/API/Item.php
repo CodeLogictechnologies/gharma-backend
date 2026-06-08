@@ -98,6 +98,7 @@ class Item extends Model
                 'od.quantity',
                 'od.order_detail_total_price as price',
                 'om.order_status',
+                'om.id as orderid',
                 'od.created_at as time'
             )
             ->where('od.userid', $post['userid'])

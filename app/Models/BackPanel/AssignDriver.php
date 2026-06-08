@@ -58,228 +58,83 @@ class AssignDriver extends Model
             $perPage = (int) ($post['per_page'] ?? 10);
             $offset  = ($page - 1) * $perPage;
 
-            // FIX: operator precedence bug
-            if (!empty($post['type']) && $post['type'] === 'all') {
+            $query = DB::table('order_masters as m')
+                ->join('users as u', 'u.id', '=', 'm.userid')
+                ->join('profiles as p', 'p.user_id', '=', 'u.id')
+                ->join('user_addresses as a', function ($join) {
+                    $join->on('a.userid', '=', 'm.userid')
+                        ->on('a.id', '=', 'm.addressid');
+                })
+                ->join('assign_drivers as d', function ($join) use ($post) {
+                    $join->on('d.ordermasterid', '=', 'm.id')
+                        ->where('d.driverid', $post['userid']);
+                })
+                ->select(
+                    'm.id as order_id',
+                    DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
+                    'u.phone',
+                    'a.address_name',
+                    'a.longitude',
+                    'a.latitude',
+                    'm.created_at as order_date',
+                    'm.order_master_total_price as total_price',
+                    'd.id as assignorderid',
+                    'd.created_at as assigned_at',
+                    'd.order_status as order_status',
+                    DB::raw('DATE(d.delivery_date) as delivery_date'),
+                )
+                ->where('m.orgid', $post['orgid']);
 
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'm.order_master_total_price as total_price',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc');
-
-                $total   = $query->count();
-                $results = $query->offset($offset)->limit($perPage)->get();
-
-                // FIX: was checking 'assignmasterid' but should be 'assignorderid'
-            } elseif (!empty($post['type']) && $post['type'] === 'datewise') {
-
-                // ── Driver summary grouped by date ─────────────────────────────
-                $query = DB::table('assign_drivers as d')
-                    ->join('order_masters as m', 'm.id', '=', 'd.ordermasterid')
-                    ->select(
-                        DB::raw('DATE(d.delivery_date) as delivery_date'),
-                        DB::raw('COUNT(*) as total_orders'),
-                        DB::raw('SUM(m.order_master_total_price) as total_price'),
-                        DB::raw("SUM(CASE WHEN d.order_status = 'Complete' THEN 1 ELSE 0 END) as completed_orders"),
-                        DB::raw("SUM(CASE WHEN d.order_status = 'Pending'   THEN 1 ELSE 0 END) as pending_orders"),
-                    )
-                    ->where('d.driverid', $post['userid'])
-                    ->where('d.orgid',    $post['orgid'])
-                    ->groupBy(DB::raw('DATE(d.delivery_date)'))
-                    ->orderBy(DB::raw('DATE(d.delivery_date)'), 'desc');
-
-                $total   = $query->count();
-                $results = $query->offset($offset)->limit($perPage)->get();
-            } elseif (!empty($post['type']) && $post['type'] === 'complete') {
-
-
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid'])
-                            ->where('d.order_status', $post['type']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'm.order_master_total_price as total_price',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc');
-
-                $total   = $query->count();
-                $results = $query->offset($offset)->limit($perPage)->get();
-            } elseif (!empty($post['type']) && $post['type'] === 'pending') {
-
-
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid'])
-                            ->where('d.order_status', $post['type']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'm.order_master_total_price as total_price',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc');
-
-                $total   = $query->count();
-                $results = $query->offset($offset)->limit($perPage)->get();
-            } elseif (!empty($post['type']) && $post['type'] === 'start') {
-
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid'])
-                            ->where('d.order_status', $post['type']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'm.order_master_total_price as total_price',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc');
-
-                $total   = $query->count();
-                $results = $query->offset($offset)->limit($perPage)->get();
-            } elseif (!empty($post['type']) && $post['type'] === 'cancel') {
-
-
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'm.order_master_total_price as total_price',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc');
-
-                $total   = $query->count();
-                $results = $query->offset($offset)->limit($perPage)->get();
+            if ($post['type'] === 'pending') {
+                $query->whereIn('d.order_status', ['pending', 'start']);
             } else {
+                $query->where('d.order_status', $post['type']);
+            }
 
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid'])
-                            ->where('d.id', $post['assignorderid']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc');
+            $query->orderBy(DB::raw('DATE(d.delivery_date)'), 'desc');
 
-                $total   = $query->count();
-                $results = $query->offset($offset)->limit($perPage)->get();
+            $total = DB::table(DB::raw("({$query->toSql()}) as sub"))
+                ->mergeBindings($query)
+                ->distinct()
+                ->count(DB::raw('DATE(delivery_date)'));
+
+            $results = $query->offset($offset)->limit($perPage)->get();
+
+            $grouped = [];
+            foreach ($results as $row) {
+                $date = $row->delivery_date;
+                if (!isset($grouped[$date])) {
+                    $grouped[$date] = [
+                        'delivery_date' => $date,
+                        'orders'        => [],
+                    ];
+                }
+                $grouped[$date]['orders'][] = [
+                    'order_id'       => $row->order_id,
+                    'customer_name'  => $row->customer_name,
+                    'phone'          => $row->phone,
+                    'address_name'   => $row->address_name,
+                    'longitude'      => $row->longitude,
+                    'latitude'       => $row->latitude,
+                    'order_date'     => $row->order_date,
+                    'total_price'    => $row->total_price,
+                    'assignorderid'  => $row->assignorderid,
+                    'assigned_at'    => $row->assigned_at,
+                    'order_status'   => $row->order_status,
+                ];
             }
 
             return [
-                'list'  => $results,
                 'total' => $total,
-                'page'  => $page,
-                'per_page' => $perPage,
+                'list'  => array_values($grouped),
             ];
+
+            // return [
+            //     'list'  => $results,
+            //     'total' => $total,
+            //     'page'  => $page,
+            //     'per_page' => $perPage,
+            // ];
         } catch (\Exception $e) {
             throw $e;
         }
@@ -288,67 +143,36 @@ class AssignDriver extends Model
     public static function getCustomerDetail($post)
     {
         try {
-            if (!empty($post['assignorderid'])) {
 
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid'])
-                            ->where('d.id', $post['assignorderid']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'm.order_master_total_price as total_price',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc')->get();
-            } else {
-                if (empty($post['delivery_date'])) {
-                    throw new \Exception('Delivery Date is required.');
-                }
-                $query = DB::table('order_masters as m')
-                    ->join('users as u', 'u.id', '=', 'm.userid')
-                    ->join('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->join('user_addresses as a', function ($join) {
-                        $join->on('a.userid', '=', 'm.userid')
-                            ->on('a.id', '=', 'm.addressid');
-                    })
-                    ->join('assign_drivers as d', function ($join) use ($post) {
-                        $join->on('d.ordermasterid', '=', 'm.id')
-                            ->where('d.driverid', $post['userid'])
-                            ->where('d.delivery_date', $post['delivery_date']);
-                    })
-                    ->select(
-                        'm.id as order_id',
-                        DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
-                        'u.phone',
-                        'a.address_name',
-                        'a.longitude',
-                        'a.latitude',
-                        'm.created_at as order_date',
-                        'm.order_master_total_price as total_price',
-                        'd.id as assignorderid',
-                        'd.created_at as assigned_at',
-                        'd.order_status as order_status',
-                    )
-                    ->where('m.orgid', $post['orgid'])
-                    ->orderBy('m.created_at', 'desc')->get();
-            }
+
+            $query = DB::table('order_masters as m')
+                ->join('users as u', 'u.id', '=', 'm.userid')
+                ->join('profiles as p', 'p.user_id', '=', 'u.id')
+                ->join('user_addresses as a', function ($join) {
+                    $join->on('a.userid', '=', 'm.userid')
+                        ->on('a.id', '=', 'm.addressid');
+                })
+                ->join('assign_drivers as d', function ($join) use ($post) {
+                    $join->on('d.ordermasterid', '=', 'm.id')
+                        ->where('d.driverid', $post['userid'])
+                        ->whereIn('d.ordermasterid', $post['orderids']);
+                })
+                ->select(
+                    'm.id as order_id',
+                    DB::raw("CONCAT_WS(' ', p.first_name, NULLIF(p.middle_name,''), p.last_name) AS customer_name"),
+                    'u.phone',
+                    'a.address_name',
+                    'a.longitude',
+                    'a.latitude',
+                    'm.created_at as order_date',
+                    'm.order_master_total_price as total_price',
+                    'd.id as assignorderid',
+                    'd.created_at as assigned_at',
+                    'd.order_status as order_status',
+                )
+                ->where('m.orgid', $post['orgid'])
+                ->orderBy('m.created_at', 'desc')->get();
+
             return $query;
         } catch (\Exception $e) {
             throw $e;

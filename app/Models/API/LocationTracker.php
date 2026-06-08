@@ -55,4 +55,27 @@ class LocationTracker extends Model
             throw $e;
         }
     }
+
+    public static function getLocationCustomer($post)
+    {
+        try {
+
+            $data = DB::table('order_masters as om')
+                ->join('user_addresses as ua', function ($join) {
+                    $join->on('ua.userid', '=', 'om.userid')
+                        ->on('ua.id', '=', 'om.addressid');
+                })
+                ->where('om.id', $post['order_id'])
+                ->select(
+                    'ua.longitude',
+                    'ua.latitude',
+                    // 'ua.address_name',
+                    // 'om.id as order_id',
+                )
+                ->first();
+            return $data;
+        } catch (\Exception $e) {
+            throw $e;
+        }
+    }
 }

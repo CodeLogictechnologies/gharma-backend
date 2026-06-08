@@ -259,6 +259,23 @@ class User extends Authenticatable implements JWTSubject
             }
 
             $user->assignRole($post['role']);
+            $panImage = null;
+
+
+            if (!empty($post['pan_image']) && $post['pan_image'] instanceof \Illuminate\Http\UploadedFile) {
+                $file = $post['pan_image'];
+                $panImage = time() . '_pan_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('profiles', $panImage, 'public');
+            }
+
+            $registernumberimage = null;
+
+
+            if (!empty($post['registration_number_image']) && $post['registration_number_image'] instanceof \Illuminate\Http\UploadedFile) {
+                $file = $post['registration_number_image'];
+                $registernumberimage = time() . '_pan_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('profiles', $registernumberimage, 'public');
+            }
 
             $profileData = [
                 'id'                  => (string) Str::uuid(),
@@ -273,6 +290,7 @@ class User extends Authenticatable implements JWTSubject
                 'type'                => $post['type'],
                 'company_name'        => $post['company_name'] ?? null,
                 'tax_number'          => $post['tax_number'] ?? null,
+                'pan_number'          => $post['pan_number'] ?? null,
                 'registration_number' => $post['registration_number'] ?? null,
                 'orgid'               => $firstOrg,
                 'created_at'          => Carbon::now(),
@@ -282,7 +300,12 @@ class User extends Authenticatable implements JWTSubject
             if ($imageName) {
                 $profileData['image'] = $imageName;
             }
-
+            if ($panImage) {
+                $profileData['pan_image'] = $panImage;
+            }
+            if ($registernumberimage) {
+                $profileData['registration_number_image'] = $registernumberimage;
+            }
             DB::table('profiles')->insert($profileData);
 
             DB::commit();
@@ -308,7 +331,6 @@ class User extends Authenticatable implements JWTSubject
             foreach ($get as $key => $value) {
                 $get[$key] = trim(strtolower($value));
             }
-
             $limit  = !empty($get["length"]) ? (int)$get["length"] : 15;
             $offset = !empty($get["start"]) ? (int)$get["start"] : 0;
             $query = User::query()
@@ -354,7 +376,6 @@ class User extends Authenticatable implements JWTSubject
             if (!empty($get['sSearch_2'])) {
                 $query->whereRaw('LOWER(users.email) LIKE ?', ['%' . $get['sSearch_2'] . '%']);
             }
-
             $total = (clone $query)->count();
 
             $result = $limit > -1

@@ -81,158 +81,130 @@
     <script>
         var baseurl = '{{ url('') }}';
 
-        var pendingStatusUserId   = null;
-        var pendingStatusValue    = null;
+        var pendingStatusUserId = null;
+        var pendingStatusValue = null;
         var pendingStatusDropdown = null;
-        var previousStatusValue   = null;
+        var previousStatusValue = null;
 
-        $(document).ready(function () {
+        $(document).ready(function() {
 
             /* =========================================================
                TAB LOADING
                FIX: $.globalEval() after .html(response) so the IIFE
                inside each tab partial actually executes.
             ========================================================= */
-            $(document).off('click', '.nav-link').on('click', '.nav-link', function (e) {
+            $(document).off('click', '.nav-link').on('click', '.nav-link', function(e) {
                 e.preventDefault();
 
-                var $tab  = $(this);
+                var $tab = $(this);
                 var tabid = $tab.attr('id').replace('-tab', '');
 
                 $('#loading').show();
                 $('#nav-tabContent').empty();
 
                 $.post('{{ route('user.tab') }}', {
-                    tabid  : tabid,
-                    _token : '{{ csrf_token() }}'
-                })
-                .done(function (response) {
-                    $('#nav-tabContent').html(response);
+                        tabid: tabid,
+                        _token: '{{ csrf_token() }}'
+                    })
+                    .done(function(response) {
+                        $('#nav-tabContent').html(response);
 
-                    // ✅ KEY FIX — execute scripts injected by .html()
-                    // Without this the IIFE in the tab partial never runs,
-                    // so DataTable, openUserModal, and all event bindings are missing.
-                    $('#nav-tabContent').find('script').each(function () {
-                        $.globalEval($(this).text());
+                        // ✅ KEY FIX — execute scripts injected by .html()
+                        // Without this the IIFE in the tab partial never runs,
+                        // so DataTable, openUserModal, and all event bindings are missing.
+                        $('#nav-tabContent').find('script').each(function() {
+                            $.globalEval($(this).text());
+                        });
+                    })
+                    .fail(function() {
+                        $('#nav-tabContent').html(
+                            '<div class="alert alert-danger">Error loading content.</div>');
+                    })
+                    .always(function() {
+                        $('#loading').hide();
                     });
-                })
-                .fail(function () {
-                    $('#nav-tabContent').html('<div class="alert alert-danger">Error loading content.</div>');
-                })
-                .always(function () {
-                    $('#loading').hide();
-                });
 
                 $('.nav-link').removeClass('active');
                 $tab.addClass('active');
             });
 
             $('#active-tab').trigger('click');
+            $(document).off('change', '.changeStatus').on('change', '.changeStatus', function() {
+                var $dd = $(this);
+                var newVal = $dd.val();
+                var origVal = $dd.data('original');
 
-            /* =========================================================
-               STATUS CHANGE FLOW
-            ========================================================= */
+                if (newVal === origVal) return;
 
-            // Step 1: Dropdown changed
-            $(document).on('change', '.statusDropdown', function () {
-                pendingStatusDropdown = $(this);
-                previousStatusValue   = pendingStatusDropdown.data('previous') || pendingStatusDropdown.data('original');
-                pendingStatusUserId   = pendingStatusDropdown.data('id');
-                pendingStatusValue    = pendingStatusDropdown.val();
+                pendingStatusDropdown = $dd;
+                previousStatusValue = origVal;
+                pendingStatusUserId = $dd.data('id');
+                pendingStatusValue = newVal;
 
-                pendingStatusDropdown.data('previous', pendingStatusDropdown.data('original') ?? previousStatusValue);
-
-                new bootstrap.Modal(document.getElementById('statusModal')).show();
-            });
-
-            // Cancel status modal
-            $(document).on('click', '#cancelStatus, #cancelStatusX', function () {
-                revertDropdown();
-                var modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
-                if (modal) modal.hide();
-            });
-
-            // Step 2: Confirmed → open remark modal
-            $('#confirmStatus').on('click', function () {
-                var statusModal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
-                if (statusModal) statusModal.hide();
-
-                $('#remark_user_id').val(pendingStatusUserId);
                 $('#remarkText').val('');
                 $('#remarkError').hide();
+                $('#remark_user_id').val(pendingStatusUserId);
 
-                document.getElementById('statusModal').addEventListener('hidden.bs.modal', function handler() {
-                    this.removeEventListener('hidden.bs.modal', handler);
-                    new bootstrap.Modal(document.getElementById('remarkModal')).show();
-                });
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('remarkModal')).show();
             });
 
-            // Cancel remark modal
-            $('#cancelRemark').on('click', function () {
-                revertDropdown();
-                bootstrap.Modal.getInstance(document.getElementById('remarkModal')).hide();
+            $(document).off('click', '#cancelRemark').on('click', '#cancelRemark', function() {
+                if (pendingStatusDropdown) pendingStatusDropdown.val(previousStatusValue);
+                bootstrap.Modal.getInstance(document.getElementById('remarkModal'))?.hide();
                 resetStatusState();
             });
 
-            document.getElementById('remarkModal').addEventListener('hidden.bs.modal', function () {
-                if (pendingStatusUserId !== null) {
-                    revertDropdown();
-                    resetStatusState();
-                }
-            });
-
-            // Step 3: Save remark + status
-            $('#saveRemark').on('click', function () {
+            $(document).off('click', '#saveRemark').on('click', '#saveRemark', function() {
                 var remark = $('#remarkText').val().trim();
                 if (!remark) {
                     $('#remarkError').show();
                     return;
                 }
                 $('#remarkError').hide();
+                showLoader();
 
                 $.post('{{ route('user.status') }}', {
-                    id     : pendingStatusUserId,
-                    status : pendingStatusValue,
-                    remark : remark,
-                    _token : '{{ csrf_token() }}'
-                })
-                .done(function (response) {
-                    var result = (typeof response === 'string') ? JSON.parse(response) : response;
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        if (pendingStatusDropdown) {
-                            pendingStatusDropdown.data('original', pendingStatusValue);
-                            pendingStatusDropdown.data('previous', pendingStatusValue);
+                        user_id: pendingStatusUserId,
+                        status: pendingStatusValue,
+                        remark: remark,
+                        _token: '{{ csrf_token() }}'
+                    })
+                    .done(function(response) {
+                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            if (pendingStatusDropdown) pendingStatusDropdown.data('original',
+                                pendingStatusValue);
+                            resetStatusState();
+                            bootstrap.Modal.getInstance(document.getElementById('remarkModal'))?.hide();
+                            if (typeof userTable !== 'undefined') userTable.fnDraw();
+                        } else {
+                            if (pendingStatusDropdown) pendingStatusDropdown.val(previousStatusValue);
+                            resetStatusState();
+                            showNotification(result.message, 'error');
                         }
-                        if (typeof userTable !== 'undefined' && userTable) {
-                            userTable.fnDraw();
-                        }
-                    } else {
-                        showNotification(result.message, 'error');
-                        revertDropdown();
-                    }
-                })
-                .fail(function () {
-                    showNotification('Status update failed. Please try again.', 'error');
-                    revertDropdown();
-                })
-                .always(function () {
-                    bootstrap.Modal.getInstance(document.getElementById('remarkModal')).hide();
-                    resetStatusState();
-                });
+                    })
+                    .fail(function() {
+                        if (pendingStatusDropdown) pendingStatusDropdown.val(previousStatusValue);
+                        resetStatusState();
+                        showNotification('Request failed!', 'error');
+                    })
+                    .always(function() {
+                        hideLoader();
+                    });
             });
 
-            function revertDropdown() {
-                if (pendingStatusDropdown && previousStatusValue !== null) {
-                    pendingStatusDropdown.val(previousStatusValue);
+            document.getElementById('remarkModal').addEventListener('hidden.bs.modal', function() {
+                if (pendingStatusUserId !== null) {
+                    if (pendingStatusDropdown) pendingStatusDropdown.val(previousStatusValue);
+                    resetStatusState();
                 }
-            }
+                $('#remarkText').val('');
+                $('#remarkError').hide();
+            });
 
             function resetStatusState() {
-                pendingStatusUserId   = null;
-                pendingStatusValue    = null;
-                pendingStatusDropdown = null;
-                previousStatusValue   = null;
+                pendingStatusUserId = pendingStatusValue = pendingStatusDropdown = previousStatusValue = null;
             }
 
         });
