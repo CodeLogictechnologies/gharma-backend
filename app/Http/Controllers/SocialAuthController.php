@@ -8,6 +8,9 @@ use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Exception;
+use Illuminate\Support\Facades\DB;
+
+use Carbon\Carbon;
 
 class SocialAuthController extends Controller
 {
@@ -38,7 +41,7 @@ class SocialAuthController extends Controller
     // ✅ Step 2: Handle callback
     public function callback($provider)
     {
-
+        // ✅ Check provider
         if (!in_array($provider, $this->providers)) {
             return response()->json([
                 'success' => false,
@@ -47,6 +50,7 @@ class SocialAuthController extends Controller
         }
 
         try {
+            // ✅ Get Google user
             $socialUser = Socialite::driver($provider)
                 ->stateless()
                 ->user();
@@ -56,39 +60,59 @@ class SocialAuthController extends Controller
                 'message' => 'Invalid credentials or token expired.',
             ], 401);
         }
+        $user = User::where('provider', $provider)
+            ->where('provider_id', $socialUser->getId())
+            ->first();
+        // ✅ CREATE / UPDATE USER (DO NOT CHANGE ID)
 
-        // ✅ Find or create user
-        // $user = User::updateOrCreate(
-        //     [
-        //         'email' => $socialUser->getEmail(),
-        //     ],
-        //     [
-        //         'id'             => (string) Str::uuid(),
-        //         'name'           => $socialUser->getName(),
-        //         'provider'       => $provider,
-        //         'provider_id'    => $socialUser->getId(),
-        //         'provider_token' => $socialUser->token,
-        //         'password'       => null,
-        //     ]
-        // );
+        if (!$user) {
+            // 🟢 CREATE NEW USER WITH UUID
+            $user = User::create([
+                'id'              => (string) Str::uuid(), // ✅ ONLY HERE
+                'email'           => $socialUser->getEmail(),
+                'name'            => $socialUser->getName(),
+                'provider'        => $provider,
+                'provider_id'     => $socialUser->getId(),
+                'provider_token'  => $socialUser->token,
+                'avatar'          => $socialUser->getAvatar(),
+                'password'        => 'testing',
+                'phone'           => null,
+            ]);
+        } else {
+            // 🟡 UPDATE EXISTING USER (NO ID CHANGE)
+            $user->update([
+                'name'            => $socialUser->getName(),
+                'email'           => $socialUser->getEmail(),
+                'provider_token'  => $socialUser->token,
+                'avatar'          => $socialUser->getAvatar(),
+            ]);
+        }
 
-        $user = User::updateOrCreate(
-            [
-                // ✅ Search by email OR provider_id
-                'email' => $socialUser->getEmail(),
-            ],
-            [
-                'id'             => (string) Str::uuid(),
-                'name'           => $socialUser->getName(),
-                'provider'       => $provider,
-                'provider_id'    => $socialUser->getId(),
-                'provider_token' => $socialUser->token,
-                'avatar'         => $socialUser->getAvatar(), // ✅ save avatar too
-                'password'       => null,
-                'phone'       => null,
-                'orgid'          => 'a20a5adb-1679-474d-a30c-3455d030d8e6',
-            ]
-        );
+        // ✅ Get first organization
+        $firstOrg = DB::table('userorganizations')->value('orgid');
+
+        if (!$firstOrg) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No organization found.',
+            ], 422);
+        }
+
+        // ✅ Check if mapping already exists (avoid duplicates)
+        $exists = DB::table('userorganizations')
+            ->where('userid', $user->id)
+            ->where('orgid', $firstOrg)
+            ->exists();
+
+        if (!$exists) {
+            DB::table('userorganizations')->insert([
+                'id'         => (string) Str::uuid(),
+                'userid'     => $user->id,
+                'orgid'      => $firstOrg,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ]);
+        }
 
         // ✅ Generate JWT token
         $token = JWTAuth::fromUser($user);
@@ -98,7 +122,7 @@ class SocialAuthController extends Controller
             'message'    => 'Login successful.',
             'token'      => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60,
+            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
             // 'user'       => $user,
         ]);
     }

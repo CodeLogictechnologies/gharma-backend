@@ -142,141 +142,244 @@ class ItemController extends Controller
     // }
 
     public function recommended(Request $request)
-{
-    $payload = JWTAuth::parseToken()->getPayload();
-    $profile = $payload->get('profile');
+    {
+        $payload = JWTAuth::parseToken()->getPayload();
+        $profile = $payload->get('profile');
 
-    $perPage     = (int) $request->get('per_page', 10);
-    $userId      = $profile['userid'];
-    $orgId       = $profile['orgid'];
-    $tabId       = $request->input('tab_id');    // can be UUID or tab_name string
-    $categoryIds = [];
+        $perPage     = (int) $request->get('per_page', 10);
+        $userId      = $profile['userid'];
+        $orgId       = $profile['orgid'];
+        $tabId       = $request->input('tab_id');    // can be UUID or tab_name string
+        $categoryIds = [];
+        $post['roleid']         = $request->header('roleid');
 
-    // ── Resolve tab by id OR tab_name ──
-    if (!empty($tabId)) {
-        $tab = DB::table('home_tabs')
-            ->where('status', 'Y')
-            ->where(function ($q) use ($tabId) {
-                $q->where('id', $tabId)                              // UUID match
-                  ->orWhereRaw('LOWER(tab_name) = ?', [strtolower($tabId)]);  // name match
-            })
-            ->first();
+        // ── Resolve tab by id OR tab_name ──
+        if (!empty($tabId)) {
+            $tab = DB::table('home_tabs')
+                ->where('status', 'Y')
+                ->where(function ($q) use ($tabId) {
+                    $q->where('id', $tabId)                              // UUID match
+                        ->orWhereRaw('LOWER(tab_name) = ?', [strtolower($tabId)]);  // name match
+                })
+                ->first();
 
-        if (!$tab) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => 'Tab not found or inactive.',
-                'result'  => []
-            ]);
-        }
-
-        // If tab_name is "all", skip category filter → return all items
-        if (strtolower($tab->tab_name) !== 'all') {
-            $categoryIds = DB::table('home_tab_categories')
-                ->where('home_tab_id', $tab->id)
-                ->pluck('category_id')
-                ->toArray();
-
-            if (empty($categoryIds)) {
+            if (!$tab) {
                 return response()->json([
                     'type'    => 'error',
-                    'message' => 'No categories assigned to this tab.',
+                    'message' => 'Tab not found or inactive.',
                     'result'  => []
                 ]);
             }
+
+            // If tab_name is "all", skip category filter → return all items
+            if (strtolower($tab->tab_name) !== 'all') {
+                $categoryIds = DB::table('home_tab_categories')
+                    ->where('home_tab_id', $tab->id)
+                    ->pluck('category_id')
+                    ->toArray();
+
+                if (empty($categoryIds)) {
+                    return response()->json([
+                        'type'    => 'error',
+                        'message' => 'No categories assigned to this tab.',
+                        'result'  => []
+                    ]);
+                }
+            }
         }
-    }
 
-    $hasOrders = DB::table('order_details')
-        ->where('userid', $userId)
-        ->exists();
+        $hasOrders = DB::table('order_details')
+            ->where('userid', $userId)
+            ->exists();
+        if (!empty($post['roleid']) && $post['roleid'] == 2) {
 
-    $query = DB::table('itemvariations as iv')
-        ->join('items as it', 'it.id', '=', 'iv.item_id')
-        ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-        ->leftJoinSub(
-            DB::table('item_images')
-                ->select('item_id', DB::raw('GROUP_CONCAT(image) as images'))
-                ->groupBy('item_id'),
-            'img',
-            'img.item_id',
-            '=',
-            'it.id'
-        )
-        ->where('it.orgid', $orgId)
-        ->where('iv.status', 'Y')
-        ->where('p.status', 'Y')
-        ->select(
-            'it.id as productid',
-            DB::raw("CONCAT(it.title) as title"),
-            'iv.id as variationid',
-            'iv.value',
-            'img.images',
-            'p.price'
-        )
-        ->orderBy('iv.created_at', 'asc');
 
-    // ── Filter by categories only if not "all" ──
-    if (!empty($categoryIds)) {
-        $query->join('category_items as ci', 'ci.itemid', '=', 'it.id')
-              ->whereIn('ci.categoryid', $categoryIds);
-    }
+            $query = DB::table('itemvariations as iv')
+                ->join('items as it', 'it.id', '=', 'iv.item_id')
+                ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+                ->leftJoin('wholesaler_prices as wp', function ($join) {
+                    $join->on('wp.itemid', '=', 'it.id')
+                        ->on('wp.variation_id', '=', 'iv.id')
+                        ->where('wp.status', 'Y');
+                })
+                ->leftJoinSub(
+                    DB::table('item_images')
+                        ->select('item_id', DB::raw('GROUP_CONCAT(image) as images'))
+                        ->groupBy('item_id'),
+                    'img',
+                    'img.item_id',
+                    '=',
+                    'it.id'
+                )
+                ->where('it.orgid', $orgId)
+                ->where('iv.status', 'Y')
+                ->where('p.status', 'Y')
+                ->select(
+                    'it.id as productid',
+                    DB::raw("CONCAT(it.title) as title"),
+                    'iv.id as variationid',
+                    'iv.value',
+                    'img.images',
+                    'wp.id as wholesaler_price_id',  // ← must be here
 
-    $data = $query->distinct()->paginate($perPage);
+                    'p.price',
+                    'iv.created_at'
+                )
+                ->groupBy(
+                    'it.id',
+                    'it.title',
+                    'iv.id',
+                    'iv.value',
+                    'img.images',
+                    'wp.id',                         // ← must be here
 
-    if ($data->isEmpty()) {
+                    'p.price',
+                    'iv.created_at'
+                )
+                ->orderBy('iv.created_at', 'asc');
+        } else {
+
+            $query = DB::table('itemvariations as iv')
+                ->join('items as it', 'it.id', '=', 'iv.item_id')
+                ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+                ->leftJoinSub(
+                    DB::table('item_images')
+                        ->select('item_id', DB::raw('GROUP_CONCAT(image) as images'))
+                        ->groupBy('item_id'),
+                    'img',
+                    'img.item_id',
+                    '=',
+                    'it.id'
+                )
+                ->where('it.orgid', $orgId)
+                ->where('iv.status', 'Y')
+                ->where('p.status', 'Y')
+                ->select(
+                    'it.id as productid',
+                    DB::raw("CONCAT(it.title) as title"),
+                    'iv.id as variationid',
+                    'iv.value',
+                    'img.images',
+                    'p.price',
+                    'iv.created_at'
+                )
+                ->groupBy(
+                    'it.id',
+                    'it.title',
+                    'iv.id',
+                    'iv.value',
+                    'img.images',
+                    'p.price',
+                    'iv.created_at'
+                )
+                ->orderBy('iv.created_at', 'asc');
+        }
+
+        // ── Filter by categories only if not "all" ──
+        if (!empty($categoryIds)) {
+            $query->join('category_items as ci', 'ci.itemid', '=', 'it.id')
+                ->whereIn('ci.categoryid', $categoryIds);
+        }
+
+        $data = $query->paginate($perPage);
+
+        if ($data->isEmpty()) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'No Item found.',
+                'result'  => $this->paginationMeta($data)
+            ]);
+        }
+
+        $productIds = collect($data->items())
+            ->pluck('productid')
+            ->unique()
+            ->toArray();
+
+        $allVariations = DB::table('itemvariations as iv')
+            ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+            ->select(
+                'iv.id as variationid',
+                'iv.item_id as productid',
+                DB::raw("CONCAT(iv.value) as name"),
+                'p.price'
+            )
+            ->whereIn('iv.item_id', $productIds)
+            ->where('iv.status', 'Y')
+            ->where('p.status', 'Y')
+            ->get()
+            ->groupBy('productid');
+
+
+        $wholesalerDetails = DB::table('wholesaler_price_details as wd')
+            ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
+            ->where('wd.status', 'Y')
+            ->where('wp.status', 'Y')
+            ->where('wp.orgid', $orgId)
+            ->select(
+                'wd.wholesalermasterid',   // ← no alias, keep original name
+                'wd.min_qty',
+                'wd.max_qty',
+                'wd.price'
+            )
+            ->orderBy('wd.min_qty', 'asc')
+            ->get()
+            ->groupBy('wholesalermasterid')  // ← matches column name
+            ->map(function ($details) {
+                return $details->map(function ($detail) {
+                    return [
+                        'price'   => $detail->price,
+                        'min_qty' => $detail->min_qty,
+                        'max_qty' => $detail->max_qty,
+                    ];
+                })->values();
+            });
+        if (!empty($post['roleid']) && $post['roleid'] == 2) {
+
+            $items = collect($data->items())->map(function ($row) use ($allVariations, $wholesalerDetails) {
+                return [
+                    'productid'   => $row->productid,
+                    'title'       => $row->title,
+                    'variationid' => $row->variationid,
+                    'value'       => $row->value,
+                    'price'       => $row->price,
+                    'images'      => $row->images
+                        ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
+                        : [],
+                    'wholesaler_price' => !empty($row->wholesaler_price_id)
+                        ? $wholesalerDetails->get($row->wholesaler_price_id, collect([]))->values()
+                        : [],
+                    'variations'  => $allVariations[$row->productid] ?? [],
+                ];
+            });
+        } else {
+            $items = collect($data->items())->map(function ($row) use ($allVariations) {
+                return [
+                    'productid'   => $row->productid,
+                    'title'       => $row->title,
+                    'variationid' => $row->variationid,
+                    'value'       => $row->value,
+                    'price'       => $row->price,
+                    'images'      => $row->images
+                        ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
+                        : [],
+                    'variations'  => $allVariations[$row->productid] ?? [],
+                ];
+            });
+        }
+
         return response()->json([
-            'type'    => 'error',
-            'message' => 'No Item found.',
-            'result'  => $this->paginationMeta($data)
+            'type'    => 'success',
+            'message' => $hasOrders
+                ? 'Recommended items fetched successfully.'
+                : 'No order history found. Showing all items.',
+            'result'  => [
+                'is_personalized' => $hasOrders,
+                'data'            => $items,
+                'pagination'      => $this->paginationMeta($data),
+            ],
         ]);
     }
-
-    $productIds = collect($data->items())
-        ->pluck('productid')
-        ->unique()
-        ->toArray();
-
-    $allVariations = DB::table('itemvariations as iv')
-        ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-        ->select(
-            'iv.id as variationid',
-            'iv.item_id as productid',
-            DB::raw("CONCAT(iv.value) as name"),
-            'p.price'
-        )
-        ->whereIn('iv.item_id', $productIds)
-        ->where('iv.status', 'Y')
-        ->where('p.status', 'Y')
-        ->get()
-        ->groupBy('productid');
-
-    $items = collect($data->items())->map(function ($row) use ($allVariations) {
-        return [
-            'productid'   => $row->productid,
-            'title'       => $row->title,
-            'variationid' => $row->variationid,
-            'value'       => $row->value,
-            'price'       => $row->price,
-            'images'      => $row->images
-                ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
-                : [],
-            'variations'  => $allVariations[$row->productid] ?? [],
-        ];
-    });
-
-    return response()->json([
-        'type'    => 'success',
-        'message' => $hasOrders
-            ? 'Recommended items fetched successfully.'
-            : 'No order history found. Showing all items.',
-        'result'  => [
-            'is_personalized' => $hasOrders,
-            'data'            => $items,
-            'pagination'      => $this->paginationMeta($data),
-        ],
-    ]);
-}
 
     public function getByProductCode(Request $request, $product_code)
     {
@@ -385,21 +488,27 @@ class ItemController extends Controller
         $request->validate([
             'per_page'       => 'sometimes|integer|min:1|max:50',
             'category_id'    => 'sometimes|string|nullable',
-            'tab_id'       => 'sometimes|string|nullable',
+            'tab_id'         => 'sometimes|string|nullable',
             'subcategory_id' => 'sometimes|string|nullable',
         ]);
 
         $perPage        = $request->input('per_page', 15);
         $categoryId     = $request->input('category_id');
-        $tabId       = $request->input('tab_id');
+        $tabId          = $request->input('tab_id');
         $subcategory_id = $request->input('subcategory_id');
-        $categoryIds    = []; // ← initialize to avoid undefined variable error
-
-        // ── If tab_id passed, get category IDs from home_tabs ──
+        $categoryIds    = [];
+        $roleId         = $request->header('roleid');
+        // dd($roleId);
+        $isWholesaler   = !empty($roleId) && $roleId == 2;  // ← define once, reuse
+        // dd($isWholesaler);
+        // ── Resolve tab ──
         if (!empty($tabId) && empty($categoryId)) {
             $tab = DB::table('home_tabs')
-                ->whereRaw('LOWER(tab_id) = ?', [strtolower($tabId)])
                 ->where('status', 'Y')
+                ->where(function ($q) use ($tabId) {
+                    $q->where('id', $tabId)
+                        ->orWhereRaw('LOWER(tab_name) = ?', [strtolower($tabId)]);
+                })
                 ->first();
 
             if (!$tab) {
@@ -410,40 +519,99 @@ class ItemController extends Controller
                 ]);
             }
 
-            // ✅ FIXED: was chaining two pluck() which is wrong
-            $categoryIds = DB::table('home_tab_categories')
-                ->where('home_tab_id', $tab->id)
-                ->pluck('category_id')
-                ->toArray();
+            if (strtolower($tab->tab_name) !== 'all') {
+                $categoryIds = DB::table('home_tab_categories')
+                    ->where('home_tab_id', $tab->id)
+                    ->pluck('category_id')
+                    ->toArray();
 
-            if (empty($categoryIds)) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'No categories assigned to this tab.',
-                    'result'  => []
-                ]);
+                if (empty($categoryIds)) {
+                    return response()->json([
+                        'type'    => 'error',
+                        'message' => 'No categories assigned to this tab.',
+                        'result'  => []
+                    ]);
+                }
             }
         }
 
-        $query = DB::table('items as i')
-            ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
-            ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-            ->leftJoin(DB::raw('(
-            SELECT item_id, GROUP_CONCAT(image) as images
-            FROM item_images
-            GROUP BY item_id
-        ) as im'), 'im.item_id', '=', 'i.id')
-            ->select(
-                'i.id as productid',
-                'iv.id as variationid',
-                DB::raw("CONCAT(i.title) as title"),
-                'p.price',
-                'im.images'
-            )
-            ->where('p.status', 'Y')
-            ->where('iv.status', 'Y');
-
-        // ── Filter logic ──
+        // ── Build query ──
+        if ($isWholesaler) {
+            $query = DB::table('items as i')
+                ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+                ->leftJoin('wholesaler_prices as wp', function ($join) {
+                    $join->on('wp.itemid', '=', 'i.id')
+                        ->on('wp.variation_id', '=', 'iv.id')
+                        ->where('wp.status', 'Y');  // ← inside join, not outside
+                })
+                ->leftJoin(DB::raw('(
+                SELECT item_id, GROUP_CONCAT(image) as images
+                FROM item_images
+                GROUP BY item_id
+            ) as im'), 'im.item_id', '=', 'i.id')
+                ->select(
+                    'i.id as productid',
+                    'iv.id as variationid',
+                    DB::raw("CONCAT(i.title) as title"),
+                    'im.images',
+                    'wp.id as wholesaler_price_id',
+                    'iv.created_at'
+                )
+                ->where('iv.status', 'Y');
+        } else {
+            $query = DB::table('items as i')
+                ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+                ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+                ->leftJoin(DB::raw('(
+                        SELECT item_id, GROUP_CONCAT(image) as images
+                        FROM item_images
+                        GROUP BY item_id
+                    ) as im'), 'im.item_id', '=', 'i.id')
+                ->leftJoin('discounts as d', function ($join) {
+                    $join->on(function ($q) {
+                        $q->where('d.applies_to', 'entire')
+                            ->where('d.status', 'Y')
+                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                    })->orOn(function ($q) {
+                        $q->where('d.applies_to', 'item')
+                            ->whereColumn('d.item_id', 'i.id')
+                            ->where('d.status', 'Y')
+                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                    })->orOn(function ($q) {
+                        $q->where('d.applies_to', 'variation')
+                            ->whereColumn('d.variation_id', 'iv.id')
+                            ->where('d.status', 'Y')
+                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                    });
+                })
+                ->select(
+                    'i.id as productid',
+                    'iv.id as variationid',
+                    DB::raw("CONCAT(i.title) as title"),
+                    DB::raw("
+        CASE
+            WHEN ANY_VALUE(d.id) IS NULL THEN p.price
+            WHEN ANY_VALUE(d.type) = 'percentage' THEN ROUND(p.price - (p.price * ANY_VALUE(d.percentage) / 100), 2)
+            WHEN ANY_VALUE(d.type) = 'fixed' THEN ROUND(p.price - ANY_VALUE(d.value), 2)
+            ELSE p.price
+        END as price
+    "),
+                    'im.images',
+                    DB::raw("ANY_VALUE(d.type) as discount_type"),
+                    DB::raw("ANY_VALUE(d.value) as discount_value"),
+                    DB::raw("ANY_VALUE(d.percentage) as discount_percentage"),
+                    DB::raw("
+        CASE
+            WHEN ANY_VALUE(d.id) IS NULL THEN NULL
+            ELSE p.price
+        END as original_price
+    ")
+                )
+                ->where('p.status', 'Y')
+                ->where('iv.status', 'Y');
+        }
+        // dd($query);
+        // ── Filter logic (shared for both) ──
         if (!empty($categoryIds) && !empty($subcategory_id)) {
             $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                 ->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
@@ -468,7 +636,15 @@ class ItemController extends Controller
                 ->where('ci.categoryid', $categoryId);
         }
 
-        $items = $query->distinct()->paginate($perPage);
+        // ── GroupBy ──
+        if ($isWholesaler) {
+            $query->groupBy('i.id', 'iv.id', 'i.title', 'im.images', 'wp.id', 'iv.created_at');
+        } else {
+            $query->groupBy('i.id', 'p.price', 'iv.id', 'i.title', 'im.images', 'iv.created_at');
+        }
+
+        $query->orderBy('iv.created_at', 'desc');
+        $items = $query->paginate($perPage);
 
         if ($items->isEmpty()) {
             return response()->json([
@@ -481,6 +657,7 @@ class ItemController extends Controller
         $baseUrl    = url('storage/items');
         $productIds = collect($items->items())->pluck('productid')->unique()->toArray();
 
+        // ── All variations ──
         $allVariations = DB::table('itemvariations as iv')
             ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
             ->select(
@@ -495,11 +672,47 @@ class ItemController extends Controller
             ->get()
             ->groupBy('productid');
 
-        $items->getCollection()->transform(function ($item) use ($baseUrl, $allVariations) {
-            $item->images = $item->images
+        // ── Wholesaler details (only fetch if wholesaler) ──
+        $wholesalerDetails = collect();
+        if ($isWholesaler) {
+            $wholesalerPriceIds = collect($items->items())
+                ->pluck('wholesaler_price_id')
+                ->filter()
+                ->unique()
+                ->toArray();
+
+            $wholesalerDetails = DB::table('wholesaler_price_details as wd')
+                ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
+                ->where('wd.status', 'Y')
+                ->where('wp.status', 'Y')
+                ->whereIn('wd.wholesalermasterid', $wholesalerPriceIds)
+                ->select('wd.wholesalermasterid', 'wd.min_qty', 'wd.max_qty', 'wd.price')
+                ->orderBy('wd.min_qty', 'asc')
+                ->get()
+                ->groupBy('wholesalermasterid')
+                ->map(function ($details) {
+                    return $details->map(fn($d) => [
+                        'price'   => $d->price,
+                        'min_qty' => $d->min_qty,
+                        'max_qty' => $d->max_qty,
+                    ])->values();
+                });
+        }
+
+        // ── Transform ──
+        $items->getCollection()->transform(function ($item) use ($baseUrl, $allVariations, $wholesalerDetails, $isWholesaler) {
+            $item->images     = $item->images
                 ? array_map(fn($img) => $baseUrl . '/' . trim($img), explode(',', $item->images))
                 : [];
             $item->variations = $allVariations[$item->productid] ?? collect();
+
+            if ($isWholesaler) {
+                $item->wholesaler_price = !empty($item->wholesaler_price_id)
+                    ? $wholesalerDetails->get($item->wholesaler_price_id, collect([]))->values()
+                    : [];
+                unset($item->wholesaler_price_id);
+            }
+
             return $item;
         });
 

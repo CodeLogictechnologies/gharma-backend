@@ -38,7 +38,7 @@ return [
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
     'facebook' => [
@@ -51,4 +51,13 @@ return [
         'credentials' => storage_path('app/firebase/firebase.json'),
     ],
 
+    'esewa' => [
+        'product_code' => env('ESEWA_PRODUCT_CODE', 'INTENT'),
+
+        'access_key'   => env('ESEWA_ACCESS_KEY', 'LB0REg8HUSw3MTYrI1s6JTE8Kyc6JyAqJiA3MQ=='),
+
+        'base_url'     => env('ESEWA_BASE_URL', 'https://rc-checkout.esewa.com.np/api/client/intent/payment'),
+
+        'redirect_url' => env('ESEWA_REDIRECT_URL', 'https://yoursite.com/payment/complete'),
+    ],
 ];

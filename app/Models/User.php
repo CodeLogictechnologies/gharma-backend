@@ -454,9 +454,14 @@ class User extends Authenticatable implements JWTSubject
                     'p.username as profile_username',
                     'p.gender',
                     'p.phone',
-                    'p.address',
+                    'p.company_name',
+                    'p.tax_number',
+                    'p.registration_number',
+                    DB::raw("CONCAT('" . url('storage/registration_number_image') . "/', p.registration_number_image) as registration_number_image"),  // ← removed 'p.'
+                    DB::raw("CONCAT('" . url('storage/pan_number') . "/', p.pan_number) as pan_number"),
                     DB::raw("CONCAT('" . url('storage/profiles') . "/', p.image) as image"),
-                    'p.status'
+                    'p.address',
+                    'u.user_status as status'
                 )
                 ->where('u.id', $post['userid'])
                 ->first();
