@@ -20,7 +20,7 @@
                     <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
                 </div>
             </div>
-     z   </div>
+        </div>
     </div>
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="nav-align-top mb-4">
@@ -86,6 +86,7 @@
     </div>
     <!-- delete -->
 @endsection
+
 <script>
     var permissionTable;
 

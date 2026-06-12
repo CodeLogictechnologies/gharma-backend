@@ -26,7 +26,7 @@ class Permission extends Model
                     'guard_name' => 'web',
                 ];
 
-                // ✅ update() returns rows affected (0 = nothing changed, still OK)
+                //  update() returns rows affected (0 = nothing changed, still OK)
                 DB::table('permissions')->where('id', $post['id'])->update($dataArray);
             } else {
                 // ── INSERT ────────────────────────────────────────────
@@ -36,7 +36,7 @@ class Permission extends Model
                     'guard_name' => 'web',
                 ];
 
-                // ✅ use insert(), not where()->insert()
+                //  use insert(), not where()->insert()
                 $inserted = DB::table('permissions')->insert($dataArray);
 
                 if (!$inserted) {

@@ -48,7 +48,7 @@
                                 <th style="width:60px;">
                                     <input type="checkbox" class="form-check-input" id="selectAll" title="Select All">
                                 </th>
-                                <th>Module Name</th>
+                                <th>Sidebar Name</th>
                                 <th class="text-center">
                                     <input type="checkbox" class="form-check-input col-check" data-col="add"> Add
                                 </th>
@@ -86,7 +86,7 @@
 
 @endsection
 
-@push('scripts')
+@section('main-scripts')
 <script>
 $(document).ready(function () {
 
@@ -95,16 +95,29 @@ $(document).ready(function () {
     });
 
     // ── Module definitions ──────────────────────────────────────────
-    // Each module maps to permission name patterns: module.add, module.edit, module.view, module.delete
-    // Adjust these to match your actual permission names in the DB
     var modules = [
-        { label: 'Dashboard',    key: 'dashboard',    indent: 0 },
-        { label: 'School Setup', key: 'school-setup', indent: 0 },
-        { label: 'Academic',     key: 'academic',     indent: 0 },
-        { label: 'Class Setup',  key: 'class-setup',  indent: 1 },
-        { label: 'Section',      key: 'section',      indent: 1 },
-        // ── Add more modules here ──
-    ];
+    { label: 'Favicon',         key: 'favicon' },
+    { label: 'Role',            key: 'role' },
+    { label: 'Home Tab',        key: 'hometab' },
+    { label: 'Store',           key: 'store' },
+    { label: 'Category',        key: 'category' },
+    { label: 'Brand',           key: 'brand' },
+    { label: 'Item',            key: 'item' },
+    { label: 'Users',           key: 'user' },
+    { label: 'Driver List',     key: 'driverlist' },
+    { label: 'Inventory',       key: 'inventory' },
+    { label: 'Vendor',          key: 'vendor' },
+    { label: 'Retailer',        key: 'retailer' },
+    { label: 'Wholesaler',      key: 'wholesaler' },
+    { label: 'Discount',        key: 'discount' },
+    { label: 'Loyalty',         key: 'loyalty' },
+    { label: 'Order',           key: 'order' },
+    { label: 'Invoice',         key: 'invoice' },
+    { label: 'Refund',          key: 'refund' },
+    { label: 'Report',          key: 'report' },
+    { label: 'Heatmap',         key: 'heatmap' },
+    { label: 'Notification',    key: 'notification' },
+];
 
     var allPermissions  = @json($permissions);   // full permission list from controller
     var rolePermissions = [];                     // IDs assigned to selected role
@@ -231,4 +244,4 @@ $(document).ready(function () {
 
 });
 </script>
-@endpush
+@endsection

@@ -49,13 +49,9 @@
         cursor: grab;
     }
 
-    .img-preview-card:active {
-        cursor: grabbing;
-    }
+    .img-preview-card:active { cursor: grabbing; }
 
-    .img-preview-card.is-primary {
-        border-color: #0d6efd;
-    }
+    .img-preview-card.is-primary { border-color: #0d6efd; }
 
     .img-preview-card img {
         width: 110px;
@@ -75,49 +71,28 @@
     }
 
     .btn-remove-img {
-        background: none;
-        border: none;
-        color: #dc3545;
-        cursor: pointer;
-        font-size: .85rem;
-        position: relative;
-        z-index: 10;
-        padding: 2px 4px;
+        background: none; border: none; color: #dc3545;
+        cursor: pointer; font-size: .85rem;
+        position: relative; z-index: 10; padding: 2px 4px;
     }
 
     .btn-primary-img {
-        background: none;
-        border: none;
-        color: #6c757d;
-        cursor: pointer;
-        font-size: .75rem;
-        position: relative;
-        z-index: 10;
-        padding: 2px 4px;
+        background: none; border: none; color: #6c757d;
+        cursor: pointer; font-size: .75rem;
+        position: relative; z-index: 10; padding: 2px 4px;
     }
 
-    .img-preview-card.is-primary .btn-primary-img {
-        color: #0d6efd;
-        font-weight: 600;
-    }
+    .img-preview-card.is-primary .btn-primary-img { color: #0d6efd; font-weight: 600; }
 
     .primary-badge {
         display: none;
-        position: absolute;
-        top: 4px;
-        left: 4px;
-        background: #0d6efd;
-        color: #fff;
-        font-size: .6rem;
-        border-radius: 4px;
-        padding: 1px 5px;
-        z-index: 2;
-        pointer-events: none;
+        position: absolute; top: 4px; left: 4px;
+        background: #0d6efd; color: #fff;
+        font-size: .6rem; border-radius: 4px; padding: 1px 5px;
+        z-index: 2; pointer-events: none;
     }
 
-    .img-preview-card.is-primary .primary-badge {
-        display: block;
-    }
+    .img-preview-card.is-primary .primary-badge { display: block; }
 
     .sortable-ghost {
         opacity: 0.4;
@@ -135,132 +110,53 @@
     }
 
     .remove-variation {
-        position: absolute;
-        top: 10px;
-        right: 12px;
-        background: none;
-        border: none;
-        color: #dc3545;
-        font-size: 1.1rem;
-        cursor: pointer;
+        position: absolute; top: 10px; right: 12px;
+        background: none; border: none; color: #dc3545;
+        font-size: 1.1rem; cursor: pointer;
     }
 
     .section-label {
-        font-weight: 600;
-        font-size: .8rem;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        color: #6c757d;
-        margin-bottom: 8px;
+        font-weight: 600; font-size: .8rem;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: #6c757d; margin-bottom: 8px;
     }
 
-    .field-error {
-        display: none;
-        color: #dc3545;
-        font-size: .875rem;
-        margin-top: 4px;
-    }
+    .field-error { display: none; color: #dc3545; font-size: .875rem; margin-top: 4px; }
+    .field-error.show { display: block; }
+    .is-invalid-select { border-color: #dc3545 !important; }
 
-    .field-error.show {
-        display: block;
-    }
-
-    .is-invalid-select {
-        border-color: #dc3545 !important;
-    }
-
-    /* Multi-select styles */
     .multi-select-box {
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        max-height: 160px;
-        overflow-y: auto;
-        background: #fff;
-        padding: 4px 0;
+        border: 1px solid #dee2e6; border-radius: 8px;
+        max-height: 160px; overflow-y: auto;
+        background: #fff; padding: 4px 0;
     }
-
-    .multi-select-box:focus-within {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 3px rgba(13, 110, 253, .15);
-    }
-
+    .multi-select-box:focus-within { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
     .multi-select-box .ms-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 12px;
-        cursor: pointer;
-        font-size: .875rem;
-        color: #212529;
-        transition: background .15s;
-        user-select: none;
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 12px; cursor: pointer; font-size: .875rem;
+        color: #212529; transition: background .15s; user-select: none;
     }
-
-    .multi-select-box .ms-option:hover {
-        background: #f0f4ff;
-    }
-
-    .multi-select-box .ms-option.selected {
-        background: #e8f0fe;
-        color: #0d6efd;
-        font-weight: 500;
-    }
-
+    .multi-select-box .ms-option:hover { background: #f0f4ff; }
+    .multi-select-box .ms-option.selected { background: #e8f0fe; color: #0d6efd; font-weight: 500; }
     .multi-select-box .ms-option input[type="checkbox"] {
-        accent-color: #0d6efd;
-        width: 15px;
-        height: 15px;
-        flex-shrink: 0;
-        cursor: pointer;
+        accent-color: #0d6efd; width: 15px; height: 15px;
+        flex-shrink: 0; cursor: pointer;
     }
-
-    .ms-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        margin-top: 8px;
-        min-height: 24px;
-    }
-
+    .ms-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; min-height: 24px; }
     .ms-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: #e8f0fe;
-        color: #0d6efd;
-        font-size: .75rem;
-        font-weight: 500;
-        padding: 3px 8px 3px 10px;
-        border-radius: 20px;
-        border: 1px solid #b8d0fb;
+        display: inline-flex; align-items: center; gap: 4px;
+        background: #e8f0fe; color: #0d6efd; font-size: .75rem;
+        font-weight: 500; padding: 3px 8px 3px 10px;
+        border-radius: 20px; border: 1px solid #b8d0fb;
     }
-
     .ms-tag .ms-tag-remove {
-        background: none;
-        border: none;
-        color: #0d6efd;
-        font-size: .85rem;
-        line-height: 1;
-        cursor: pointer;
-        padding: 0;
-        margin-left: 2px;
-        opacity: .7;
+        background: none; border: none; color: #0d6efd;
+        font-size: .85rem; line-height: 1; cursor: pointer;
+        padding: 0; margin-left: 2px; opacity: .7;
     }
-
-    .ms-tag .ms-tag-remove:hover {
-        opacity: 1;
-    }
-
-    .ms-empty {
-        padding: 10px 12px;
-        color: #adb5bd;
-        font-size: .85rem;
-        font-style: italic;
-    }
-
-    .ms-invalid .multi-select-box {
-        border-color: #dc3545;
-    }
+    .ms-tag .ms-tag-remove:hover { opacity: 1; }
+    .ms-empty { padding: 10px 12px; color: #adb5bd; font-size: .85rem; font-style: italic; }
+    .ms-invalid .multi-select-box { border-color: #dc3545; }
 </style>
 
 <div class="modal-header">
@@ -276,7 +172,7 @@
 
     <div class="modal-body">
 
-        {{-- Row 1: Name / Type / Brand --}}
+        {{-- ── Row 1: Name / Type / Brand ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-4">
                 <label class="form-label">Item Name <span class="text-danger">*</span></label>
@@ -289,9 +185,9 @@
                 <label class="form-label">Type <span class="text-danger">*</span></label>
                 <select name="type" class="form-select">
                     @foreach (['Regular', 'Special', 'Featured'] as $t)
-                    <option value="{{ $t }}" {{ ($data['type'] ?? 'Regular') === $t ? 'selected' : '' }}>
-                        {{ $t }}
-                    </option>
+                        <option value="{{ $t }}" {{ ($data['type'] ?? 'Regular') === $t ? 'selected' : '' }}>
+                            {{ $t }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -301,17 +197,36 @@
                 <select name="brand" id="brandSelect" class="form-select">
                     <option value="">-- Select Brand --</option>
                     @foreach ($brands as $brand)
-                    <option value="{{ $brand->id }}"
-                        {{ ($data['brand'] ?? '') == $brand->id ? 'selected' : '' }}>
-                        {{ $brand->name }}
-                    </option>
+                        <option value="{{ $brand->id }}"
+                            {{ ($data['brand'] ?? '') == $brand->id ? 'selected' : '' }}>
+                            {{ $brand->name }}
+                        </option>
                     @endforeach
                 </select>
                 <div class="field-error" id="brandError">Please select a brand.</div>
             </div>
         </div>
 
-        {{-- Row 2: Category / Sub Category --}}
+        {{-- ── Row 2: Product Code / Company Product Code ── --}}
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Product Code <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="product_code"
+                    placeholder="Enter product code..."
+                    value="{{ $data['product_code'] ?? '' }}">
+                <div class="field-error" id="product_codeError">Product code is required.</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Company Product Code <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="company_product_code"
+                    placeholder="Enter company product code..."
+                    value="{{ $data['company_product_code'] ?? '' }}">
+                <div class="field-error" id="company_product_codeError">Company product code is required.</div>
+            </div>
+        </div>
+
+        {{-- ── Row 3: Category / Sub Category ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-6" id="categoriesWrapper">
                 <label class="form-label fw-semibold"
@@ -320,23 +235,23 @@
                 </label>
                 <select name="categories[]" id="categorySelect" multiple style="display:none;">
                     @foreach ($categories as $cat)
-                    <option value="{{ $cat->id }}"
-                        {{ in_array($cat->id, $data['categories'] ?? []) ? 'selected' : '' }}>
-                        {{ $cat->title }}
-                    </option>
+                        <option value="{{ $cat->id }}"
+                            {{ in_array($cat->id, $data['categories'] ?? []) ? 'selected' : '' }}>
+                            {{ $cat->title }}
+                        </option>
                     @endforeach
                 </select>
                 <div class="multi-select-box" id="categoryCheckList">
                     @forelse ($categories as $cat)
-                    <label class="ms-option {{ in_array($cat->id, $data['categories'] ?? []) ? 'selected' : '' }}"
-                        data-id="{{ $cat->id }}" data-label="{{ $cat->title }}"
-                        data-target="categorySelect">
-                        <input type="checkbox"
-                            {{ in_array($cat->id, $data['categories'] ?? []) ? 'checked' : '' }}>
-                        {{ $cat->title }}
-                    </label>
+                        <label class="ms-option {{ in_array($cat->id, $data['categories'] ?? []) ? 'selected' : '' }}"
+                            data-id="{{ $cat->id }}" data-label="{{ $cat->title }}"
+                            data-target="categorySelect">
+                            <input type="checkbox"
+                                {{ in_array($cat->id, $data['categories'] ?? []) ? 'checked' : '' }}>
+                            {{ $cat->title }}
+                        </label>
                     @empty
-                    <div class="ms-empty">No categories found.</div>
+                        <div class="ms-empty">No categories found.</div>
                     @endforelse
                 </div>
                 <div class="ms-tags" id="categoryTags"></div>
@@ -350,24 +265,24 @@
                 </label>
                 <select name="sub_categories[]" id="subCategorySelect" multiple style="display:none;">
                     @foreach ($subCategories as $sub)
-                    <option value="{{ $sub->id }}"
-                        {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'selected' : '' }}>
-                        {{ $sub->title }}
-                    </option>
+                        <option value="{{ $sub->id }}"
+                            {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'selected' : '' }}>
+                            {{ $sub->title }}
+                        </option>
                     @endforeach
                 </select>
                 <div class="multi-select-box" id="subCategoryCheckList">
                     @forelse ($subCategories as $sub)
-                    <label
-                        class="ms-option {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'selected' : '' }}"
-                        data-id="{{ $sub->id }}" data-label="{{ $sub->title }}"
-                        data-target="subCategorySelect">
-                        <input type="checkbox"
-                            {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'checked' : '' }}>
-                        {{ $sub->title }}
-                    </label>
+                        <label
+                            class="ms-option {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'selected' : '' }}"
+                            data-id="{{ $sub->id }}" data-label="{{ $sub->title }}"
+                            data-target="subCategorySelect">
+                            <input type="checkbox"
+                                {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'checked' : '' }}>
+                            {{ $sub->title }}
+                        </label>
                     @empty
-                    <div class="ms-empty">No sub categories found.</div>
+                        <div class="ms-empty">No sub categories found.</div>
                     @endforelse
                 </div>
                 <div class="ms-tags" id="subCategoryTags"></div>
@@ -375,7 +290,7 @@
             </div>
         </div>
 
-        {{-- Row 3: Description --}}
+        {{-- ── Row 4: Description ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-12">
                 <label class="form-label">Description</label>
@@ -384,7 +299,7 @@
             </div>
         </div>
 
-        {{-- Row 4: Images --}}
+        {{-- ── Row 5: Images ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-12">
                 <p class="section-label">Product Images</p>
@@ -402,23 +317,23 @@
 
                 <div id="imagePreviewGrid">
                     @if (!empty($data['images']))
-                    @foreach ($data['images'] as $i => $img)
-                    <div class="img-preview-card {{ $i === 0 ? 'is-primary' : '' }}"
-                        data-index="{{ $i }}"
-                        data-type="existing"
-                        data-db-id="{{ $img['id'] }}">
-                        <span class="primary-badge">Primary</span>
-                        <img src="{{ asset('storage/items/' . $img['filename']) }}" alt="product image">
-                        <div class="img-actions">
-                            <button type="button" class="btn-primary-img">★ Primary</button>
-                            <button type="button" class="btn-remove-img">✕</button>
-                        </div>
-                        <input type="hidden" class="kept-path" name="kept_images[]"
-                            value="{{ $img['filename'] }}">
-                        <input type="hidden" class="kept-id" name="kept_image_ids[]"
-                            value="{{ $img['id'] }}">
-                    </div>
-                    @endforeach
+                        @foreach ($data['images'] as $i => $img)
+                            <div class="img-preview-card {{ $i === 0 ? 'is-primary' : '' }}"
+                                data-index="{{ $i }}"
+                                data-type="existing"
+                                data-db-id="{{ $img['id'] }}">
+                                <span class="primary-badge">Primary</span>
+                                <img src="{{ asset('storage/items/' . $img['filename']) }}" alt="product image">
+                                <div class="img-actions">
+                                    <button type="button" class="btn-primary-img">★ Primary</button>
+                                    <button type="button" class="btn-remove-img">✕</button>
+                                </div>
+                                <input type="hidden" class="kept-path" name="kept_images[]"
+                                    value="{{ $img['filename'] }}">
+                                <input type="hidden" class="kept-id" name="kept_image_ids[]"
+                                    value="{{ $img['id'] }}">
+                            </div>
+                        @endforeach
                     @endif
                 </div>
 
@@ -429,7 +344,7 @@
             </div>
         </div>
 
-        {{-- Row 5: Variations --}}
+        {{-- ── Row 6: Variations ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -441,75 +356,87 @@
 
                 <div id="variationsContainer">
                     @php
-                    $variations = $data['variations'] ?? [
-                    [
-                    'variationid' => '',
-                    'name' => 'Size',
-                    'value' => '',
-                    'threshold' => '',
-                    'price' => '',
-                    'stock' => '',
-                    'status' => 'active',
-                    ],
-                    ];
+                        $variations = $data['variations'] ?? [[
+                            'variationid'          => '',
+                            'name'                 => 'Size',
+                            'value'                => '',
+                            'threshold'            => '',
+                            'price'                => '',
+                            'stock'                => '',
+                            'product_code'         => '',
+                            'company_product_code' => '',
+                            'status'               => 'active',
+                        ]];
                     @endphp
 
                     @foreach ($variations as $i => $v)
-                    <div class="variation-row" data-index="{{ $i }}">
-                        <button type="button" class="remove-variation" title="Remove row">✕</button>
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-2">
-                                <label class="form-label mb-1">Attribute</label>
-                                <select name="variations[{{ $i }}][name]" class="form-select">
-                                    @foreach (['Size', 'Color', 'Weight', 'Material', 'Other'] as $attr)
-                                    <option value="{{ $attr }}"
-                                        {{ ($v['name'] ?? 'Size') === $attr ? 'selected' : '' }}>
-                                        {{ $attr }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1">Value</label>
-                                <input type="hidden" name="variations[{{ $i }}][variationid]"
-                                    value="{{ $v['variationid'] ?? '' }}">
-                                <input type="text" name="variations[{{ $i }}][value]"
-                                    class="form-control" placeholder="e.g. Red, XL"
-                                    value="{{ $v['value'] ?? '' }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1">Threshold</label>
-                                <input type="number" name="variations[{{ $i }}][threshold]"
-                                    class="form-control" placeholder="0" min="0" step="1"
-                                    value="{{ $v['threshold'] ?? '' }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1">Price</label>
-                                <input type="number" name="variations[{{ $i }}][price]"
-                                    class="form-control" placeholder="0.00" min="0" step="0.01"
-                                    value="{{ $v['price'] ?? '' }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1">Stock</label>
-                                <input type="number" name="variations[{{ $i }}][stock]"
-                                    class="form-control" placeholder="0" min="0" step="1"
-                                    value="{{ $v['stock'] ?? '' }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1">Status</label>
-                                <select name="variations[{{ $i }}][status]" class="form-select">
-                                    <option value="active"
-                                        {{ ($v['status'] ?? 'active') === 'active' ? 'selected' : '' }}>
-                                        Active
-                                    </option>
-                                    <option value="inactive"
-                                        {{ ($v['status'] ?? '') === 'inactive' ? 'selected' : '' }}>
-                                        Inactive
-                                    </option>
-                                </select>
+                        <div class="variation-row" data-index="{{ $i }}">
+                            <button type="button" class="remove-variation" title="Remove row">✕</button>
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-2">
+                                    <label class="form-label mb-1">Attribute</label>
+                                    <select name="variations[{{ $i }}][name]" class="form-select">
+                                        @foreach (['Size', 'Color', 'Weight', 'Material', 'Other'] as $attr)
+                                            <option value="{{ $attr }}"
+                                                {{ ($v['name'] ?? 'Size') === $attr ? 'selected' : '' }}>
+                                                {{ $attr }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label mb-1">Value</label>
+                                    <input type="hidden" name="variations[{{ $i }}][variationid]"
+                                        value="{{ $v['variationid'] ?? '' }}">
+                                    <input type="text" name="variations[{{ $i }}][value]"
+                                        class="form-control" placeholder="e.g. Red, XL"
+                                        value="{{ $v['value'] ?? '' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label mb-1">Product Code</label>
+                                    <input type="text" name="variations[{{ $i }}][product_code]"
+                                        class="form-control" placeholder="PC-001"
+                                        value="{{ $v['product_code'] ?? '' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label mb-1">Company Code</label>
+                                    <input type="text" name="variations[{{ $i }}][company_product_code]"
+                                        class="form-control" placeholder="CC-001"
+                                        value="{{ $v['company_product_code'] ?? '' }}">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label mb-1">Threshold</label>
+                                    <input type="number" name="variations[{{ $i }}][threshold]"
+                                        class="form-control" placeholder="0" min="0" step="1"
+                                        value="{{ $v['threshold'] ?? '' }}">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label mb-1">Price</label>
+                                    <input type="number" name="variations[{{ $i }}][price]"
+                                        class="form-control" placeholder="0.00" min="0" step="0.01"
+                                        value="{{ $v['price'] ?? '' }}">
+                                </div>
+                                <!-- <div class="col-md-1">
+                                    <label class="form-label mb-1">Stock</label>
+                                    <input type="number" name="variations[{{ $i }}][stock]"
+                                        class="form-control" placeholder="0" min="0" step="1"
+                                        value="{{ $v['stock'] ?? '' }}">
+                                </div> -->
+                                <div class="col-md-1">
+                                    <label class="form-label mb-1">Status</label>
+                                    <select name="variations[{{ $i }}][status]" class="form-select">
+                                        <option value="active"
+                                            {{ ($v['status'] ?? 'active') === 'active' ? 'selected' : '' }}>
+                                            Active
+                                        </option>
+                                        <option value="inactive"
+                                            {{ ($v['status'] ?? '') === 'inactive' ? 'selected' : '' }}>
+                                            Inactive
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
 
@@ -532,254 +459,220 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-    $(function() {
+$(function () {
 
-        /* ─────────────────────────────────────────────
-           IMAGE UPLOAD & PREVIEW
-        ───────────────────────────────────────────── */
-        let newFiles = [];
+    /* ─────────────────────────────────────────────
+       IMAGE UPLOAD & PREVIEW
+    ───────────────────────────────────────────── */
+    let newFiles = [];
 
-        const dropZone = document.getElementById('imageDropZone');
+    const dropZone = document.getElementById('imageDropZone');
 
-        dropZone.addEventListener('dragover', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-        dropZone.addEventListener('drop', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove('dragover');
-            handleFiles(Array.from(e.dataTransfer.files));
-        });
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault(); e.stopPropagation();
+        dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault(); e.stopPropagation();
+        dropZone.classList.remove('dragover');
+        handleFiles(Array.from(e.dataTransfer.files));
+    });
 
-        $('#productImages').on('change', function() {
-            handleFiles(Array.from(this.files));
-            this.value = '';
-        });
+    $('#productImages').on('change', function () {
+        handleFiles(Array.from(this.files));
+        this.value = '';
+    });
 
-        function handleFiles(files) {
-            files.filter(f => f.type.startsWith('image/')).forEach(file => {
-                const reader = new FileReader();
-                const fileIdx = newFiles.length;
-                newFiles.push(file);
+    function handleFiles(files) {
+        files.filter(f => f.type.startsWith('image/')).forEach(file => {
+            const reader   = new FileReader();
+            const fileIdx  = newFiles.length;
+            newFiles.push(file);
 
-                reader.onload = e => {
-                    const isPrimary = ($('#imagePreviewGrid .img-preview-card').length === 0);
-                    $('#imagePreviewGrid').append(`
-                    <div class="img-preview-card ${isPrimary ? 'is-primary' : ''}"
-                         data-index="${fileIdx}" data-type="new">
-                        <span class="primary-badge">Primary</span>
-                        <img src="${e.target.result}" alt="preview">
-                        <div class="img-actions">
-                            <button type="button" class="btn-primary-img">★ Primary</button>
-                            <button type="button" class="btn-remove-img">✕</button>
-                        </div>
-                    </div>`);
-                    if (isPrimary) syncPrimary();
-                    syncFileInput();
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        /* ── Set primary ── */
-        $(document).on('click', '.btn-primary-img', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            $('#imagePreviewGrid .img-preview-card').removeClass('is-primary');
-            $(this).closest('.img-preview-card').addClass('is-primary');
-            syncPrimary();
-        });
-
-        /* ── Remove card ── */
-        $(document).on('click', '.btn-remove-img', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const card = $(this).closest('.img-preview-card');
-            const wasPrim = card.hasClass('is-primary');
-
-            if (card.data('type') === 'new') {
-                const idx = parseInt(card.data('index'));
-                if (!isNaN(idx)) newFiles[idx] = null;
-            }
-
-            card.remove();
-            syncFileInput();
-
-            if (wasPrim) {
-                const first = $('#imagePreviewGrid .img-preview-card').first();
-                if (first.length) {
-                    first.addClass('is-primary');
-                    syncPrimary();
-                } else {
-                    $('#primaryImageIndex').val('');
-                }
-            }
-        });
-
-        function syncPrimary() {
-            const cards = $('#imagePreviewGrid .img-preview-card');
-            const primIdx = cards.index(cards.filter('.is-primary'));
-            $('#primaryImageIndex').val(primIdx >= 0 ? primIdx : 0);
-        }
-
-        function syncFileInput() {
-            const dt = new DataTransfer();
-            const newCards = [...document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="new"]')];
-            newCards.forEach(card => {
-                const idx = parseInt(card.dataset.index);
-                if (!isNaN(idx) && newFiles[idx]) dt.items.add(newFiles[idx]);
-            });
-            document.getElementById('productImages').files = dt.files;
-        }
-
-        /* Init primary on load */
-        syncPrimary();
-
-        /* ─────────────────────────────────────────────
-           DRAG-TO-REORDER (SortableJS)
-           KEY FIX: preventOnFilter: true  so button
-           clicks are NOT swallowed by Sortable
-        ───────────────────────────────────────────── */
-        Sortable.create(document.getElementById('imagePreviewGrid'), {
-            animation: 200,
-            ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
-            dragClass: 'sortable-drag',
-            delay: 100,
-            delayOnTouchOnly: false,
-            forceFallback: false,
-            /* filter the action buttons so clicks pass through */
-            filter: '.btn-primary-img, .btn-remove-img',
-            preventOnFilter: true, // ← FIXED (was false)
-
-            onStart: function() {
-                dropZone.style.pointerEvents = 'none';
-            },
-            onEnd: function() {
-                dropZone.style.pointerEvents = '';
-                syncPrimary();
+            reader.onload = e => {
+                const isPrimary = ($('#imagePreviewGrid .img-preview-card').length === 0);
+                $('#imagePreviewGrid').append(`
+                <div class="img-preview-card ${isPrimary ? 'is-primary' : ''}"
+                     data-index="${fileIdx}" data-type="new">
+                    <span class="primary-badge">Primary</span>
+                    <img src="${e.target.result}" alt="preview">
+                    <div class="img-actions">
+                        <button type="button" class="btn-primary-img">★ Primary</button>
+                        <button type="button" class="btn-remove-img">✕</button>
+                    </div>
+                </div>`);
+                if (isPrimary) syncPrimary();
                 syncFileInput();
-            }
+            };
+            reader.readAsDataURL(file);
         });
+    }
 
-        /* ─────────────────────────────────────────────
-           SYNC IMAGE ORDER (called before save)
-        ───────────────────────────────────────────── */
-        function syncImageOrder() {
-            $('#itemForm input[name="image_order[]"]').remove();
-            document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="existing"]')
-                .forEach(card => {
-                    const dbId = card.dataset.dbId;
-                    if (dbId) {
-                        $('#itemForm').append(`<input type="hidden" name="image_order[]" value="${dbId}">`);
-                    }
-                });
+    $(document).on('click', '.btn-primary-img', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        $('#imagePreviewGrid .img-preview-card').removeClass('is-primary');
+        $(this).closest('.img-preview-card').addClass('is-primary');
+        syncPrimary();
+    });
+
+    $(document).on('click', '.btn-remove-img', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        const card     = $(this).closest('.img-preview-card');
+        const wasPrim  = card.hasClass('is-primary');
+
+        if (card.data('type') === 'new') {
+            const idx = parseInt(card.data('index'));
+            if (!isNaN(idx)) newFiles[idx] = null;
         }
 
-        /* ─────────────────────────────────────────────
-           CUSTOM MULTI-SELECT
-        ───────────────────────────────────────────── */
-        function initMultiSelect(checkListId, hiddenSelectId, tagsId, errorId) {
-            const $list = $('#' + checkListId);
-            const $select = $('#' + hiddenSelectId);
-            const $tags = $('#' + tagsId);
-            const $error = $('#' + errorId);
+        card.remove();
+        syncFileInput();
 
-            function rebuildTags() {
-                $tags.empty();
-                $list.find('.ms-option.selected').each(function() {
-                    const id = $(this).data('id');
-                    const label = $(this).data('label');
-                    $tags.append(`
-                    <span class="ms-tag" data-id="${id}">
-                        ${label}
-                        <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
-                    </span>`);
-                });
+        if (wasPrim) {
+            const first = $('#imagePreviewGrid .img-preview-card').first();
+            if (first.length) {
+                first.addClass('is-primary');
+                syncPrimary();
+            } else {
+                $('#primaryImageIndex').val('');
             }
+        }
+    });
 
-            function syncSelect() {
-                $select.find('option').prop('selected', false);
-                $list.find('.ms-option.selected').each(function() {
-                    $select.find(`option[value="${$(this).data('id')}"]`).prop('selected', true);
-                });
-            }
+    function syncPrimary() {
+        const cards   = $('#imagePreviewGrid .img-preview-card');
+        const primIdx = cards.index(cards.filter('.is-primary'));
+        $('#primaryImageIndex').val(primIdx >= 0 ? primIdx : 0);
+    }
 
-            function clearError() {
-                if ($select.val() && $select.val().length > 0) {
-                    $error.removeClass('show');
-                    $list.closest('.col-md-6').removeClass('ms-invalid');
+    function syncFileInput() {
+        const dt       = new DataTransfer();
+        const newCards = [...document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="new"]')];
+        newCards.forEach(card => {
+            const idx = parseInt(card.dataset.index);
+            if (!isNaN(idx) && newFiles[idx]) dt.items.add(newFiles[idx]);
+        });
+        document.getElementById('productImages').files = dt.files;
+    }
+
+    syncPrimary();
+
+    /* ─────────────────────────────────────────────
+       DRAG-TO-REORDER (SortableJS)
+    ───────────────────────────────────────────── */
+    Sortable.create(document.getElementById('imagePreviewGrid'), {
+        animation: 200,
+        ghostClass: 'sortable-ghost',
+        delay: 100,
+        filter: '.btn-primary-img, .btn-remove-img',
+        preventOnFilter: true,
+        onStart: () => { dropZone.style.pointerEvents = 'none'; },
+        onEnd:   () => { dropZone.style.pointerEvents = ''; syncPrimary(); syncFileInput(); }
+    });
+
+    /* ─────────────────────────────────────────────
+       SYNC IMAGE ORDER
+    ───────────────────────────────────────────── */
+    function syncImageOrder() {
+        $('#itemForm input[name="image_order[]"]').remove();
+        document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="existing"]')
+            .forEach(card => {
+                const dbId = card.dataset.dbId;
+                if (dbId) {
+                    $('#itemForm').append(`<input type="hidden" name="image_order[]" value="${dbId}">`);
                 }
-            }
-
-            $list.on('click', '.ms-option', function(e) {
-                if (e.target.tagName === 'INPUT') return;
-                const $opt = $(this);
-                const nowSelected = !$opt.hasClass('selected');
-                $opt.toggleClass('selected', nowSelected);
-                $opt.find('input[type="checkbox"]').prop('checked', nowSelected);
-                syncSelect();
-                rebuildTags();
-                clearError();
             });
+    }
 
-            $list.on('change', 'input[type="checkbox"]', function() {
-                $(this).closest('.ms-option').toggleClass('selected', this.checked);
-                syncSelect();
-                rebuildTags();
-                clearError();
+    /* ─────────────────────────────────────────────
+       CUSTOM MULTI-SELECT
+    ───────────────────────────────────────────── */
+    function initMultiSelect(checkListId, hiddenSelectId, tagsId, errorId) {
+        const $list   = $('#' + checkListId);
+        const $select = $('#' + hiddenSelectId);
+        const $tags   = $('#' + tagsId);
+        const $error  = $('#' + errorId);
+
+        function rebuildTags() {
+            $tags.empty();
+            $list.find('.ms-option.selected').each(function () {
+                const id    = $(this).data('id');
+                const label = $(this).data('label');
+                $tags.append(`
+                <span class="ms-tag" data-id="${id}">
+                    ${label}
+                    <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
+                </span>`);
             });
-
-            $tags.on('click', '.ms-tag-remove', function() {
-                const id = $(this).data('id');
-                $list.find(`.ms-option[data-id="${id}"]`)
-                    .removeClass('selected')
-                    .find('input[type="checkbox"]').prop('checked', false);
-                syncSelect();
-                rebuildTags();
-            });
-
-            syncSelect();
-            rebuildTags();
         }
 
-        initMultiSelect('categoryCheckList', 'categorySelect', 'categoryTags', 'categoriesError');
-        initMultiSelect('subCategoryCheckList', 'subCategorySelect', 'subCategoryTags', 'subCategoriesError');
+        function syncSelect() {
+            $select.find('option').prop('selected', false);
+            $list.find('.ms-option.selected').each(function () {
+                $select.find(`option[value="${$(this).data('id')}"]`).prop('selected', true);
+            });
+        }
 
-        /* ─────────────────────────────────────────────
-           CLEAR ERRORS ON CHANGE
-        ───────────────────────────────────────────── */
-        $('[name="title"]').on('input', function() {
-            if ($(this).val().trim()) {
-                $(this).removeClass('is-invalid-select');
-                $('#titleError').removeClass('show');
+        function clearError() {
+            if ($select.val() && $select.val().length > 0) {
+                $error.removeClass('show');
+                $list.closest('.col-md-6').removeClass('ms-invalid');
             }
+        }
+
+        $list.on('click', '.ms-option', function (e) {
+            if (e.target.tagName === 'INPUT') return;
+            const $opt       = $(this);
+            const nowSelected = !$opt.hasClass('selected');
+            $opt.toggleClass('selected', nowSelected);
+            $opt.find('input[type="checkbox"]').prop('checked', nowSelected);
+            syncSelect(); rebuildTags(); clearError();
         });
 
-        $('[name="brand"]').on('change', function() {
-            if ($(this).val()) {
-                $(this).removeClass('is-invalid-select');
-                $('#brandError').removeClass('show');
-            }
+        $list.on('change', 'input[type="checkbox"]', function () {
+            $(this).closest('.ms-option').toggleClass('selected', this.checked);
+            syncSelect(); rebuildTags(); clearError();
         });
 
-        /* ─────────────────────────────────────────────
-           VARIATION ROWS
-        ───────────────────────────────────────────── */
-        let varIdx = {
-            {
-                count($data['variations'] ?? [
-                    ['']
-                ])
-            }
-        };
+        $tags.on('click', '.ms-tag-remove', function () {
+            const id = $(this).data('id');
+            $list.find(`.ms-option[data-id="${id}"]`)
+                .removeClass('selected')
+                .find('input[type="checkbox"]').prop('checked', false);
+            syncSelect(); rebuildTags();
+        });
 
-        function newVariationRow(idx) {
-            return `
+        syncSelect(); rebuildTags();
+    }
+
+    initMultiSelect('categoryCheckList',    'categorySelect',    'categoryTags',    'categoriesError');
+    initMultiSelect('subCategoryCheckList', 'subCategorySelect', 'subCategoryTags', 'subCategoriesError');
+
+    /* ─────────────────────────────────────────────
+       CLEAR ERRORS ON CHANGE
+    ───────────────────────────────────────────── */
+    $('[name="title"]').on('input', function () {
+        if ($(this).val().trim()) {
+            $(this).removeClass('is-invalid-select');
+            $('#titleError').removeClass('show');
+        }
+    });
+    
+    $('[name="brand"]').on('change', function () {
+        if ($(this).val()) {
+            $(this).removeClass('is-invalid-select');
+            $('#brandError').removeClass('show');
+        }
+    });
+
+    /* ─────────────────────────────────────────────
+       VARIATION ROWS
+    ───────────────────────────────────────────── */
+    let varIdx = {{ count($data['variations'] ?? [['']]) }};
+
+    function newVariationRow(idx) {
+        return `
         <div class="variation-row" data-index="${idx}">
             <button type="button" class="remove-variation" title="Remove">✕</button>
             <div class="row g-2 align-items-end">
@@ -800,21 +693,31 @@
                            class="form-control" placeholder="e.g. Red, XL">
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label mb-1">Product Code</label>
+                    <input type="text" name="variations[${idx}][product_code]"
+                           class="form-control" placeholder="PC-001">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1">Company Code</label>
+                    <input type="text" name="variations[${idx}][company_product_code]"
+                           class="form-control" placeholder="CC-001">
+                </div>
+                <div class="col-md-1">
                     <label class="form-label mb-1">Threshold</label>
                     <input type="number" name="variations[${idx}][threshold]"
                            class="form-control" placeholder="0" min="0" step="1">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label mb-1">Price</label>
                     <input type="number" name="variations[${idx}][price]"
                            class="form-control" placeholder="0.00" min="0" step="0.01">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label mb-1">Stock</label>
                     <input type="number" name="variations[${idx}][stock]"
                            class="form-control" placeholder="0" min="0" step="1">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label mb-1">Status</label>
                     <select name="variations[${idx}][status]" class="form-select">
                         <option value="active">Active</option>
@@ -823,162 +726,169 @@
                 </div>
             </div>
         </div>`;
+    }
+
+    $('#addVariation').on('click', () => {
+        $('#variationsContainer').append(newVariationRow(varIdx++));
+    });
+
+    $(document).on('click', '.remove-variation', function () {
+        if ($('#variationsContainer .variation-row').length <= 1) {
+            alert('At least one variation row is required.');
+            return;
+        }
+        $(this).closest('.variation-row').remove();
+    });
+
+    /* ─────────────────────────────────────────────
+       FORM VALIDATION
+    ───────────────────────────────────────────── */
+    function validateForm() {
+        let valid = true;
+
+        $('.field-error').removeClass('show');
+        $('.is-invalid-select').removeClass('is-invalid-select');
+        $('.ms-invalid').removeClass('ms-invalid');
+
+        if (!$('[name="title"]').val().trim()) {
+            $('[name="title"]').addClass('is-invalid-select');
+            $('#titleError').addClass('show');
+            valid = false;
         }
 
-        $('#addVariation').on('click', () => {
-            $('#variationsContainer').append(newVariationRow(varIdx++));
-        });
+        // ── Product Code ─────────────────────────────────────────────
+if (!$('[name="product_code"]').val().trim()) {
+    $('[name="product_code"]').addClass('is-invalid-select');
+    $('#productCodeError').text('Product code is required.').addClass('show');
+    valid = false;
+}
 
-        $(document).on('click', '.remove-variation', function() {
-            if ($('#variationsContainer .variation-row').length <= 1) {
-                alert('At least one variation row is required.');
-                return;
-            }
-            $(this).closest('.variation-row').remove();
-        });
+// ── Company Product Code ──────────────────────────────────────
+if (!$('[name="company_product_code"]').val().trim()) {
+    $('[name="company_product_code"]').addClass('is-invalid-select');
+    $('#companyProductCodeError').text('Company product code is required.').addClass('show');
+    valid = false;
+}
 
-        /* ─────────────────────────────────────────────
-           FORM VALIDATION
-        ───────────────────────────────────────────── */
-        function validateForm() {
-            let valid = true;
-
-            $('.field-error').removeClass('show');
-            $('.is-invalid-select').removeClass('is-invalid-select');
-            $('.ms-invalid').removeClass('ms-invalid');
-
-            if (!$('[name="title"]').val().trim()) {
-                $('[name="title"]').addClass('is-invalid-select');
-                $('#titleError').addClass('show');
-                valid = false;
-            }
-
-            if (!$('[name="brand"]').val()) {
-                $('[name="brand"]').addClass('is-invalid-select');
-                $('#brandError').addClass('show');
-                valid = false;
-            }
-
-            const cats = $('#categorySelect').val();
-            if (!cats || cats.length === 0) {
-                $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-                $('#categoriesError').addClass('show');
-                valid = false;
-            }
-
-            const subs = $('#subCategorySelect').val();
-            if (!subs || subs.length === 0) {
-                $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-                $('#subCategoriesError').addClass('show');
-                valid = false;
-            }
-
-            const hasExisting = $('#imagePreviewGrid .img-preview-card[data-type="existing"]').length > 0;
-            const hasNew = newFiles.filter(Boolean).length > 0;
-            if (!hasExisting && !hasNew) {
-                showNotification('Please upload at least one product image.', 'error');
-                valid = false;
-            }
-
-            return valid;
+        if (!$('[name="brand"]').val()) {
+            $('[name="brand"]').addClass('is-invalid-select');
+            $('#brandError').addClass('show');
+            valid = false;
         }
 
-        /* ─────────────────────────────────────────────
-           AJAX SAVE / UPDATE
-        ───────────────────────────────────────────── */
-        $('#saveItemBtn').on('click', function() {
+        const cats = $('#categorySelect').val();
+        if (!cats || cats.length === 0) {
+            $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+            $('#categoriesError').addClass('show');
+            valid = false;
+        }
 
-            if (!validateForm()) return;
+        const subs = $('#subCategorySelect').val();
+        if (!subs || subs.length === 0) {
+            $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+            $('#subCategoriesError').addClass('show');
+            valid = false;
+        }
 
-            syncImageOrder();
+        const hasExisting = $('#imagePreviewGrid .img-preview-card[data-type="existing"]').length > 0;
+        const hasNew      = newFiles.filter(Boolean).length > 0;
+        // if (!hasExisting && !hasNew) {
+        //     showNotification('Please upload at least one product image.', 'error');
+        //     valid = false;
+        // }
 
-            const $btn = $(this);
-            const origHtml = $btn.html();
+        return valid;
+    }
 
-            $btn.prop('disabled', true).html(
-                '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
-            );
+    /* ─────────────────────────────────────────────
+       AJAX SAVE / UPDATE
+    ───────────────────────────────────────────── */
+    $('#saveItemBtn').on('click', function () {
+        if (!validateForm()) return;
 
-            $.ajax({
-                url: '{{ route('item.save') }}',
-                type: 'POST',
-                data: new FormData($('#itemForm')[0]),
-                contentType: false,
-                processData: false,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
+        syncImageOrder();
 
-                success: function(response) {
-                    const result = (typeof response === 'string') ? JSON.parse(response) : response;
+        const $btn     = $(this);
+        const origHtml = $btn.html();
 
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
+        $btn.prop('disabled', true).html(
+            '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
+        );
 
-                        if (typeof itemTable !== 'undefined' && itemTable.ajax) {
-                            itemTable.ajax.reload(null, false);
-                        }
+        $.ajax({
+            url:         '{{ route('item.save') }}',
+            type:        'POST',
+            data:        new FormData($('#itemForm')[0]),
+            contentType: false,
+            processData: false,
+            headers:     { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
 
-                        const $modalEl = $('#itemForm').closest('.modal');
-                        if ($modalEl.length) {
-                            const bsModal = bootstrap.Modal.getInstance($modalEl[0]);
-                            if (bsModal) {
-                                bsModal.hide();
-                            } else {
-                                new bootstrap.Modal($modalEl[0]).hide();
-                            }
-                        }
-                    } else {
-                        showNotification(result.message || 'Something went wrong.', 'error');
-                        $btn.prop('disabled', false).html(origHtml);
+            success: function (response) {
+                const result = (typeof response === 'string') ? JSON.parse(response) : response;
+
+                if (result.type === 'success') {
+                    showNotification(result.message, 'success');
+
+                    if (typeof itemTable !== 'undefined' && itemTable.ajax) {
+                        itemTable.ajax.reload(null, false);
                     }
-                },
 
-                error: function(xhr) {
+                    const $modalEl = $('#itemForm').closest('.modal');
+                    if ($modalEl.length) {
+                        const bsModal = bootstrap.Modal.getInstance($modalEl[0]);
+                        if (bsModal) { bsModal.hide(); }
+                        else { new bootstrap.Modal($modalEl[0]).hide(); }
+                    }
+                } else {
+                    showNotification(result.message || 'Something went wrong.', 'error');
                     $btn.prop('disabled', false).html(origHtml);
+                }
+            },
 
-                    if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
-                        $.each(xhr.responseJSON.errors, function(field, messages) {
-                            const cleanField = field
-                                .replace(/\.\*$/, '')
-                                .replace(/\[\]$/, '')
-                                .replace(/\.\d+\..+$/, '');
+            error: function (xhr) {
+                $btn.prop('disabled', false).html(origHtml);
 
-                            switch (cleanField) {
-                                case 'categories':
-                                    $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-                                    $('#categoriesError').text(messages[0]).addClass('show');
-                                    break;
-                                case 'sub_categories':
-                                    $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-                                    $('#subCategoriesError').text(messages[0]).addClass('show');
-                                    break;
-                                case 'title':
-                                    $('[name="title"]').addClass('is-invalid-select');
-                                    $('#titleError').text(messages[0]).addClass('show');
-                                    break;
-                                case 'brand':
-                                    $('[name="brand"]').addClass('is-invalid-select');
-                                    $('#brandError').text(messages[0]).addClass('show');
-                                    break;
-                                default: {
-                                    const $field = $(`[name="${cleanField}"]`);
-                                    if ($field.length) {
-                                        $field.addClass('is-invalid-select');
-                                        $field.closest('.col-md-2, .col-md-4, .col-md-6, .col-md-12')
-                                            .find('.field-error')
-                                            .text(messages[0])
-                                            .addClass('show');
-                                    }
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    $.each(xhr.responseJSON.errors, function (field, messages) {
+                        const cleanField = field
+                            .replace(/\.\*$/, '')
+                            .replace(/\[\]$/, '')
+                            .replace(/\.\d+\..+$/, '');
+
+                        switch (cleanField) {
+                            case 'categories':
+                                $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                $('#categoriesError').text(messages[0]).addClass('show');
+                                break;
+                            case 'sub_categories':
+                                $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                $('#subCategoriesError').text(messages[0]).addClass('show');
+                                break;
+                            case 'title':
+                                $('[name="title"]').addClass('is-invalid-select');
+                                $('#titleError').text(messages[0]).addClass('show');
+                                break;
+                            case 'brand':
+                                $('[name="brand"]').addClass('is-invalid-select');
+                                $('#brandError').text(messages[0]).addClass('show');
+                                break;
+                            default: {
+                                const $field = $(`[name="${cleanField}"]`);
+                                if ($field.length) {
+                                    $field.addClass('is-invalid-select');
+                                    $field.closest('.col-md-1, .col-md-2, .col-md-4, .col-md-6, .col-md-12')
+                                          .find('.field-error')
+                                          .text(messages[0]).addClass('show');
                                 }
                             }
-                        });
-                    } else {
-                        showNotification('Something went wrong. Please try again.', 'error');
-                    }
+                        }
+                    });
+                } else {
+                    showNotification('Something went wrong. Please try again.', 'error');
                 }
-            });
+            }
         });
-
     });
+
+});
 </script>

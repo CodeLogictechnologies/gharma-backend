@@ -37,9 +37,10 @@ class PermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            DB::table('permissions')->insert([
+            DB::table('permissions')->insertOrIgnore([
                 'name'       => $permission,
                 'guard_name' => 'web',
+                'status'     => 'Y',
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

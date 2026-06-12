@@ -25,10 +25,14 @@ class RoleController extends Controller
     //function to redirect to role page
     public function index()
     {
+        $roles       = Role::getRole();
         $permissions = Permission::getPermission();
+
         $date = [
-            'permissions' => $permissions
+            'roles'       => $roles,
+            'permissions' => $permissions,
         ];
+
         return view('backend.role.index', $date);
     }
 
@@ -163,4 +167,27 @@ class RoleController extends Controller
         }
     }
 
+    public function getPermissions(Request $request)
+    {
+        try {
+            $roleId = $request->id;
+
+            $role = \Spatie\Permission\Models\Role::findOrFail($roleId);
+
+            // Get the IDs of permissions currently assigned to this role
+            $permissionIds = $role->permissions()->pluck('id')->toArray();
+
+            return json_encode([
+                'type'        => 'success',
+                'message'     => 'Fetched successfully',
+                'permissions' => $permissionIds,
+            ]);
+        } catch (Exception $e) {
+            return json_encode([
+                'type'        => 'error',
+                'message'     => $e->getMessage(),
+                'permissions' => [],
+            ]);
+        }
+    }
 }
