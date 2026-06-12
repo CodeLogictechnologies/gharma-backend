@@ -37,7 +37,7 @@ class SubCategoryController extends Controller
     //function to save team category 
     public function save(Request $request)
     {
-        // try {
+        try {
 
         $rules = [
             'title' => 'required|min:3|max:255',
@@ -69,15 +69,15 @@ class SubCategoryController extends Controller
             throw new Exception('Could not save record', 1);
         }
         DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -85,7 +85,7 @@ class SubCategoryController extends Controller
     //function to list team category
     public function list(Request $request)
     {
-        // try {
+        try {
         $post = $request->all();
         $data = SubCategory::list($post);
         $i = 0;
@@ -127,15 +127,15 @@ class SubCategoryController extends Controller
 
         if (!$filtereddata) $filtereddata = 0;
         if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        }
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 

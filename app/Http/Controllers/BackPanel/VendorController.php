@@ -24,66 +24,93 @@ class VendorController extends Controller
         return view('backend.vendor.info.index');
     }
 
-    public function save(Request $request)
-    {
-        try {
+public function save(Request $request)
+{
+    try {
         $rules = [
-            'name' => 'required|min:5|max:255',
-            'phone' => 'required|min:5|max:5000',
-            'address' => 'required',
-            'email' => [
-                'required',
-                'email',
-            ],
-            'company' => 'required',
-            'pan' => 'required',
+            'name'                => 'required|min:5|max:255',
+            'phone'               => 'required|min:5|max:20',
+            'address'             => 'required',
+            'email'               => 'required|email',
+            'company'             => 'required',
+            'pan'                 => 'required',
             'registration_number' => 'required',
-            'city' => 'required',
-            'address' => 'required',
+            'city'                => 'required',
+            'pan_image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'registration_number_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ];
 
-        $message = [
-            'name.required' => 'Please enter organization name',
-            'phone.required' => 'Phone number is required',
-            'address.required' => 'Address is required',
-            'registration_number.required' => 'Registration Number is required',
-            'city.required' => 'City is required',
-            'address.required' => 'Address is required',
-            'pan.required' => 'Pan is required',
-            'company.required' => 'Company is required',
-            'email.required' => 'Email is required',
+        if (empty($request->id)) {
+            $rules['pan_image']                 = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            $rules['registration_number_image'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+        }
+
+        $messages = [
+            'name.required'                      => 'Please enter vendor name',
+            'phone.required'                     => 'Phone number is required',
+            'address.required'                   => 'Address is required',
+            'email.required'                     => 'Email is required',
+            'email.email'                        => 'Please enter a valid email',
+            'company.required'                   => 'Company is required',
+            'pan.required'                       => 'PAN is required',
+            'registration_number.required'       => 'Registration number is required',
+            'city.required'                      => 'City is required',
+            'pan_image.required'                 => 'PAN image is required',
+            'pan_image.image'                    => 'PAN image must be a valid image',
+            'pan_image.mimes'                    => 'PAN image must be jpeg, png, jpg, gif, or webp',
+            'pan_image.max'                      => 'PAN image must not exceed 2MB',
+            'registration_number_image.required' => 'Registration image is required',
+            'registration_number_image.image'    => 'Registration image must be a valid image',
+            'registration_number_image.mimes'    => 'Registration image must be jpeg, png, jpg, gif, or webp',
+            'registration_number_image.max'      => 'Registration image must not exceed 2MB',
         ];
 
-        $validate = Validator::make($request->all(), $rules, $message);
-
+        $validate = Validator::make($request->all(), $rules, $messages);
         if ($validate->fails()) {
             throw new Exception($validate->errors()->first(), 1);
         }
 
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
+        $post           = $request->all();
+        $post['orgid']  = session('orgid');
         $post['userid'] = session('userid');
-        $type = 'success';
-        $message = 'Organization saved successfully';
+
+        if ($request->hasFile('pan_image')) {
+            $panImage        = $request->file('pan_image');
+            $panName         = time() . '_pan.' . $panImage->getClientOriginalExtension();
+            $panImage->storeAs('vendor', $panName, 'public');
+            $post['pan_image'] = $panName;
+        }
+
+        if ($request->hasFile('registration_number_image')) {
+            $regImage                        = $request->file('registration_number_image');
+            $regName                         = time() . '_reg.' . $regImage->getClientOriginalExtension();
+            $regImage->storeAs('vendor', $regName, 'public');
+            $post['registration_number_image'] = $regName;
+        }
+
+        $type    = 'success';
+        $message = 'Vendor saved successfully';
 
         DB::beginTransaction();
 
         if (!Vendor::saveData($post)) {
             throw new Exception('Could not save record', 1);
         }
+
         DB::commit();
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
-        }
-        return json_encode(['type' => $type, 'message' => $message]);
+
+    } catch (QueryException $e) {
+        DB::rollBack();
+        $type    = 'error';
+        $message = $this->queryMessage;
+    } catch (Exception $e) {
+        DB::rollBack();
+        $type    = 'error';
+        $message = $e->getMessage();
     }
 
+    return json_encode(['type' => $type, 'message' => $message]);
+}
     public function list(Request $request)
     {
         try {

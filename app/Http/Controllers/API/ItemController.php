@@ -142,141 +142,141 @@ class ItemController extends Controller
     // }
 
     public function recommended(Request $request)
-{
-    $payload = JWTAuth::parseToken()->getPayload();
-    $profile = $payload->get('profile');
+    {
+        $payload = JWTAuth::parseToken()->getPayload();
+        $profile = $payload->get('profile');
 
-    $perPage     = (int) $request->get('per_page', 10);
-    $userId      = $profile['userid'];
-    $orgId       = $profile['orgid'];
-    $tabId       = $request->input('tab_id');    // can be UUID or tab_name string
-    $categoryIds = [];
+        $perPage     = (int) $request->get('per_page', 10);
+        $userId      = $profile['userid'];
+        $orgId       = $profile['orgid'];
+        $tabId       = $request->input('tab_id');    // can be UUID or tab_name string
+        $categoryIds = [];
 
-    // ── Resolve tab by id OR tab_name ──
-    if (!empty($tabId)) {
-        $tab = DB::table('home_tabs')
-            ->where('status', 'Y')
-            ->where(function ($q) use ($tabId) {
-                $q->where('id', $tabId)                              // UUID match
-                  ->orWhereRaw('LOWER(tab_name) = ?', [strtolower($tabId)]);  // name match
-            })
-            ->first();
+        // ── Resolve tab by id OR tab_name ──
+        if (!empty($tabId)) {
+            $tab = DB::table('home_tabs')
+                ->where('status', 'Y')
+                ->where(function ($q) use ($tabId) {
+                    $q->where('id', $tabId)                              // UUID match
+                        ->orWhereRaw('LOWER(tab_name) = ?', [strtolower($tabId)]);  // name match
+                })
+                ->first();
 
-        if (!$tab) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => 'Tab not found or inactive.',
-                'result'  => []
-            ]);
-        }
-
-        // If tab_name is "all", skip category filter → return all items
-        if (strtolower($tab->tab_name) !== 'all') {
-            $categoryIds = DB::table('home_tab_categories')
-                ->where('home_tab_id', $tab->id)
-                ->pluck('category_id')
-                ->toArray();
-
-            if (empty($categoryIds)) {
+            if (!$tab) {
                 return response()->json([
                     'type'    => 'error',
-                    'message' => 'No categories assigned to this tab.',
+                    'message' => 'Tab not found or inactive.',
                     'result'  => []
                 ]);
             }
+
+            // If tab_name is "all", skip category filter → return all items
+            if (strtolower($tab->tab_name) !== 'all') {
+                $categoryIds = DB::table('home_tab_categories')
+                    ->where('home_tab_id', $tab->id)
+                    ->pluck('category_id')
+                    ->toArray();
+
+                if (empty($categoryIds)) {
+                    return response()->json([
+                        'type'    => 'error',
+                        'message' => 'No categories assigned to this tab.',
+                        'result'  => []
+                    ]);
+                }
+            }
         }
-    }
 
-    $hasOrders = DB::table('order_details')
-        ->where('userid', $userId)
-        ->exists();
+        $hasOrders = DB::table('order_details')
+            ->where('userid', $userId)
+            ->exists();
 
-    $query = DB::table('itemvariations as iv')
-        ->join('items as it', 'it.id', '=', 'iv.item_id')
-        ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-        ->leftJoinSub(
-            DB::table('item_images')
-                ->select('item_id', DB::raw('GROUP_CONCAT(image) as images'))
-                ->groupBy('item_id'),
-            'img',
-            'img.item_id',
-            '=',
-            'it.id'
-        )
-        ->where('it.orgid', $orgId)
-        ->where('iv.status', 'Y')
-        ->where('p.status', 'Y')
-        ->select(
-            'it.id as productid',
-            DB::raw("CONCAT(it.title) as title"),
-            'iv.id as variationid',
-            'iv.value',
-            'img.images',
-            'p.price'
-        )
-        ->orderBy('iv.created_at', 'asc');
+        $query = DB::table('itemvariations as iv')
+            ->join('items as it', 'it.id', '=', 'iv.item_id')
+            ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+            ->leftJoinSub(
+                DB::table('item_images')
+                    ->select('item_id', DB::raw('GROUP_CONCAT(image) as images'))
+                    ->groupBy('item_id'),
+                'img',
+                'img.item_id',
+                '=',
+                'it.id'
+            )
+            ->where('it.orgid', $orgId)
+            ->where('iv.status', 'Y')
+            ->where('p.status', 'Y')
+            ->select(
+                'it.id as productid',
+                DB::raw("CONCAT(it.title) as title"),
+                'iv.id as variationid',
+                'iv.value',
+                'img.images',
+                'p.price'
+            )
+            ->orderBy('iv.created_at', 'asc');
 
-    // ── Filter by categories only if not "all" ──
-    if (!empty($categoryIds)) {
-        $query->join('category_items as ci', 'ci.itemid', '=', 'it.id')
-              ->whereIn('ci.categoryid', $categoryIds);
-    }
+        // ── Filter by categories only if not "all" ──
+        if (!empty($categoryIds)) {
+            $query->join('category_items as ci', 'ci.itemid', '=', 'it.id')
+                ->whereIn('ci.categoryid', $categoryIds);
+        }
 
-    $data = $query->distinct()->paginate($perPage);
+        $data = $query->distinct()->paginate($perPage);
 
-    if ($data->isEmpty()) {
+        if ($data->isEmpty()) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'No Item found.',
+                'result'  => $this->paginationMeta($data)
+            ]);
+        }
+
+        $productIds = collect($data->items())
+            ->pluck('productid')
+            ->unique()
+            ->toArray();
+
+        $allVariations = DB::table('itemvariations as iv')
+            ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
+            ->select(
+                'iv.id as variationid',
+                'iv.item_id as productid',
+                DB::raw("CONCAT(iv.value) as name"),
+                'p.price'
+            )
+            ->whereIn('iv.item_id', $productIds)
+            ->where('iv.status', 'Y')
+            ->where('p.status', 'Y')
+            ->get()
+            ->groupBy('productid');
+
+        $items = collect($data->items())->map(function ($row) use ($allVariations) {
+            return [
+                'productid'   => $row->productid,
+                'title'       => $row->title,
+                'variationid' => $row->variationid,
+                'value'       => $row->value,
+                'price'       => $row->price,
+                'images'      => $row->images
+                    ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
+                    : [],
+                'variations'  => $allVariations[$row->productid] ?? [],
+            ];
+        });
+
         return response()->json([
-            'type'    => 'error',
-            'message' => 'No Item found.',
-            'result'  => $this->paginationMeta($data)
+            'type'    => 'success',
+            'message' => $hasOrders
+                ? 'Recommended items fetched successfully.'
+                : 'No order history found. Showing all items.',
+            'result'  => [
+                'is_personalized' => $hasOrders,
+                'data'            => $items,
+                'pagination'      => $this->paginationMeta($data),
+            ],
         ]);
     }
-
-    $productIds = collect($data->items())
-        ->pluck('productid')
-        ->unique()
-        ->toArray();
-
-    $allVariations = DB::table('itemvariations as iv')
-        ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-        ->select(
-            'iv.id as variationid',
-            'iv.item_id as productid',
-            DB::raw("CONCAT(iv.value) as name"),
-            'p.price'
-        )
-        ->whereIn('iv.item_id', $productIds)
-        ->where('iv.status', 'Y')
-        ->where('p.status', 'Y')
-        ->get()
-        ->groupBy('productid');
-
-    $items = collect($data->items())->map(function ($row) use ($allVariations) {
-        return [
-            'productid'   => $row->productid,
-            'title'       => $row->title,
-            'variationid' => $row->variationid,
-            'value'       => $row->value,
-            'price'       => $row->price,
-            'images'      => $row->images
-                ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
-                : [],
-            'variations'  => $allVariations[$row->productid] ?? [],
-        ];
-    });
-
-    return response()->json([
-        'type'    => 'success',
-        'message' => $hasOrders
-            ? 'Recommended items fetched successfully.'
-            : 'No order history found. Showing all items.',
-        'result'  => [
-            'is_personalized' => $hasOrders,
-            'data'            => $items,
-            'pagination'      => $this->paginationMeta($data),
-        ],
-    ]);
-}
 
     public function getByProductCode(Request $request, $product_code)
     {
@@ -284,7 +284,7 @@ class ItemController extends Controller
             $item = DB::table('items as i')
                 ->leftJoin('brands as b', 'b.id', '=', 'i.brand_id')
                 ->leftJoin(DB::raw('(
-                SELECT item_id, GROUP_CONCAT(image) as images
+                SELECT item_id, GROUP_CONCAT(image ORDER BY order_number ASC) as images
                 FROM item_images
                 GROUP BY item_id
             ) as img'), 'img.item_id', '=', 'i.id')
@@ -294,7 +294,7 @@ class ItemController extends Controller
                     'i.id as productid',
                     'i.title',
                     'i.product_code',
-                    'i.company_product_code',
+                    // 'i.company_product_code',
                     'i.description',
                     'i.type',
                     'b.name as brand',
@@ -316,22 +316,6 @@ class ItemController extends Controller
                     explode(',', $item->images)
                 )
                 : [];
-
-            $variations = DB::table('itemvariations as iv')
-                ->where('iv.item_id', $item->productid)
-                ->where('iv.status', 'Y')
-                ->select(
-                    'iv.id as variationid',
-                    'iv.attribute',
-                    'iv.value',
-                    'iv.product_code as variation_product_code',
-                    'iv.company_product_code as variation_company_code',
-                    'iv.threshold',
-                    'iv.price'
-                )
-                ->get();
-
-            $item->variations = $variations;
 
             return response()->json([
                 'type'    => 'success',

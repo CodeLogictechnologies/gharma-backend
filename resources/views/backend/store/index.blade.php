@@ -198,6 +198,15 @@
                 );
             });
 
+            // ── View ─────────────────────────────────────────────────────
+$(document).on('click', '.viewStore', function (e) {
+    e.preventDefault();
+    openOrgModal(
+        '{{ route('store.view') }}',
+        { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
+        'POST'
+    );
+});
             // ── Delete ────────────────────────────────────────────────────
             var deleteId = null;
 

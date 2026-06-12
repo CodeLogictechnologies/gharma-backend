@@ -1,327 +1,247 @@
-<!-- jQuery first (KEEP THIS ORDER) -->
 @extends('layouts.main')
-@section('title', 'Permission')
-<!-- jQuery FIRST -->
-<script src="/assets/vendor/libs/jquery/jquery.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<!-- jQuery Validate -->
+@section('title', 'Role Permissions')
+
 @section('content')
 
-    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Delete Permission</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">Are you sure? You won't be able to revert this.</div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
-                </div>
+{{-- ── Save confirmation modal ──────────────────────────────────── --}}
+<div class="modal fade" id="saveModal" tabindex="-1" data-bs-backdrop="static" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Save Permissions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Are you sure you want to save permissions for this role?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSave">Yes, Save</button>
             </div>
         </div>
     </div>
-    <div class="container-xxl flex-grow-1 container-p-y">
-        <div class="nav-align-top mb-4">
+</div>
 
-            <div class="tab-content mt-4" id="nav-tabContent">
-                <div class="row g-4">
-                    <div class="col-12 col-lg-4">
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="card">
+        <div class="card-header border-bottom">
+            <h5 class="mb-0">Role Permissions</h5>
+        </div>
+        <div class="card-body pt-3">
 
-                        <h5 class="mb-3">Add Role</h5>
-                        <form action="{{ route('role.save') }}" method="POST" id="roleForm" enctype="multipart/form-data">
+            {{-- ── Role selector row ─────────────────────────────── --}}
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <label class="form-label mb-0 fw-semibold">Role</label>
+                <select class="form-select" id="roleSelect" style="max-width: 220px;">
+                    <option value="">-- Select Role --</option>
+                    @foreach ($roles as $role)
+                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                    @endforeach
+                </select>
+                <button type="button" class="btn btn-primary" id="viewBtn">View</button>
+            </div>
 
-                            <div class="mb-3">
-                                <input type="hidden" name="id" value="" id="id">
-                                <label class="form-label" for="name">Role Name<span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="name" id="name"
-                                    placeholder="Example: user.view" />
-                            </div>
+            {{-- ── Permission matrix ─────────────────────────────── --}}
+            <div id="permissionTableWrap" style="display:none;">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle" id="permissionMatrix">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:60px;">
+                                    <input type="checkbox" class="form-check-input" id="selectAll" title="Select All">
+                                </th>
+                                <th>Sidebar Name</th>
+                                <th class="text-center">
+                                    <input type="checkbox" class="form-check-input col-check" data-col="add"> Add
+                                </th>
+                                <th class="text-center">
+                                    <input type="checkbox" class="form-check-input col-check" data-col="edit"> Edit
+                                </th>
+                                <th class="text-center">
+                                    <input type="checkbox" class="form-check-input col-check" data-col="view"> View
+                                </th>
+                                <th class="text-center">
+                                    <input type="checkbox" class="form-check-input col-check" data-col="delete"> Delete
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="permissionBody">
+                            {{-- Populated by JS --}}
+                        </tbody>
+                    </table>
+                </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Permissions</label>
-
-                                <div class="row">
-                                    @foreach ($permissions as $perm)
-                                        <div class="col-6">
-                                            <div class="form-check">
-                                                <input class="form-check-input permission-checkbox" type="checkbox"
-                                                    name="permissions[]" value="{{ $perm->id }}"
-                                                    id="perm_{{ $perm->id }}">
-
-                                                <label class="form-check-label" for="perm_{{ $perm->id }}">
-                                                    {{ $perm->name }}
-                                                </label>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-
-                            <button type="button" class="btn btn-primary savePermission">Save</button>
-                        </form>
-
-                    </div>
-                    <div class="col-12 col-lg-8" style="flex: 1;">
-                        <div class="table-header mb-3 d-flex justify-content-between align-items-center">
-                            <div class="dt-length">
-                                <label class="d-flex align-items-center gap-2">
-
-                                </label>
-                            </div>
-                        </div>
-                        <div class="table-responsive text-nowrap">
-                            <div id="datatable-basic_wrapper" class="dataTables_wrapper dt-bootstrap5 no-footer">
-
-                                <div class="dataTables_length" id="datatable-basic_length">
-
-                                    <table class="table" id="roleTable" aria-describedby="datatable-basic_info">
-                                        <thead class="table-light">
-                                            <tr class="align-middle">
-                                                <th data-dt-column="1" class="">
-                                                    S.No
-                                                </th>
-                                                <th class="fs-6">
-                                                    <input type="text" class="form-control" id="defaultFormControlInput"
-                                                        placeholder="Permission name"
-                                                        aria-describedby="defaultFormControlHelp" />
-                                                </th>
-                                                <th class="">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="table-border-bottom-0">
-
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="mt-3">
+                    <button type="button" class="btn btn-primary" id="savePermissionsBtn">
+                        <i class="fa fa-save me-1"></i> Save Permissions
+                    </button>
                 </div>
             </div>
+
+            <div id="noRoleMsg" class="text-muted mt-2" style="display:none;">
+                Please select a role and click View.
+            </div>
+
         </div>
     </div>
-    <!-- delete -->
+</div>
+
 @endsection
+
+@section('main-scripts')
 <script>
-    var roleTable;
+$(document).ready(function () {
 
-    $(document).ready(function() {
+    $.ajaxSetup({
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+    });
 
-        // ── CSRF setup ────────────────────────────────────────────────
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
+    // ── Module definitions ──────────────────────────────────────────
+    var modules = [
+    { label: 'Favicon',         key: 'favicon' },
+    { label: 'Role',            key: 'role' },
+    { label: 'Home Tab',        key: 'hometab' },
+    { label: 'Store',           key: 'store' },
+    { label: 'Category',        key: 'category' },
+    { label: 'Brand',           key: 'brand' },
+    { label: 'Item',            key: 'item' },
+    { label: 'Users',           key: 'user' },
+    { label: 'Driver List',     key: 'driverlist' },
+    { label: 'Inventory',       key: 'inventory' },
+    { label: 'Vendor',          key: 'vendor' },
+    { label: 'Retailer',        key: 'retailer' },
+    { label: 'Wholesaler',      key: 'wholesaler' },
+    { label: 'Discount',        key: 'discount' },
+    { label: 'Loyalty',         key: 'loyalty' },
+    { label: 'Order',           key: 'order' },
+    { label: 'Invoice',         key: 'invoice' },
+    { label: 'Refund',          key: 'refund' },
+    { label: 'Report',          key: 'report' },
+    { label: 'Heatmap',         key: 'heatmap' },
+    { label: 'Notification',    key: 'notification' },
+];
 
-        // ── DataTable ─────────────────────────────────────────────────
-        roleTable = $('#roleTable').dataTable({
-            sPaginationType: 'full_numbers',
-            bSearchable: false,
+    var allPermissions  = @json($permissions);   // full permission list from controller
+    var rolePermissions = [];                     // IDs assigned to selected role
 
-            language: {
-                paginate: {
-                    first: '<i class="bx bx-chevrons-left"></i>',
-                    previous: '<i class="bx bx-chevron-left"></i>',
-                    next: '<i class="bx bx-chevron-right"></i>',
-                    last: '<i class="bx bx-chevrons-right"></i>'
-                }
-            },
-
-            lengthMenu: [
-                [5, 10, 30, 50, -1],
-                [5, 10, 30, 50, 'All']
-            ],
-
-            iDisplayLength: 5,
-            sDom: 'ltipr',
-            bAutoWidth: false,
-
-            aaSorting: [
-                [0, 'desc']
-            ],
-
-            bProcessing: true,
-            bServerSide: true,
-
-            // ✅ KEEP ONLY THIS AJAX
-            ajax: {
-                url: '{{ route('role.list') }}',
-                type: 'POST',
-                data: function(d) {
-                    d.type = $('#trashed_file').is(':checked') ? 'trashed' : 'nottrashed';
-                }
-            },
-
-            oLanguage: {
-                sEmptyTable: "<p class='no_data_message'>No data available.</p>"
-            },
-
-            aoColumnDefs: [{
-                bSortable: false,
-                aTargets: [2]
-            }],
-
-            aoColumns: [{
-                    data: "sno"
-                },
-                {
-                    data: "name"
-                },
-                {
-                    data: "action"
-                }
-            ],
-
-            // ✅ COLUMN FILTER
-            initComplete: function() {
-                this.api().columns([1]).every(function() {
-                    var column = this;
-
-                    var input = $(
-                            '<input type="text"  class="form-control" id="defaultFormControlInput" placeholder="Search name" style="width:100%;" />'
-                        )
-                        .appendTo($(column.header()).empty())
-                        .on('keyup change', function() {
-                            column.search(this.value).draw();
-                        });
-                });
-            }
-        });
-
-
-        $('#roleForm').validate({
-            rules: {
-                name: "required",
-
-            },
-            message: {
-                name: {
-                    required: "This field is required."
-                },
-            },
-            highlight: function(element) {
-                $(element).addClass("border-danger")
-            },
-            unhighlight: function(element) {
-                $(element).removeClass("border-danger")
-            },
-        });
-
-        $('.savePermission').off('click').on('click', function() {
-            if ($('#roleForm').valid()) {
-
-                let form = document.getElementById('roleForm');
-                let formData = new FormData(form);
-
-                $.ajax({
-                    url: "{{ route('role.save') }}",
-                    type: "POST",
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function(response) {
-
-                        let result = typeof response === 'string' ? JSON.parse(response) :
-                            response;
-
-                        if (result.type === 'success') {
-                            showNotification(result.message, 'success');
-
-                            roleTable.fnDraw();
-
-                            $('#roleForm')[0].reset();
-                            $('#id').val('');
-                            $('.savePermission').html('<i class="fa fa-save"></i> Save');
-                        } else {
-                            showNotification(result.message, 'error');
-                        }
-                    },
-                    error: function() {
-                        showNotification('Something went wrong!', 'error');
-                    }
-                });
-            }
-        });
-
-
-        $(document).on('click', '.editRole', function(e) {
-            e.preventDefault();
-
-            var id = $(this).data('id');
-            var name = $(this).data('name');
-            var permissions = $(this).data('permissions'); // ← jQuery auto-parses, no JSON.parse needed
-
-            // Ensure array
-            if (!Array.isArray(permissions)) {
-                permissions = permissions ? Object.values(permissions) : [];
-            }
-
-            // ── Populate form ──────────────────────────────────────
-            $('#id').val(id);
-            $('#name').val(name);
-
-            // Uncheck all first
-            $('.permission-checkbox').prop('checked', false);
-
-            // Check matching permissions by ID
-            permissions.forEach(function(permId) {
-                $('#perm_' + permId).prop('checked', true);
-            });
-
-            // ── Update button label ────────────────────────────────
-            $('.savePermission').html('<i class="fa fa-save me-1"></i> Update');
-
-            // ── Scroll to form ─────────────────────────────────────
-            $('html, body').animate({
-                scrollTop: $('#roleForm').offset().top - 20
-            }, 300);
-        });
-
-
-        function resetRoleForm() {
-            $('#roleForm')[0].reset(); // clear all inputs
-            $('#id').val(''); // clear hidden id
-            $('.permission-checkbox').prop('checked', false); // uncheck all permissions
-            $('.savePermission').html('<i class="fa fa-save me-1"></i> Save'); // reset button
-            $('#cancelEdit').addClass('d-none'); // hide cancel button
-            $('#name').removeClass('border-danger is-invalid'); // clear validation errors
+    // ── View button ─────────────────────────────────────────────────
+    $('#viewBtn').on('click', function () {
+        var roleId = $('#roleSelect').val();
+        if (!roleId) {
+            $('#permissionTableWrap').hide();
+            $('#noRoleMsg').show();
+            return;
         }
-        var deleteId = null;
 
-        $(document).on('click', '.deleteRole', function(e) {
-            e.preventDefault();
-            deleteId = $(this).data('id');
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        });
-
-        $('#confirmDelete').on('click', function() {
-            if (!deleteId) return;
-
-            $.post('{{ route('role.delete') }}', {
-                    id: deleteId,
-                    _token: '{{ csrf_token() }}'
-                })
-                .done(function(response) {
-                    var result = typeof response === 'string' ? JSON.parse(response) : response;
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        roleTable.fnDraw();
-                        resetRoleForm();
-
-                    } else {
-                        showNotification(result.message, 'error');
-                    }
-                })
-                .fail(function() {
-                    showNotification('Delete failed. Please try again.', 'error');
-                })
-                .always(function() {
-                    deleteId = null;
-                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-                });
+        $.post('{{ route("role.getPermissions") }}', { id: roleId }, function (res) {
+            var result = typeof res === 'string' ? JSON.parse(res) : res;
+            rolePermissions = result.permissions || [];
+            buildMatrix();
+            $('#permissionTableWrap').show();
+            $('#noRoleMsg').hide();
         });
     });
+
+    // ── Build the permission matrix rows ────────────────────────────
+    function buildMatrix() {
+        var $tbody = $('#permissionBody').empty();
+
+        modules.forEach(function (mod) {
+            var paddingLeft = mod.indent === 1 ? '2rem' : (mod.indent === 2 ? '3.5rem' : '0');
+            var collapseBtn = mod.indent === 0
+                ? '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 collapse-row me-1" style="font-size:11px; line-height:1.4;">−</button>'
+                : '';
+
+            var row = '<tr data-key="' + mod.key + '" data-indent="' + mod.indent + '">';
+            row    += '<td>' + collapseBtn + '<input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
+            row    += '<td style="padding-left:' + paddingLeft + ';">' + mod.label + '</td>';
+
+            ['add','edit','view','delete'].forEach(function (action) {
+                var permName = mod.key + '.' + action;
+                var perm     = allPermissions.find(function (p) { return p.name === permName; });
+                if (perm) {
+                    var checked = rolePermissions.indexOf(perm.id) !== -1 ? 'checked' : '';
+                    row += '<td class="text-center"><input type="checkbox" class="form-check-input perm-check" '
+                         + 'data-perm-id="' + perm.id + '" data-key="' + mod.key + '" data-action="' + action + '" ' + checked + '></td>';
+                } else {
+                    row += '<td class="text-center"><span class="text-muted">–</span></td>';
+                }
+            });
+
+            row += '</tr>';
+            $tbody.append(row);
+        });
+    }
+
+    // ── Select All header checkbox ───────────────────────────────────
+    $('#selectAll').on('change', function () {
+        var checked = $(this).is(':checked');
+        $('.perm-check').prop('checked', checked);
+        $('.row-select').prop('checked', checked);
+    });
+
+    // ── Column header checkboxes (Add / Edit / View / Delete) ────────
+    $(document).on('change', '.col-check', function () {
+        var col     = $(this).data('col');
+        var checked = $(this).is(':checked');
+        $('.perm-check[data-action="' + col + '"]').prop('checked', checked);
+    });
+
+    // ── Row select checkbox (checks all 4 actions in that row) ───────
+    $(document).on('change', '.row-select', function () {
+        var key     = $(this).data('key');
+        var checked = $(this).is(':checked');
+        $('.perm-check[data-key="' + key + '"]').prop('checked', checked);
+    });
+
+    // ── Collapse/expand child rows ───────────────────────────────────
+    $(document).on('click', '.collapse-row', function () {
+        var $btn    = $(this);
+        var $row    = $btn.closest('tr');
+        var key     = $row.data('key');
+        var isOpen  = $btn.text() === '−';
+
+        // Find sibling rows that come after this parent (indent > 0) until next indent-0
+        var $siblings = $row.nextAll('tr');
+        var $children = $();
+        $siblings.each(function () {
+            if ($(this).data('indent') > 0) { $children = $children.add($(this)); }
+            else { return false; }
+        });
+
+        if (isOpen) {
+            $children.hide();
+            $btn.text('+');
+        } else {
+            $children.show();
+            $btn.text('−');
+        }
+    });
+
+    // ── Save button → confirm modal ──────────────────────────────────
+    $('#savePermissionsBtn').on('click', function () {
+        new bootstrap.Modal(document.getElementById('saveModal')).show();
+    });
+
+    $('#confirmSave').on('click', function () {
+        var roleId      = $('#roleSelect').val();
+        var permIds     = [];
+
+        $('.perm-check:checked').each(function () {
+            permIds.push($(this).data('perm-id'));
+        });
+
+        $.post('{{ route("role.save") }}', {
+            id:          roleId,
+            permissions: permIds,
+            _token:      '{{ csrf_token() }}'
+        }, function (res) {
+            var result = typeof res === 'string' ? JSON.parse(res) : res;
+            showNotification(result.message, result.type);
+            bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
+        }).fail(function () {
+            showNotification('Something went wrong!', 'error');
+        });
+    });
+
+});
 </script>
+@endsection

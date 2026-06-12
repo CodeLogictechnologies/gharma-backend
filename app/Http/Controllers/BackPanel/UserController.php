@@ -7,294 +7,335 @@ use App\Mail\UserApprovedMail;
 use App\Mail\UserRejectedMail;
 use App\Models\BackPanel\Role;
 use Illuminate\Http\Request;
-use App\Models\Common;
 use App\Models\User;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Symfony\Component\HttpKernel\Profiler\Profile;
 
 class UserController extends Controller
 {
-    //function to redirect to user page
     public function index()
     {
         return view('backend.users.main');
     }
 
-    //function to save users
     public function save(Request $request)
     {
         try {
-            $post = $request->all();
+            $isEdit = !empty($request->id);
+
+            $isWholesaler = false;
+            if (!empty($request->roles)) {
+                $isWholesaler = DB::table('roles')
+                    ->whereIn('id', $request->roles)
+                    ->whereRaw('LOWER(name) LIKE ?', ['%wholesaler%'])
+                    ->exists();
+            }
+
             $rules = [
                 'first_name' => 'required|min:3|max:255',
-                'phone' => 'required|min:5|max:5000',
-                'address' => 'required',
-                'email' => [
-                    'required',
-                    'email',
-                    Rule::unique('users')->ignore($request->id)
+                'last_name'  => 'required|max:255',
+                'phone'      => 'required|min:5|max:20',
+                'address'    => 'required',
+                'email'      => [
+                    'required', 'email',
+                    function ($attribute, $value, $fail) use ($request) {
+                        $exists = DB::table('users')
+                            ->where('email', $value)
+                            ->where('id', '!=', $request->id)
+                            ->exists();
+                        if ($exists) $fail('The email has already been taken.');
+                    },
                 ],
                 'username' => 'required',
+                'gender'   => 'required',
+                'roles'    => 'required|array|min:1',
+                'image'    => 'nullable|mimes:jpg,jpeg,png|max:2048',
             ];
 
-            if (empty($request->id)) {
-                $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
-            }
-
-            $message = [
-                'first_name.required' => 'Please enter first name',
-                'first_name.min'      => 'First name must be at least 3 characters',
-                'phone.required' => 'Phone number is required',
-                'address.required' => 'Address is required',
-                'email.required' => 'Email is required',
-                'username.required' => 'User Name is required',
+            $messages = [
+                'first_name.required'             => 'Please enter first name',
+                'first_name.min'                  => 'First name must be at least 3 characters',
+                'last_name.required'              => 'Please enter last name',
+                'phone.required'                  => 'Phone number is required',
+                'address.required'                => 'Address is required',
+                'email.required'                  => 'Email is required',
+                'username.required'               => 'Username is required',
+                'gender.required'                 => 'Gender is required',
+                'roles.required'                  => 'Please select at least one role',
+                'image.mimes'                     => 'Profile image must be jpg, jpeg, or png',
+                'image.max'                       => 'Profile image must not exceed 2MB',
+                'company_name.required'           => 'Company name is required for Wholesaler',
+                'tax_number.required'             => 'Tax number is required for Wholesaler',
+                'registration_number.required'    => 'Registration number is required for Wholesaler',
+                'pan_number.required'             => 'PAN number is required for Wholesaler',
+                'pan_image.mimes'                 => 'PAN image must be jpg, jpeg, png, or pdf',
+                'pan_image.max'                   => 'PAN image must not exceed 2MB',
+                'registration_number_image.mimes' => 'Registration image must be jpg, jpeg, png, or pdf',
+                'registration_number_image.max'   => 'Registration image must not exceed 2MB',
             ];
 
-            $validate = Validator::make($request->all(), $rules, $message);
+            if ($isWholesaler) {
+                $rules['company_name']        = 'required|max:255';
+                $rules['tax_number']          = 'required|max:100';
+                $rules['registration_number'] = 'required|max:100';
+                $rules['pan_number']          = 'required|max:100';
 
-            if ($validate->fails()) {
-                throw new Exception($validate->errors()->first(), 1);
+                // Check existing images if editing
+                $existingPanImage = null;
+                $existingRegImage = null;
+
+                if ($isEdit) {
+                    $profile          = DB::table('profiles')->where('user_id', $request->id)->first();
+                    $existingPanImage = $profile->pan_image ?? null;
+                    $existingRegImage = $profile->registration_number_image ?? null;
+                }
+
+                // PAN image: required only if new user OR edit with no existing image
+                if (!$isEdit || empty($existingPanImage)) {
+                    $rules['pan_image']                 = 'required|mimes:jpg,jpeg,png,pdf|max:2048';
+                    $messages['pan_image.required']     = 'PAN image is required';
+                } else {
+                    $rules['pan_image'] = 'nullable|mimes:jpg,jpeg,png,pdf|max:2048';
+                }
+
+                // Registration image: required only if new user OR edit with no existing image
+                if (!$isEdit || empty($existingRegImage)) {
+                    $rules['registration_number_image']             = 'required|mimes:jpg,jpeg,png,pdf|max:2048';
+                    $messages['registration_number_image.required'] = 'Registration image is required';
+                } else {
+                    $rules['registration_number_image'] = 'nullable|mimes:jpg,jpeg,png,pdf|max:2048';
+                }
             }
 
-            $post = $request->all();
-            $post['type'] = 'user';
-            $type = 'success';
-            $message = 'User saved successfully';
+            $validate = Validator::make($request->all(), $rules, $messages);
+            if ($validate->fails()) throw new Exception($validate->errors()->first(), 1);
+
+            $post          = $request->all();
             $post['orgid'] = session('orgid');
+
+            if ($request->hasFile('image'))                     $post['image']                     = $request->file('image');
+            if ($request->hasFile('pan_image'))                 $post['pan_image']                 = $request->file('pan_image');
+            if ($request->hasFile('registration_number_image')) $post['registration_number_image'] = $request->file('registration_number_image');
+
             DB::beginTransaction();
 
-            if (!User::saveData($post)) {
-                throw new Exception('Could not save record', 1);
+            if ($isEdit) {
+                $post['userid'] = $post['id'];
+                User::updateUser($post);
+
+                DB::table('users')->where('id', $post['id'])->update([
+                    'name'       => $post['username'],
+                    'email'      => $post['email'],
+                    'updated_at' => now(),
+                ]);
+
+                if (!empty($post['roles'])) {
+                    $user = User::find($post['id']);
+                    if ($user) {
+                        $roleNames = DB::table('roles')->whereIn('id', $post['roles'])->pluck('name')->toArray();
+                        if (!empty($roleNames)) $user->syncRoles($roleNames);
+                    }
+                }
+
+                $message = 'User updated successfully';
+            } else {
+                $post['type'] = 'user';
+                if (!User::saveData($post)) throw new Exception('Could not save record', 1);
+                $message = 'User saved successfully';
             }
+
             DB::commit();
+            $type = 'success';
+
         } catch (QueryException $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $this->queryMessage;
         } catch (Exception $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         }
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
-    //function to get active user list
     public function list(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $data = User::list($post);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs = $data["totalrecs"];
+        try {
+            $post          = $request->all();
+            $post['orgid'] = session('orgid');
+            $data          = User::list($post);
 
-        $rows = $data["data"];
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
-        foreach ($rows  as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["name"] = $row->name;
-            $array[$i]["email"] = $row->email;
-            if ($row->status == 'Y') {
-                $array[$i]["status"] = 'Active';
-            } else {
-                $array[$i]["status"] = 'Inactive';
-            }
-            $array[$i]["address"] = $row->address;
-            $array[$i]["phone"] = $row->phone;
+            $i            = 0;
+            $array        = [];
+            $totalrecs    = $data["totalrecs"];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $totalrecs);
 
-            // ✅ DROPDOWN STATUS
-            $array[$i]["user_status"] = '
-    <select class="form-select changeStatus" data-id="' . $row->id . '">
-        <option value="Pending" ' . ($row->user_status == "Pending" ? "selected" : "") . '>Pending</option>
-        <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Approve</option>
-        <option value="Reject" ' . ($row->user_status == "Reject" ? "selected" : "") . '>Reject</option>
-    </select>';
+            foreach ($data["data"] as $row) {
+                $array[$i]["sno"]     = $i + 1;
+                $array[$i]["name"]    = $row->name;
+                $array[$i]["email"]   = $row->email;
+                $array[$i]["address"] = $row->address ?? '-';
+                $array[$i]["phone"]   = $row->phone ?? '-';
 
-            $array[$i]["profile"] = $row->profile;
-            $array[$i]["created_at"] = $row->created_at;
+                $array[$i]["status"] = '
+                <select class="form-select form-select-sm changeActiveStatus" data-id="' . $row->id . '" data-prev="' . $row->user_status . '" style="min-width:100px;">
+                    <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Active</option>
+                    <option value="Pending" ' . ($row->user_status != "Approve" ? "selected" : "") . '>Inactive</option>
+                </select>';
 
-            // Image
-            if (!empty($row->image)) {
-                $imagePath = storage_path('app/public/profiles/' . $row->image);
-                if (file_exists($imagePath)) {
-                    $imageUrl = asset('storage/profiles/' . $row->image);
-                } else {
-                    $imageUrl = asset('no-image.jpg');
-                }
-            } else {
-                $imageUrl = asset('no-image.jpg');
+                $action  = '';
+                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrg   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg   " style="color:#696cff;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a> ';
+                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg " style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $array[$i]["action"] = $action;
+
+                $i++;
             }
 
-            $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-            // Actions
-            $action = '';
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-
-            $array[$i]["action"] = $action;
-
-            $i++;
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs)    $totalrecs    = 0;
+        } catch (QueryException $e) {
+            $array = []; $totalrecs = 0; $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = []; $totalrecs = 0; $filtereddata = 0;
         }
 
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
-        return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
+        return json_encode([
+            "recordsFiltered" => $filtereddata,
+            "recordsTotal"    => $totalrecs,
+            "data"            => $array,
+        ]);
     }
 
-
-    //function to get inactive users list
     public function inActivelist(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $post['inactiveuser'] = 'Y';
-        $data = User::list($post);
-        // dd($data);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs = $data["totalrecs"];
+        try {
+            $post                 = $request->all();
+            $post['orgid']        = session('orgid');
+            $post['inactiveuser'] = 'Y';
+            $data                 = User::list($post);
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
+            $i            = 0;
+            $array        = [];
+            $totalrecs    = $data["totalrecs"];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $totalrecs);
 
-        foreach ($data["data"] as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["name"] = $row->name;
-            $array[$i]["email"] = $row->email;
-            $array[$i]["address"] = $row->address;
-            $array[$i]["phone"] = $row->phone;
-            $array[$i]["type"] = $row->type;
+            foreach ($data["data"] as $row) {
+                $array[$i]["sno"]     = $i + 1;
+                $array[$i]["name"]    = $row->name;
+                $array[$i]["email"]   = $row->email;
+                $array[$i]["address"] = $row->address ?? '-';
+                $array[$i]["phone"]   = $row->phone ?? '-';
+                $array[$i]["type"]    = $row->type ?? '-';
 
-            // ✅ DROPDOWN STATUS
-            $array[$i]["user_status"] = '
-<select class="form-select changeStatus" 
-    data-id="' . $row->id . '" 
-    data-current-val="' . $row->user_status . '">
-    <option value="Pending" ' . ($row->user_status == "Pending" ? "selected" : "") . '>Pending</option>
-    <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Approve</option>
-    <option value="Reject" ' . ($row->user_status == "Reject" ? "selected" : "") . '>Reject</option>
-</select>';
+                $array[$i]["user_status"] = '
+                <select class="form-select form-select-sm changeStatus" data-id="' . $row->id . '" data-original="' . $row->user_status . '" style="min-width:100px;">
+                    <option value="Pending" ' . ($row->user_status == "Pending" ? "selected" : "") . '>Pending</option>
+                    <option value="Approve" ' . ($row->user_status == "Approve" ? "selected" : "") . '>Approve</option>
+                    <option value="Reject"  ' . ($row->user_status == "Reject"  ? "selected" : "") . '>Reject</option>
+                </select>';
 
-            $array[$i]["profile"] = $row->profile;
-            $array[$i]["created_at"] = $row->created_at;
+                $action  = '';
+                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrgInactive  " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrgInactive" style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $array[$i]["action"] = $action;
 
-            // Image
-            if (!empty($row->logo)) {
-                $imagePath = storage_path('app/public/profile/' . $row->logo);
-
-                if (file_exists($imagePath)) {
-                    $imageUrl = asset('storage/profile/' . $row->logo);
-                } else {
-                    $imageUrl = asset('no-image.jpg');
-                }
-            } else {
-                $imageUrl = asset('no-image.jpg');
+                $i++;
             }
 
-            $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-
-            // Actions
-            $action = '';
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-
-            $array[$i]["action"] = $action;
-
-            $i++;
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs)    $totalrecs    = 0;
+        } catch (QueryException $e) {
+            $array = []; $totalrecs = 0; $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = []; $totalrecs = 0; $filtereddata = 0;
         }
 
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
-        return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
+        return json_encode([
+            "recordsFiltered" => $filtereddata,
+            "recordsTotal"    => $totalrecs,
+            "data"            => $array,
+        ]);
     }
 
     public function form(Request $request)
     {
-        $data = [];
-        $allRoles = Role::getRole();
-        $data['rolesList'] = $allRoles;
+        try {
+            $data              = [];
+            $data['rolesList'] = Role::getRole();
 
-        if (!empty($request->id)) {
-            $post = $request->all();
-            $post['orgid'] = session('orgid');
-            $result = User::getData($post);
-            if (!$result) {
-                throw new Exception("User not found", 1);
+            if (!empty($request->id)) {
+                $result = DB::table('users as u')
+                    ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
+                    ->select(
+                        'u.id', 'u.name as username', 'u.email',
+                        'p.first_name', 'p.middle_name', 'p.last_name',
+                        'p.gender', 'p.phone', 'p.address', 'p.image',
+                        'p.company_name', 'p.tax_number', 'p.registration_number',
+                        'p.pan_number', 'p.pan_image', 'p.registration_number_image'
+                    )
+                    ->where('u.id', $request->id)
+                    ->first();
+
+                if (!$result) throw new Exception("User not found", 1);
+
+                $userRoles = DB::table('model_has_roles')
+                    ->where('model_id', $result->id)
+                    ->pluck('role_id')
+                    ->toArray();
+
+                $data['id']                        = $result->id;
+                $data['username']                  = $result->username;
+                $data['first_name']                = $result->first_name;
+                $data['middle_name']               = $result->middle_name;
+                $data['last_name']                 = $result->last_name;
+                $data['gender']                    = $result->gender;
+                $data['phone']                     = $result->phone;
+                $data['address']                   = $result->address;
+                $data['email']                     = $result->email;
+                $data['userRoles']                 = $userRoles;
+                $data['company_name']              = $result->company_name;
+                $data['tax_number']                = $result->tax_number;
+                $data['registration_number']       = $result->registration_number;
+                $data['pan_number']                = $result->pan_number;
+                $data['pan_image']                 = $result->pan_image;
+                $data['registration_number_image'] = $result->registration_number_image;
+
+                if (!empty($result->image)) $data['image'] = $result->image;
             }
-
-            // User info
-            $data['id']         = $result->id;
-            $data['username']   = $result->username;
-            $data['first_name'] = $result->first_name;
-            $data['middle_name'] = $result->middle_name;
-            $data['last_name']  = $result->last_name;
-            $data['gender']     = $result->gender;
-            $data['phone']      = $result->phone;
-            $data['address']    = $result->address;
-            $data['email']      = $result->email;
-            $data['userRoles']  = $result->roles;
-
-            if ($result->image) {
-                $data['image'] = $result->image;
-            }
+        } catch (Exception $e) {
+            $data['error'] = $e->getMessage();
         }
 
         return view('backend.users.form', $data);
     }
 
-
-    // Delete
     public function delete(Request $request)
     {
         try {
-            $type = 'success';
+            $type    = 'success';
             $message = "Record deleted successfully";
-            $post = $request->all();
+            $post    = $request->all();
 
-            if (empty($post['id'])) {
-                throw new Exception("No ID provided", 1);
-            }
+            if (empty($post['id'])) throw new Exception("No ID provided", 1);
 
             DB::beginTransaction();
 
-            // Delete profile image if exists
             $profile = DB::table('profiles')->where('user_id', $post['id'])->first();
-            if ($profile && !empty($profile->image)) {
-                $imagePath = storage_path('app/public/profiles/' . $profile->image); // ✅
-                if (file_exists($imagePath)) {
-                    unlink($imagePath);
+            if ($profile) {
+                foreach (['image', 'pan_image', 'registration_number_image'] as $field) {
+                    if (!empty($profile->$field)) {
+                        $path = storage_path('app/public/profiles/' . $profile->$field);
+                        if (file_exists($path)) unlink($path);
+                    }
                 }
             }
 
-            // Delete related records first (foreign key order)
             DB::table('profiles')->where('user_id', $post['id'])->delete();
             DB::table('userorganizations')->where('userid', $post['id'])->delete();
             DB::table('model_has_roles')->where('model_id', $post['id'])->delete();
@@ -302,85 +343,88 @@ class UserController extends Controller
 
             DB::commit();
         } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
+            DB::rollBack(); $type = 'error'; $message = $e->getMessage();
         } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
+            DB::rollBack(); $type = 'error'; $message = $e->getMessage();
         }
 
         return json_encode(['type' => $type, 'message' => $message]);
     }
-    //view
+
     public function view(Request $request)
     {
         try {
-            $post = $request->all();
+            if (empty($request->id)) throw new Exception("No ID provided");
 
-            $userDetails = User::getData($post);
+            $userDetails = DB::table('users as u')
+                ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
+                ->select(
+                    'u.id', 'u.name', 'u.email', 'u.phone', 'u.user_status',
+                    'p.first_name', 'p.middle_name', 'p.last_name', 'p.username',
+                    'p.gender', 'p.phone as profile_phone', 'p.address', 'p.image',
+                    'p.type', 'p.company_name', 'p.tax_number', 'p.registration_number',
+                    'p.pan_number', 'p.pan_image', 'p.registration_number_image'
+                )
+                ->where('u.id', $request->id)
+                ->first();
 
-            $data = [
-                'userDetails' => $userDetails,
-            ];
+            if (!$userDetails) throw new Exception("User not found");
 
-            $data['type'] = 'success';
-            $data['message'] = 'Successfully fetched data of user.';
+            $fullName = trim(
+                ($userDetails->first_name ?? '') . ' ' .
+                ($userDetails->middle_name ?? '') . ' ' .
+                ($userDetails->last_name ?? '')
+            );
+            if ($fullName) $userDetails->name = $fullName;
+
+            $userRoles = DB::table('model_has_roles as mhr')
+                ->join('roles as r', 'r.id', '=', 'mhr.role_id')
+                ->where('mhr.model_id', $userDetails->id)
+                ->pluck('r.name')
+                ->toArray();
+
+            $userDetails->role_names    = $userRoles;
+            $userDetails->is_wholesaler = collect($userRoles)
+                ->contains(fn($r) => str_contains(strtolower($r), 'wholesaler'));
+
+            $data = ['orgDetails' => $userDetails, 'type' => 'success', 'message' => 'Successfully fetched user data.'];
         } catch (QueryException $e) {
-            $data['type'] = 'error';
-            $data['message'] = 'Something went wrong.';
+            $data = ['type' => 'error', 'message' => 'Something went wrong.'];
         } catch (Exception $e) {
-            $data['type'] = 'error';
-            $data['message'] = $e->getMessage();
+            $data = ['type' => 'error', 'message' => $e->getMessage()];
         }
-        return view('backend.organization.view', $data);
+
+        return view('backend.users.view', $data);
     }
 
     public function updateStatus(Request $request)
     {
         try {
             $user = User::find($request->user_id);
-            if (!$user) {
-                return response()->json([
-                    'type' => 'error',
-                    'message' => 'User not found'
-                ]);
-            }
+            if (!$user) return response()->json(['type' => 'error', 'message' => 'User not found']);
 
             $user->user_status = $request->status;
-            $user->remarks = $request->remark;
+            $user->remarks     = $request->remark;
             $user->save();
 
-            // ✅ Send Mail based on status
             if ($request->status == 'Approve') {
                 Mail::to($user->email)->queue(new UserApprovedMail($user));
             } elseif ($request->status == 'Reject') {
                 Mail::to($user->email)->send(new UserRejectedMail($user));
             }
 
-            return response()->json([
-                'type' => 'success',
-                'message' => 'Status updated successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'type' => 'error',
-                'message' => $e->getMessage()
-            ]);
+            return response()->json(['type' => 'success', 'message' => 'Status updated successfully']);
+        } catch (Exception $e) {
+            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
         }
     }
+
     public function tabs(Request $request)
     {
-        $tabid = $request->input('tabid');
-
-        switch ($tabid) {
-            case 'active':
-                return view('backend.users.index');
-            case 'inactive':
-                return view('backend.users.inactiveuser');
-            default:
-                return '<div class="alert alert-warning">Invalid tab</div>';
+        switch ($request->input('tabid')) {
+            case 'active':   return view('backend.users.index');
+            case 'inactive': return view('backend.users.inactiveuser');
+            default:         return '<div class="alert alert-warning">Invalid tab</div>';
         }
     }
 }
