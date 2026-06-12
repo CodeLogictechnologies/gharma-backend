@@ -100,43 +100,72 @@ class ApiAuthController extends Controller
     public function wholesalerRegister(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'username'    => 'required|string|max:255',
-            'email'       => 'required|string|email|max:255|unique:users',
-            'password'    => 'required|string|min:6|confirmed',
-            'first_name'  => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name'   => 'required|string|max:255',
-            'gender'      => 'required',
-            'address'     => 'required',
-            'phone'       => 'required',
-            'image'       => 'required',
-            'company_name'       => 'required',
-            'tax_number'       => 'required',
-            'registration_number'       => 'required',
+            'username'            => 'required|string|max:255',
+            'email'               => 'required|string|email|max:255|unique:users',
+            'password'            => 'required|string|min:6|confirmed',
+            'first_name'          => 'required|string|max:255',
+            'middle_name'         => 'nullable|string|max:255',
+            'last_name'           => 'required|string|max:255',
+            'gender'              => 'required',
+            'address'             => 'required',
+            'phone'               => 'required',
+            'image'               => 'required',
+            'company_name'        => 'required',
+            'tax_number'          => 'required',
+            'registration_number' => 'required',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
+                'type'    => 'error',
                 'message' => $validator->errors()->first()
             ], 422);
         }
 
-        $post = $request->all();
-        $post['type'] = 'wholesaler';
-        User::saveData($post);
+        try {
+            $post         = $request->all();
+            $post['type'] = 'wholesaler';
+            User::saveData($post);
 
-        $user  = User::where('email', $post['email'])->first();
-        $token = JWTAuth::fromUser($user);
+            $user = User::where('email', $post['email'])->first();
 
-        return response()->json([
-            'success'    => true,
-            'message'    => 'Wholesaler registered successfully.',
-            'token'      => $token,
-            'token_type' => 'bearer',
-            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
-            // 'user'       => $user,
-        ], 201);
+            if (!$user) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => 'User registration failed. Please try again.',
+                ], 500);
+            }
+
+            $token = JWTAuth::fromUser($user);
+
+            $refreshToken = JWTAuth::claims([
+                'type' => 'refresh',
+                'exp'  => now()->addDays(30)->timestamp,
+            ])->fromUser($user);
+
+            return response()->json([
+                'type'          => 'success',
+                'message'       => 'Wholesaler registered successfully.',
+                'token'         => $token,
+                'token_type'    => 'bearer',
+                'refresh_token' => $refreshToken,
+            ], 201);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something Wrong',
+            ], 500);
+        } catch (JWTException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Token generation failed: ' . $e->getMessage(),
+            ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -180,10 +209,17 @@ class ApiAuthController extends Controller
         $firstRole = $roles->first() ?? null;
         // $deviceToke = Userdevicetoken::saveDate($post);
 
+        $roleData = DB::table('roles')
+            ->join('model_has_roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.model_id', $user->id)
+            ->select('roles.id as role_id', 'roles.name as role_name')
+            ->get();
+
         $refreshToken = JWTAuth::claims([
             'type' => 'refresh',
             'exp'  => now()->addDays(30)->timestamp,
         ])->fromUser($user);
+
 
         // Merge base response with role-based greeting + redirect
         return response()->json(array_merge([
@@ -192,11 +228,15 @@ class ApiAuthController extends Controller
             'token'      => $token,
             'token_type' => 'bearer',
             'refresh_token' => $refreshToken,
-            'rolenamenote'         => $roles,                // e.g. ["Driver"]
+            // 'rolenamenote'         => $roles,                // e.g. ["Driver"]
             // 'expires_in'    => config('jwt.ttl') * 60, 
             // 'expires_in' => auth('api')->factory()->getTTL() * 60,
             // 'user'       => $user,
             // 'roles'      => $user->getRoleNames(),
+            'roles'         => $roleData->map(fn($r) => [   // ← roles with id and name
+                'roleid'   => $r->role_id,
+                'rolename' => $r->role_name,
+            ]),
         ]));
     }
 
@@ -288,41 +328,43 @@ class ApiAuthController extends Controller
 
     public function userDetail(Request $request)
     {
-        try {
+        // try {
 
-            $user = auth('api')->user();
+        $user = auth('api')->user();
 
-            if (!$user) {
-                throw new Exception("Unauthorized user");
-            }
-
-            $post = $request->all();
-            $post['userid'] = $user->id;
-
-            $result = User::getDataUser($post);
-
-            if (!$result) {
-                throw new Exception("User not found");
-            }
-
-            return response()->json([
-                'type' => 'success',
-                'message' => 'User fetched successfully',
-                'data' => $result
-            ]);
-        } catch (QueryException $e) {
-
-            return response()->json([
-                'type' => 'error',
-                'message' => 'Something went wrong'
-            ], 500);
-        } catch (Exception $e) {
-
-            return response()->json([
-                'type' => 'error',
-                'message' => $e->getMessage()
-            ], 400);
+        if (!$user) {
+            throw new Exception("Unauthorized user");
         }
+        $payload = JWTAuth::parseToken()->getPayload();
+        $profile = $payload->get('profile');
+        $post = $request->all();
+        $post['userid'] = $profile['userid'];
+        $post['orgid']  = $profile['orgid'];
+
+        $result = User::getDataUser($post);
+
+        if (!$result) {
+            throw new Exception("User not found");
+        }
+
+        return response()->json([
+            'type' => 'success',
+            'message' => 'User fetched successfully',
+            'data' => $result
+        ]);
+        // } catch (QueryException $e) {
+
+        //     return response()->json([
+        //         'type' => 'error',
+        //         'message' => 'Something went wrong'
+        //     ], 500);
+        // } catch (Exception $e) {
+
+        //     return response()->json([
+        //         'type' => 'error',
+        //         'message' => $e->getMessage()
+        //     ], 400);
+        // }
     }
     // -----------------------------------------------------------------------
     // PUT /api/me/update  (requires Bearer token)

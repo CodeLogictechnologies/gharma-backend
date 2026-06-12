@@ -40,26 +40,31 @@ class AddToCartRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'orgid'               => ['required', 'uuid', 'exists:organizations,id'],
-            'userid'              => ['required', 'uuid', 'exists:users,id'],
-            'variationid'              => ['required', 'uuid', 'exists:itemvariations,id']
+            'orgid'       => ['required', 'uuid', 'exists:organizations,id'],
+            'userid'      => ['required', 'uuid', 'exists:users,id'],
+            'variationid' => ['required', 'uuid', 'exists:itemvariations,id'],
+            'qty'         => ['required', 'integer', 'min:0'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'orgid.required'               => 'Organization is required.',
-            'orgid.uuid'                   => 'Invalid organization ID.',
-            'orgid.exists'                 => 'Organization not found.',
+            'orgid.required'    => 'Organization is required.',
+            'orgid.uuid'        => 'Invalid organization ID.',
+            'orgid.exists'      => 'Organization not found.',
 
-            'userid.required'              => 'User is required.',
-            'userid.uuid'                  => 'Invalid user ID.',
-            'userid.exists'                => 'User not found.',
+            'userid.required'   => 'User is required.',
+            'userid.uuid'       => 'Invalid user ID.',
+            'userid.exists'     => 'User not found.',
 
-            'variationid.required'               => 'Variation ID is required',
-            'variationid.uuid'                  => 'Variation ID.',
-            'variationid.exists'                => 'Variation not found.',
+            'variationid.required' => 'Variation ID is required.',
+            'variationid.uuid'     => 'Invalid variation ID.',
+            'variationid.exists'   => 'Variation not found.',
+
+            'qty.required'      => 'Quantity is required.',
+            'qty.integer'       => 'Quantity must be a number.',
+            'qty.min'           => 'Quantity cannot be negative.',
         ];
     }
 

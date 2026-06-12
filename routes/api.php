@@ -26,7 +26,9 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\API\SearchHistoryController;
 use App\Http\Controllers\AssignDriverController;
 use App\Http\Controllers\BackPanel\AssignDriverController as BackPanelAssignDriverController;
+use App\Http\Controllers\EsewaController;
 use App\Http\Controllers\TransactionController;
+use App\Models\Esewa;
 
 Route::get('/hello', function () {
     return response()->json(['message' => 'Hello']);
@@ -64,7 +66,7 @@ Route::get('/categories/list', [CategoryListController::class, 'getCategoryList'
 // Sub category list
 Route::get('/subcategories/list', [CategoryListController::class, 'getSubCategoryList']);
 // Home tab list with categories
-Route::get('/home', [HomeTabController::class, 'index']); 
+Route::get('/home', [HomeTabController::class, 'index']);
 
 Route::middleware('auth:api')->group(function () {
     Route::post('/items/search/save', [SearchHistoryController::class, 'searchSave']);
@@ -108,7 +110,7 @@ Route::middleware('auth:api')->group(function () {
 
 
 
-    Route::post('/addtocart',    [CartController::class, 'saveAddToCart']);
+    Route::put('/addtocart',    [CartController::class, 'saveAddToCart']);
     Route::get('/cart/list',    [CartController::class, 'getList']);
     Route::delete('/cart/delete/{variationid}',    [CartController::class, 'deleteCart']);
     Route::delete('/cart/remove/{variationid}',    [CartController::class, 'removeCart']);
@@ -147,4 +149,35 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/driver/order/customerdetail', [BackPanelAssignDriverController::class, 'getCustomerDetail']);
     Route::post('/driver/order/status/change', [BackPanelAssignDriverController::class, 'changeOrderStatus']);
     Route::post('customer/order/checkotp', [BackPanelAssignDriverController::class, 'verifyOtp']);
+});
+
+Route::prefix('esewa')->name('esewa.')->group(function () {
+
+    // Public — eSewa server POSTs to this (no auth token)
+    Route::post('/callback', [EsewaController::class, 'callback'])
+        ->name('callback');
+
+    // Protected routes (add ->middleware('auth:sanctum') if using Sanctum)
+    // Route::middleware([])->group(function () {
+
+    // Initiate a new payment
+    Route::post('/initiate', [EsewaController::class, 'initiate'])
+        ->name('initiate');
+
+    // Check payment status
+    Route::get('/status/{bookingId}', [EsewaController::class, 'status'])
+        ->name('status');
+
+    // Cancel a booked payment
+    Route::post('/cancel/{bookingId}', [EsewaController::class, 'cancel'])
+        ->name('cancel');
+
+    // List all transactions
+    Route::get('/transactions', [EsewaController::class, 'index'])
+        ->name('transactions.index');
+
+    // Single transaction detail
+    Route::get('/transactions/{esewaTransaction}', [EsewaController::class, 'show'])
+        ->name('transactions.show');
+    // });
 });

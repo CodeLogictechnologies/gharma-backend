@@ -14,27 +14,140 @@ class Cart extends Model
     public static function saveData($post)
     {
         try {
+            $insertArray = [];
+            // dd($post);
+            if (!empty($post['roleid']) && $post['roleid'] == 2) {
+                $price = DB::table('wholesaler_price_details as wd')
+                    ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
+                    ->where('wd.status', 'Y')
+                    ->where('wp.status', 'Y')
+                    ->where('wp.orgid', $post['orgid'])
+                    ->where('wp.variation_id', $post['variationid'])
+                    ->where('wd.min_qty', '<=', $post['qty'])
+                    ->where('wd.max_qty', '>=', $post['qty'])
+                    ->select('wd.price')
+                    ->first();
 
-            $price = DB::table('retailer_prices')
-                ->where('variation_id', $post['variationid'])
-                ->where('status', 'Y')
-                ->where('orgid', $post['orgid'])
-                ->select('price')
-                ->first();
+                if (!$price) {
+                    $price = DB::table('retailer_prices')
+                        ->where('variation_id', $post['variationid'])
+                        ->where('status', 'Y')
+                        ->where('orgid', $post['orgid'])
+                        ->select('price')
+                        ->first();
+                    if (!$price) {
+                        throw new \Exception("Price not found for this product.");
+                    }
+                }
+                if ($post['qty'] == 0 || $post['qty'] == "0") {
+                    $delete = Cart::where('variation_id', $post['variationid'])
+                        ->where('orgid', $post['orgid'])
+                        ->where('userid', $post['userid'])
+                        ->delete();
 
-            $insertArray = [
-                'id'            => (string) Str::uuid(),
-                'orgid' => $post['orgid'],
-                'userid' => $post['userid'],
-                'variation_id' => $post['variationid'],
-                'unit_price' => $price->price,
-                'total_price' => $price->price,
-                'quantity' => 1,
-            ];
+                    if (!$delete) {
+                        throw new \Exception("Couldn't update product in cart.");
+                    }
 
-            if (!Cart::insert($insertArray)) {
-                throw new \Exception("Couldn't save product to cart.");
+                    return true;
+                }
+                // Check if this item already exists in the cart
+                $existingCart = Cart::where('variation_id', $post['variationid'])
+                    ->where('orgid', $post['orgid'])
+                    ->where('userid', $post['userid'])
+                    ->first();
+
+                if ($existingCart) {
+                    // Item exists — update quantity and recalculate total_price
+                    $newQty = $post['qty'];
+
+                    $updated = Cart::where('id', $existingCart->id)
+                        ->update([
+                            'quantity'    => $newQty,
+                            'total_price' => $newQty * $price->price,
+                        ]);
+
+                    if (!$updated) {
+                        throw new \Exception("Couldn't update product in cart.");
+                    }
+                } else {
+                    // Item doesn't exist — insert new row
+                    $insertArray = [
+                        'id'           => (string) Str::uuid(),
+                        'orgid'        => $post['orgid'],
+                        'userid'       => $post['userid'],
+                        'variation_id' => $post['variationid'],
+                        'unit_price'   => $price->price,
+                        'total_price'  => $post['qty'] * $price->price,
+                        'quantity'     => $post['qty'],
+                    ];
+
+                    if (!Cart::insert($insertArray)) {
+                        throw new \Exception("Couldn't save product to cart.");
+                    }
+                }
+            } else {
+                $price = DB::table('retailer_prices')
+                    ->where('variation_id', $post['variationid'])
+                    ->where('status', 'Y')
+                    ->where('orgid', $post['orgid'])
+                    ->select('price')
+                    ->first();
+
+                if (!$price) {
+                    throw new \Exception("Price not found for this variation.");
+                }
+
+                if ($post['qty'] == 0 || $post['qty'] == "0") {
+                    $delete = Cart::where('variation_id', $post['variationid'])
+                        ->where('orgid', $post['orgid'])
+                        ->where('userid', $post['userid'])
+                        ->delete();
+
+                    if (!$delete) {
+                        throw new \Exception("Couldn't update product in cart.");
+                    }
+
+                    return true;
+                }
+                // Check if this item already exists in the cart
+                $existingCart = Cart::where('variation_id', $post['variationid'])
+                    ->where('orgid', $post['orgid'])
+                    ->where('userid', $post['userid'])
+                    ->first();
+
+                if ($existingCart) {
+                    // Item exists — update quantity and recalculate total_price
+                    $newQty = $post['qty'];
+
+                    $updated = Cart::where('id', $existingCart->id)
+                        ->update([
+                            'quantity'    => $newQty,
+                            'total_price' => $newQty * $price->price,
+                        ]);
+
+                    if (!$updated) {
+                        throw new \Exception("Couldn't update product in cart.");
+                    }
+                } else {
+                    // Item doesn't exist — insert new row
+                    $insertArray = [
+                        'id'           => (string) Str::uuid(),
+                        'orgid'        => $post['orgid'],
+                        'userid'       => $post['userid'],
+                        'variation_id' => $post['variationid'],
+                        'unit_price'   => $price->price,
+                        'total_price'  => $post['qty'] * $price->price,
+                        'quantity'     => $post['qty'],
+                    ];
+
+                    if (!Cart::insert($insertArray)) {
+                        throw new \Exception("Couldn't save product to cart.");
+                    }
+                }
             }
+
+
 
             return true;
         } catch (\Exception $e) {
@@ -45,15 +158,14 @@ class Cart extends Model
     public static function getData($post)
     {
         try {
-
             $result = DB::table('carts as c')
                 ->select(
                     'c.variation_id',
-                    'p.price as productprice',
                     'i.id as productid',
                     DB::raw("CONCAT(i.title, ' ', it.value) as title"),
-                    DB::raw('SUM(c.quantity) as total_quantity'),
-                    DB::raw('SUM(c.total_price) as total_price')
+                    'c.unit_price as productprice',
+                    'c.total_price as total_price',
+                    'c.quantity as total_quantity'
                 )
                 ->join('itemvariations as it', 'it.id', '=', 'c.variation_id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'it.id')
@@ -67,16 +179,18 @@ class Cart extends Model
                     'i.id',
                     'i.title',
                     'p.price',
-                    'it.value'
+                    'it.value',
+                    'c.unit_price',
+                    'c.total_price',
+                    'c.quantity'
                 )
                 ->get();
 
-            // Attach single image
             $result->map(function ($item) {
 
                 $image = DB::table('item_images')
                     ->where('item_id', $item->productid)
-                    ->value('image'); // 👈 only one image
+                    ->value('image');
 
                 $item->image = $image
                     ? url('uploads/items/' . $image)
@@ -110,19 +224,45 @@ class Cart extends Model
     {
         try {
 
-            $result = Cart::where('variation_id', $post['variationid'])
+            $carts = Cart::where('variation_id', $post['variationid'])
                 ->where('userid', $post['userid'])
                 ->where('orgid', $post['orgid'])
-                ->select('id')
-                ->first();
+                ->orderBy('id', 'asc')
+                ->get();
 
-            $deleteItem = Cart::where('variation_id', $post['variationid'])
-                ->where('userid', $post['userid'])
-                ->where('orgid', $post['orgid'])
-                ->where('id', $result->id)
-                ->delete();
+            if ($carts->isEmpty()) {
+                throw new \Exception("Cart not found");
+            }
 
-            return $deleteItem;
+            $removeQty = (int) $post['qty'];
+
+            // Total available qty
+            $totalQty = $carts->sum('quantity');
+
+            if ($removeQty > $totalQty) {
+                throw new \Exception("Requested qty exceeds cart quantity");
+            }
+
+            foreach ($carts as $cart) {
+                $unitPrice = $cart->total_price / $cart->quantity;
+
+                if ($removeQty <= 0) {
+                    break;
+                }
+
+                if ($cart->quantity <= $removeQty) {
+                    $removeQty -= $cart->quantity;
+                    $cart->delete();
+                } else {
+                    $cart->quantity -= $removeQty;
+                    $cart->total_price = $cart->quantity * $unitPrice;
+
+                    $cart->save();
+                    $removeQty = 0;
+                }
+            }
+
+            return $totalQty;
         } catch (\Exception $e) {
             throw $e;
         }
