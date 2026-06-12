@@ -98,9 +98,9 @@ Route::group(['middleware' => ['auth']], function () {
 
         Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('admin.dashboard');
         Route::group(['prefix' => 'favicon'], function () {
-                Route::get('/',      [FaviconController::class, 'index'])->name('favicon');
-                Route::put('/update',[FaviconController::class, 'update'])->name('favicon.update');
-            });
+            Route::get('/',      [FaviconController::class, 'index'])->name('favicon');
+            Route::put('/update', [FaviconController::class, 'update'])->name('favicon.update');
+        });
         Route::get('/organization', [OrganizationController::class, 'index'])->name('organization');
         Route::get('/organization/list', [OrganizationController::class, 'list'])->name('organization.list');
         Route::any('/organization/form', [OrganizationController::class, 'form'])->name('organization.form');
@@ -127,6 +127,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save', [RoleController::class, 'save'])->name('role.save');
             Route::post('/list', [RoleController::class, 'list'])->name('role.list');
             Route::post('/delete', [RoleController::class, 'delete'])->name('role.delete');
+            Route::post('/permissions', [RoleController::class, 'getPermissions'])->name('role.getPermissions'); // ← add this
+
         });
 
         Route::group(['prefix' => 'permission'], function () {
@@ -143,6 +145,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/inactiveuserlist', [UserController::class, 'inActivelist'])->name('inactive.user.list');
             Route::any('/form', [UserController::class, 'form'])->name('user.form');
             Route::post('/save', [UserController::class, 'save'])->name('user.save');
+            Route::post('/edit', [UserController::class, 'edit'])->name('user.edit');
             Route::post('/delete', [UserController::class, 'delete'])->name('user.delete');
             Route::post('/view', [UserController::class, 'view'])->name('user.view');
             Route::post('/status-update', [UserController::class, 'updateStatus'])->name('user.status');

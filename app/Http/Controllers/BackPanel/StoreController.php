@@ -77,13 +77,13 @@ class StoreController extends Controller
                 $array[$i]["phone"]    = $row->phone;
                 $array[$i]["city"]    = $row->city;
                 $array[$i]["country"]    = $row->country;
-                $array[$i]["latitude"]  = $row->latitude  ?? '-';
-                $array[$i]["longitude"] = $row->longitude ?? '-';
+               $array[$i]["latitude"]  = !empty($row->latitude)  ? $row->latitude  : '-';
+$array[$i]["longitude"] = !empty($row->longitude) ? $row->longitude : '-';
 
-                $action = '';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-
-                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editStore" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
+$action  = '';
+$action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewStore  px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
+$action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editStore  px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+$action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
                 $array[$i]["action"]  = $action;
                 $i++;
             }
@@ -124,6 +124,8 @@ class StoreController extends Controller
                 $data['email']  = $result->email;
                 $data['latitude']  = $result->latitude;
                 $data['longitude'] = $result->longitude;
+                $data['radius']    = $result->radius;
+
             }
         } catch (QueryException $e) {
             $data['error'] = $this->queryMessage;
@@ -162,27 +164,27 @@ class StoreController extends Controller
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
-    //function to view
     public function view(Request $request)
-    {
-        try {
-            $post = $request->all();
+{
+    try {
+        $post = $request->all();
+        $orgDetails = Store::getData($post);
 
-            $orgDetails = Organization::getData($post);
-
-            $data = [
-                'orgDetails' => $orgDetails,
-            ];
-
-            $data['type'] = 'success';
-            $data['message'] = 'Successfully fetched data of Organization.';
-        } catch (QueryException $e) {
-            $data['type'] = 'error';
-            $data['message'] = $this->queryMessage;
-        } catch (Exception $e) {
-            $data['type'] = 'error';
-            $data['message'] = $e->getMessage();
+        if (!$orgDetails) {
+            throw new Exception("Store not found");
         }
-        return view('backend.organization.view', $data);
+
+        $data = [
+            'orgDetails' => $orgDetails,
+            'type'       => 'success',
+            'message'    => 'Successfully fetched store data.',
+        ];
+    } catch (QueryException $e) {
+        $data = ['type' => 'error', 'message' => 'Something went wrong.'];
+    } catch (Exception $e) {
+        $data = ['type' => 'error', 'message' => $e->getMessage()];
     }
+
+    return view('backend.store.view', $data);
+}
 }

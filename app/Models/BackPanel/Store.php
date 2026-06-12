@@ -32,6 +32,8 @@ class Store extends Model
                 'orgid'     => $post['orgid'],
                 'latitude'  => !empty($post['latitude'])  ? (float) preg_replace('/[^0-9.\-]/', '', $post['latitude'])  : null,
                 'longitude' => !empty($post['longitude']) ? (float) preg_replace('/[^0-9.\-]/', '', $post['longitude']) : null,
+                'radius'    => !empty($post['radius'])    ? (float) $post['radius'] : null,
+
             ];
 
             if (!empty($post['id'])) {
@@ -135,7 +137,9 @@ class Store extends Model
                 'o.city',
                 'o.country',
                 'o.latitude',
-                'o.longitude'
+                'o.longitude',
+                    'o.radius'
+
             )
             ->first();
 

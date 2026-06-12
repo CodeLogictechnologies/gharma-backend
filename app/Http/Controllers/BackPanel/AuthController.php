@@ -192,7 +192,7 @@ class AuthController extends SessionController
         } catch (QueryException $e) {
             DB::rollBack();
             $type    = 'error';
-            $message = $this->queryMessage;
+            $message =  'Something went wrong. Please try again.';
         } catch (Exception $e) {
             DB::rollBack();
             $type    = 'error';

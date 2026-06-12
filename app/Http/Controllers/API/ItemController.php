@@ -387,7 +387,7 @@ class ItemController extends Controller
             $item = DB::table('items as i')
                 ->leftJoin('brands as b', 'b.id', '=', 'i.brand_id')
                 ->leftJoin(DB::raw('(
-                SELECT item_id, GROUP_CONCAT(image) as images
+                SELECT item_id, GROUP_CONCAT(image ORDER BY order_number ASC) as images
                 FROM item_images
                 GROUP BY item_id
             ) as img'), 'img.item_id', '=', 'i.id')
@@ -397,7 +397,7 @@ class ItemController extends Controller
                     'i.id as productid',
                     'i.title',
                     'i.product_code',
-                    'i.company_product_code',
+                    // 'i.company_product_code',
                     'i.description',
                     'i.type',
                     'b.name as brand',
@@ -419,22 +419,6 @@ class ItemController extends Controller
                     explode(',', $item->images)
                 )
                 : [];
-
-            $variations = DB::table('itemvariations as iv')
-                ->where('iv.item_id', $item->productid)
-                ->where('iv.status', 'Y')
-                ->select(
-                    'iv.id as variationid',
-                    'iv.attribute',
-                    'iv.value',
-                    'iv.product_code as variation_product_code',
-                    'iv.company_product_code as variation_company_code',
-                    'iv.threshold',
-                    'iv.price'
-                )
-                ->get();
-
-            $item->variations = $variations;
 
             return response()->json([
                 'type'    => 'success',

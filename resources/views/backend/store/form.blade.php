@@ -88,6 +88,13 @@
                 <div class="invalid-feedback">Longitude is required.</div>
             </div>
 
+             <div class="col-md-4">
+        <label class="form-label">Radius (km) <span class="text-danger">*</span></label>
+        <input type="number" name="radius" class="form-control"
+            placeholder="e.g. 5" value="{{ @$radius ?? '' }}" min="0" step="0.1" data-required />
+        <div class="invalid-feedback">Radius is required.</div>
+    </div>
+
         </div>
 
     </div>
