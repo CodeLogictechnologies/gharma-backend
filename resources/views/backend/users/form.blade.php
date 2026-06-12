@@ -63,7 +63,7 @@
 
 <div class="modal-header">
     <h1 class="modal-title fs-5">{{ empty($id) ? 'Add User' : 'Edit User' }}</h1>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <button type="button" class="btn-close" id="closeUserModal"></button>
 </div>
 
 <div class="modal-body">
@@ -74,7 +74,7 @@
         {{-- Name Fields --}}
         <div class="row mb-2">
             <div class="col-md-4">
-                <label for="first_name" class="form-label">First Name<span class="text-danger">*</span></label>
+                <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" name="first_name" id="first_name"
                     placeholder="Enter first name" value="{{ @$first_name }}">
                 <div class="invalid-feedback">Enter first name</div>
@@ -126,9 +126,9 @@
                 <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
                 <select name="gender" id="gender" class="form-control">
                     <option value="">Select Gender</option>
-                    <option value="Male"   @if(@$gender == 'Male')   selected @endif>Male</option>
-                    <option value="Female" @if(@$gender == 'Female') selected @endif>Female</option>
-                    <option value="Other"  @if(@$gender == 'Other')  selected @endif>Other</option>
+                    <option value="Male" @if(@$gender=='Male') selected @endif>Male</option>
+                    <option value="Female" @if(@$gender=='Female') selected @endif>Female</option>
+                    <option value="Other" @if(@$gender=='Other') selected @endif>Other</option>
                 </select>
                 <div class="invalid-feedback">Select gender</div>
             </div>
@@ -136,13 +136,69 @@
                 <label for="roles" class="form-label">Roles <span class="text-danger">*</span></label>
                 <select name="roles[]" id="roles" class="form-control" multiple>
                     @foreach ($rolesList as $role)
-                        <option value="{{ $role->id }}"
-                            @if (!empty($userRoles) && in_array($role->id, $userRoles)) selected @endif>
-                            {{ $role->name }}
-                        </option>
+                    <option value="{{ $role->id }}"
+                        @if (!empty($userRoles) && in_array($role->id, $userRoles)) selected @endif>
+                        {{ $role->name }}
+                    </option>
                     @endforeach
                 </select>
                 <div class="invalid-feedback">Select at least one role</div>
+            </div>
+        </div>
+
+        {{-- Wholesaler-only fields --}}
+        <div id="wholesalerFields" style="display:none;">
+            <hr class="my-3">
+            <p class="text-muted fw-semibold mb-2" style="font-size:0.85rem;">Wholesaler Information</p>
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="company_name" id="company_name"
+                        placeholder="Enter company name" value="{{ @$company_name }}">
+                    <div class="invalid-feedback">Enter company name</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tax Number <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="tax_number" id="tax_number"
+                        placeholder="Enter tax number" value="{{ @$tax_number }}">
+                    <div class="invalid-feedback">Enter tax number</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Registration Number <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="registration_number" id="registration_number"
+                        placeholder="Enter registration number" value="{{ @$registration_number }}">
+                    <div class="invalid-feedback">Enter registration number</div>
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <label class="form-label">PAN Number <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="pan_number" id="pan_number"
+                        placeholder="Enter PAN number" value="{{ @$pan_number }}">
+                    <div class="invalid-feedback">Enter PAN number</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">PAN Image<span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" name="pan_image" id="pan_image" accept="image/*">
+                    <div class="mt-2">
+                        @if (!empty($pan_image))
+                        <img src="{{ asset('storage/profiles/' . $pan_image) }}" id="pan_img_preview" class="_image">
+                        @else
+                        <img src="{{ asset('/no-image.jpg') }}" id="pan_img_preview" class="_image">
+                        @endif
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Registration Image<span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" name="registration_number_image" id="registration_number_image" accept="image/*">
+                    <div class="mt-2">
+                        @if (!empty($registration_number_image))
+                        <img src="{{ asset('storage/profiles/' . $registration_number_image) }}" id="reg_img_preview" class="_image">
+                        @else
+                        <img src="{{ asset('/no-image.jpg') }}" id="reg_img_preview" class="_image">
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -153,9 +209,9 @@
                 <input type="file" class="form-control" name="image" id="image" accept="image/*">
                 <div class="mt-2">
                     @if (!empty($image))
-                        <img src="{{ asset('storage/profiles/' . $image) }}" id="img_preview" class="_image">
+                    <img src="{{ asset('storage/profiles/' . $image) }}" id="img_preview" class="_image">
                     @else
-                        <img src="{{ asset('/no-image.jpg') }}" id="img_preview" class="_image">
+                    <img src="{{ asset('/no-image.jpg') }}" id="img_preview" class="_image">
                     @endif
                 </div>
             </div>
@@ -165,118 +221,220 @@
 </div>
 
 <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <button type="button" class="btn btn-secondary" id="closeUserModal2">Close</button>
     <button type="button" class="btn btn-primary" id="saveUser">
         <i class="fa fa-save"></i> {{ empty($id) ? 'Save' : 'Update' }}
     </button>
 </div>
 
-{{-- ❌ NO <script src="select2..."> here — it causes a race condition.
-     Select2 JS must already be loaded by the parent layout before this runs. --}}
 <script>
-(function ($) {
+    (function($) {
 
-    /* ── Select2 init ──────────────────────────────────────────── */
-    $('#roles').select2({
-        theme         : 'bootstrap-5',
-        placeholder   : 'Select roles...',
-        allowClear    : true,
-        width         : '100%',
-        dropdownParent: $('#userModel'),
-    });
-
-    /* ── Image preview ─────────────────────────────────────────── */
-    $('#image').on('change', function (e) {
-        const file = e.target.files[0];
-        if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
-    });
-
-    /* ── jQuery Validation ─────────────────────────────────────── */
-    $('#userForm').validate({
-        ignore: [],
-        rules: {
-            first_name : 'required',
-            last_name  : 'required',
-            username   : 'required',
-            email      : { required: true, email: true },
-            phone      : 'required',
-            address    : 'required',
-            gender     : 'required',
-            'roles[]'  : { required: true, minlength: 1 }
-        },
-        messages: {
-            first_name : 'Enter first name',
-            last_name  : 'Enter last name',
-            username   : 'Enter username',
-            email      : 'Enter a valid email',
-            phone      : 'Enter phone',
-            address    : 'Enter address',
-            gender     : 'Select gender',
-            'roles[]'  : 'Select at least one role'
-        },
-        highlight  : function (el) { $(el).addClass('border-danger'); },
-        unhighlight: function (el) { $(el).removeClass('border-danger'); },
-        errorPlacement: function (error, element) {
-            if (element.attr('id') === 'roles') {
-                error.insertAfter(element.next('.select2-container'));
+        /* ── Close modal buttons ─────────────────────────────────── */
+        $(document).off('click.closeUserModal').on('click.closeUserModal', '#closeUserModal, #closeUserModal2', function() {
+            var modalEl  = document.getElementById('userModel');
+            var instance = bootstrap.Modal.getInstance(modalEl);
+            if (instance) {
+                instance.hide();
             } else {
-                error.insertAfter(element);
-            }
-        }
-    });
-
-    /* ── Save / Update ─────────────────────────────────────────── */
-    $('#saveUser').on('click', function () {
-        if (!$('#userForm').valid()) return;
-
-        var $btn     = $(this);
-        var origHtml = $btn.html();
-        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
-        showLoader();
-
-        $.ajax({
-            url         : $('#userForm').attr('action'),
-            type        : 'POST',
-            data        : new FormData(document.getElementById('userForm')),
-            processData : false,
-            contentType : false,
-
-            success: function (response) {
-                hideLoader();
-                var result = (typeof response === 'string') ? JSON.parse(response) : response;
-
-                if (result.type === 'success') {
-                    showNotification(result.message, 'success');
-                    if (typeof userTable !== 'undefined' && userTable) {
-                        userTable.fnDraw();
+                $(modalEl).removeClass('show').css('display', 'none');
+                $(modalEl).attr('aria-hidden', 'true').removeAttr('aria-modal role');
+                $('#userModelContent').html('');
+                setTimeout(function() {
+                    if ($('.modal.show').length === 0) {
+                        $('.modal-backdrop').remove();
+                        $('body').removeClass('modal-open').css('padding-right', '');
                     }
-                    bootstrap.Modal.getInstance(document.getElementById('userModel')).hide();
-                } else {
-                    showNotification(result.message, 'error');
-                    $btn.prop('disabled', false).html(origHtml);
+                }, 300);
+            }
+        });
+
+        /* ── Select2 init ────────────────────────────────────────── */
+        $('#roles').select2({
+            theme:          'bootstrap-5',
+            placeholder:    'Select roles...',
+            allowClear:     true,
+            width:          '100%',
+            dropdownParent: $('#userModel'),
+        });
+
+        /* ── Wholesaler role detection ───────────────────────────── */
+        var wholesalerRoleId = null;
+        $('#roles option').each(function() {
+            if ($(this).text().toLowerCase().includes('wholesaler')) {
+                wholesalerRoleId = $(this).val();
+            }
+        });
+
+var isEdit = $('#userForm input[name="id"]').val() !== '';
+var hasPanImage = {{ !empty($pan_image) ? 'true' : 'false' }};
+var hasRegImage = {{ !empty($registration_number_image) ? 'true' : 'false' }};
+
+function checkWholesalerRole() {
+    var selected     = $('#roles').val() || [];
+    var isWholesaler = wholesalerRoleId && selected.includes(String(wholesalerRoleId));
+    var v            = $('#userForm').validate();
+
+    if (isWholesaler) {
+        $('#wholesalerFields').slideDown(200);
+        v.settings.rules['company_name']        = 'required';
+        v.settings.rules['tax_number']          = 'required';
+        v.settings.rules['registration_number'] = 'required';
+        v.settings.rules['pan_number']          = 'required';
+
+        // Require image only if: new user OR edit user with no existing image
+        if (!isEdit || !hasPanImage) {
+            v.settings.rules['pan_image'] = 'required';
+        } else {
+            delete v.settings.rules['pan_image'];
+        }
+
+        if (!isEdit || !hasRegImage) {
+            v.settings.rules['registration_number_image'] = 'required';
+        } else {
+            delete v.settings.rules['registration_number_image'];
+        }
+
+    } else {
+        $('#wholesalerFields').slideUp(200);
+        delete v.settings.rules['company_name'];
+        delete v.settings.rules['tax_number'];
+        delete v.settings.rules['registration_number'];
+        delete v.settings.rules['pan_number'];
+        delete v.settings.rules['pan_image'];
+        delete v.settings.rules['registration_number_image'];
+    }
+}
+        $('#roles').on('change', checkWholesalerRole);
+
+        /* ── Image previews ──────────────────────────────────────── */
+        $('#image').on('change', function(e) {
+            var file = e.target.files[0];
+            if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
+        });
+        $('#pan_image').on('change', function(e) {
+            var file = e.target.files[0];
+            if (file) $('#pan_img_preview').attr('src', URL.createObjectURL(file));
+        });
+        $('#registration_number_image').on('change', function(e) {
+            var file = e.target.files[0];
+            if (file) $('#reg_img_preview').attr('src', URL.createObjectURL(file));
+        });
+
+        /* ── jQuery Validation ───────────────────────────────────── */
+        $('#userForm').validate({
+            ignore: [],
+            rules: {
+                first_name: 'required',
+                last_name:  'required',
+                username:   'required',
+                email: {
+                    required: true,
+                    email:    true
+                },
+                phone:   'required',
+                address: 'required',
+                gender:  'required',
+                'roles[]': {
+                    required:  true,
+                    minlength: 1
                 }
             },
-
-            error: function (xhr) {
-                hideLoader();
-                $btn.prop('disabled', false).html(origHtml);
-
-                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
-                    $.each(xhr.responseJSON.errors, function (field, messages) {
-                        $('[name="' + field + '"]').addClass('is-invalid border-danger');
-                        showNotification(messages[0], 'error');
-                    });
+            messages: {
+                first_name: 'Enter first name',
+                last_name:  'Enter last name',
+                username:   'Enter username',
+                email:      'Enter a valid email',
+                phone:      'Enter phone',
+                address:    'Enter address',
+                gender:     'Select gender',
+                'roles[]':  'Select at least one role'
+            },
+            highlight: function(el) {
+                $(el).addClass('border-danger');
+            },
+            unhighlight: function(el) {
+                $(el).removeClass('border-danger');
+            },
+            errorPlacement: function(error, element) {
+                if (element.attr('id') === 'roles') {
+                    error.insertAfter(element.next('.select2-container'));
                 } else {
-                    showNotification('Something went wrong!', 'error');
+                    error.insertAfter(element);
                 }
             }
         });
-    });
 
-    /* ── Clear validation styles on input ──────────────────────── */
-    $('#userForm').on('input change', '.form-control', function () {
-        $(this).removeClass('is-invalid border-danger');
-    });
+        /* ── Run wholesaler check on load (edit mode) ────────────── */
+        checkWholesalerRole();
 
-})(jQuery);
+        /* ── Save / Update ───────────────────────────────────────── */
+        $('#saveUser').off('click').on('click', function() {
+            if (!$('#userForm').valid()) return;
+
+            var $btn     = $(this),
+                origHtml = $btn.html();
+            showLoader();
+
+            $.ajax({
+                url:         $('#userForm').attr('action'),
+                type:        'POST',
+                data:        new FormData(document.getElementById('userForm')),
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    hideLoader();
+                    var result = (typeof response === 'string') ? JSON.parse(response) : response;
+
+                    if (result.type === 'success') {
+                        showNotification(result.message, 'success');
+
+                        // 1. Close modal FIRST
+                        if (typeof window._forceModalCleanup === 'function') {
+                            window._forceModalCleanup();
+                        } else {
+                            var modalEl  = document.getElementById('userModel');
+                            var instance = bootstrap.Modal.getInstance(modalEl);
+                            if (instance) instance.hide();
+                            setTimeout(function() {
+                                $(modalEl).removeClass('show').css('display', 'none');
+                                $('#userModelContent').html('');
+                                $('.modal-backdrop').remove();
+                                $('body').removeClass('modal-open').css('padding-right', '');
+                            }, 350);
+                        }
+
+                        // 2. Redraw table AFTER modal cleanup finishes (350ms)
+                        setTimeout(function() {
+                            if (typeof userTable !== 'undefined' && userTable) {
+                                userTable.fnDraw();
+                            }
+                        }, 400);
+
+                    } else {
+                        showNotification(result.message, 'error');
+                        $btn.prop('disabled', false).html(origHtml);
+                    }
+                },
+                error: function(xhr) {
+                    hideLoader();
+                    $btn.prop('disabled', false).html(origHtml);
+                    if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                        $.each(xhr.responseJSON.errors, function(field, messages) {
+                            $('[name="' + field + '"]').addClass('is-invalid border-danger');
+                            showNotification(messages[0], 'error');
+                        });
+                    } else {
+                        showNotification('Something went wrong!', 'error');
+                    }
+                }
+            });
+        });
+
+        /* ── Clear validation styles on input ───────────────────── */
+        $('#userForm').on('input change', '.form-control', function() {
+            $(this).removeClass('is-invalid border-danger');
+        });
+
+    })(jQuery);
 </script>

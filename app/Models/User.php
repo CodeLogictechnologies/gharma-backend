@@ -2,27 +2,25 @@
 
 namespace App\Models;
 
-use App\Models\BackPanel\NewsEvent;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Mail;
 use App\Jobs\SendUserPasswordMail;
 
 class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable, HasRoles;
+
     public $incrementing = false;
-    protected $keyType = 'string';
+    protected $keyType   = 'string';
 
     protected $fillable = [
         'id',
@@ -33,9 +31,19 @@ class User extends Authenticatable implements JWTSubject
         'provider',
         'provider_id',
         'provider_token',
+        'first_time_login',
     ];
 
-    // Required methods for JWT
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password'          => 'hashed',
+    ];
+
     public function getJWTIdentifier()
     {
         return $this->getKey();
@@ -54,35 +62,21 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
-    /* ── Helper: get profile row by auth user email ─────────────
-     * This bypasses any user_id mismatch by joining on email.
-     * Also auto-fixes the broken user_id so future calls work.
-     */
-    private static function getAuthProfile()
+    /* ── Helper: store a single image file ───────────────────── */
+    private static function storeImage($file, string $folder = 'profiles', string $prefix = ''): string
     {
-        $authId    = auth()->id();
-        $authEmail = auth()->user()->email;
+        $fileName = time() . ($prefix ? '_' . $prefix : '') . '_' . Str::random(10)
+            . '.' . $file->getClientOriginalExtension();
+        $file->storeAs($folder, $fileName, 'public');
+        return $fileName;
+    }
 
-        $profile = DB::table('profiles')
-            ->join('users', 'users.email', '=', DB::raw("'" . $authEmail . "'"))
-            ->where('profiles.username', auth()->user()->name)
-            ->select('profiles.*')
-            ->first();
-
-        // Fallback: try direct user_id match first (for correctly linked accounts)
-        if (!$profile) {
-            $profile = DB::table('profiles')->where('user_id', $authId)->first();
-        }
-
-        // Auto-fix broken user_id if found via email but user_id is wrong
-        if ($profile && $profile->user_id !== $authId) {
-            DB::table('profiles')
-                ->where('id', $profile->id)
-                ->update(['user_id' => $authId]);
-            $profile->user_id = $authId;
-        }
-
-        return $profile;
+    /* ── Helper: delete an image file safely ─────────────────── */
+    private static function deleteImage(string $folder, ?string $fileName): void
+    {
+        if (!$fileName) return;
+        $path = storage_path('app/public/' . $folder . '/' . $fileName);
+        if (File::exists($path)) File::delete($path);
     }
 
     /* ── update password ──────────────────────────────────────── */
@@ -99,7 +93,7 @@ class User extends Authenticatable implements JWTSubject
                 throw new Exception('The new password and confirm password do not match.');
             }
 
-            $user->password        = Hash::make($post['password']);
+            $user->password         = Hash::make($post['password']);
             $user->first_time_login = 1;
 
             if (!$user->save()) {
@@ -116,13 +110,11 @@ class User extends Authenticatable implements JWTSubject
     public static function updatedata($post)
     {
         try {
-            // Update users table
             DB::table('users')->where('id', auth()->id())->update([
                 'name'       => $post['name'],
                 'updated_at' => Carbon::now(),
             ]);
 
-            // ✅ Find profile safely (handles user_id mismatch)
             $profile = DB::table('profiles')
                 ->join('users', 'users.id', '=', 'profiles.user_id')
                 ->where('users.email', auth()->user()->email)
@@ -132,7 +124,7 @@ class User extends Authenticatable implements JWTSubject
             if ($profile) {
                 DB::table('profiles')->where('id', $profile->id)->update([
                     'address'    => $post['address'],
-                    'user_id'    => auth()->id(), // ✅ auto-fix mismatch
+                    'user_id'    => auth()->id(),
                     'updated_at' => Carbon::now(),
                 ]);
             }
@@ -151,11 +143,6 @@ class User extends Authenticatable implements JWTSubject
                 return true;
             }
 
-            $file     = $post['image'];
-            $fileName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-            $file->storeAs('profiles', $fileName, 'public');
-
-            // ✅ Find profile by email join (bypasses user_id mismatch)
             $profile = DB::table('profiles')
                 ->join('users', 'users.id', '=', 'profiles.user_id')
                 ->where('users.email', auth()->user()->email)
@@ -163,7 +150,6 @@ class User extends Authenticatable implements JWTSubject
                 ->first();
 
             if (!$profile) {
-                // Last resort: try direct user_id match
                 $profile = DB::table('profiles')->where('user_id', auth()->id())->first();
             }
 
@@ -171,16 +157,13 @@ class User extends Authenticatable implements JWTSubject
                 throw new Exception('Profile not found.');
             }
 
-            // ✅ Delete old image
-            if ($profile->image) {
-                $oldPath = storage_path('app/public/profiles/' . $profile->image);
-                if (File::exists($oldPath)) File::delete($oldPath);
-            }
+            self::deleteImage('profiles', $profile->image);
 
-            // ✅ Update by profiles.id (safe) and fix user_id mismatch
+            $fileName = self::storeImage($post['image']);
+
             DB::table('profiles')->where('id', $profile->id)->update([
                 'image'      => $fileName,
-                'user_id'    => auth()->id(), // ✅ auto-fix broken user_id
+                'user_id'    => auth()->id(),
                 'updated_at' => Carbon::now(),
             ]);
 
@@ -190,31 +173,30 @@ class User extends Authenticatable implements JWTSubject
         }
     }
 
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password'          => 'hashed',
-    ];
-
     /* ── save new user ────────────────────────────────────────── */
     public static function saveData($post)
     {
         try {
             DB::beginTransaction();
 
-            $plainPassword = !empty($post['password'])
-                ? $post['password']
-                : Str::random(6);
-            $imageName     = null;
+            $plainPassword = !empty($post['password']) ? $post['password'] : Str::random(6);
 
+            // Profile image
+            $imageName = null;
             if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
-                $file      = $post['image'];
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('profiles', $imageName, 'public');
+                $imageName = self::storeImage($post['image']);
+            }
+
+            // PAN image
+            $panImage = null;
+            if (!empty($post['pan_image']) && $post['pan_image'] instanceof \Illuminate\Http\UploadedFile) {
+                $panImage = self::storeImage($post['pan_image'], 'profiles', 'pan');
+            }
+
+            // Registration number image
+            $registrationImage = null;
+            if (!empty($post['registration_number_image']) && $post['registration_number_image'] instanceof \Illuminate\Http\UploadedFile) {
+                $registrationImage = self::storeImage($post['registration_number_image'], 'profiles', 'reg');
             }
 
             $newUuid  = (string) Str::uuid();
@@ -223,7 +205,7 @@ class User extends Authenticatable implements JWTSubject
                 'name'       => $post['username'],
                 'email'      => $post['email'],
                 'phone'      => $post['phone'],
-                'password' => bcrypt($plainPassword),
+                'password'   => bcrypt($plainPassword),
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ];
@@ -236,13 +218,12 @@ class User extends Authenticatable implements JWTSubject
                 throw new Exception("Couldn't create user");
             }
 
-            if (!empty($post['type'] == 'user')) {
-                $firstOrg = $post['orgid'];
-            } else {
-                $firstOrg = DB::table('userorganizations')->value('orgid');
-                if (!$firstOrg) {
-                    throw new Exception("No organization found in userorganizations table.");
-                }
+            $firstOrg = ($post['type'] == 'user')
+                ? $post['orgid']
+                : DB::table('userorganizations')->value('orgid');
+
+            if (!$firstOrg) {
+                throw new Exception("No organization found.");
             }
 
             DB::table('userorganizations')->insert([
@@ -252,67 +233,53 @@ class User extends Authenticatable implements JWTSubject
                 'created_at' => Carbon::now(),
             ]);
 
-            $user = \App\Models\User::find($newUuid);
+            $user = User::find($newUuid);
 
-            if (!empty($post['type'])) {
-                $post['role'] = $post['type'] == 'retailer' ? 1 : 2;
-            }
-
-            $user->assignRole($post['role']);
-            $panImage = null;
-
-
-            if (!empty($post['pan_image']) && $post['pan_image'] instanceof \Illuminate\Http\UploadedFile) {
-                $file = $post['pan_image'];
-                $panImage = time() . '_pan_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('profiles', $panImage, 'public');
-            }
-
-            $registernumberimage = null;
-
-
-            if (!empty($post['registration_number_image']) && $post['registration_number_image'] instanceof \Illuminate\Http\UploadedFile) {
-                $file = $post['registration_number_image'];
-                $registernumberimage = time() . '_pan_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('profiles', $registernumberimage, 'public');
+            // Assign roles — support array of role IDs from admin form
+            if (!empty($post['roles']) && is_array($post['roles'])) {
+                $roleNames = DB::table('roles')
+                    ->whereIn('id', $post['roles'])
+                    ->pluck('name')
+                    ->toArray();
+                if (!empty($roleNames)) {
+                    $user->syncRoles($roleNames);
+                }
+            } elseif (!empty($post['role'])) {
+                $user->assignRole($post['role']);
             }
 
             $profileData = [
-                'id'                  => (string) Str::uuid(),
-                'user_id'             => $newUuid,
-                'username'            => $post['username'],
-                'first_name'          => $post['first_name'],
-                'middle_name'         => $post['middle_name'] ?? null,
-                'last_name'           => $post['last_name'],
-                'phone'               => $post['phone'],
-                'address'             => $post['address'],
-                'gender'              => $post['gender'],
-                'type'                => $post['type'],
-                'company_name'        => $post['company_name'] ?? null,
-                'tax_number'          => $post['tax_number'] ?? null,
-                'pan_number'          => $post['pan_number'] ?? null,
-                'registration_number' => $post['registration_number'] ?? null,
-                'orgid'               => $firstOrg,
-                'created_at'          => Carbon::now(),
-                'updated_at'          => Carbon::now(),
+                'id'                         => (string) Str::uuid(),
+                'user_id'                    => $newUuid,
+                'username'                   => $post['username'],
+                'first_name'                 => $post['first_name'],
+                'middle_name'                => $post['middle_name'] ?? null,
+                'last_name'                  => $post['last_name'],
+                'phone'                      => $post['phone'],
+                'address'                    => $post['address'],
+                'gender'                     => $post['gender'],
+                'type'                       => $post['type'],
+                    'status'              => 'Y',             // ← add this
+                'company_name'               => $post['company_name'] ?? null,
+                'tax_number'                 => $post['tax_number'] ?? null,
+                'pan_number'                 => $post['pan_number'] ?? null,
+                'registration_number'        => $post['registration_number'] ?? null,
+                'orgid'                      => $firstOrg,
+                'created_at'                 => Carbon::now(),
+                'updated_at'                 => Carbon::now(),
             ];
 
-            if ($imageName) {
-                $profileData['image'] = $imageName;
-            }
-            if ($panImage) {
-                $profileData['pan_image'] = $panImage;
-            }
-            if ($registernumberimage) {
-                $profileData['registration_number_image'] = $registernumberimage;
-            }
+            if ($imageName)        $profileData['image']                     = $imageName;
+            if ($panImage)         $profileData['pan_image']                 = $panImage;
+            if ($registrationImage) $profileData['registration_number_image'] = $registrationImage;
+
             DB::table('profiles')->insert($profileData);
 
             DB::commit();
 
             SendUserPasswordMail::dispatch([
-                'name' => $post['username'],
-                'email' => $post['email'],
+                'name'     => $post['username'],
+                'email'    => $post['email'],
                 'password' => $plainPassword,
             ]);
 
@@ -323,16 +290,81 @@ class User extends Authenticatable implements JWTSubject
         }
     }
 
+    /* ── update user (admin panel) ───────────────────────────── */
+    public static function updateUser($post)
+    {
+        try {
+            if (empty($post['userid'])) {
+                throw new Exception("User ID is required");
+            }
+
+            $userId  = $post['userid'];
+            $oldData = DB::table('profiles')->where('user_id', $userId)->first();
+
+            // Profile image
+            $imageName = null;
+            if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
+                self::deleteImage('profiles', $oldData->image ?? null);
+                $imageName = self::storeImage($post['image']);
+            }
+
+            // PAN image
+            $panImage = null;
+            if (!empty($post['pan_image']) && $post['pan_image'] instanceof \Illuminate\Http\UploadedFile) {
+                self::deleteImage('profiles', $oldData->pan_image ?? null);
+                $panImage = self::storeImage($post['pan_image'], 'profiles', 'pan');
+            }
+
+            // Registration image
+            $registrationImage = null;
+            if (!empty($post['registration_number_image']) && $post['registration_number_image'] instanceof \Illuminate\Http\UploadedFile) {
+                self::deleteImage('profiles', $oldData->registration_number_image ?? null);
+                $registrationImage = self::storeImage($post['registration_number_image'], 'profiles', 'reg');
+            }
+
+            DB::table('users')->where('id', $userId)->update([
+                'name'       => $post['username'] ?? '',
+                'email'      => $post['email'] ?? '',
+                'updated_at' => Carbon::now(),
+            ]);
+
+            $profileData = [
+                'username'                   => $post['username'] ?? '',
+                'first_name'                 => $post['first_name'] ?? '',
+                'middle_name'                => $post['middle_name'] ?? null,
+                'last_name'                  => $post['last_name'] ?? '',
+                'phone'                      => $post['phone'] ?? '',
+                'address'                    => $post['address'] ?? '',
+                'gender'                     => $post['gender'] ?? '',
+                'company_name'               => $post['company_name'] ?? null,
+                'tax_number'                 => $post['tax_number'] ?? null,
+                'registration_number'        => $post['registration_number'] ?? null,
+                'pan_number'                 => $post['pan_number'] ?? null,
+                'updated_at'                 => Carbon::now(),
+            ];
+
+            if ($imageName)         $profileData['image']                     = $imageName;
+            if ($panImage)          $profileData['pan_image']                 = $panImage;
+            if ($registrationImage) $profileData['registration_number_image'] = $registrationImage;
+
+            return DB::table('profiles')->where('user_id', $userId)->update($profileData);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
     /* ── user list ────────────────────────────────────────────── */
     public static function list($post)
     {
         try {
             $get = $post;
             foreach ($get as $key => $value) {
-                $get[$key] = trim(strtolower($value));
+                $get[$key] = is_string($value) ? trim(strtolower($value)) : $value;
             }
+
             $limit  = !empty($get["length"]) ? (int)$get["length"] : 15;
-            $offset = !empty($get["start"]) ? (int)$get["start"] : 0;
+            $offset = !empty($get["start"])  ? (int)$get["start"]  : 0;
+
             $query = User::query()
                 ->select(
                     'users.id',
@@ -358,13 +390,13 @@ class User extends Authenticatable implements JWTSubject
                 })
                 ->where('profiles.status', 'Y')
                 ->where('u.orgid', $post['orgid']);
-            if (!empty($post['inactiveuser'])) {
-                if (!empty($post['inactiveuser']) && $post['inactiveuser'] == 'Y') {
-                    $query->where('users.user_status', '!=', 'Approve');
-                } else {
-                    $query->where('users.user_status', '=', 'Approve');
-                }
+
+            if (!empty($post['inactiveuser']) && $post['inactiveuser'] == 'Y') {
+                $query->where('users.user_status', '!=', 'Approve');
+            } else if (empty($post['inactiveuser'])) {
+                $query->where('users.user_status', '=', 'Approve');
             }
+
             if (!empty($post['role']) && $post['role'] == 4) {
                 $query->where('mhr.role_id', 4);
             }
@@ -376,17 +408,19 @@ class User extends Authenticatable implements JWTSubject
             if (!empty($get['sSearch_2'])) {
                 $query->whereRaw('LOWER(users.email) LIKE ?', ['%' . $get['sSearch_2'] . '%']);
             }
+
             $total = (clone $query)->count();
 
             $result = $limit > -1
                 ? $query->orderBy('users.id', 'asc')->offset($offset)->limit($limit)->get()
                 : $query->orderBy('users.id', 'asc')->get();
+
             return [
                 'data'              => $result,
                 'totalrecs'         => $total,
                 'totalfilteredrecs' => $total,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw $e;
         }
     }
@@ -416,15 +450,15 @@ class User extends Authenticatable implements JWTSubject
             ->first();
 
         if ($result) {
-            $userRoles       = DB::table('model_has_roles')->where('model_id', $result->id)->pluck('role_id')->toArray();
-            $result->roles   = $userRoles;
+            $userRoles          = DB::table('model_has_roles')->where('model_id', $result->id)->pluck('role_id')->toArray();
+            $result->roles      = $userRoles;
             $result->role_names = DB::table('roles')->whereIn('id', $userRoles)->pluck('name')->toArray();
         }
 
         return $result;
     }
 
-    /* ── get user data (dropdown etc) ────────────────────────── */
+    /* ── get user data (dropdown) ─────────────────────────────── */
     public static function getUserData($post)
     {
         try {
@@ -460,58 +494,6 @@ class User extends Authenticatable implements JWTSubject
                 )
                 ->where('u.id', $post['userid'])
                 ->first();
-        } catch (Exception $e) {
-            throw $e;
-        }
-    }
-
-    /* ── update user (admin panel) ───────────────────────────── */
-    public static function updateUser($post)
-    {
-        try {
-            $imageName = null;
-
-            if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
-                $file      = $post['image'];
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('profiles', $imageName, 'public');
-            }
-
-            if (empty($post['userid'])) {
-                throw new Exception("User ID is required");
-            }
-
-            $userId = $post['userid'];
-
-            DB::table('users')->where('id', $userId)->update([
-                'name'       => $post['username'] ?? '',
-                'email'      => $post['email'] ?? '',
-                'updated_at' => Carbon::now(),
-            ]);
-
-            $oldData = DB::table('profiles')->where('user_id', $userId)->first();
-
-            if ($imageName && $oldData && $oldData->image) {
-                $oldPath = storage_path('app/public/profiles/' . $oldData->image);
-                if (File::exists($oldPath)) File::delete($oldPath);
-            }
-
-            $profileData = [
-                'username'    => $post['username'] ?? '',
-                'first_name'  => $post['first_name'] ?? '',
-                'middle_name' => $post['middle_name'] ?? null,
-                'last_name'   => $post['last_name'] ?? '',
-                'phone'       => $post['phone'] ?? '',
-                'address'     => $post['address'] ?? '',
-                'gender'      => $post['gender'] ?? '',
-                'updated_at'  => Carbon::now(),
-            ];
-
-            if ($imageName) {
-                $profileData['image'] = $imageName;
-            }
-
-            return DB::table('profiles')->where('user_id', $userId)->update($profileData);
         } catch (Exception $e) {
             throw $e;
         }

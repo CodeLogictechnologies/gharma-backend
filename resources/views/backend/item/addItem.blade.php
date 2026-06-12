@@ -532,42 +532,42 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-$(function () {
+    $(function() {
 
-    /* ─────────────────────────────────────────────
-       IMAGE UPLOAD & PREVIEW
-    ───────────────────────────────────────────── */
-    let newFiles = [];
+        /* ─────────────────────────────────────────────
+           IMAGE UPLOAD & PREVIEW
+        ───────────────────────────────────────────── */
+        let newFiles = [];
 
-    const dropZone = document.getElementById('imageDropZone');
+        const dropZone = document.getElementById('imageDropZone');
 
-    dropZone.addEventListener('dragover', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.add('dragover');
-    });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('dragover');
-        handleFiles(Array.from(e.dataTransfer.files));
-    });
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('dragover');
+            handleFiles(Array.from(e.dataTransfer.files));
+        });
 
-    $('#productImages').on('change', function () {
-        handleFiles(Array.from(this.files));
-        this.value = '';
-    });
+        $('#productImages').on('change', function() {
+            handleFiles(Array.from(this.files));
+            this.value = '';
+        });
 
-    function handleFiles(files) {
-        files.filter(f => f.type.startsWith('image/')).forEach(file => {
-            const reader  = new FileReader();
-            const fileIdx = newFiles.length;
-            newFiles.push(file);
+        function handleFiles(files) {
+            files.filter(f => f.type.startsWith('image/')).forEach(file => {
+                const reader = new FileReader();
+                const fileIdx = newFiles.length;
+                newFiles.push(file);
 
-            reader.onload = e => {
-                const isPrimary = ($('#imagePreviewGrid .img-preview-card').length === 0);
-                $('#imagePreviewGrid').append(`
+                reader.onload = e => {
+                    const isPrimary = ($('#imagePreviewGrid .img-preview-card').length === 0);
+                    $('#imagePreviewGrid').append(`
                     <div class="img-preview-card ${isPrimary ? 'is-primary' : ''}"
                          data-index="${fileIdx}" data-type="new">
                         <span class="primary-badge">Primary</span>
@@ -577,203 +577,209 @@ $(function () {
                             <button type="button" class="btn-remove-img">✕</button>
                         </div>
                     </div>`);
-                if (isPrimary) syncPrimary();
-                syncFileInput();
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    /* ── Set primary ── */
-    $(document).on('click', '.btn-primary-img', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        $('#imagePreviewGrid .img-preview-card').removeClass('is-primary');
-        $(this).closest('.img-preview-card').addClass('is-primary');
-        syncPrimary();
-    });
-
-    /* ── Remove card ── */
-    $(document).on('click', '.btn-remove-img', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const card    = $(this).closest('.img-preview-card');
-        const wasPrim = card.hasClass('is-primary');
-
-        if (card.data('type') === 'new') {
-            const idx = parseInt(card.data('index'));
-            if (!isNaN(idx)) newFiles[idx] = null;
-        }
-
-        card.remove();
-        syncFileInput();
-
-        if (wasPrim) {
-            const first = $('#imagePreviewGrid .img-preview-card').first();
-            if (first.length) {
-                first.addClass('is-primary');
-                syncPrimary();
-            } else {
-                $('#primaryImageIndex').val('');
-            }
-        }
-    });
-
-    function syncPrimary() {
-        const cards   = $('#imagePreviewGrid .img-preview-card');
-        const primIdx = cards.index(cards.filter('.is-primary'));
-        $('#primaryImageIndex').val(primIdx >= 0 ? primIdx : 0);
-    }
-
-    function syncFileInput() {
-        const dt       = new DataTransfer();
-        const newCards = [...document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="new"]')];
-        newCards.forEach(card => {
-            const idx = parseInt(card.dataset.index);
-            if (!isNaN(idx) && newFiles[idx]) dt.items.add(newFiles[idx]);
-        });
-        document.getElementById('productImages').files = dt.files;
-    }
-
-    /* Init primary on load */
-    syncPrimary();
-
-    /* ─────────────────────────────────────────────
-       DRAG-TO-REORDER (SortableJS)
-       KEY FIX: preventOnFilter: true  so button
-       clicks are NOT swallowed by Sortable
-    ───────────────────────────────────────────── */
-    Sortable.create(document.getElementById('imagePreviewGrid'), {
-        animation    : 200,
-        ghostClass   : 'sortable-ghost',
-        chosenClass  : 'sortable-chosen',
-        dragClass    : 'sortable-drag',
-        delay        : 100,
-        delayOnTouchOnly: false,
-        forceFallback: false,
-        /* filter the action buttons so clicks pass through */
-        filter           : '.btn-primary-img, .btn-remove-img',
-        preventOnFilter  : true,   // ← FIXED (was false)
-
-        onStart: function () {
-            dropZone.style.pointerEvents = 'none';
-        },
-        onEnd: function () {
-            dropZone.style.pointerEvents = '';
-            syncPrimary();
-            syncFileInput();
-        }
-    });
-
-    /* ─────────────────────────────────────────────
-       SYNC IMAGE ORDER (called before save)
-    ───────────────────────────────────────────── */
-    function syncImageOrder() {
-        $('#itemForm input[name="image_order[]"]').remove();
-        document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="existing"]')
-            .forEach(card => {
-                const dbId = card.dataset.dbId;
-                if (dbId) {
-                    $('#itemForm').append(`<input type="hidden" name="image_order[]" value="${dbId}">`);
-                }
+                    if (isPrimary) syncPrimary();
+                    syncFileInput();
+                };
+                reader.readAsDataURL(file);
             });
-    }
+        }
 
-    /* ─────────────────────────────────────────────
-       CUSTOM MULTI-SELECT
-    ───────────────────────────────────────────── */
-    function initMultiSelect(checkListId, hiddenSelectId, tagsId, errorId) {
-        const $list   = $('#' + checkListId);
-        const $select = $('#' + hiddenSelectId);
-        const $tags   = $('#' + tagsId);
-        const $error  = $('#' + errorId);
+        /* ── Set primary ── */
+        $(document).on('click', '.btn-primary-img', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $('#imagePreviewGrid .img-preview-card').removeClass('is-primary');
+            $(this).closest('.img-preview-card').addClass('is-primary');
+            syncPrimary();
+        });
 
-        function rebuildTags() {
-            $tags.empty();
-            $list.find('.ms-option.selected').each(function () {
-                const id    = $(this).data('id');
-                const label = $(this).data('label');
-                $tags.append(`
+        /* ── Remove card ── */
+        $(document).on('click', '.btn-remove-img', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const card = $(this).closest('.img-preview-card');
+            const wasPrim = card.hasClass('is-primary');
+
+            if (card.data('type') === 'new') {
+                const idx = parseInt(card.data('index'));
+                if (!isNaN(idx)) newFiles[idx] = null;
+            }
+
+            card.remove();
+            syncFileInput();
+
+            if (wasPrim) {
+                const first = $('#imagePreviewGrid .img-preview-card').first();
+                if (first.length) {
+                    first.addClass('is-primary');
+                    syncPrimary();
+                } else {
+                    $('#primaryImageIndex').val('');
+                }
+            }
+        });
+
+        function syncPrimary() {
+            const cards = $('#imagePreviewGrid .img-preview-card');
+            const primIdx = cards.index(cards.filter('.is-primary'));
+            $('#primaryImageIndex').val(primIdx >= 0 ? primIdx : 0);
+        }
+
+        function syncFileInput() {
+            const dt = new DataTransfer();
+            const newCards = [...document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="new"]')];
+            newCards.forEach(card => {
+                const idx = parseInt(card.dataset.index);
+                if (!isNaN(idx) && newFiles[idx]) dt.items.add(newFiles[idx]);
+            });
+            document.getElementById('productImages').files = dt.files;
+        }
+
+        /* Init primary on load */
+        syncPrimary();
+
+        /* ─────────────────────────────────────────────
+           DRAG-TO-REORDER (SortableJS)
+           KEY FIX: preventOnFilter: true  so button
+           clicks are NOT swallowed by Sortable
+        ───────────────────────────────────────────── */
+        Sortable.create(document.getElementById('imagePreviewGrid'), {
+            animation: 200,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            delay: 100,
+            delayOnTouchOnly: false,
+            forceFallback: false,
+            /* filter the action buttons so clicks pass through */
+            filter: '.btn-primary-img, .btn-remove-img',
+            preventOnFilter: true, // ← FIXED (was false)
+
+            onStart: function() {
+                dropZone.style.pointerEvents = 'none';
+            },
+            onEnd: function() {
+                dropZone.style.pointerEvents = '';
+                syncPrimary();
+                syncFileInput();
+            }
+        });
+
+        /* ─────────────────────────────────────────────
+           SYNC IMAGE ORDER (called before save)
+        ───────────────────────────────────────────── */
+        function syncImageOrder() {
+            $('#itemForm input[name="image_order[]"]').remove();
+            document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="existing"]')
+                .forEach(card => {
+                    const dbId = card.dataset.dbId;
+                    if (dbId) {
+                        $('#itemForm').append(`<input type="hidden" name="image_order[]" value="${dbId}">`);
+                    }
+                });
+        }
+
+        /* ─────────────────────────────────────────────
+           CUSTOM MULTI-SELECT
+        ───────────────────────────────────────────── */
+        function initMultiSelect(checkListId, hiddenSelectId, tagsId, errorId) {
+            const $list = $('#' + checkListId);
+            const $select = $('#' + hiddenSelectId);
+            const $tags = $('#' + tagsId);
+            const $error = $('#' + errorId);
+
+            function rebuildTags() {
+                $tags.empty();
+                $list.find('.ms-option.selected').each(function() {
+                    const id = $(this).data('id');
+                    const label = $(this).data('label');
+                    $tags.append(`
                     <span class="ms-tag" data-id="${id}">
                         ${label}
                         <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
                     </span>`);
-            });
-        }
-
-        function syncSelect() {
-            $select.find('option').prop('selected', false);
-            $list.find('.ms-option.selected').each(function () {
-                $select.find(`option[value="${$(this).data('id')}"]`).prop('selected', true);
-            });
-        }
-
-        function clearError() {
-            if ($select.val() && $select.val().length > 0) {
-                $error.removeClass('show');
-                $list.closest('.col-md-6').removeClass('ms-invalid');
+                });
             }
-        }
 
-        $list.on('click', '.ms-option', function (e) {
-            if (e.target.tagName === 'INPUT') return;
-            const $opt      = $(this);
-            const nowSelected = !$opt.hasClass('selected');
-            $opt.toggleClass('selected', nowSelected);
-            $opt.find('input[type="checkbox"]').prop('checked', nowSelected);
+            function syncSelect() {
+                $select.find('option').prop('selected', false);
+                $list.find('.ms-option.selected').each(function() {
+                    $select.find(`option[value="${$(this).data('id')}"]`).prop('selected', true);
+                });
+            }
+
+            function clearError() {
+                if ($select.val() && $select.val().length > 0) {
+                    $error.removeClass('show');
+                    $list.closest('.col-md-6').removeClass('ms-invalid');
+                }
+            }
+
+            $list.on('click', '.ms-option', function(e) {
+                if (e.target.tagName === 'INPUT') return;
+                const $opt = $(this);
+                const nowSelected = !$opt.hasClass('selected');
+                $opt.toggleClass('selected', nowSelected);
+                $opt.find('input[type="checkbox"]').prop('checked', nowSelected);
+                syncSelect();
+                rebuildTags();
+                clearError();
+            });
+
+            $list.on('change', 'input[type="checkbox"]', function() {
+                $(this).closest('.ms-option').toggleClass('selected', this.checked);
+                syncSelect();
+                rebuildTags();
+                clearError();
+            });
+
+            $tags.on('click', '.ms-tag-remove', function() {
+                const id = $(this).data('id');
+                $list.find(`.ms-option[data-id="${id}"]`)
+                    .removeClass('selected')
+                    .find('input[type="checkbox"]').prop('checked', false);
+                syncSelect();
+                rebuildTags();
+            });
+
             syncSelect();
             rebuildTags();
-            clearError();
-        });
-
-        $list.on('change', 'input[type="checkbox"]', function () {
-            $(this).closest('.ms-option').toggleClass('selected', this.checked);
-            syncSelect();
-            rebuildTags();
-            clearError();
-        });
-
-        $tags.on('click', '.ms-tag-remove', function () {
-            const id = $(this).data('id');
-            $list.find(`.ms-option[data-id="${id}"]`)
-                .removeClass('selected')
-                .find('input[type="checkbox"]').prop('checked', false);
-            syncSelect();
-            rebuildTags();
-        });
-
-        syncSelect();
-        rebuildTags();
-    }
-
-    initMultiSelect('categoryCheckList',    'categorySelect',    'categoryTags',    'categoriesError');
-    initMultiSelect('subCategoryCheckList', 'subCategorySelect', 'subCategoryTags', 'subCategoriesError');
-
-    /* ─────────────────────────────────────────────
-       CLEAR ERRORS ON CHANGE
-    ───────────────────────────────────────────── */
-    $('[name="title"]').on('input', function () {
-        if ($(this).val().trim()) {
-            $(this).removeClass('is-invalid-select');
-            $('#titleError').removeClass('show');
         }
-    });
 
-    $('[name="brand"]').on('change', function () {
-        if ($(this).val()) {
-            $(this).removeClass('is-invalid-select');
-            $('#brandError').removeClass('show');
-        }
-    });
+        initMultiSelect('categoryCheckList', 'categorySelect', 'categoryTags', 'categoriesError');
+        initMultiSelect('subCategoryCheckList', 'subCategorySelect', 'subCategoryTags', 'subCategoriesError');
 
-    /* ─────────────────────────────────────────────
-       VARIATION ROWS
-    ───────────────────────────────────────────── */
-    let varIdx = {{ count($data['variations'] ?? [['']]) }};
+        /* ─────────────────────────────────────────────
+           CLEAR ERRORS ON CHANGE
+        ───────────────────────────────────────────── */
+        $('[name="title"]').on('input', function() {
+            if ($(this).val().trim()) {
+                $(this).removeClass('is-invalid-select');
+                $('#titleError').removeClass('show');
+            }
+        });
 
-    function newVariationRow(idx) {
-        return `
+        $('[name="brand"]').on('change', function() {
+            if ($(this).val()) {
+                $(this).removeClass('is-invalid-select');
+                $('#brandError').removeClass('show');
+            }
+        });
+
+        /* ─────────────────────────────────────────────
+           VARIATION ROWS
+        ───────────────────────────────────────────── */
+        let varIdx = {
+            {
+                count($data['variations'] ?? [
+                    ['']
+                ])
+            }
+        };
+
+        function newVariationRow(idx) {
+            return `
         <div class="variation-row" data-index="${idx}">
             <button type="button" class="remove-variation" title="Remove">✕</button>
             <div class="row g-2 align-items-end">
@@ -817,160 +823,162 @@ $(function () {
                 </div>
             </div>
         </div>`;
-    }
-
-    $('#addVariation').on('click', () => {
-        $('#variationsContainer').append(newVariationRow(varIdx++));
-    });
-
-    $(document).on('click', '.remove-variation', function () {
-        if ($('#variationsContainer .variation-row').length <= 1) {
-            alert('At least one variation row is required.');
-            return;
-        }
-        $(this).closest('.variation-row').remove();
-    });
-
-    /* ─────────────────────────────────────────────
-       FORM VALIDATION
-    ───────────────────────────────────────────── */
-    function validateForm() {
-        let valid = true;
-
-        $('.field-error').removeClass('show');
-        $('.is-invalid-select').removeClass('is-invalid-select');
-        $('.ms-invalid').removeClass('ms-invalid');
-
-        if (!$('[name="title"]').val().trim()) {
-            $('[name="title"]').addClass('is-invalid-select');
-            $('#titleError').addClass('show');
-            valid = false;
         }
 
-        if (!$('[name="brand"]').val()) {
-            $('[name="brand"]').addClass('is-invalid-select');
-            $('#brandError').addClass('show');
-            valid = false;
+        $('#addVariation').on('click', () => {
+            $('#variationsContainer').append(newVariationRow(varIdx++));
+        });
+
+        $(document).on('click', '.remove-variation', function() {
+            if ($('#variationsContainer .variation-row').length <= 1) {
+                alert('At least one variation row is required.');
+                return;
+            }
+            $(this).closest('.variation-row').remove();
+        });
+
+        /* ─────────────────────────────────────────────
+           FORM VALIDATION
+        ───────────────────────────────────────────── */
+        function validateForm() {
+            let valid = true;
+
+            $('.field-error').removeClass('show');
+            $('.is-invalid-select').removeClass('is-invalid-select');
+            $('.ms-invalid').removeClass('ms-invalid');
+
+            if (!$('[name="title"]').val().trim()) {
+                $('[name="title"]').addClass('is-invalid-select');
+                $('#titleError').addClass('show');
+                valid = false;
+            }
+
+            if (!$('[name="brand"]').val()) {
+                $('[name="brand"]').addClass('is-invalid-select');
+                $('#brandError').addClass('show');
+                valid = false;
+            }
+
+            const cats = $('#categorySelect').val();
+            if (!cats || cats.length === 0) {
+                $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                $('#categoriesError').addClass('show');
+                valid = false;
+            }
+
+            const subs = $('#subCategorySelect').val();
+            if (!subs || subs.length === 0) {
+                $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                $('#subCategoriesError').addClass('show');
+                valid = false;
+            }
+
+            const hasExisting = $('#imagePreviewGrid .img-preview-card[data-type="existing"]').length > 0;
+            const hasNew = newFiles.filter(Boolean).length > 0;
+            if (!hasExisting && !hasNew) {
+                showNotification('Please upload at least one product image.', 'error');
+                valid = false;
+            }
+
+            return valid;
         }
 
-        const cats = $('#categorySelect').val();
-        if (!cats || cats.length === 0) {
-            $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-            $('#categoriesError').addClass('show');
-            valid = false;
-        }
+        /* ─────────────────────────────────────────────
+           AJAX SAVE / UPDATE
+        ───────────────────────────────────────────── */
+        $('#saveItemBtn').on('click', function() {
 
-        const subs = $('#subCategorySelect').val();
-        if (!subs || subs.length === 0) {
-            $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-            $('#subCategoriesError').addClass('show');
-            valid = false;
-        }
+            if (!validateForm()) return;
 
-        const hasExisting = $('#imagePreviewGrid .img-preview-card[data-type="existing"]').length > 0;
-        const hasNew      = newFiles.filter(Boolean).length > 0;
-        if (!hasExisting && !hasNew) {
-            showNotification('Please upload at least one product image.', 'error');
-            valid = false;
-        }
+            syncImageOrder();
 
-        return valid;
-    }
+            const $btn = $(this);
+            const origHtml = $btn.html();
 
-    /* ─────────────────────────────────────────────
-       AJAX SAVE / UPDATE
-    ───────────────────────────────────────────── */
-    $('#saveItemBtn').on('click', function () {
+            $btn.prop('disabled', true).html(
+                '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
+            );
 
-        if (!validateForm()) return;
+            $.ajax({
+                url: '{{ route('item.save') }}',
+                type: 'POST',
+                data: new FormData($('#itemForm')[0]),
+                contentType: false,
+                processData: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
 
-        syncImageOrder();
+                success: function(response) {
+                    const result = (typeof response === 'string') ? JSON.parse(response) : response;
 
-        const $btn     = $(this);
-        const origHtml = $btn.html();
+                    if (result.type === 'success') {
+                        showNotification(result.message, 'success');
 
-        $btn.prop('disabled', true).html(
-            '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
-        );
-
-        $.ajax({
-            url         : '{{ route('item.save') }}',
-            type        : 'POST',
-            data        : new FormData($('#itemForm')[0]),
-            contentType : false,
-            processData : false,
-            headers     : { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-
-            success: function (response) {
-                const result = (typeof response === 'string') ? JSON.parse(response) : response;
-
-                if (result.type === 'success') {
-                    showNotification(result.message, 'success');
-
-                    if (typeof itemTable !== 'undefined' && itemTable.ajax) {
-                        itemTable.ajax.reload(null, false);
-                    }
-
-                    const $modalEl = $('#itemForm').closest('.modal');
-                    if ($modalEl.length) {
-                        const bsModal = bootstrap.Modal.getInstance($modalEl[0]);
-                        if (bsModal) {
-                            bsModal.hide();
-                        } else {
-                            new bootstrap.Modal($modalEl[0]).hide();
+                        if (typeof itemTable !== 'undefined' && itemTable.ajax) {
+                            itemTable.ajax.reload(null, false);
                         }
-                    }
-                } else {
-                    showNotification(result.message || 'Something went wrong.', 'error');
-                    $btn.prop('disabled', false).html(origHtml);
-                }
-            },
 
-            error: function (xhr) {
-                $btn.prop('disabled', false).html(origHtml);
-
-                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
-                    $.each(xhr.responseJSON.errors, function (field, messages) {
-                        const cleanField = field
-                            .replace(/\.\*$/, '')
-                            .replace(/\[\]$/, '')
-                            .replace(/\.\d+\..+$/, '');
-
-                        switch (cleanField) {
-                            case 'categories':
-                                $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-                                $('#categoriesError').text(messages[0]).addClass('show');
-                                break;
-                            case 'sub_categories':
-                                $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-                                $('#subCategoriesError').text(messages[0]).addClass('show');
-                                break;
-                            case 'title':
-                                $('[name="title"]').addClass('is-invalid-select');
-                                $('#titleError').text(messages[0]).addClass('show');
-                                break;
-                            case 'brand':
-                                $('[name="brand"]').addClass('is-invalid-select');
-                                $('#brandError').text(messages[0]).addClass('show');
-                                break;
-                            default: {
-                                const $field = $(`[name="${cleanField}"]`);
-                                if ($field.length) {
-                                    $field.addClass('is-invalid-select');
-                                    $field.closest('.col-md-2, .col-md-4, .col-md-6, .col-md-12')
-                                        .find('.field-error')
-                                        .text(messages[0])
-                                        .addClass('show');
-                                }
+                        const $modalEl = $('#itemForm').closest('.modal');
+                        if ($modalEl.length) {
+                            const bsModal = bootstrap.Modal.getInstance($modalEl[0]);
+                            if (bsModal) {
+                                bsModal.hide();
+                            } else {
+                                new bootstrap.Modal($modalEl[0]).hide();
                             }
                         }
-                    });
-                } else {
-                    showNotification('Something went wrong. Please try again.', 'error');
-                }
-            }
-        });
-    });
+                    } else {
+                        showNotification(result.message || 'Something went wrong.', 'error');
+                        $btn.prop('disabled', false).html(origHtml);
+                    }
+                },
 
-});
+                error: function(xhr) {
+                    $btn.prop('disabled', false).html(origHtml);
+
+                    if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                        $.each(xhr.responseJSON.errors, function(field, messages) {
+                            const cleanField = field
+                                .replace(/\.\*$/, '')
+                                .replace(/\[\]$/, '')
+                                .replace(/\.\d+\..+$/, '');
+
+                            switch (cleanField) {
+                                case 'categories':
+                                    $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                    $('#categoriesError').text(messages[0]).addClass('show');
+                                    break;
+                                case 'sub_categories':
+                                    $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                    $('#subCategoriesError').text(messages[0]).addClass('show');
+                                    break;
+                                case 'title':
+                                    $('[name="title"]').addClass('is-invalid-select');
+                                    $('#titleError').text(messages[0]).addClass('show');
+                                    break;
+                                case 'brand':
+                                    $('[name="brand"]').addClass('is-invalid-select');
+                                    $('#brandError').text(messages[0]).addClass('show');
+                                    break;
+                                default: {
+                                    const $field = $(`[name="${cleanField}"]`);
+                                    if ($field.length) {
+                                        $field.addClass('is-invalid-select');
+                                        $field.closest('.col-md-2, .col-md-4, .col-md-6, .col-md-12')
+                                            .find('.field-error')
+                                            .text(messages[0])
+                                            .addClass('show');
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        showNotification('Something went wrong. Please try again.', 'error');
+                    }
+                }
+            });
+        });
+
+    });
 </script>

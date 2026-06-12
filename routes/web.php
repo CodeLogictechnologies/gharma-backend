@@ -143,6 +143,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/inactiveuserlist', [UserController::class, 'inActivelist'])->name('inactive.user.list');
             Route::any('/form', [UserController::class, 'form'])->name('user.form');
             Route::post('/save', [UserController::class, 'save'])->name('user.save');
+            Route::post('/edit', [UserController::class, 'edit'])->name('user.edit');
             Route::post('/delete', [UserController::class, 'delete'])->name('user.delete');
             Route::post('/view', [UserController::class, 'view'])->name('user.view');
             Route::post('/status-update', [UserController::class, 'updateStatus'])->name('user.status');

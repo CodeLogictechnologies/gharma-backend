@@ -18,58 +18,48 @@ class Vendor extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    public static function saveData($post)
-    {
-        try {
+public static function saveData($post)
+{
+    try {
+        $dataArray = [
+            'name'                => $post['name'],
+            'phone'               => $post['phone'],
+            'address'             => $post['address'],
+            'email'               => $post['email'],
+            'company_name'        => $post['company'],
+            'tax_number'          => $post['pan'],
+            'registration_number' => $post['registration_number'],
+            'city'                => $post['city'],
+            'orgid'               => $post['orgid'],
+            'slug'                => Str::slug($post['name']) . '-' . time(),
+        ];
 
-            $dataArray = [
-                'name'    => $post['name'],
-                'phone'   => $post['phone'],
-                'address' => $post['address'],
-                'email'   => $post['email'],
-                'company_name'   => $post['company'],
-                'tax_number'   => $post['pan'],
-                'registration_number'   => $post['registration_number'],
-                'city'   => $post['city'],
-                'address'   => $post['address'],
-                'orgid'   => $post['orgid'],
-                'slug' => Str::slug($post['name']) . '-' . time(),
-            ];
-
-
-
-            if (!empty($post['id'])) {
-                $dataArray['updatedby'] = $post['userid'];
-                $dataArray['updated_at'] = Carbon::now();
-
-                $vendor = DB::table('vendors')
-                    ->where('id', $post['id'])
-                    ->update($dataArray);
-
-                if (!$vendor) {
-                    throw new Exception("Couldn't update vendor", 1);
-                }
-            } else {
-
-                $dataArray['id'] = (string) Str::uuid();
-                $dataArray['postedby'] = $post['userid'];
-                $dataArray['created_at'] = Carbon::now();
-                $dataArray['updated_at'] = Carbon::now();
-
-                $vendor =  DB::table('vendors')->insert($dataArray);
-
-                if (!$vendor) {
-                    throw new Exception("Couldn't save vendor", 1);
-                }
-            }
-
-            DB::commit();
-            return true;
-        } catch (Exception $e) {
-            DB::rollBack();
-            throw $e;
+        if (!empty($post['pan_image'])) {
+            $dataArray['pan_image'] = $post['pan_image'];
         }
+        if (!empty($post['registration_number_image'])) {
+            $dataArray['registration_number_image'] = $post['registration_number_image'];
+        }
+
+        if (!empty($post['id'])) {
+            $dataArray['updatedby'] = $post['userid'];
+            $dataArray['updated_at'] = Carbon::now();
+
+            DB::table('vendors')->where('id', $post['id'])->update($dataArray);
+        } else {
+            $dataArray['id']         = (string) Str::uuid();
+            $dataArray['postedby']   = $post['userid'];
+            $dataArray['created_at'] = Carbon::now();
+            $dataArray['updated_at'] = Carbon::now();
+
+            DB::table('vendors')->insert($dataArray);
+        }
+
+        return true;
+    } catch (Exception $e) {
+        throw $e; // let controller handle rollback
     }
+}
 
     public static function list($post)
     {
@@ -128,7 +118,7 @@ class Vendor extends Model
     public static function getData($post)
     {
         $result = DB::table('vendors')
-            ->select('id', 'address', 'name', 'email', 'phone', 'company_name', 'tax_number', 'registration_number', 'city', 'address')
+            ->select('id', 'address', 'name', 'email', 'phone', 'company_name', 'tax_number', 'registration_number', 'city', 'address','pan_image', 'registration_number_image')
             ->where('id', $post['id'])
             ->where('orgid', $post['orgid'])
             ->first();

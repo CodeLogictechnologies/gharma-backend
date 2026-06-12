@@ -72,7 +72,7 @@ class ItemController extends Controller
                     'value'       => '',
                     'threshold'   => '',
                     'price'       => '',
-                    'stock'       => '',
+                    // 'stock'       => '',
                     'status'      => 'active',
                 ],
             ],
@@ -119,7 +119,7 @@ class ItemController extends Controller
                     'value'       => $v->value,
                     'threshold'   => $v->threshold,
                     'price'       => $v->price,
-                    'stock'       => $v->stock,
+                    // 'stock'       => $v->stock,
                     'status'      => ($v->status === 'Y') ? 'active' : 'inactive', // ← map Y/N → active/inactive
                 ])
                 ->toArray();

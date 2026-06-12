@@ -20,7 +20,7 @@
                     <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
                 </div>
             </div>
-     z   </div>
+        </div>
     </div>
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="nav-align-top mb-4">
@@ -29,17 +29,35 @@
                 <div class="row g-4">
                     <div class="col-12 col-lg-4">
 
-                        <h5 class="mb-3">Add Permssion</h5>
-                        <form action="{{ route('permission.save') }}" method="POST" id="permissionForm"
-                            enctype="multipart/form-data">
+                        <h5 class="mb-3">Add Role</h5>
+                        <form action="{{ route('role.save') }}" method="POST" id="roleForm" enctype="multipart/form-data">
 
                             <div class="mb-3">
                                 <input type="hidden" name="id" value="" id="id">
-                                <label class="form-label" for="name">Permission Name<span class="text-danger">*</span></label>
+                                <label class="form-label" for="name">Role Name<span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="name" id="name"
                                     placeholder="Example: user.view" />
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label">Permissions</label>
+
+                                <div class="row">
+                                    @foreach ($permissions as $perm)
+                                        <div class="col-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-checkbox" type="checkbox"
+                                                    name="permissions[]" value="{{ $perm->id }}"
+                                                    id="perm_{{ $perm->id }}">
+
+                                                <label class="form-check-label" for="perm_{{ $perm->id }}">
+                                                    {{ $perm->name }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
 
                             <button type="button" class="btn btn-primary savePermission">Save</button>
                         </form>
@@ -58,7 +76,7 @@
 
                                 <div class="dataTables_length" id="datatable-basic_length">
 
-                                    <table class="table" id="permissionTable" aria-describedby="datatable-basic_info">
+                                    <table class="table" id="roleTable" aria-describedby="datatable-basic_info">
                                         <thead class="table-light">
                                             <tr class="align-middle">
                                                 <th data-dt-column="1" class="">
@@ -87,7 +105,7 @@
     <!-- delete -->
 @endsection
 <script>
-    var permissionTable;
+    var roleTable;
 
     $(document).ready(function() {
 
@@ -99,7 +117,7 @@
         });
 
         // ── DataTable ─────────────────────────────────────────────────
-        permissionTable = $('#permissionTable').dataTable({
+        roleTable = $('#roleTable').dataTable({
             sPaginationType: 'full_numbers',
             bSearchable: false,
 
@@ -130,7 +148,7 @@
 
             // ✅ KEEP ONLY THIS AJAX
             ajax: {
-                url: '{{ route('permission.list') }}',
+                url: '{{ route('role.list') }}',
                 type: 'POST',
                 data: function(d) {
                     d.type = $('#trashed_file').is(':checked') ? 'trashed' : 'nottrashed';
@@ -174,7 +192,7 @@
         });
 
 
-        $('#permissionForm').validate({
+        $('#roleForm').validate({
             rules: {
                 name: "required",
 
@@ -193,13 +211,13 @@
         });
 
         $('.savePermission').off('click').on('click', function() {
-            if ($('#permissionForm').valid()) {
+            if ($('#roleForm').valid()) {
 
-                let form = document.getElementById('permissionForm');
+                let form = document.getElementById('roleForm');
                 let formData = new FormData(form);
 
                 $.ajax({
-                    url: "{{ route('permission.save') }}",
+                    url: "{{ route('role.save') }}",
                     type: "POST",
                     data: formData,
                     contentType: false,
@@ -212,9 +230,9 @@
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
 
-                            permissionTable.fnDraw();
+                            roleTable.fnDraw();
 
-                            $('#permissionForm')[0].reset();
+                            $('#roleForm')[0].reset();
                             $('#id').val('');
                             $('.savePermission').html('<i class="fa fa-save"></i> Save');
                         } else {
@@ -229,21 +247,51 @@
         });
 
 
-        $(document).on('click', '.editPermission', function(e) {
+        $(document).on('click', '.editRole', function(e) {
             e.preventDefault();
-            let id = $(this).data('id');
-            let name = $(this).data('name');
 
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var permissions = $(this).data('permissions'); // ← jQuery auto-parses, no JSON.parse needed
 
+            // Ensure array
+            if (!Array.isArray(permissions)) {
+                permissions = permissions ? Object.values(permissions) : [];
+            }
+
+            // ── Populate form ──────────────────────────────────────
             $('#id').val(id);
             $('#name').val(name);
 
+            // Uncheck all first
+            $('.permission-checkbox').prop('checked', false);
 
+            // Check matching permissions by ID
+            permissions.forEach(function(permId) {
+                $('#perm_' + permId).prop('checked', true);
+            });
+
+            // ── Update button label ────────────────────────────────
+            $('.savePermission').html('<i class="fa fa-save me-1"></i> Update');
+
+            // ── Scroll to form ─────────────────────────────────────
+            $('html, body').animate({
+                scrollTop: $('#roleForm').offset().top - 20
+            }, 300);
         });
 
+
+        function resetRoleForm() {
+            $('#roleForm')[0].reset(); // clear all inputs
+            $('#id').val(''); // clear hidden id
+            $('.permission-checkbox').prop('checked', false); // uncheck all permissions
+            $('.savePermission').html('<i class="fa fa-save me-1"></i> Save'); // reset button
+            $('#cancelEdit').addClass('d-none'); // hide cancel button
+            $('#name').removeClass('border-danger is-invalid'); // clear validation errors
+        }
         var deleteId = null;
 
-        $(document).on('click', '.deletePermission', function(e) {
+        $(document).on('click', '.deleteRole', function(e) {
             e.preventDefault();
             deleteId = $(this).data('id');
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
@@ -252,7 +300,7 @@
         $('#confirmDelete').on('click', function() {
             if (!deleteId) return;
 
-            $.post('{{ route('permission.delete') }}', {
+            $.post('{{ route('role.delete') }}', {
                     id: deleteId,
                     _token: '{{ csrf_token() }}'
                 })
@@ -260,7 +308,9 @@
                     var result = typeof response === 'string' ? JSON.parse(response) : response;
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
-                        permissionTable.fnDraw();
+                        roleTable.fnDraw();
+                        resetRoleForm();
+
                     } else {
                         showNotification(result.message, 'error');
                     }
