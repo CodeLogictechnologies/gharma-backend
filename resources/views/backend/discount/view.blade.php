@@ -1,5 +1,3 @@
-{{-- resources/views/backend/discount/view.blade.php --}}
-
 @if ($type == 'error')
     <div class="modal-header">
         <h1 class="modal-title fs-5">Error</h1>
@@ -41,12 +39,7 @@
                                     <th scope="row">Fixed Amount</th>
                                     <td>Rs {{ $discount->value ?? '-' }}</td>
                                 </tr>
-                            @elseif ($discount->type === 'coupon')
-                                <tr>
-                                    <th scope="row">Coupon Code</th>
-                                    <td>{{ $discount->coupon_code ?? '-' }}</td>
-                                </tr>
-                        @endif
+                            @endif
                         @endif
 
                         <tr>

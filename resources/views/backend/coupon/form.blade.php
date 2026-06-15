@@ -1,26 +1,33 @@
 <div class="modal-header">
     <h5 class="modal-title">
-        {{ @$id ? 'Edit Discount' : 'Add Discount' }}
+        {{ @$id ? 'Edit Coupon' : 'Add Coupon' }}
     </h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 
-<form id="orgForm" action="{{ route('discount.save') }}" method="POST" enctype="multipart/form-data">
+<form id="couponForm" action="{{ route('coupon.save') }}" method="POST">
     @csrf
     <input type="hidden" name="id"     value="{{ @$id     ?? '' }}">
     <input type="hidden" name="userid" value="{{ @$userid ?? '' }}">
 
     <div class="modal-body">
 
-        {{-- ── Row 1: Type / Value ─────────────────────────────── --}}
+        {{-- ── Row 1: Coupon Code / Discount Type / Value ─────────── --}}
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
+                <label class="form-label">Coupon Code <span class="text-danger">*</span></label>
+                <input type="text" name="coupon_code" class="form-control text-uppercase"
+                    placeholder="e.g. SAVE20" value="{{ @$coupon_code ?? '' }}" data-required />
+                <div class="invalid-feedback">Coupon code is required.</div>
+            </div>
+
+            <div class="col-md-4">
                 <label class="form-label">Discount Type <span class="text-danger">*</span></label>
-                <select name="type" id="discountType" class="form-select" data-required>
+                <select name="discount_type" id="discountType" class="form-select" data-required>
                     <option value="">-- Select Type --</option>
-                    <option value="percentage" {{ (@$type ?? '') == 'percentage' ? 'selected' : '' }}>Percentage (%)</option>
-                    <option value="fixed"      {{ (@$type ?? '') == 'fixed'      ? 'selected' : '' }}>Fixed Amount</option>
+                    <option value="percentage" {{ (@$discount_type ?? '') == 'percentage' ? 'selected' : '' }}>Percentage (%)</option>
+                    <option value="fixed"      {{ (@$discount_type ?? '') == 'fixed'      ? 'selected' : '' }}>Fixed Amount</option>
                 </select>
                 <div class="invalid-feedback">Discount type is required.</div>
             </div>
@@ -29,41 +36,38 @@
             <div class="col-md-4" id="percentageField" style="display: none;">
                 <label class="form-label">Percentage (%) <span class="text-danger">*</span></label>
                 <div class="input-group">
-                    <input type="number" name="percentage" class="form-control" placeholder="e.g. 20"
-                        min="1" max="100" value="{{ @$percentage ?? '' }}" />
+                    <input type="number" name="percentage" class="form-control"
+                        placeholder="e.g. 10" min="0" max="100" value="{{ @$percentage ?? '' }}" />
                     <span class="input-group-text">%</span>
                 </div>
                 <div class="invalid-feedback">Percentage is required.</div>
             </div>
 
             {{-- Fixed amount field --}}
-            <div class="col-md-4" id="fixedAmountField" style="display: none;">
-                <label class="form-label">Fixed Amount <span class="text-danger">*</span></label>
+            <div class="col-md-4" id="fixedValueField" style="display: none;">
+                <label class="form-label">Discount Amount (Rs) <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <span class="input-group-text">Rs</span>
-                    <input type="number" name="value" class="form-control" placeholder="e.g. 50"
-                        min="0" value="{{ @$value ?? '' }}" />
+                    <input type="number" name="value" class="form-control"
+                        placeholder="e.g. 50" min="0" value="{{ @$value ?? '' }}" />
                 </div>
-                <div class="invalid-feedback">Amount is required.</div>
+                <div class="invalid-feedback">Discount amount is required.</div>
             </div>
 
         </div>
 
-        {{-- ── Row 2: Applies To ────────────────────────────────── --}}
+        {{-- ── Row 2: Applies To ───────────────────────────────────── --}}
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
                 <label class="form-label">Applies To <span class="text-danger">*</span></label>
                 <select name="applies_to" id="appliesTo" class="form-select" data-required>
                     <option value="">-- Select --</option>
-                    <option value="entire" {{ (@$applies_to ?? '') == 'entire' ? 'selected' : '' }}>Entire Order
-                    </option>
-                    <option value="item" {{ (@$applies_to ?? '') == 'item' ? 'selected' : '' }}>Specific Item
-                    </option>
-                    <option value="variation" {{ (@$applies_to ?? '') == 'variation' ? 'selected' : '' }}>Specific
-                        Variation</option>
+                    <option value="entire"    {{ (@$applies_to ?? '') == 'entire'    ? 'selected' : '' }}>Entire Order</option>
+                    <option value="item"      {{ (@$applies_to ?? '') == 'item'      ? 'selected' : '' }}>Specific Item</option>
+                    <option value="variation" {{ (@$applies_to ?? '') == 'variation' ? 'selected' : '' }}>Specific Variation</option>
                 </select>
-                <div class="invalid-feedback">Please select what this discount applies to.</div>
+                <div class="invalid-feedback">Please select what this coupon applies to.</div>
             </div>
 
             {{-- Item dropdown --}}
@@ -86,62 +90,56 @@
 
         </div>
 
-        {{-- ── Row 3: Minimum Requirement ──────────────────────── --}}
+        {{-- ── Row 3: Minimum Requirement ─────────────────────────── --}}
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
                 <label class="form-label">Minimum Requirement</label>
                 <select name="min_requirement" id="minRequirement" class="form-select">
-                    <option value="none" {{ (@$min_requirement ?? 'none') == 'none' ? 'selected' : '' }}>None
-                    </option>
-                    <option value="purchase" {{ (@$min_requirement ?? '') == 'purchase' ? 'selected' : '' }}>
-                        Minimum Purchase Amount</option>
-                    <option value="quantity" {{ (@$min_requirement ?? '') == 'quantity' ? 'selected' : '' }}>
-                        Minimum Quantity</option>
+                    <option value="none"     {{ (@$min_requirement ?? 'none') == 'none'     ? 'selected' : '' }}>None</option>
+                    <option value="purchase" {{ (@$min_requirement ?? '')     == 'purchase' ? 'selected' : '' }}>Minimum Purchase Amount</option>
+                    <option value="quantity" {{ (@$min_requirement ?? '')     == 'quantity' ? 'selected' : '' }}>Minimum Quantity</option>
                 </select>
             </div>
 
             <div class="col-md-4" id="minValueField" style="display: none;">
                 <label class="form-label">Minimum Value <span class="text-danger">*</span></label>
-                <input type="number" name="min_value" class="form-control" placeholder="Enter minimum value"
-                    min="0" value="{{ @$min_value ?? '' }}" />
+                <input type="number" name="min_value" class="form-control"
+                    placeholder="Enter minimum value" min="0" value="{{ @$min_value ?? '' }}" />
                 <div class="invalid-feedback">Minimum value is required.</div>
             </div>
 
         </div>
 
-        {{-- ── Row 4: Usage Limits ──────────────────────────────── --}}
+        {{-- ── Row 4: Usage Limits ─────────────────────────────────── --}}
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
                 <label class="form-label">Usage Limit Type</label>
                 <select name="usage_limit_type" id="usageLimitType" class="form-select">
-                    <option value="once" {{ (@$usage_limit_type ?? 'once') == 'once' ? 'selected' : '' }}>One
-                        Time Only</option>
-                    <option value="limited" {{ (@$usage_limit_type ?? '') == 'limited' ? 'selected' : '' }}>
-                        Limited Number of Uses</option>
-                    <option value="per_user" {{ (@$usage_limit_type ?? '') == 'per_user' ? 'selected' : '' }}>
-                        Limit Per Customer</option>
+                    <option value="once"     {{ (@$usage_limit_type ?? 'once') == 'once'     ? 'selected' : '' }}>One Time Only</option>
+                    <option value="limited"  {{ (@$usage_limit_type ?? '')     == 'limited'  ? 'selected' : '' }}>Limited Number of Uses</option>
+                    <option value="per_user" {{ (@$usage_limit_type ?? '')     == 'per_user' ? 'selected' : '' }}>Limit Per Customer</option>
                 </select>
             </div>
 
             <div class="col-md-4" id="totalUsageField" style="display: none;">
                 <label class="form-label">Total Usage Limit <span class="text-danger">*</span></label>
-                <input type="number" name="usage_limit" class="form-control" placeholder="e.g. 100"
-                    min="1" value="{{ @$usage_limit ?? '' }}" />
+                <input type="number" name="usage_limit" class="form-control"
+                    placeholder="e.g. 100" min="1" value="{{ @$usage_limit ?? '' }}" />
                 <div class="invalid-feedback">Please enter total usage limit.</div>
             </div>
 
             <div class="col-md-4" id="perUserField" style="display: none;">
                 <label class="form-label">Uses Per Customer <span class="text-danger">*</span></label>
-                <input type="number" name="usage_limit_per_user" class="form-control" placeholder="e.g. 1"
-                    min="1" value="{{ @$usage_limit_per_user ?? '' }}" />
+                <input type="number" name="usage_limit_per_user" class="form-control"
+                    placeholder="e.g. 1" min="1" value="{{ @$usage_limit_per_user ?? '' }}" />
                 <div class="invalid-feedback">Please enter per customer limit.</div>
             </div>
 
         </div>
 
-        {{-- ── Row 5: Dates ─────────────────────────────────────── --}}
+        {{-- ── Row 5: Dates ────────────────────────────────────────── --}}
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
@@ -174,29 +172,22 @@
 <script>
 (function () {
 
-    if (window._discountModalInitialized) return;
-    window._discountModalInitialized = true;
+    if (window._couponModalInitialized) return;
+    window._couponModalInitialized = true;
 
-    var ITEMS_URL      = '{{ route('api.items.list') }}';
-    var VARIATIONS_URL = '{{ url('admin/discount/items') }}';
+    var ITEMS_URL      = '{{ route('api.coupon.items.list') }}';
+    var VARIATIONS_URL = '{{ url('admin/coupon/items') }}';
 
     var editItemId      = '{{ @$item_id ?? '' }}';
     var editVariationId = '{{ @$variation_id ?? '' }}';
 
     /* =========================================================
-       DISCOUNT TYPE → show % or fixed field
+       DISCOUNT TYPE TOGGLE
     ========================================================= */
-    function applyTypeToggle(type) {
-        $('#percentageField, #fixedAmountField').hide();
-        $('#percentageField input, #fixedAmountField input').removeAttr('data-required');
-
-        if (type === 'percentage') {
-            $('#percentageField').show();
-            $('#percentageField input').attr('data-required', '');
-        } else if (type === 'fixed') {
-            $('#fixedAmountField').show();
-            $('#fixedAmountField input').attr('data-required', '');
-        }
+    function applyDiscountTypeToggle(val) {
+        $('#percentageField, #fixedValueField').hide();
+        if (val === 'percentage') $('#percentageField').show();
+        if (val === 'fixed')      $('#fixedValueField').show();
     }
 
     /* =========================================================
@@ -283,72 +274,78 @@
     /* =========================================================
        EVENTS
     ========================================================= */
-    $(document).off('change.discount', '#discountType')
-        .on('change.discount', '#discountType', function () {
-            applyTypeToggle($(this).val());
+    $(document).off('change.coupon', '#discountType')
+        .on('change.coupon', '#discountType', function () {
+            applyDiscountTypeToggle($(this).val());
         });
 
-    $(document).off('change.discount', '#appliesTo')
-        .on('change.discount', '#appliesTo', function () {
+    $(document).off('change.coupon', '#appliesTo')
+        .on('change.coupon', '#appliesTo', function () {
             applyAppliesToToggle($(this).val(), '', '');
         });
 
-    $(document).off('change.discount', '#itemSelect')
-        .on('change.discount', '#itemSelect', function () {
-            var itemId  = $(this).val();
-            var applies = $('#appliesTo').val();
+    $(document).off('change.coupon', '#itemSelect')
+        .on('change.coupon', '#itemSelect', function () {
+            var itemId = $(this).val();
             $('#variationField').hide();
             $('#variationSelect').html('<option value="">-- Select item first --</option>');
-            if (itemId && applies === 'variation') loadVariations(itemId, '');
+            if (itemId && $('#appliesTo').val() === 'variation') {
+                loadVariations(itemId, '');
+            }
         });
 
-    $(document).off('change.discount', '#minRequirement')
-        .on('change.discount', '#minRequirement', function () {
+    $(document).off('change.coupon', '#minRequirement')
+        .on('change.coupon', '#minRequirement', function () {
             applyMinRequirementToggle($(this).val());
         });
 
-    $(document).off('change.discount', '#usageLimitType')
-        .on('change.discount', '#usageLimitType', function () {
+    $(document).off('change.coupon', '#usageLimitType')
+        .on('change.coupon', '#usageLimitType', function () {
             applyUsageLimitToggle($(this).val());
+        });
+
+    // Auto uppercase coupon code
+    $(document).off('input.coupon', '[name="coupon_code"]')
+        .on('input.coupon', '[name="coupon_code"]', function () {
+            this.value = this.value.toUpperCase();
         });
 
     /* =========================================================
        MODAL SHOWN — init toggles (edit mode)
     ========================================================= */
-    $(document).off('shown.bs.modal.discount', '#discountModel')
-        .on('shown.bs.modal.discount', '#discountModel', function () {
+    $(document).off('shown.bs.modal.coupon', '#couponModal')
+        .on('shown.bs.modal.coupon', '#couponModal', function () {
             editItemId      = '{{ @$item_id ?? '' }}';
             editVariationId = '{{ @$variation_id ?? '' }}';
 
-            applyTypeToggle($('#discountType').val());
+            applyDiscountTypeToggle($('#discountType').val());
 
             var appliesTo = $('#appliesTo').val();
             if (appliesTo) applyAppliesToToggle(appliesTo, editItemId, editVariationId);
 
-        /* =========================================================
-           BIND ALL EVENTS
-        ========================================================= */
+            applyMinRequirementToggle($('#minRequirement').val());
+            applyUsageLimitToggle($('#usageLimitType').val());
+        });
 
     /* =========================================================
        MODAL HIDDEN — full reset
     ========================================================= */
-    $(document).off('hidden.bs.modal.discount', '#discountModel')
-        .on('hidden.bs.modal.discount', '#discountModel', function () {
-            var $form = $('#orgForm');
+    $(document).off('hidden.bs.modal.coupon', '#couponModal')
+        .on('hidden.bs.modal.coupon', '#couponModal', function () {
+            var $form = $('#couponForm');
             $form[0].reset();
             $form.find('.is-invalid').removeClass('is-invalid');
-            $('#percentageField, #fixedAmountField').hide();
-            $('#percentageField input, #fixedAmountField input').removeAttr('data-required');
-            $('#itemField, #variationField').hide();
-            $('#minValueField, #totalUsageField, #perUserField').hide();
+            $('#itemField, #variationField, #minValueField, #totalUsageField, #perUserField, #percentageField, #fixedValueField').hide();
             editItemId = editVariationId = '';
-            window._discountModalInitialized = false;
+            window._couponModalInitialized = false;
         });
 
-                if (itemId && applies === 'variation') {
-                    loadVariations(itemId, '');
-                }
-            });
+    /* =========================================================
+       FORM SUBMIT
+    ========================================================= */
+    $(document).off('submit.coupon', '#couponForm')
+        .on('submit.coupon', '#couponForm', function (e) {
+            e.preventDefault();
 
             var $form = $(this);
             var $btn  = $form.find('#submitBtn');
@@ -365,10 +362,18 @@
                     $el.addClass('is-invalid');
                     valid = false;
                 }
-
-                applyMinRequirementToggle($('#minRequirement').val());
-                applyUsageLimitToggle($('#usageLimitType').val());
             });
+
+            // Discount value validation
+            var discountType = $('#discountType').val();
+            if (discountType === 'percentage') {
+                var $pct = $form.find('[name="percentage"]');
+                if (!$pct.val()) { $pct.addClass('is-invalid'); valid = false; }
+            }
+            if (discountType === 'fixed') {
+                var $fval = $form.find('[name="value"]');
+                if (!$fval.val()) { $fval.addClass('is-invalid'); valid = false; }
+            }
 
             // Applies to dynamic dropdowns
             var appliesTo = $('#appliesTo').val();
@@ -387,12 +392,12 @@
             }
 
             // Usage limit fields
-            var usageLimitType = $('#usageLimitType').val();
-            if (usageLimitType === 'limited') {
+            var usageType = $('#usageLimitType').val();
+            if (usageType === 'limited') {
                 var $ul = $form.find('[name="usage_limit"]');
                 if (!$ul.val()) { $ul.addClass('is-invalid'); valid = false; }
             }
-            if (usageLimitType === 'per_user') {
+            if (usageType === 'per_user') {
                 var $pul = $form.find('[name="usage_limit_per_user"]');
                 if (!$pul.val()) { $pul.addClass('is-invalid'); valid = false; }
             }
@@ -405,10 +410,10 @@
                 valid = false;
             }
 
-                if (!valid) {
-                    showNotification('Please fill in all required fields.', 'warning');
-                    return;
-                }
+            if (!valid) {
+                showNotification('Please fill in all required fields.', 'warning');
+                return;
+            }
 
             var origHTML = $btn.html();
             $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
@@ -425,22 +430,11 @@
                     var result = typeof response === 'string' ? JSON.parse(response) : response;
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
-                        if (typeof orgTable !== 'undefined') orgTable.fnDraw();
-                        bootstrap.Modal.getInstance(document.getElementById('discountModel')).hide();
+                        if (typeof couponTable !== 'undefined') couponTable.fnDraw();
+                        bootstrap.Modal.getInstance(document.getElementById('couponModal')).hide();
                     } else {
                         showNotification(result.message, 'error');
                         $btn.prop('disabled', false).html(origHTML);
-
-                        if (xhr.status === 422) {
-                            $.each(xhr.responseJSON.errors, function(field, messages) {
-                                var $field = $form.find('[name="' + field + '"]');
-                                $field.addClass('is-invalid');
-                                $field.siblings('.invalid-feedback').text(messages[0]);
-                            });
-                            showNotification('Please fix the errors below.', 'error');
-                        } else {
-                            showNotification('Something went wrong!', 'error');
-                        }
                     }
                 },
                 error: function (xhr) {
@@ -458,6 +452,7 @@
                     }
                 }
             });
+        });
 
 })();
 </script>

@@ -21,6 +21,7 @@ use App\Http\Controllers\BackPanel\RetailerPriceController;
 use App\Http\Controllers\BackPanel\RoleController;
 use App\Http\Controllers\BackPanel\SalesReportController;
 use App\Http\Controllers\BackPanel\SiteSettingController;
+use App\Http\Controllers\BackPanel\CouponController;
 use App\Http\Controllers\BackPanel\DriverController;
 use App\Http\Controllers\BackPanel\StoreController;
 use App\Http\Controllers\BackPanel\SubCategoryController;
@@ -127,7 +128,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save', [RoleController::class, 'save'])->name('role.save');
             Route::post('/list', [RoleController::class, 'list'])->name('role.list');
             Route::post('/delete', [RoleController::class, 'delete'])->name('role.delete');
-            Route::post('/permissions', [RoleController::class, 'getPermissions'])->name('role.getPermissions'); // ← add this
+            Route::post('/permissions', [RoleController::class, 'getPermissions'])->name('role.getPermissions'); 
+            Route::post('/save-permissions', [RoleController::class, 'savePermissions'])->name('role.savePermissions');
 
         });
 
@@ -276,6 +278,18 @@ Route::group(['middleware' => ['auth']], function () {
             // Get variations for a specific item
             Route::get('/items/{id}/variations', [DiscountController::class, 'variations']);
         });
+
+        
+Route::group(['prefix' => 'coupon'], function () {
+    Route::get('/',                          [CouponController::class, 'index'])->name('coupon');
+    Route::get('/list',                      [CouponController::class, 'list'])->name('coupon.list');
+    Route::any('/form',                      [CouponController::class, 'form'])->name('coupon.form');
+    Route::post('/save',                     [CouponController::class, 'save'])->name('coupon.save');
+    Route::post('/delete',                   [CouponController::class, 'delete'])->name('coupon.delete');
+    Route::post('/view',                     [CouponController::class, 'view'])->name('coupon.view');
+    Route::get('/items/list',                [CouponController::class, 'items'])->name('api.coupon.items.list');
+    Route::get('/items/{id}/variations',     [CouponController::class, 'variations']);
+});
 
         /* Profile-start */
         Route::group(['prefix' => 'profile'], function () {
