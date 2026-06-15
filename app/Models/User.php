@@ -259,7 +259,7 @@ class User extends Authenticatable implements JWTSubject
                 'address'                    => $post['address'],
                 'gender'                     => $post['gender'],
                 'type'                       => $post['type'],
-                'status'              => 'Y',             // ← add this
+                    'status'              => 'Y',             // ← add this
                 'company_name'               => $post['company_name'] ?? null,
                 'tax_number'                 => $post['tax_number'] ?? null,
                 'pan_number'                 => $post['pan_number'] ?? null,

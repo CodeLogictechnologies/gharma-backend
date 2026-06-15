@@ -128,9 +128,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save', [RoleController::class, 'save'])->name('role.save');
             Route::post('/list', [RoleController::class, 'list'])->name('role.list');
             Route::post('/delete', [RoleController::class, 'delete'])->name('role.delete');
-            Route::post('/permissions', [RoleController::class, 'getPermissions'])->name('role.getPermissions'); 
+            Route::post('/permissions', [RoleController::class, 'getPermissions'])->name('role.getPermissions');
             Route::post('/save-permissions', [RoleController::class, 'savePermissions'])->name('role.savePermissions');
-
         });
 
         Route::group(['prefix' => 'permission'], function () {
@@ -279,17 +278,17 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/items/{id}/variations', [DiscountController::class, 'variations']);
         });
 
-        
-Route::group(['prefix' => 'coupon'], function () {
-    Route::get('/',                          [CouponController::class, 'index'])->name('coupon');
-    Route::get('/list',                      [CouponController::class, 'list'])->name('coupon.list');
-    Route::any('/form',                      [CouponController::class, 'form'])->name('coupon.form');
-    Route::post('/save',                     [CouponController::class, 'save'])->name('coupon.save');
-    Route::post('/delete',                   [CouponController::class, 'delete'])->name('coupon.delete');
-    Route::post('/view',                     [CouponController::class, 'view'])->name('coupon.view');
-    Route::get('/items/list',                [CouponController::class, 'items'])->name('api.coupon.items.list');
-    Route::get('/items/{id}/variations',     [CouponController::class, 'variations']);
-});
+
+        Route::group(['prefix' => 'coupon'], function () {
+            Route::get('/',                          [CouponController::class, 'index'])->name('coupon');
+            Route::get('/list',                      [CouponController::class, 'list'])->name('coupon.list');
+            Route::any('/form',                      [CouponController::class, 'form'])->name('coupon.form');
+            Route::post('/save',                     [CouponController::class, 'save'])->name('coupon.save');
+            Route::post('/delete',                   [CouponController::class, 'delete'])->name('coupon.delete');
+            Route::post('/view',                     [CouponController::class, 'view'])->name('coupon.view');
+            Route::get('/items/list',                [CouponController::class, 'items'])->name('api.coupon.items.list');
+            Route::get('/items/{id}/variations',     [CouponController::class, 'variations']);
+        });
 
         /* Profile-start */
         Route::group(['prefix' => 'profile'], function () {
