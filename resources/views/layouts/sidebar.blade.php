@@ -22,7 +22,7 @@
             </a>
         </li>
 
-         <!-- Favicon -->
+        <!-- Favicon -->
         <li class="menu-item {{ request()->routeIs('favicon') ? 'active' : '' }}">
             <a href="{{ route('favicon') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-image-alt"></i>
@@ -37,10 +37,10 @@
 
         <!-- Organization -->
         {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
-            <a href="{{ route('organization') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-buildings"></i>
-                <div>Organization</div>
-            </a>
+        <a href="{{ route('organization') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-buildings"></i>
+            <div>Organization</div>
+        </a>
         </li> --}}
 
         {{-- Driver --}}
@@ -208,7 +208,7 @@
             class="menu-item {{ request()->routeIs('loyalty') || request()->routeIs('discount') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
-                <div>Discount / Loyalty</div>
+                <div>Discount / Loyalty/</div>
             </a>
 
             <ul class="menu-sub">
@@ -224,6 +224,13 @@
                     <a href="{{ route('loyalty') }}" class="menu-link">
                         <i class="bx bx-package me-2"></i>
                         <div>Loyalty</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('coupon') ? 'active' : '' }}">
+                    <a href="{{ route('coupon') }}" class="menu-link">
+                        <i class="bx bx-trending-up me-2"></i>
+                        <div>Coupon</div>
                     </a>
                 </li>
 

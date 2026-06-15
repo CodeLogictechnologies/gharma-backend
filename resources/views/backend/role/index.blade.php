@@ -33,7 +33,7 @@
                 <select class="form-select" id="roleSelect" style="max-width: 220px;">
                     <option value="">-- Select Role --</option>
                     @foreach ($roles as $role)
-                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                    <option value="{{ $role->id }}">{{ $role->name }}</option>
                     @endforeach
                 </select>
                 <button type="button" class="btn btn-primary" id="viewBtn">View</button>
@@ -50,16 +50,16 @@
                                 </th>
                                 <th>Sidebar Name</th>
                                 <th class="text-center">
-                                    <input type="checkbox" class="form-check-input col-check" data-col="add"> Add
+                                    Add
                                 </th>
                                 <th class="text-center">
-                                    <input type="checkbox" class="form-check-input col-check" data-col="edit"> Edit
+                                    Edit
                                 </th>
                                 <th class="text-center">
-                                    <input type="checkbox" class="form-check-input col-check" data-col="view"> View
+                                    View
                                 </th>
                                 <th class="text-center">
-                                    <input type="checkbox" class="form-check-input col-check" data-col="delete"> Delete
+                                    Delete
                                 </th>
                             </tr>
                         </thead>
@@ -88,160 +88,230 @@
 
 @section('main-scripts')
 <script>
-$(document).ready(function () {
+    $(document).ready(function() {
 
-    $.ajaxSetup({
-        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-    });
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
 
-    // ── Module definitions ──────────────────────────────────────────
-    var modules = [
-    { label: 'Favicon',         key: 'favicon' },
-    { label: 'Role',            key: 'role' },
-    { label: 'Home Tab',        key: 'hometab' },
-    { label: 'Store',           key: 'store' },
-    { label: 'Category',        key: 'category' },
-    { label: 'Brand',           key: 'brand' },
-    { label: 'Item',            key: 'item' },
-    { label: 'Users',           key: 'user' },
-    { label: 'Driver List',     key: 'driverlist' },
-    { label: 'Inventory',       key: 'inventory' },
-    { label: 'Vendor',          key: 'vendor' },
-    { label: 'Retailer',        key: 'retailer' },
-    { label: 'Wholesaler',      key: 'wholesaler' },
-    { label: 'Discount',        key: 'discount' },
-    { label: 'Loyalty',         key: 'loyalty' },
-    { label: 'Order',           key: 'order' },
-    { label: 'Invoice',         key: 'invoice' },
-    { label: 'Refund',          key: 'refund' },
-    { label: 'Report',          key: 'report' },
-    { label: 'Heatmap',         key: 'heatmap' },
-    { label: 'Notification',    key: 'notification' },
-];
+        // ── Module definitions ──────────────────────────────────────────
+        var modules = [{
+                label: 'Favicon',
+                key: 'favicon'
+            },
+            {
+                label: 'Role',
+                key: 'role'
+            },
+            {
+                label: 'Home Tab',
+                key: 'hometab'
+            },
+            {
+                label: 'Store',
+                key: 'store'
+            },
+            {
+                label: 'Category',
+                key: 'category'
+            },
+            {
+                label: 'Brand',
+                key: 'brand'
+            },
+            {
+                label: 'Item',
+                key: 'item'
+            },
+            {
+                label: 'Users',
+                key: 'user'
+            },
+            {
+                label: 'Driver List',
+                key: 'driverlist'
+            },
+            {
+                label: 'Inventory',
+                key: 'inventory'
+            },
+            {
+                label: 'Vendor',
+                key: 'vendor'
+            },
+            {
+                label: 'Retailer',
+                key: 'retailer'
+            },
+            {
+                label: 'Wholesaler',
+                key: 'wholesaler'
+            },
+            {
+                label: 'Discount',
+                key: 'discount'
+            },
+            {
+                label: 'Loyalty',
+                key: 'loyalty'
+            },
+            {
+                label: 'Order',
+                key: 'order'
+            },
+            {
+                label: 'Invoice',
+                key: 'invoice'
+            },
+            {
+                label: 'Refund',
+                key: 'refund'
+            },
+            {
+                label: 'Report',
+                key: 'report'
+            },
+            {
+                label: 'Heatmap',
+                key: 'heatmap'
+            },
+            {
+                label: 'Notification',
+                key: 'notification'
+            },
+        ];
 
-    var allPermissions  = @json($permissions);   // full permission list from controller
-    var rolePermissions = [];                     // IDs assigned to selected role
+        var allPermissions = @json($permissions); // full permission list from controller
+        var rolePermissions = []; // IDs assigned to selected role
 
-    // ── View button ─────────────────────────────────────────────────
-    $('#viewBtn').on('click', function () {
-        var roleId = $('#roleSelect').val();
-        if (!roleId) {
-            $('#permissionTableWrap').hide();
-            $('#noRoleMsg').show();
-            return;
+        // ── View button ─────────────────────────────────────────────────
+        $('#viewBtn').on('click', function() {
+            var roleId = $('#roleSelect').val();
+            if (!roleId) {
+                $('#permissionTableWrap').hide();
+                $('#noRoleMsg').show();
+                return;
+            }
+
+            $.post('{{ route("role.getPermissions") }}', {
+                id: roleId
+            }, function(res) {
+                var result = typeof res === 'string' ? JSON.parse(res) : res;
+                rolePermissions = result.permissions || [];
+                buildMatrix();
+                $('#permissionTableWrap').show();
+                $('#noRoleMsg').hide();
+            });
+        });
+
+        // ── Build the permission matrix rows ────────────────────────────
+        function buildMatrix() {
+            var $tbody = $('#permissionBody').empty();
+
+            modules.forEach(function(mod) {
+                var paddingLeft = mod.indent === 1 ? '2rem' : (mod.indent === 2 ? '3.5rem' : '0');
+                var collapseBtn = mod.indent === 0 ?
+                    '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 collapse-row me-1" style="font-size:11px; line-height:1.4;">−</button>' :
+                    '';
+
+                var row = '<tr data-key="' + mod.key + '" data-indent="' + mod.indent + '">';
+                row += '<td>' + collapseBtn + '<input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
+                row += '<td style="padding-left:' + paddingLeft + ';">' + mod.label + '</td>';
+
+                ['add', 'edit', 'view', 'delete'].forEach(function(action) {
+                    var permName = mod.key + '.' + action;
+                    var perm = allPermissions.find(function(p) {
+                        return p.name === permName;
+                    });
+                    var permId = perm ? perm.id : null;
+                    var checked = perm && rolePermissions.indexOf(perm.id) !== -1 ? 'checked' : '';
+                    row += '<td class="text-center"><input type="checkbox" class="form-check-input perm-check" ' +
+                        'data-perm-id="' + permId + '" data-key="' + mod.key + '" data-action="' + action + '" ' + checked + '></td>';
+                });
+
+                row += '</tr>';
+                $tbody.append(row);
+            });
         }
 
-        $.post('{{ route("role.getPermissions") }}', { id: roleId }, function (res) {
-            var result = typeof res === 'string' ? JSON.parse(res) : res;
-            rolePermissions = result.permissions || [];
-            buildMatrix();
-            $('#permissionTableWrap').show();
-            $('#noRoleMsg').hide();
+        // ── Select All header checkbox ───────────────────────────────────
+        $('#selectAll').on('change', function() {
+            var checked = $(this).is(':checked');
+            $('.perm-check').prop('checked', checked);
+            $('.row-select').prop('checked', checked);
         });
-    });
 
-    // ── Build the permission matrix rows ────────────────────────────
-    function buildMatrix() {
-        var $tbody = $('#permissionBody').empty();
+        // ── Column header checkboxes (Add / Edit / View / Delete) ────────
+        $(document).on('change', '.col-check', function() {
+            var col = $(this).data('col');
+            var checked = $(this).is(':checked');
+            $('.perm-check[data-action="' + col + '"]').prop('checked', checked);
+        });
 
-        modules.forEach(function (mod) {
-            var paddingLeft = mod.indent === 1 ? '2rem' : (mod.indent === 2 ? '3.5rem' : '0');
-            var collapseBtn = mod.indent === 0
-                ? '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 collapse-row me-1" style="font-size:11px; line-height:1.4;">−</button>'
-                : '';
+        // ── Row select checkbox (checks all 4 actions in that row) ───────
+        $(document).on('change', '.row-select', function() {
+            var key = $(this).data('key');
+            var checked = $(this).is(':checked');
+            $('.perm-check[data-key="' + key + '"]').prop('checked', checked);
+        });
 
-            var row = '<tr data-key="' + mod.key + '" data-indent="' + mod.indent + '">';
-            row    += '<td>' + collapseBtn + '<input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
-            row    += '<td style="padding-left:' + paddingLeft + ';">' + mod.label + '</td>';
+        // ── Collapse/expand child rows ───────────────────────────────────
+        $(document).on('click', '.collapse-row', function() {
+            var $btn = $(this);
+            var $row = $btn.closest('tr');
+            var key = $row.data('key');
+            var isOpen = $btn.text() === '−';
 
-            ['add','edit','view','delete'].forEach(function (action) {
-                var permName = mod.key + '.' + action;
-                var perm     = allPermissions.find(function (p) { return p.name === permName; });
-                if (perm) {
-                    var checked = rolePermissions.indexOf(perm.id) !== -1 ? 'checked' : '';
-                    row += '<td class="text-center"><input type="checkbox" class="form-check-input perm-check" '
-                         + 'data-perm-id="' + perm.id + '" data-key="' + mod.key + '" data-action="' + action + '" ' + checked + '></td>';
+            // Find sibling rows that come after this parent (indent > 0) until next indent-0
+            var $siblings = $row.nextAll('tr');
+            var $children = $();
+            $siblings.each(function() {
+                if ($(this).data('indent') > 0) {
+                    $children = $children.add($(this));
                 } else {
-                    row += '<td class="text-center"><span class="text-muted">–</span></td>';
+                    return false;
                 }
             });
 
-            row += '</tr>';
-            $tbody.append(row);
-        });
-    }
-
-    // ── Select All header checkbox ───────────────────────────────────
-    $('#selectAll').on('change', function () {
-        var checked = $(this).is(':checked');
-        $('.perm-check').prop('checked', checked);
-        $('.row-select').prop('checked', checked);
-    });
-
-    // ── Column header checkboxes (Add / Edit / View / Delete) ────────
-    $(document).on('change', '.col-check', function () {
-        var col     = $(this).data('col');
-        var checked = $(this).is(':checked');
-        $('.perm-check[data-action="' + col + '"]').prop('checked', checked);
-    });
-
-    // ── Row select checkbox (checks all 4 actions in that row) ───────
-    $(document).on('change', '.row-select', function () {
-        var key     = $(this).data('key');
-        var checked = $(this).is(':checked');
-        $('.perm-check[data-key="' + key + '"]').prop('checked', checked);
-    });
-
-    // ── Collapse/expand child rows ───────────────────────────────────
-    $(document).on('click', '.collapse-row', function () {
-        var $btn    = $(this);
-        var $row    = $btn.closest('tr');
-        var key     = $row.data('key');
-        var isOpen  = $btn.text() === '−';
-
-        // Find sibling rows that come after this parent (indent > 0) until next indent-0
-        var $siblings = $row.nextAll('tr');
-        var $children = $();
-        $siblings.each(function () {
-            if ($(this).data('indent') > 0) { $children = $children.add($(this)); }
-            else { return false; }
+            if (isOpen) {
+                $children.hide();
+                $btn.text('+');
+            } else {
+                $children.show();
+                $btn.text('−');
+            }
         });
 
-        if (isOpen) {
-            $children.hide();
-            $btn.text('+');
-        } else {
-            $children.show();
-            $btn.text('−');
-        }
-    });
-
-    // ── Save button → confirm modal ──────────────────────────────────
-    $('#savePermissionsBtn').on('click', function () {
-        new bootstrap.Modal(document.getElementById('saveModal')).show();
-    });
-
-    $('#confirmSave').on('click', function () {
-        var roleId      = $('#roleSelect').val();
-        var permIds     = [];
-
-        $('.perm-check:checked').each(function () {
-            permIds.push($(this).data('perm-id'));
+        // ── Save button → confirm modal ──────────────────────────────────
+        $('#savePermissionsBtn').on('click', function() {
+            new bootstrap.Modal(document.getElementById('saveModal')).show();
         });
 
-        $.post('{{ route("role.save") }}', {
-            id:          roleId,
-            permissions: permIds,
-            _token:      '{{ csrf_token() }}'
-        }, function (res) {
-            var result = typeof res === 'string' ? JSON.parse(res) : res;
-            showNotification(result.message, result.type);
-            bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
-        }).fail(function () {
-            showNotification('Something went wrong!', 'error');
-        });
+        $('#confirmSave').on('click', function () {
+    var roleId    = $('#roleSelect').val();
+    var permNames = [];
+
+    $('.perm-check:checked').each(function () {
+        var key    = $(this).data('key');
+        var action = $(this).data('action');
+        permNames.push(key + '.' + action);
     });
 
+    $.post('{{ route("role.savePermissions") }}', {
+        id:         roleId,
+        perm_names: permNames,
+        _token:     '{{ csrf_token() }}'
+    }, function (res) {
+        var result = typeof res === 'string' ? JSON.parse(res) : res;
+        showNotification(result.message, result.type);
+        bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
+    }).fail(function () {
+        showNotification('Something went wrong!', 'error');
+    });
 });
+
+    });
 </script>
 @endsection

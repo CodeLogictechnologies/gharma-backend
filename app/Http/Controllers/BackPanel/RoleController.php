@@ -190,4 +190,36 @@ class RoleController extends Controller
             ]);
         }
     }
+
+    public function savePermissions(Request $request)
+    {
+        try {
+            if (empty($request->id)) {
+                throw new Exception('Role ID is required.', 1);
+            }
+
+            $role = \Spatie\Permission\Models\Role::findOrFail($request->id);
+
+            $permNames = [];
+            foreach ($request->perm_names ?? [] as $name) {
+                $perm = \Spatie\Permission\Models\Permission::firstOrCreate([
+                    'name'       => $name,
+                    'guard_name' => 'web',
+                ]);
+                $permNames[] = $perm->name;
+            }
+
+            $role->syncPermissions($permNames);
+
+            return response()->json([
+                'type'    => 'success',
+                'message' => 'Permissions saved successfully.',
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
 }
