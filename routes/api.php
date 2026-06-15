@@ -18,6 +18,7 @@ use App\Http\Controllers\API\HomeTabController;
 use App\Http\Controllers\Api\HelloController;
 use App\Http\Controllers\API\ItemController;
 use App\Http\Controllers\API\LocationTrackerController;
+use App\Http\Controllers\API\LoyaltyController;
 use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\UserAddressController;
 use App\Http\Controllers\BackPanel\OtpController;
@@ -122,6 +123,9 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/order/checkOtp', [OtpController::class, 'verifyOtp']);
 
     Route::get('/uses/order/history', [ItemController::class, 'getUserOrderHistory']);
+
+
+    Route::get('/loyalty/list',    [LoyaltyController::class, 'getList']);
 
 
     Route::get('/items/search/history', [ItemController::class, 'searchHistory']);

@@ -31,6 +31,7 @@ class Discount extends Model
 
             // Auto-generate title since field is hidden in form
             $title = $post['title'] ?? null;
+            
             if (empty($title)) {
                 $type  = $post['type'] ?? 'discount';
                 $value = match ($type) {

@@ -56,9 +56,12 @@
                 <label class="form-label">Applies To <span class="text-danger">*</span></label>
                 <select name="applies_to" id="appliesTo" class="form-select" data-required>
                     <option value="">-- Select --</option>
-                    <option value="entire"    {{ (@$applies_to ?? '') == 'entire'    ? 'selected' : '' }}>Entire Order</option>
-                    <option value="item"      {{ (@$applies_to ?? '') == 'item'      ? 'selected' : '' }}>Specific Item</option>
-                    <option value="variation" {{ (@$applies_to ?? '') == 'variation' ? 'selected' : '' }}>Specific Variation</option>
+                    <option value="entire" {{ (@$applies_to ?? '') == 'entire' ? 'selected' : '' }}>Entire Order
+                    </option>
+                    <option value="item" {{ (@$applies_to ?? '') == 'item' ? 'selected' : '' }}>Specific Item
+                    </option>
+                    <option value="variation" {{ (@$applies_to ?? '') == 'variation' ? 'selected' : '' }}>Specific
+                        Variation</option>
                 </select>
                 <div class="invalid-feedback">Please select what this discount applies to.</div>
             </div>
@@ -89,9 +92,12 @@
             <div class="col-md-4">
                 <label class="form-label">Minimum Requirement</label>
                 <select name="min_requirement" id="minRequirement" class="form-select">
-                    <option value="none"     {{ (@$min_requirement ?? 'none') == 'none'     ? 'selected' : '' }}>None</option>
-                    <option value="purchase" {{ (@$min_requirement ?? '')     == 'purchase' ? 'selected' : '' }}>Minimum Purchase Amount</option>
-                    <option value="quantity" {{ (@$min_requirement ?? '')     == 'quantity' ? 'selected' : '' }}>Minimum Quantity</option>
+                    <option value="none" {{ (@$min_requirement ?? 'none') == 'none' ? 'selected' : '' }}>None
+                    </option>
+                    <option value="purchase" {{ (@$min_requirement ?? '') == 'purchase' ? 'selected' : '' }}>
+                        Minimum Purchase Amount</option>
+                    <option value="quantity" {{ (@$min_requirement ?? '') == 'quantity' ? 'selected' : '' }}>
+                        Minimum Quantity</option>
                 </select>
             </div>
 
@@ -110,9 +116,12 @@
             <div class="col-md-4">
                 <label class="form-label">Usage Limit Type</label>
                 <select name="usage_limit_type" id="usageLimitType" class="form-select">
-                    <option value="once"     {{ (@$usage_limit_type ?? 'once') == 'once'     ? 'selected' : '' }}>One Time Only</option>
-                    <option value="limited"  {{ (@$usage_limit_type ?? '')     == 'limited'  ? 'selected' : '' }}>Limited Number of Uses</option>
-                    <option value="per_user" {{ (@$usage_limit_type ?? '')     == 'per_user' ? 'selected' : '' }}>Limit Per Customer</option>
+                    <option value="once" {{ (@$usage_limit_type ?? 'once') == 'once' ? 'selected' : '' }}>One
+                        Time Only</option>
+                    <option value="limited" {{ (@$usage_limit_type ?? '') == 'limited' ? 'selected' : '' }}>
+                        Limited Number of Uses</option>
+                    <option value="per_user" {{ (@$usage_limit_type ?? '') == 'per_user' ? 'selected' : '' }}>
+                        Limit Per Customer</option>
                 </select>
             </div>
 
@@ -316,9 +325,9 @@
             var appliesTo = $('#appliesTo').val();
             if (appliesTo) applyAppliesToToggle(appliesTo, editItemId, editVariationId);
 
-            applyMinRequirementToggle($('#minRequirement').val());
-            applyUsageLimitToggle($('#usageLimitType').val());
-        });
+        /* =========================================================
+           BIND ALL EVENTS
+        ========================================================= */
 
     /* =========================================================
        MODAL HIDDEN — full reset
@@ -336,12 +345,10 @@
             window._discountModalInitialized = false;
         });
 
-    /* =========================================================
-       FORM SUBMIT
-    ========================================================= */
-    $(document).off('submit.discount', '#orgForm')
-        .on('submit.discount', '#orgForm', function (e) {
-            e.preventDefault();
+                if (itemId && applies === 'variation') {
+                    loadVariations(itemId, '');
+                }
+            });
 
             var $form = $(this);
             var $btn  = $form.find('#submitBtn');
@@ -358,6 +365,9 @@
                     $el.addClass('is-invalid');
                     valid = false;
                 }
+
+                applyMinRequirementToggle($('#minRequirement').val());
+                applyUsageLimitToggle($('#usageLimitType').val());
             });
 
             // Applies to dynamic dropdowns
@@ -395,10 +405,10 @@
                 valid = false;
             }
 
-            if (!valid) {
-                showNotification('Please fill in all required fields.', 'warning');
-                return;
-            }
+                if (!valid) {
+                    showNotification('Please fill in all required fields.', 'warning');
+                    return;
+                }
 
             var origHTML = $btn.html();
             $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
@@ -420,6 +430,17 @@
                     } else {
                         showNotification(result.message, 'error');
                         $btn.prop('disabled', false).html(origHTML);
+
+                        if (xhr.status === 422) {
+                            $.each(xhr.responseJSON.errors, function(field, messages) {
+                                var $field = $form.find('[name="' + field + '"]');
+                                $field.addClass('is-invalid');
+                                $field.siblings('.invalid-feedback').text(messages[0]);
+                            });
+                            showNotification('Please fix the errors below.', 'error');
+                        } else {
+                            showNotification('Something went wrong!', 'error');
+                        }
                     }
                 },
                 error: function (xhr) {
@@ -437,7 +458,6 @@
                     }
                 }
             });
-        });
 
 })();
 </script>
