@@ -238,7 +238,6 @@ class ItemController extends Controller
                 )
                 ->orderBy('iv.created_at', 'asc');
         } else {
-
             $query = DB::table('itemvariations as iv')
                 ->join('items as it', 'it.id', '=', 'iv.item_id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
@@ -251,7 +250,24 @@ class ItemController extends Controller
                     '=',
                     'it.id'
                 )
-                ->where('it.orgid', $orgId)
+                ->leftJoin('discounts as d', function ($join) {
+                    $join->on(function ($q) {
+                        $q->where('d.applies_to', 'entire')
+                            ->where('d.status', 'Y')
+                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                    })->orOn(function ($q) {
+                        $q->where('d.applies_to', 'item')
+                            ->whereColumn('d.item_id', 'it.id')
+                            ->where('d.status', 'Y')
+                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                    })->orOn(function ($q) {
+                        $q->where('d.applies_to', 'variation')
+                            ->whereColumn('d.variation_id', 'iv.id')
+                            ->where('d.status', 'Y')
+                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                    });
+                })
+                // ->where('it.orgid', $orgId)
                 ->where('iv.status', 'Y')
                 ->where('p.status', 'Y')
                 ->select(
@@ -260,7 +276,25 @@ class ItemController extends Controller
                     'iv.id as variationid',
                     'iv.value',
                     'img.images',
-                    'p.price',
+                    // Final price after discount
+                    DB::raw("
+            CASE
+                WHEN ANY_VALUE(d.id) IS NULL THEN p.price
+                WHEN ANY_VALUE(d.type) = 'percentage' THEN ROUND(p.price - (p.price * ANY_VALUE(d.percentage) / 100), 2)
+                WHEN ANY_VALUE(d.type) = 'fixed' THEN ROUND(p.price - ANY_VALUE(d.value), 2)
+                ELSE p.price
+            END as price
+        "),
+                    // Original price (null if no discount)
+                    DB::raw("
+            CASE
+                WHEN ANY_VALUE(d.id) IS NULL THEN NULL
+                ELSE p.price
+            END as original_price
+        "),
+                    DB::raw("ANY_VALUE(d.type) as discount_type"),
+                    DB::raw("ANY_VALUE(d.value) as discount_value"),
+                    DB::raw("ANY_VALUE(d.percentage) as discount_percentage"),
                     'iv.created_at'
                 )
                 ->groupBy(
@@ -271,10 +305,8 @@ class ItemController extends Controller
                     'img.images',
                     'p.price',
                     'iv.created_at'
-                )
-                ->orderBy('iv.created_at', 'asc');
+                );
         }
-
         // ── Filter by categories only if not "all" ──
         if (!empty($categoryIds)) {
             $query->join('category_items as ci', 'ci.itemid', '=', 'it.id')
@@ -282,7 +314,6 @@ class ItemController extends Controller
         }
 
         $data = $query->paginate($perPage);
-
         if ($data->isEmpty()) {
             return response()->json([
                 'type'    => 'error',
@@ -353,19 +384,23 @@ class ItemController extends Controller
                 ];
             });
         } else {
-            $items = collect($data->items())->map(function ($row) use ($allVariations) {
-                return [
-                    'productid'   => $row->productid,
-                    'title'       => $row->title,
-                    'variationid' => $row->variationid,
-                    'value'       => $row->value,
-                    'price'       => $row->price,
-                    'images'      => $row->images
-                        ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
-                        : [],
-                    'variations'  => $allVariations[$row->productid] ?? [],
-                ];
-            });
+           $items = collect($data->items())->map(function ($row) use ($allVariations) {
+    return [
+        'productid'            => $row->productid,
+        'title'                => $row->title,
+        'variationid'          => $row->variationid,
+        'value'                => $row->value,
+        'price'                => $row->price,
+        'original_price'       => $row->original_price,
+        'discount_type'        => $row->discount_type,
+        'discount_value'       => $row->discount_value,
+        'discount_percentage'  => $row->discount_percentage,
+        'images'               => $row->images
+            ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
+            : [],
+        'variations'           => $allVariations[$row->productid] ?? [],
+    ];
+});
         }
 
         return response()->json([

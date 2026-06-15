@@ -31,6 +31,7 @@ class Discount extends Model
 
             // Auto-generate title since field is hidden in form
             $title = $post['title'] ?? null;
+            
             if (empty($title)) {
                 $type = $post['type'] ?? 'discount';
                 $value = match ($type) {
@@ -72,7 +73,7 @@ class Discount extends Model
                     ->where('id', $post['id'])
                     ->update($dataArray);
 
-            // ── INSERT ────────────────────────────────────────────────────
+                // ── INSERT ────────────────────────────────────────────────────
             } else {
                 $dataArray['id']         = (string) Str::uuid();
                 $dataArray['status']     = 'Y';
@@ -90,7 +91,6 @@ class Discount extends Model
 
             DB::commit();
             return true;
-
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

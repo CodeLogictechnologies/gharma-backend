@@ -26,9 +26,10 @@
                 <label class="form-label">Discount Type <span class="text-danger">*</span></label>
                 <select name="type" id="discountType" class="form-select" data-required>
                     <option value="">-- Select Type --</option>
-                    <option value="percentage" {{ (@$type ?? '') == 'percentage' ? 'selected' : '' }}>Percentage (%)</option>
-                    <option value="fixed"      {{ (@$type ?? '') == 'fixed'      ? 'selected' : '' }}>Fixed Amount</option>
-                    <option value="coupon"     {{ (@$type ?? '') == 'coupon'     ? 'selected' : '' }}>Coupon</option>
+                    <option value="percentage" {{ (@$type ?? '') == 'percentage' ? 'selected' : '' }}>Percentage (%)
+                    </option>
+                    <option value="fixed" {{ (@$type ?? '') == 'fixed' ? 'selected' : '' }}>Fixed Amount</option>
+                    <option value="coupon" {{ (@$type ?? '') == 'coupon' ? 'selected' : '' }}>Coupon</option>
                 </select>
                 <div class="invalid-feedback">Discount type is required.</div>
             </div>
@@ -63,6 +64,15 @@
                 <div class="invalid-feedback">Coupon code is required.</div>
             </div>
 
+            <div class="col-md-4" id="couponAmountField" style="display: none;">
+                <label class="form-label">Discount Amount <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">Rs</span>
+                    <input type="number" name="value" class="form-control" placeholder="e.g. 50" min="0"
+                        value="{{ @$value ?? '' }}" />
+                </div>
+            </div>
+
         </div>
 
         {{-- ── Row 2: Applies To ────────────────────────────────── --}}
@@ -72,9 +82,12 @@
                 <label class="form-label">Applies To <span class="text-danger">*</span></label>
                 <select name="applies_to" id="appliesTo" class="form-select" data-required>
                     <option value="">-- Select --</option>
-                    <option value="entire"    {{ (@$applies_to ?? '') == 'entire'    ? 'selected' : '' }}>Entire Order</option>
-                    <option value="item"      {{ (@$applies_to ?? '') == 'item'      ? 'selected' : '' }}>Specific Item</option>
-                    <option value="variation" {{ (@$applies_to ?? '') == 'variation' ? 'selected' : '' }}>Specific Variation</option>
+                    <option value="entire" {{ (@$applies_to ?? '') == 'entire' ? 'selected' : '' }}>Entire Order
+                    </option>
+                    <option value="item" {{ (@$applies_to ?? '') == 'item' ? 'selected' : '' }}>Specific Item
+                    </option>
+                    <option value="variation" {{ (@$applies_to ?? '') == 'variation' ? 'selected' : '' }}>Specific
+                        Variation</option>
                 </select>
                 <div class="invalid-feedback">Please select what this discount applies to.</div>
             </div>
@@ -105,9 +118,12 @@
             <div class="col-md-4">
                 <label class="form-label">Minimum Requirement</label>
                 <select name="min_requirement" id="minRequirement" class="form-select">
-                    <option value="none"     {{ (@$min_requirement ?? 'none') == 'none'     ? 'selected' : '' }}>None</option>
-                    <option value="purchase" {{ (@$min_requirement ?? '')     == 'purchase' ? 'selected' : '' }}>Minimum Purchase Amount</option>
-                    <option value="quantity" {{ (@$min_requirement ?? '')     == 'quantity' ? 'selected' : '' }}>Minimum Quantity</option>
+                    <option value="none" {{ (@$min_requirement ?? 'none') == 'none' ? 'selected' : '' }}>None
+                    </option>
+                    <option value="purchase" {{ (@$min_requirement ?? '') == 'purchase' ? 'selected' : '' }}>
+                        Minimum Purchase Amount</option>
+                    <option value="quantity" {{ (@$min_requirement ?? '') == 'quantity' ? 'selected' : '' }}>
+                        Minimum Quantity</option>
                 </select>
             </div>
 
@@ -126,9 +142,12 @@
             <div class="col-md-4">
                 <label class="form-label">Usage Limit Type</label>
                 <select name="usage_limit_type" id="usageLimitType" class="form-select">
-                    <option value="once"     {{ (@$usage_limit_type ?? 'once') == 'once'     ? 'selected' : '' }}>One Time Only</option>
-                    <option value="limited"  {{ (@$usage_limit_type ?? '')     == 'limited'  ? 'selected' : '' }}>Limited Number of Uses</option>
-                    <option value="per_user" {{ (@$usage_limit_type ?? '')     == 'per_user' ? 'selected' : '' }}>Limit Per Customer</option>
+                    <option value="once" {{ (@$usage_limit_type ?? 'once') == 'once' ? 'selected' : '' }}>One
+                        Time Only</option>
+                    <option value="limited" {{ (@$usage_limit_type ?? '') == 'limited' ? 'selected' : '' }}>
+                        Limited Number of Uses</option>
+                    <option value="per_user" {{ (@$usage_limit_type ?? '') == 'per_user' ? 'selected' : '' }}>
+                        Limit Per Customer</option>
                 </select>
             </div>
 
@@ -179,348 +198,360 @@
 </form>
 
 <script>
-(function () {
+    (function() {
 
-    // ─── Guard: run only once even if modal HTML is injected multiple times ───
-    if (window._discountModalInitialized) return;
-    window._discountModalInitialized = true;
+        // ─── Guard: run only once even if modal HTML is injected multiple times ───
+        if (window._discountModalInitialized) return;
+        window._discountModalInitialized = true;
 
-    var ITEMS_URL      = '{{ route('api.items.list') }}';
-    var VARIATIONS_URL = '{{ url('admin/discount/items') }}';
+        var ITEMS_URL = '{{ route('api.items.list') }}';
+        var VARIATIONS_URL = '{{ url('admin/discount/items') }}';
 
-    // Pre-saved values for edit mode
-    var editItemId      = '{{ @$item_id ?? '' }}';
-    var editVariationId = '{{ @$variation_id ?? '' }}';
+        // Pre-saved values for edit mode
+        var editItemId = '{{ @$item_id ?? '' }}';
+        var editVariationId = '{{ @$variation_id ?? '' }}';
 
-    /* =========================================================
-       HELPERS
-    ========================================================= */
-    function showField($el) { $el.show(); }
-    function hideField($el) { $el.hide(); $el.find('input').val(''); }
-
-    /* =========================================================
-       DISCOUNT TYPE → show %, fixed, or coupon field
-    ========================================================= */
-    function applyTypeToggle(type) {
-        // Hide all value fields and remove required
-        $('#percentageField, #fixedAmountField, #couponCodeField').hide();
-        $('#percentageField input, #fixedAmountField input, #couponCodeField input').removeAttr('data-required');
-
-        if (type === 'percentage') {
-            $('#percentageField').show();
-            $('#percentageField input').attr('data-required', '');
-        } else if (type === 'fixed') {
-            $('#fixedAmountField').show();
-            $('#fixedAmountField input').attr('data-required', '');
-        } else if (type === 'coupon') {
-            $('#couponCodeField').show();
-            $('#couponCodeField input').attr('data-required', '');
+        /* =========================================================
+           HELPERS
+        ========================================================= */
+        function showField($el) {
+            $el.show();
         }
-    }
 
-    /* =========================================================
-       LOAD ITEMS FROM API
-    ========================================================= */
-    function loadItems(selectedId, callback) {
-        $('#itemSelect').html('<option value="">-- Loading... --</option>');
+        function hideField($el) {
+            $el.hide();
+            $el.find('input').val('');
+        }
 
-        $.get(ITEMS_URL)
-            .done(function (response) {
-                var options = '<option value="">-- Select Item --</option>';
-                $.each(response.data, function (i, item) {
-                    var sel = (String(item.id) === String(selectedId)) ? 'selected' : '';
-                    options += '<option value="' + item.id + '" ' + sel + '>' + item.title + '</option>';
+        /* =========================================================
+           DISCOUNT TYPE → show %, fixed, or coupon field
+        ========================================================= */
+        function applyTypeToggle(type) {
+            // Hide all value fields and remove required
+            $('#percentageField, #fixedAmountField, #couponCodeField').hide();
+            $('#percentageField input, #fixedAmountField input, #couponCodeField input').removeAttr(
+            'data-required');
+
+            if (type === 'percentage') {
+                $('#percentageField').show();
+                $('#percentageField input').attr('data-required', '');
+            } else if (type === 'fixed') {
+                $('#fixedAmountField').show();
+                $('#fixedAmountField input').attr('data-required', '');
+            } else if (type === 'coupon') {
+                $('#couponCodeField').show();
+                $('#couponCodeField input').attr('data-required', '');
+            }
+        }
+
+        /* =========================================================
+           LOAD ITEMS FROM API
+        ========================================================= */
+        function loadItems(selectedId, callback) {
+            $('#itemSelect').html('<option value="">-- Loading... --</option>');
+
+            $.get(ITEMS_URL)
+                .done(function(response) {
+                    var options = '<option value="">-- Select Item --</option>';
+                    $.each(response.data, function(i, item) {
+                        var sel = (String(item.id) === String(selectedId)) ? 'selected' : '';
+                        options += '<option value="' + item.id + '" ' + sel + '>' + item.title +
+                            '</option>';
+                    });
+                    $('#itemSelect').html(options);
+                    if (typeof callback === 'function') callback();
+                })
+                .fail(function() {
+                    $('#itemSelect').html('<option value="">-- Failed to load --</option>');
+                    showNotification('Could not load items.', 'error');
                 });
-                $('#itemSelect').html(options);
-                if (typeof callback === 'function') callback();
-            })
-            .fail(function () {
-                $('#itemSelect').html('<option value="">-- Failed to load --</option>');
-                showNotification('Could not load items.', 'error');
-            });
-    }
+        }
 
-    /* =========================================================
-       LOAD VARIATIONS FROM API
-    ========================================================= */
-    function loadVariations(itemId, selectedId) {
-        $('#variationSelect').html('<option value="">-- Loading... --</option>');
-        $('#variationField').show();
+        /* =========================================================
+           LOAD VARIATIONS FROM API
+        ========================================================= */
+        function loadVariations(itemId, selectedId) {
+            $('#variationSelect').html('<option value="">-- Loading... --</option>');
+            $('#variationField').show();
 
-        $.get(VARIATIONS_URL + '/' + itemId + '/variations')
-            .done(function (response) {
-                var options = '<option value="">-- Select Variation --</option>';
-                $.each(response.data, function (i, v) {
-                    var sel = (String(v.id) === String(selectedId)) ? 'selected' : '';
-                    options += '<option value="' + v.id + '" ' + sel + '>' + v.attribute + ' - ' + v.value + '</option>';
+            $.get(VARIATIONS_URL + '/' + itemId + '/variations')
+                .done(function(response) {
+                    var options = '<option value="">-- Select Variation --</option>';
+                    $.each(response.data, function(i, v) {
+                        var sel = (String(v.id) === String(selectedId)) ? 'selected' : '';
+                        options += '<option value="' + v.id + '" ' + sel + '>' + v.attribute + ' - ' + v
+                            .value + '</option>';
+                    });
+                    $('#variationSelect').html(options);
+                })
+                .fail(function() {
+                    $('#variationSelect').html('<option value="">-- Failed to load --</option>');
+                    showNotification('Could not load variations.', 'error');
                 });
-                $('#variationSelect').html(options);
-            })
-            .fail(function () {
-                $('#variationSelect').html('<option value="">-- Failed to load --</option>');
-                showNotification('Could not load variations.', 'error');
-            });
-    }
-
-    /* =========================================================
-       APPLIES TO → show item / variation dropdowns
-    ========================================================= */
-    function applyAppliesToToggle(val, selectedItemId, selectedVariationId) {
-        $('#itemField').hide();
-        $('#variationField').hide();
-        $('#variationSelect').html('<option value="">-- Select item first --</option>');
-
-        if (val === 'item') {
-            $('#itemField').show();
-            loadItems(selectedItemId || '');
-        } else if (val === 'variation') {
-            $('#itemField').show();
-            loadItems(selectedItemId || '', function () {
-                if (selectedItemId) {
-                    loadVariations(selectedItemId, selectedVariationId || '');
-                }
-            });
         }
-    }
 
-    /* =========================================================
-       MIN REQUIREMENT → show value input
-    ========================================================= */
-    function applyMinRequirementToggle(val) {
-        if (val === 'purchase' || val === 'quantity') {
-            showField($('#minValueField'));
-        } else {
-            hideField($('#minValueField'));
-        }
-    }
-
-    /* =========================================================
-       USAGE LIMIT TYPE → show relevant input
-    ========================================================= */
-    function applyUsageLimitToggle(val) {
-        $('#totalUsageField').hide();
-        $('#perUserField').hide();
-
-        if (val === 'limited') {
-            $('#totalUsageField').show();
-        } else if (val === 'per_user') {
-            $('#perUserField').show();
-        }
-    }
-
-    /* =========================================================
-       BIND ALL EVENTS
-    ========================================================= */
-
-    // Discount type change
-    $(document).off('change.discount', '#discountType')
-        .on('change.discount', '#discountType', function () {
-            applyTypeToggle($(this).val());
-        });
-
-    // Applies to change
-    $(document).off('change.discount', '#appliesTo')
-        .on('change.discount', '#appliesTo', function () {
-            applyAppliesToToggle($(this).val(), '', '');
-        });
-
-    // Item select change → load variations
-    $(document).off('change.discount', '#itemSelect')
-        .on('change.discount', '#itemSelect', function () {
-            var itemId  = $(this).val();
-            var applies = $('#appliesTo').val();
-
+        /* =========================================================
+           APPLIES TO → show item / variation dropdowns
+        ========================================================= */
+        function applyAppliesToToggle(val, selectedItemId, selectedVariationId) {
+            $('#itemField').hide();
             $('#variationField').hide();
             $('#variationSelect').html('<option value="">-- Select item first --</option>');
 
-            if (itemId && applies === 'variation') {
-                loadVariations(itemId, '');
+            if (val === 'item') {
+                $('#itemField').show();
+                loadItems(selectedItemId || '');
+            } else if (val === 'variation') {
+                $('#itemField').show();
+                loadItems(selectedItemId || '', function() {
+                    if (selectedItemId) {
+                        loadVariations(selectedItemId, selectedVariationId || '');
+                    }
+                });
             }
-        });
+        }
 
-    // Min requirement change
-    $(document).off('change.discount', '#minRequirement')
-        .on('change.discount', '#minRequirement', function () {
-            applyMinRequirementToggle($(this).val());
-        });
-
-    // Usage limit type change
-    $(document).off('change.discount', '#usageLimitType')
-        .on('change.discount', '#usageLimitType', function () {
-            applyUsageLimitToggle($(this).val());
-        });
-
-    /* =========================================================
-       MODAL SHOWN → initialise all toggles (handles edit mode)
-    ========================================================= */
-    $(document).off('shown.bs.modal.discount', '#discountModel')
-        .on('shown.bs.modal.discount', '#discountModel', function () {
-            editItemId      = '{{ @$item_id ?? '' }}';
-            editVariationId = '{{ @$variation_id ?? '' }}';
-
-            applyTypeToggle($('#discountType').val());
-
-            var appliesTo = $('#appliesTo').val();
-            if (appliesTo) {
-                applyAppliesToToggle(appliesTo, editItemId, editVariationId);
+        /* =========================================================
+           MIN REQUIREMENT → show value input
+        ========================================================= */
+        function applyMinRequirementToggle(val) {
+            if (val === 'purchase' || val === 'quantity') {
+                showField($('#minValueField'));
+            } else {
+                hideField($('#minValueField'));
             }
+        }
 
-            applyMinRequirementToggle($('#minRequirement').val());
-            applyUsageLimitToggle($('#usageLimitType').val());
-        });
+        /* =========================================================
+           USAGE LIMIT TYPE → show relevant input
+        ========================================================= */
+        function applyUsageLimitToggle(val) {
+            $('#totalUsageField').hide();
+            $('#perUserField').hide();
 
-    /* =========================================================
-       MODAL HIDDEN → full reset
-    ========================================================= */
-    $(document).off('hidden.bs.modal.discount', '#discountModel')
-        .on('hidden.bs.modal.discount', '#discountModel', function () {
-            var $form = $('#orgForm');
-            $form[0].reset();
-            $form.find('.is-invalid').removeClass('is-invalid');
+            if (val === 'limited') {
+                $('#totalUsageField').show();
+            } else if (val === 'per_user') {
+                $('#perUserField').show();
+            }
+        }
 
-            $('#percentageField, #fixedAmountField, #couponCodeField').hide();
-            $('#percentageField input, #fixedAmountField input, #couponCodeField input').removeAttr('data-required');
-            $('#itemField, #variationField').hide();
-            $('#minValueField, #totalUsageField, #perUserField').hide();
+        /* =========================================================
+           BIND ALL EVENTS
+        ========================================================= */
 
-            editItemId      = '';
-            editVariationId = '';
+        // Discount type change
+        $(document).off('change.discount', '#discountType')
+            .on('change.discount', '#discountType', function() {
+                applyTypeToggle($(this).val());
+            });
 
-            window._discountModalInitialized = false;
-        });
+        // Applies to change
+        $(document).off('change.discount', '#appliesTo')
+            .on('change.discount', '#appliesTo', function() {
+                applyAppliesToToggle($(this).val(), '', '');
+            });
 
-    /* =========================================================
-       FORM SUBMIT
-    ========================================================= */
-    $(document).off('submit.discount', '#orgForm')
-        .on('submit.discount', '#orgForm', function (e) {
-            e.preventDefault();
+        // Item select change → load variations
+        $(document).off('change.discount', '#itemSelect')
+            .on('change.discount', '#itemSelect', function() {
+                var itemId = $(this).val();
+                var applies = $('#appliesTo').val();
 
-            var $form = $(this);
-            var $btn  = $form.find('#submitBtn');
+                $('#variationField').hide();
+                $('#variationSelect').html('<option value="">-- Select item first --</option>');
 
-            if ($btn.prop('disabled')) return;
-
-            $form.find('.is-invalid').removeClass('is-invalid');
-
-            var valid = true;
-
-            // Validate data-required visible fields
-            $form.find('[data-required]').each(function () {
-                var $el = $(this);
-                if (!$el.is(':visible')) return;
-                if (!$el.val() || !String($el.val()).trim()) {
-                    $el.addClass('is-invalid');
-                    valid = false;
+                if (itemId && applies === 'variation') {
+                    loadVariations(itemId, '');
                 }
             });
 
-            // Validate coupon code if type = coupon
-            if ($('#discountType').val() === 'coupon') {
-                var $coupon = $form.find('[name="coupon_code"]');
-                if (!$coupon.val() || !String($coupon.val()).trim()) {
-                    $coupon.addClass('is-invalid');
+        // Min requirement change
+        $(document).off('change.discount', '#minRequirement')
+            .on('change.discount', '#minRequirement', function() {
+                applyMinRequirementToggle($(this).val());
+            });
+
+        // Usage limit type change
+        $(document).off('change.discount', '#usageLimitType')
+            .on('change.discount', '#usageLimitType', function() {
+                applyUsageLimitToggle($(this).val());
+            });
+
+        /* =========================================================
+           MODAL SHOWN → initialise all toggles (handles edit mode)
+        ========================================================= */
+        $(document).off('shown.bs.modal.discount', '#discountModel')
+            .on('shown.bs.modal.discount', '#discountModel', function() {
+                editItemId = '{{ @$item_id ?? '' }}';
+                editVariationId = '{{ @$variation_id ?? '' }}';
+
+                applyTypeToggle($('#discountType').val());
+
+                var appliesTo = $('#appliesTo').val();
+                if (appliesTo) {
+                    applyAppliesToToggle(appliesTo, editItemId, editVariationId);
+                }
+
+                applyMinRequirementToggle($('#minRequirement').val());
+                applyUsageLimitToggle($('#usageLimitType').val());
+            });
+
+        /* =========================================================
+           MODAL HIDDEN → full reset
+        ========================================================= */
+        $(document).off('hidden.bs.modal.discount', '#discountModel')
+            .on('hidden.bs.modal.discount', '#discountModel', function() {
+                var $form = $('#orgForm');
+                $form[0].reset();
+                $form.find('.is-invalid').removeClass('is-invalid');
+
+                $('#percentageField, #fixedAmountField, #couponCodeField').hide();
+                $('#percentageField input, #fixedAmountField input, #couponCodeField input').removeAttr(
+                    'data-required');
+                $('#itemField, #variationField').hide();
+                $('#minValueField, #totalUsageField, #perUserField').hide();
+
+                editItemId = '';
+                editVariationId = '';
+
+                window._discountModalInitialized = false;
+            });
+
+        /* =========================================================
+           FORM SUBMIT
+        ========================================================= */
+        $(document).off('submit.discount', '#orgForm')
+            .on('submit.discount', '#orgForm', function(e) {
+                e.preventDefault();
+
+                var $form = $(this);
+                var $btn = $form.find('#submitBtn');
+
+                if ($btn.prop('disabled')) return;
+
+                $form.find('.is-invalid').removeClass('is-invalid');
+
+                var valid = true;
+
+                // Validate data-required visible fields
+                $form.find('[data-required]').each(function() {
+                    var $el = $(this);
+                    if (!$el.is(':visible')) return;
+                    if (!$el.val() || !String($el.val()).trim()) {
+                        $el.addClass('is-invalid');
+                        valid = false;
+                    }
+                });
+
+                // Validate coupon code if type = coupon
+                if ($('#discountType').val() === 'coupon') {
+                    var $coupon = $form.find('[name="coupon_code"]');
+                    if (!$coupon.val() || !String($coupon.val()).trim()) {
+                        $coupon.addClass('is-invalid');
+                        valid = false;
+                    }
+                }
+
+                // Validate dynamic dropdowns
+                var appliesTo = $('#appliesTo').val();
+                if (appliesTo === 'item' || appliesTo === 'variation') {
+                    if (!$('#itemSelect').val()) {
+                        $('#itemSelect').addClass('is-invalid');
+                        valid = false;
+                    }
+                }
+                if (appliesTo === 'variation') {
+                    if (!$('#variationSelect').val()) {
+                        $('#variationSelect').addClass('is-invalid');
+                        valid = false;
+                    }
+                }
+
+                // Validate min value
+                var minReq = $('#minRequirement').val();
+                if (minReq === 'purchase' || minReq === 'quantity') {
+                    var $minVal = $form.find('[name="min_value"]');
+                    if (!$minVal.val() || !String($minVal.val()).trim()) {
+                        $minVal.addClass('is-invalid');
+                        valid = false;
+                    }
+                }
+
+                // Validate usage limit fields
+                var usageLimitType = $('#usageLimitType').val();
+                if (usageLimitType === 'limited') {
+                    var $usageLimit = $form.find('[name="usage_limit"]');
+                    if (!$usageLimit.val() || !String($usageLimit.val()).trim()) {
+                        $usageLimit.addClass('is-invalid');
+                        valid = false;
+                    }
+                }
+                if (usageLimitType === 'per_user') {
+                    var $perUserLimit = $form.find('[name="usage_limit_per_user"]');
+                    if (!$perUserLimit.val() || !String($perUserLimit.val()).trim()) {
+                        $perUserLimit.addClass('is-invalid');
+                        valid = false;
+                    }
+                }
+
+                // Validate end date >= start date
+                var startsAt = $('[name="starts_at"]').val();
+                var endsAt = $('[name="ends_at"]').val();
+                if (startsAt && endsAt && endsAt < startsAt) {
+                    $('[name="ends_at"]').addClass('is-invalid');
                     valid = false;
                 }
-            }
 
-            // Validate dynamic dropdowns
-            var appliesTo = $('#appliesTo').val();
-            if (appliesTo === 'item' || appliesTo === 'variation') {
-                if (!$('#itemSelect').val()) {
-                    $('#itemSelect').addClass('is-invalid');
-                    valid = false;
+                if (!valid) {
+                    showNotification('Please fill in all required fields.', 'warning');
+                    return;
                 }
-            }
-            if (appliesTo === 'variation') {
-                if (!$('#variationSelect').val()) {
-                    $('#variationSelect').addClass('is-invalid');
-                    valid = false;
-                }
-            }
 
-            // Validate min value
-            var minReq = $('#minRequirement').val();
-            if (minReq === 'purchase' || minReq === 'quantity') {
-                var $minVal = $form.find('[name="min_value"]');
-                if (!$minVal.val() || !String($minVal.val()).trim()) {
-                    $minVal.addClass('is-invalid');
-                    valid = false;
-                }
-            }
+                var origHTML = $btn.html();
+                $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
+                showLoader();
 
-            // Validate usage limit fields
-            var usageLimitType = $('#usageLimitType').val();
-            if (usageLimitType === 'limited') {
-                var $usageLimit = $form.find('[name="usage_limit"]');
-                if (!$usageLimit.val() || !String($usageLimit.val()).trim()) {
-                    $usageLimit.addClass('is-invalid');
-                    valid = false;
-                }
-            }
-            if (usageLimitType === 'per_user') {
-                var $perUserLimit = $form.find('[name="usage_limit_per_user"]');
-                if (!$perUserLimit.val() || !String($perUserLimit.val()).trim()) {
-                    $perUserLimit.addClass('is-invalid');
-                    valid = false;
-                }
-            }
+                $.ajax({
+                    url: $form.attr('action'),
+                    type: 'POST',
+                    data: new FormData($form[0]),
+                    processData: false,
+                    contentType: false,
 
-            // Validate end date >= start date
-            var startsAt = $('[name="starts_at"]').val();
-            var endsAt   = $('[name="ends_at"]').val();
-            if (startsAt && endsAt && endsAt < startsAt) {
-                $('[name="ends_at"]').addClass('is-invalid');
-                valid = false;
-            }
+                    success: function(response) {
+                        hideLoader();
+                        var result = (typeof response === 'string') ? JSON.parse(response) :
+                            response;
 
-            if (!valid) {
-                showNotification('Please fill in all required fields.', 'warning');
-                return;
-            }
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            if (typeof orgTable !== 'undefined') orgTable.fnDraw();
+                            bootstrap.Modal.getInstance(document.getElementById('discountModel'))
+                                .hide();
+                        } else {
+                            showNotification(result.message, 'error');
+                            $btn.prop('disabled', false).html(origHTML);
+                        }
+                    },
 
-            var origHTML = $btn.html();
-            $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
-            showLoader();
-
-            $.ajax({
-                url         : $form.attr('action'),
-                type        : 'POST',
-                data        : new FormData($form[0]),
-                processData : false,
-                contentType : false,
-
-                success: function (response) {
-                    hideLoader();
-                    var result = (typeof response === 'string') ? JSON.parse(response) : response;
-
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        if (typeof orgTable !== 'undefined') orgTable.fnDraw();
-                        bootstrap.Modal.getInstance(document.getElementById('discountModel')).hide();
-                    } else {
-                        showNotification(result.message, 'error');
+                    error: function(xhr) {
+                        hideLoader();
                         $btn.prop('disabled', false).html(origHTML);
-                    }
-                },
 
-                error: function (xhr) {
-                    hideLoader();
-                    $btn.prop('disabled', false).html(origHTML);
-
-                    if (xhr.status === 422) {
-                        $.each(xhr.responseJSON.errors, function (field, messages) {
-                            var $field = $form.find('[name="' + field + '"]');
-                            $field.addClass('is-invalid');
-                            $field.siblings('.invalid-feedback').text(messages[0]);
-                        });
-                        showNotification('Please fix the errors below.', 'error');
-                    } else {
-                        showNotification('Something went wrong!', 'error');
+                        if (xhr.status === 422) {
+                            $.each(xhr.responseJSON.errors, function(field, messages) {
+                                var $field = $form.find('[name="' + field + '"]');
+                                $field.addClass('is-invalid');
+                                $field.siblings('.invalid-feedback').text(messages[0]);
+                            });
+                            showNotification('Please fix the errors below.', 'error');
+                        } else {
+                            showNotification('Something went wrong!', 'error');
+                        }
                     }
-                }
+                });
             });
-        });
 
-})(); // end IIFE
+    })(); // end IIFE
 </script>

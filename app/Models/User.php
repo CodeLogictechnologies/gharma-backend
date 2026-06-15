@@ -259,7 +259,7 @@ class User extends Authenticatable implements JWTSubject
                 'address'                    => $post['address'],
                 'gender'                     => $post['gender'],
                 'type'                       => $post['type'],
-                    'status'              => 'Y',             // ← add this
+                'status'              => 'Y',             // ← add this
                 'company_name'               => $post['company_name'] ?? null,
                 'tax_number'                 => $post['tax_number'] ?? null,
                 'pan_number'                 => $post['pan_number'] ?? null,
@@ -488,69 +488,12 @@ class User extends Authenticatable implements JWTSubject
                     'p.username as profile_username',
                     'p.gender',
                     'p.phone',
-                    'p.company_name',
-                    'p.tax_number',
-                    'p.registration_number',
-                    DB::raw("CONCAT('" . url('storage/registration_number_image') . "/', p.registration_number_image) as registration_number_image"),  // ← removed 'p.'
-                    DB::raw("CONCAT('" . url('storage/pan_number') . "/', p.pan_number) as pan_number"),
-                    DB::raw("CONCAT('" . url('storage/profiles') . "/', p.image) as image"),
                     'p.address',
-                    'u.user_status as status'
+                    DB::raw("CONCAT('" . url('storage/profiles') . "/', p.image) as image"),
+                    'p.status'
                 )
                 ->where('u.id', $post['userid'])
                 ->first();
-        } catch (Exception $e) {
-            throw $e;
-        }
-    }
-
-    /* ── update user (admin panel) ───────────────────────────── */
-    public static function updateUser($post)
-    {
-        try {
-            $imageName = null;
-
-            if (!empty($post['image']) && $post['image'] instanceof \Illuminate\Http\UploadedFile) {
-                $file      = $post['image'];
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('profiles', $imageName, 'public');
-            }
-
-            if (empty($post['userid'])) {
-                throw new Exception("User ID is required");
-            }
-
-            $userId = $post['userid'];
-
-            DB::table('users')->where('id', $userId)->update([
-                'name'       => $post['username'] ?? '',
-                'email'      => $post['email'] ?? '',
-                'updated_at' => Carbon::now(),
-            ]);
-
-            $oldData = DB::table('profiles')->where('user_id', $userId)->first();
-
-            if ($imageName && $oldData && $oldData->image) {
-                $oldPath = storage_path('app/public/profiles/' . $oldData->image);
-                if (File::exists($oldPath)) File::delete($oldPath);
-            }
-
-            $profileData = [
-                'username'    => $post['username'] ?? '',
-                'first_name'  => $post['first_name'] ?? '',
-                'middle_name' => $post['middle_name'] ?? null,
-                'last_name'   => $post['last_name'] ?? '',
-                'phone'       => $post['phone'] ?? '',
-                'address'     => $post['address'] ?? '',
-                'gender'      => $post['gender'] ?? '',
-                'updated_at'  => Carbon::now(),
-            ];
-
-            if ($imageName) {
-                $profileData['image'] = $imageName;
-            }
-
-            return DB::table('profiles')->where('user_id', $userId)->update($profileData);
         } catch (Exception $e) {
             throw $e;
         }
