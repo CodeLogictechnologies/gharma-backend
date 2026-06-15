@@ -10,11 +10,15 @@ class Loyalty extends Model
 {
     public static function getData($post)
     {
-        $data = DB::table('loyalties')
-            ->where('userid', $post['userid'])
-            // ->where('orgid', $post['orgid'])
-            ->value('loyaltypoint');
+        try {
+            $data = DB::table('loyalties')
+                ->where('userid', $post['userid'])
+                // ->where('orgid', $post['orgid'])
+                ->value('loyaltypoint');
 
-        return $data;
+            return $data;
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 }

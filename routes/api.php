@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CartController;
 use App\Http\Controllers\API\CategoryListController;
 use App\Http\Controllers\API\ChatController as APIChatController;
+use App\Http\Controllers\API\CouponController;
 use App\Http\Controllers\API\FavouriteController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\API\StoreController;
@@ -126,6 +127,7 @@ Route::middleware('auth:api')->group(function () {
 
 
     Route::get('/loyalty/list',    [LoyaltyController::class, 'getList']);
+    Route::get('/coupon/list',    [CouponController::class, 'getCouponList']);
 
 
     Route::get('/items/search/history', [ItemController::class, 'searchHistory']);

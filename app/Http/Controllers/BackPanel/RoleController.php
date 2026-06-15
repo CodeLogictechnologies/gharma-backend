@@ -197,7 +197,6 @@ class RoleController extends Controller
             if (empty($request->id)) {
                 throw new Exception('Role ID is required.', 1);
             }
-
             $role = \Spatie\Permission\Models\Role::findOrFail($request->id);
 
             $permNames = [];
