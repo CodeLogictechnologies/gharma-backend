@@ -156,10 +156,48 @@ class Brand extends Model
         }
     }
 
+    //     public static function getBrand($post)
+    // {
+    //     try {
+    //         $result = DB::table('brands')
+    //             ->select('id', 'name', 'description', 'logo', 'slug')
+    //             ->where('orgid', $post['orgid'])
+    //             ->where('status', 'Y')
+    //             ->orderBy('name', 'asc')
+    //             ->get()
+    //             ->map(function ($brand) {
+    //                 $brand->image_url = !empty($brand->logo)
+    //                     ? asset('storage/brands/' . $brand->logo)
+    //                     : asset('no-image.jpg');
+    //                 return $brand;
+    //             });
+
+    //         return $result;
+    //     } catch (Exception $e) {
+    //         throw $e;
+    //     }
+    // }
     public static function getBrand($post)
     {
         try {
-            $result = DB::table('brands')->select('id', 'name')->where('orgid', $post['orgid'])->where('status', 'Y')->get();
+            $query = DB::table('brands')
+                ->select('id', 'name', 'description', 'logo', 'slug')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y');
+
+            if (!empty($post['brandid'])) {
+                $query->where('id', $post['brandid']);
+            }
+
+            $result = $query
+                ->orderBy('name', 'asc')
+                ->get()
+                ->map(function ($brand) {
+                    $brand->image_url = !empty($brand->logo)
+                        ? asset('storage/brands/' . $brand->logo)
+                        : asset('no-image.jpg');
+                    return $brand;
+                });
 
             return $result;
         } catch (Exception $e) {

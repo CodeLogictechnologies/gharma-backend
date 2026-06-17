@@ -2,7 +2,7 @@
     <div class="app-brand demo">
         <a href="{{ route('admin.dashboard') }}" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img style="width: 200px;" src="{{ asset('logo.png') }}" alt="logo"> </span>
+                <img style="width: 200px;" src="{{ asset('gharma ecommerce.svg') }}" alt="logo"> </span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
@@ -36,12 +36,29 @@
         </li>
 
         <!-- Organization -->
-        {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
-        <a href="{{ route('organization') }}" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-buildings"></i>
-            <div>Organization</div>
-        </a>
-        </li> --}}
+        <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
+            <a href="{{ route('organization') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-buildings"></i>
+                <div>Organization</div>
+            </a>
+        </li>
+
+        <!-- Organization Access -->
+        <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
+            <a href="{{ route('organization.access') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-lock-alt"></i>
+                <div>Organization Access</div>
+            </a>
+        </li>
+
+
+        <!-- Organization Roles -->
+        <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
+            <a href="{{ route('organization.role') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-shield"></i>
+                <div>Organization Roles</div>
+            </a>
+        </li>
 
         {{-- Driver --}}
         <!-- Permission -->
@@ -193,6 +210,15 @@
                 </li>
             </ul>
         </li>
+
+        <!-- Return Refund poilcy -->
+         <li class="menu-item">
+    <a href="{{ route('refunds.policy') }}" class="menu-link">
+        <i class="menu-icon bx bx-shield"></i>
+        <div>Return & Refund Policy</div>
+    </a>
+</li>
+
 
         <!-- Home Tab -->
         <!-- <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">

@@ -37,10 +37,6 @@ class Item extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    /* ─────────────────────────────────────────────────────────────────
-       RELATIONSHIPS
-    ───────────────────────────────────────────────────────────────── */
-
     public function category()
     {
         return $this->belongsTo(Category::class, 'categories');
@@ -56,10 +52,6 @@ class Item extends Model
         return $this->belongsTo(Organization::class, 'orgid');
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       ACCESSORS
-    ───────────────────────────────────────────────────────────────── */
-
     public function getImageUrlsAttribute(): array
     {
         return collect($this->images ?? [])
@@ -73,21 +65,14 @@ class Item extends Model
         return $first ? Storage::disk('public')->url($first) : null;
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       SCOPES
-    ───────────────────────────────────────────────────────────────── */
-
     public function scopeActive($query)
     {
         return $query->where('status', 'Y');
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       LIST (DataTable)
-    ───────────────────────────────────────────────────────────────── */
-
     public static function list(array $post)
     {
+        $orgid   = $post['orgid'] ?? '';
         $search1 = trim(strtolower($post['sSearch_1'] ?? ''));
         $search2 = trim(strtolower($post['sSearch_2'] ?? ''));
         $search3 = trim(strtolower($post['sSearch_3'] ?? ''));
@@ -111,8 +96,9 @@ class Item extends Model
                 items.company_product_code,
                 items.created_at
             ")
-            ->where('items.status', 'Y');
-
+            ->where('items.status', 'Y')
+            ->where('items.orgid', $orgid)
+->distinct();
         if ($search1 !== '') {
             $query->whereRaw("LOWER(items.title) LIKE ?", ["%{$search1}%"]);
         }
@@ -123,7 +109,8 @@ class Item extends Model
             $query->whereRaw("LOWER(s.title) LIKE ?", ["%{$search3}%"]);
         }
 
-        $totalrecs     = self::from('items')->where('status', 'Y')->count();
+        // ← fix: filter totalrecs by orgid too
+        $totalrecs     = self::from('items')->where('status', 'Y')->where('orgid', $orgid)->count();
         $filteredCount = (clone $query)->count();
 
         $sortDir = ($post['sSortDir_0'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
@@ -177,10 +164,6 @@ class Item extends Model
         return $result;
     }
 
-    /* ─────────────────────────────────────────────────────────────────
-       SAVE (INSERT + UPDATE)
-    ───────────────────────────────────────────────────────────────── */
-
     public static function saveData($post)
     {
         try {
@@ -198,9 +181,6 @@ class Item extends Model
                 'orgid'                => $post['orgid']                ?? null,
             ];
 
-            /* ══════════════════════════════════════
-               UPDATE
-            ══════════════════════════════════════ */
             if (!empty($post['id'])) {
 
                 $itemId = $post['id'];
@@ -210,7 +190,6 @@ class Item extends Model
 
                 DB::table('items')->where('id', $itemId)->update($dataArray);
 
-                // ── Sync category_items pivot ────────────────────────────
                 DB::table('category_items')->where('itemid', $itemId)->delete();
 
                 if (!empty($post['categories'])) {
@@ -230,7 +209,6 @@ class Item extends Model
                     DB::table('category_items')->insert($categoryRows);
                 }
 
-                // ── Sync sub_category_items pivot ────────────────────────
                 DB::table('sub_category_items')->where('itemid', $itemId)->delete();
 
                 if (!empty($post['sub_categories'])) {
@@ -250,73 +228,70 @@ class Item extends Model
                     DB::table('sub_category_items')->insert($subCategoryRows);
                 }
 
-                // ── Update Variations ────────────────────────────────────
-               if (!empty($post['variations'])) {
+                if (!empty($post['variations'])) {
+                    $ids                     = [];
+                    $attributeCases          = [];
+                    $valueCases              = [];
+                    $priceCases              = [];
+                    $thresholdCases          = [];
+                    $statusCases             = [];
+                    $productCodeCases        = [];
+                    $companyProductCodeCases = [];
 
-    $ids                     = [];
-    $attributeCases          = [];
-    $valueCases              = [];
-    $priceCases              = [];
-    $thresholdCases          = [];
-    $statusCases             = [];
-    $productCodeCases        = [];
-    $companyProductCodeCases = [];
+                    foreach ($post['variations'] as $variation) {
+                        if (empty($variation['value'])) continue;
 
-    foreach ($post['variations'] as $variation) {
-        if (empty($variation['value'])) continue;
+                        $status = ($variation['status'] === 'active') ? 'Y' : 'N';
 
-        $status = ($variation['status'] === 'active') ? 'Y' : 'N';
+                        if (!empty($variation['variationid'])) {
+                            $id    = $variation['variationid'];
+                            $ids[] = $id;
 
-        if (!empty($variation['variationid'])) {
-            $id    = $variation['variationid'];
-            $ids[] = $id;
+                            $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($variation['name'])                . "'";
+                            $valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
+                            $priceCases[]              = "WHEN '$id' THEN "  . floatval($variation['price']            ?? 0);
+                            $thresholdCases[]          = "WHEN '$id' THEN "  . intval($variation['threshold']          ?? 0);
+                            $statusCases[]             = "WHEN '$id' THEN '$status'";
+                            $productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
+                            $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
+                        } else {
+                            DB::table('itemvariations')->insert([
+                                'id'                   => (string) Str::uuid(),
+                                'item_id'              => $itemId,
+                                'attribute'            => $variation['name'],
+                                'value'                => $variation['value'],
+                                'threshold'            => $variation['threshold']          ?? 0,
+                                'price'                => $variation['price']              ?? 0,
+                                'product_code'         => $variation['product_code']         ?? null,
+                                'company_product_code' => $variation['company_product_code'] ?? null,
+                                'status'               => $status,
+                                'orgid'                => $post['orgid']                   ?? null,
+                                'created_at'           => Carbon::now(),
+                                'updated_at'           => Carbon::now(),
+                                'postedby'             => $post['userid'],
+                                'updatedby'            => $post['userid'],
+                            ]);
+                        }
+                    }
 
-            $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($variation['name'])                . "'";
-            $valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
-            $priceCases[]              = "WHEN '$id' THEN "  . floatval($variation['price']            ?? 0);
-            $thresholdCases[]          = "WHEN '$id' THEN "  . intval($variation['threshold']          ?? 0);
-            $statusCases[]             = "WHEN '$id' THEN '$status'";
-            $productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
-            $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
-        } else {
-            DB::table('itemvariations')->insert([
-                'id'                   => (string) Str::uuid(),
-                'item_id'              => $itemId,
-                'attribute'            => $variation['name'],
-                'value'                => $variation['value'],
-                'threshold'            => $variation['threshold']          ?? 0,
-                'price'                => $variation['price']              ?? 0,
-                'product_code'         => $variation['product_code']         ?? null,
-                'company_product_code' => $variation['company_product_code'] ?? null,
-                'status'               => $status,
-                'orgid'                => $post['orgid']                   ?? null,
-                'created_at'           => Carbon::now(),
-                'updated_at'           => Carbon::now(),
-                'postedby'             => $post['userid'],
-                'updatedby'            => $post['userid'],
-            ]);
-        }
-    }
+                    if (!empty($ids)) {
+                        $idsList = "'" . implode("','", $ids) . "'";
+                        DB::statement("
+                            UPDATE itemvariations SET
+                                attribute            = CASE id " . implode(' ', $attributeCases)          . " END,
+                                value                = CASE id " . implode(' ', $valueCases)               . " END,
+                                price                = CASE id " . implode(' ', $priceCases)               . " END,
+                                threshold            = CASE id " . implode(' ', $thresholdCases)           . " END,
+                                status               = CASE id " . implode(' ', $statusCases)              . " END,
+                                product_code         = CASE id " . implode(' ', $productCodeCases)         . " END,
+                                company_product_code = CASE id " . implode(' ', $companyProductCodeCases)  . " END,
+                                updated_at           = NOW(),
+                                updatedby            = ?
+                            WHERE id IN ($idsList)
+                        ", [$post['userid']]);
+                    }
+                }
 
-    if (!empty($ids)) {
-        $idsList = "'" . implode("','", $ids) . "'";
-        DB::statement("
-            UPDATE itemvariations SET
-                attribute            = CASE id " . implode(' ', $attributeCases)          . " END,
-                value                = CASE id " . implode(' ', $valueCases)               . " END,
-                price                = CASE id " . implode(' ', $priceCases)               . " END,
-                threshold            = CASE id " . implode(' ', $thresholdCases)           . " END,
-                status               = CASE id " . implode(' ', $statusCases)              . " END,
-                product_code         = CASE id " . implode(' ', $productCodeCases)         . " END,
-                company_product_code = CASE id " . implode(' ', $companyProductCodeCases)  . " END,
-                updated_at           = NOW(),
-                updatedby            = ?
-            WHERE id IN ($idsList)
-        ", [$post['userid']]);
-    }
-}
-
-                // ── DELETE removed images ────────────────────────────────
                 $keptImageIds = array_filter((array) ($post['kept_image_ids'] ?? []));
 
                 $existingImageIds = DB::table('item_images')
@@ -338,7 +313,6 @@ class Item extends Model
                     DB::table('item_images')->whereIn('id', $toDelete)->delete();
                 }
 
-                // ── Save image order for kept images ─────────────────────
                 if (!empty($post['image_order'])) {
                     foreach ($post['image_order'] as $order => $imageId) {
                         DB::table('item_images')
@@ -348,7 +322,6 @@ class Item extends Model
                     }
                 }
 
-                // ── Upload new images added during edit ──────────────────
                 if (!empty($post['images'])) {
                     $maxOrder = DB::table('item_images')
                         ->where('item_id', $itemId)
@@ -373,9 +346,6 @@ class Item extends Model
                     DB::table('item_images')->insert($imageRows);
                 }
 
-            /* ══════════════════════════════════════
-               INSERT
-            ══════════════════════════════════════ */
             } else {
 
                 $itemId = (string) Str::uuid();
@@ -391,7 +361,6 @@ class Item extends Model
                     throw new Exception("Couldn't save item.");
                 }
 
-                // ── Insert category_items pivot ──────────────────────────
                 if (!empty($post['categories'])) {
                     $categoryRows = [];
                     foreach ($post['categories'] as $categoryId) {
@@ -409,7 +378,6 @@ class Item extends Model
                     DB::table('category_items')->insert($categoryRows);
                 }
 
-                // ── Insert sub_category_items pivot ──────────────────────
                 if (!empty($post['sub_categories'])) {
                     $subCategoryRows = [];
                     foreach ($post['sub_categories'] as $subCategoryId) {
@@ -427,7 +395,6 @@ class Item extends Model
                     DB::table('sub_category_items')->insert($subCategoryRows);
                 }
 
-                // ── Insert Images ────────────────────────────────────────
                 if (!empty($post['images'])) {
                     $imageRows = [];
                     foreach ($post['images'] as $index => $file) {
@@ -451,7 +418,6 @@ class Item extends Model
                     }
                 }
 
-                // ── Insert Variations ────────────────────────────────────
                 if (!empty($post['variations'])) {
                     $variationRows = [];
                     foreach ($post['variations'] as $variation) {
@@ -460,21 +426,21 @@ class Item extends Model
                         $status = ($variation['status'] === 'active') ? 'Y' : 'N';
 
                         $variationRows[] = [
-    'id'                   => (string) Str::uuid(),
-    'item_id'              => $itemId,
-    'attribute'            => $variation['name'],
-    'value'                => $variation['value'],
-    'threshold'            => $variation['threshold']          ?? 0,
-    'price'                => $variation['price']              ?? 0,
-    'product_code'         => $variation['product_code']         ?? null,
-    'company_product_code' => $variation['company_product_code'] ?? null,
-    'status'               => $status,
-    'orgid'                => $post['orgid']                   ?? null,
-    'created_at'           => Carbon::now(),
-    'updated_at'           => Carbon::now(),
-    'postedby'             => $post['userid'],
-    'updatedby'            => $post['userid'],
-];
+                            'id'                   => (string) Str::uuid(),
+                            'item_id'              => $itemId,
+                            'attribute'            => $variation['name'],
+                            'value'                => $variation['value'],
+                            'threshold'            => $variation['threshold']          ?? 0,
+                            'price'                => $variation['price']              ?? 0,
+                            'product_code'         => $variation['product_code']         ?? null,
+                            'company_product_code' => $variation['company_product_code'] ?? null,
+                            'status'               => $status,
+                            'orgid'                => $post['orgid']                   ?? null,
+                            'created_at'           => Carbon::now(),
+                            'updated_at'           => Carbon::now(),
+                            'postedby'             => $post['userid'],
+                            'updatedby'            => $post['userid'],
+                        ];
                     }
 
                     if (!empty($variationRows)) {
@@ -494,10 +460,6 @@ class Item extends Model
             throw $e;
         }
     }
-
-    /* ─────────────────────────────────────────────────────────────────
-       DELETE
-    ───────────────────────────────────────────────────────────────── */
 
     public static function deleteItem($post)
     {
@@ -524,10 +486,6 @@ class Item extends Model
             throw $e;
         }
     }
-
-    /* ─────────────────────────────────────────────────────────────────
-       GET SINGLE ITEM (View)
-    ───────────────────────────────────────────────────────────────── */
 
     public static function getData($post)
     {
@@ -564,10 +522,6 @@ class Item extends Model
 
         return $item;
     }
-
-    /* ─────────────────────────────────────────────────────────────────
-       GET ITEMS (Dropdown)
-    ───────────────────────────────────────────────────────────────── */
 
     public static function getItem($post)
     {

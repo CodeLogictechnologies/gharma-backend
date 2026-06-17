@@ -10,6 +10,7 @@ use App\Http\Controllers\API\CouponController;
 use App\Http\Controllers\API\FavouriteController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\API\StoreController;
+use App\Http\Controllers\API\BrandController;
 use App\Http\Controllers\API\HomeTabController;
 /*
 |--------------------------------------------------------------------------
@@ -18,6 +19,7 @@ use App\Http\Controllers\API\HomeTabController;
 */
 use App\Http\Controllers\Api\HelloController;
 use App\Http\Controllers\API\ItemController;
+use App\Http\Controllers\API\RefundReturnController;
 use App\Http\Controllers\API\LocationTrackerController;
 use App\Http\Controllers\API\LoyaltyController;
 use App\Http\Controllers\API\OrderController;
@@ -60,6 +62,9 @@ Route::get('/items/latest', [ItemController::class, 'latest']);
 Route::get('/items/search', [ItemController::class, 'search']);
 Route::get('/item/detail/{variationid}', [ItemController::class, 'getDetails']);
 Route::get('/item/by-product-code/{product_code}',   [ItemController::class, 'getByProductCode']);
+
+// Brand list
+Route::get('/brands/{brandid?}', [BrandController::class, 'index']);
 
 // Store public routes{searchid}
 Route::get('stores',       [App\Http\Controllers\API\StoreController::class, 'list']);
@@ -129,6 +134,9 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/loyalty/list',    [LoyaltyController::class, 'getList']);
     Route::get('/coupon/list',    [CouponController::class, 'getCouponList']);
 
+    // Refund-Return Policy
+    Route::get('/return/policy', [RefundReturnController::class, 'getReturnPolicy']);
+    Route::get('/refund/policy', [RefundReturnController::class, 'getRefundPolicy']);
 
     Route::get('/items/search/history', [ItemController::class, 'searchHistory']);
 
@@ -169,6 +177,7 @@ Route::prefix('esewa')->name('esewa.')->group(function () {
     // Initiate a new payment
     Route::post('/initiate', [EsewaController::class, 'initiate'])
         ->name('initiate');
+
 
     // Check payment status
     Route::get('/status/{bookingId}', [EsewaController::class, 'status'])

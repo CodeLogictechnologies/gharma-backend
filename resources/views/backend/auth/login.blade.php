@@ -57,7 +57,7 @@
                         <div class="app-brand justify-content-center">
                             <a href="index.html" class="app-brand-link gap-2">
                                 <span class="app-brand-logo demo">
-                                    <img style="width: 200px;" src="logo.png" alt="logo"
+                                    <img style="width: 200px;" src="gharma ecommerce.svg" alt="logo"
                                          onerror="this.style.display='none'">
                                 </span>
                             </a>
