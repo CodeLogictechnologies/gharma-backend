@@ -756,18 +756,20 @@ $(function () {
             valid = false;
         }
 
-        // ── Product Code ─────────────────────────────────────────────
-if (!$('[name="product_code"]').val().trim()) {
-    $('[name="product_code"]').addClass('is-invalid-select');
-    $('#productCodeError').text('Product code is required.').addClass('show');
-    valid = false;
-}
+        // ── Product Code & Company code  ─────────────────────────────────────────────
+const productCode        = $('[name="product_code"]').val().trim();
+const companyProductCode = $('[name="company_product_code"]').val().trim();
 
-// ── Company Product Code ──────────────────────────────────────
-if (!$('[name="company_product_code"]').val().trim()) {
+if (!productCode && !companyProductCode) {
+    $('[name="product_code"]').addClass('is-invalid-select');
     $('[name="company_product_code"]').addClass('is-invalid-select');
-    $('#companyProductCodeError').text('Company product code is required.').addClass('show');
+    $('#product_codeError').text('Please enter at least one: Product Code or Company Product Code.').addClass('show');
     valid = false;
+} else {
+    $('[name="product_code"]').removeClass('is-invalid-select');
+    $('[name="company_product_code"]').removeClass('is-invalid-select');
+    $('#product_codeError').removeClass('show');
+    $('#company_product_codeError').removeClass('show');
 }
 
         if (!$('[name="brand"]').val()) {

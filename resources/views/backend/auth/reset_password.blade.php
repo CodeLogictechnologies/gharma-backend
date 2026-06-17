@@ -19,7 +19,7 @@
                 @endif
                 <div class="mb-5 d-flex">
                     <a href="#" class="header-logo"><img
-                            src="{{ asset('backpanel/assets/images/brand-logos/desktop-logo.png') }}"
+                            src="{{ asset('backpanel/assets/images/brand-logos/desktop-gharma ecommerce.svg') }}"
                             class="desktop-logo ht-40" alt="logo">
                         <img src="{{ asset('backpanel/assets/images/brand-logos/desktop-white.png') }}"
                             class="desktop-white ht-40" alt="logo">

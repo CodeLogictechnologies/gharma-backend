@@ -11,11 +11,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Traits\HasPermissions;
 
 use Illuminate\Support\Facades\File;
 
 class Organization extends Model
 {
+    use HasPermissions;
+    protected $guard_name = 'web';
 
     public $incrementing = false;
     protected $keyType = 'string';

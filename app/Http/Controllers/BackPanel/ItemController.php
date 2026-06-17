@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
-
 use Illuminate\Database\QueryException;
 use Exception;
 
@@ -43,7 +42,6 @@ class ItemController extends Controller
         $subCategories = SubCategory::getSubCategory($post);
         $brands        = Brand::getBrand($post);
 
-        // ── Default empty data (Add mode) ────────────────────────────
         $data = [
             'id'                   => null,
             'title'                => '',
@@ -69,7 +67,6 @@ class ItemController extends Controller
             ],
         ];
 
-        // ── Edit mode: hydrate from DB ────────────────────────────────
         if (!empty($id)) {
             $item = Item::findOrFail($id);
 
@@ -106,7 +103,7 @@ class ItemController extends Controller
                     'name'                 => $v->attribute,
                     'value'                => $v->value,
                     'threshold'            => $v->threshold,
-                    'price'                => $v->price?? 0,
+                    'price'                => $v->price ?? 0,
                     'product_code'         => $v->product_code         ?? '',
                     'company_product_code' => $v->company_product_code ?? '',
                     'status'               => ($v->status === 'Y') ? 'active' : 'inactive',
@@ -144,14 +141,16 @@ class ItemController extends Controller
         try {
             $type = 'success';
             $rules = [
-                'title'          => 'required|string|max:255',
-                'brand'          => 'required|string|max:255',
-                'type'           => 'required|in:Regular,Special,Featured',
-                'description'    => 'nullable|string',
-                'categories'     => 'required|exists:categories,id',
-                'sub_categories' => 'required|exists:sub_categories,id',
-                'status'         => 'nullable|in:Y,N',
-                'variations'     => 'nullable|array',
+                'title'                => 'required|string|max:255',
+                'brand'                => 'required|string|max:255',
+                'type'                 => 'required|in:Regular,Special,Featured',
+                'description'          => 'nullable|string',
+                'categories'           => 'required|exists:categories,id',
+                'sub_categories'       => 'required|exists:sub_categories,id',
+                'product_code'         => 'nullable|string|max:255',
+                'company_product_code' => 'nullable|string|max:255',
+                'status'               => 'nullable|in:Y,N',
+                'variations'           => 'nullable|array',
             ];
 
             if (empty($request->id)) {
@@ -168,11 +167,15 @@ class ItemController extends Controller
                 throw new Exception($validation->errors()->first(), 1);
             }
 
-            $request->validate($rules);
-            $post            = $request->all();
-            $post['orgid']   = session('orgid');
-            $post['userid']  = session('userid');
-            $message         = 'Records saved successfully';
+            // At least one product code required
+            if (empty(trim($request->product_code)) && empty(trim($request->company_product_code))) {
+                throw new Exception('Please enter at least one: Product Code or Company Product Code.', 1);
+            }
+
+            $post           = $request->all();
+            $post['orgid']  = session('orgid');
+            $post['userid'] = session('userid');
+            $message        = 'Records saved successfully';
 
             DB::beginTransaction();
 
@@ -219,41 +222,31 @@ class ItemController extends Controller
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
-    private function uniqueSlug(string $title, ?int $excludeId = null): string
-    {
-        $slug  = Str::slug($title);
-        $query = Item::where('slug', $slug);
-
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
-        return $query->exists() ? $slug . '-' . time() : $slug;
-    }
-
     public function list(Request $request)
     {
-        $post = $request->all();
-        $data = Item::list($post);
+        $post          = $request->all();
+        $post['orgid'] = session('orgid'); // ← fix: pass orgid
+        $data          = Item::list($post);
+
         $i            = 0;
         $array        = [];
-        $totalrecs    = $data['totalrecs']         ?? 0;
-        $filtereddata = $data['totalfilteredrecs']  ?? $totalrecs;
+        $totalrecs    = $data['totalrecs']        ?? 0;
+        $filtereddata = $data['totalfilteredrecs'] ?? $totalrecs;
 
         unset($data['totalrecs'], $data['totalfilteredrecs']);
 
         foreach ($data as $row) {
             $array[$i]['sno']         = $request->input('start', 0) + $i + 1;
-            $array[$i]['name']        = $row->title        ?? '—';
-            $array[$i]['category']    = $row->categories   ?? [];
+            $array[$i]['name']        = $row->title         ?? '—';
+            $array[$i]['category']    = $row->categories    ?? [];
             $array[$i]['subcategory'] = $row->subcategories ?? [];
-            $array[$i]['description'] = $row->description  ?? '—';
-            $array[$i]['type']        = $row->type         ?? '—';
-            $array[$i]['brand']       = $row->brand        ?? '—';
+            $array[$i]['description'] = $row->description   ?? '—';
+            $array[$i]['type']        = $row->type          ?? '—';
+            $array[$i]['brand']       = $row->brand         ?? '—';
 
             $action  = '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteItem px-2" style="color:red;" data-id="'  . $row->id . '"><i class="bx bx-trash"></i></a>';
-            $action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewItem"                style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-            $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editItem"                style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            $action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewItem"  style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+            $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editItem"  style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
 
             $array[$i]['action'] = $action;
             $i++;

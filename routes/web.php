@@ -16,6 +16,7 @@ use App\Http\Controllers\BackPanel\ItemController;
 use App\Http\Controllers\BackPanel\NotificationController;
 use App\Http\Controllers\BackPanel\OrderController;
 use App\Http\Controllers\BackPanel\OrganizationController;
+use App\Http\Controllers\BackPanel\OrganizationAccessController;
 use App\Http\Controllers\BackPanel\PermissionController;
 use App\Http\Controllers\BackPanel\RetailerPriceController;
 use App\Http\Controllers\BackPanel\RoleController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\BackPanel\SiteSettingController;
 use App\Http\Controllers\BackPanel\CouponController;
 use App\Http\Controllers\BackPanel\DriverController;
 use App\Http\Controllers\BackPanel\StoreController;
+use App\Http\Controllers\BackPanel\ReturnRefundController;
 use App\Http\Controllers\BackPanel\SubCategoryController;
 use App\Http\Controllers\BackPanel\UserController;
 use App\Http\Controllers\DatabaseDumpController;
@@ -36,6 +38,7 @@ use App\Http\Controllers\BackPanel\LoyaltySetupController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\BackPanel\OrganizationRoleController;
 use App\Models\Payment;
 use App\Models\WholesalerPrice;
 use Illuminate\Support\Facades\Route;
@@ -108,6 +111,23 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/organization/save', [OrganizationController::class, 'save'])->name('organization.save');
         Route::post('/delete', [OrganizationController::class, 'delete'])->name('organization.delete');
         Route::post('/view', [OrganizationController::class, 'view'])->name('organization.view');
+
+        Route::group(['prefix' => 'organization.access'], function () {
+            Route::get('/', [OrganizationAccessController::class, 'index'])->name('organization.access');
+            Route::post('/save', [OrganizationAccessController::class, 'save'])->name('organization.access.save');
+            Route::post('/list', [OrganizationAccessController::class, 'list'])->name('organization.access.list');
+            Route::post('/delete', [OrganizationAccessController::class, 'delete'])->name('organization.access.delete');
+            Route::post('/permissions', [OrganizationAccessController::class, 'getPermissions'])->name('organization.access.getPermissions');
+            Route::post('/save-permissions', [OrganizationAccessController::class, 'savePermissions'])->name('organization.access.save-permissions');
+        });
+
+        // Add OrganizationRoleController
+        Route::group(['prefix' => 'organization.role'], function () {
+            Route::get('/',                  [OrganizationRoleController::class, 'index'])->name('organization.role');
+            Route::post('/users',            [OrganizationRoleController::class, 'getUsers'])->name('organization.role.users');
+            Route::post('/user-permissions', [OrganizationRoleController::class, 'getUserPermissions'])->name('organization.role.user-permissions');
+            Route::post('/save-permissions', [OrganizationRoleController::class, 'saveUserPermissions'])->name('organization.role.save-permissions');
+        });
 
         Route::group(['prefix' => 'driver'], function () {
             Route::get('/', [DriverController::class, 'index'])->name('driver');
@@ -317,6 +337,11 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/view', [StoreController::class, 'view'])->name('store.view');
         });
 
+        // Return Refund Policy
+        Route::group(['prefix' => 'return-refund'], function () {
+            Route::get('/',     [ReturnRefundController::class, 'index'])->name('refunds.policy');
+            Route::post('/save', [ReturnRefundController::class, 'savePolicy'])->name('refunds.policy.save');
+        });
 
         Route::group(['prefix' => 'refund'], function () {
             Route::get('', [RefundController::class, 'index'])->name('refund');
