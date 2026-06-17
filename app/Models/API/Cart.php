@@ -15,6 +15,11 @@ class Cart extends Model
     {
         try {
             $insertArray = [];
+            if (!empty($post['roleid']) && $post['roleid'] == 2) {
+                $post['type'] = 'W';
+            } else {
+                $post['type'] = 'R';
+            }
             // dd($post);
             if (!empty($post['roleid']) && $post['roleid'] == 2) {
                 $price = DB::table('wholesaler_price_details as wd')
@@ -80,6 +85,7 @@ class Cart extends Model
                         'unit_price'   => $price->price,
                         'total_price'  => $post['qty'] * $price->price,
                         'quantity'     => $post['qty'],
+                        'type'     => $post['type'],
                     ];
 
                     if (!Cart::insert($insertArray)) {
@@ -87,11 +93,42 @@ class Cart extends Model
                     }
                 }
             } else {
-                $price = DB::table('retailer_prices')
-                    ->where('variation_id', $post['variationid'])
-                    ->where('status', 'Y')
-                    ->where('orgid', $post['orgid'])
-                    ->select('price')
+                $price = DB::table('retailer_prices as p')
+                    ->leftJoin('discounts as d', function ($join) use ($post) { // ✅ pass $post here
+                        $join->on(function ($q) {
+                            $q->where('d.applies_to', 'entire')
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                        })->orOn(function ($q) use ($post) {
+                            $q->where('d.applies_to', 'item')
+                                ->whereColumn('d.item_id', 'p.itemid')
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                        })->orOn(function ($q) use ($post) {
+                            $q->where('d.applies_to', 'variation')
+                                ->where('d.variation_id', $post['variationid'])
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                        });
+                    })
+                    ->where('p.variation_id', $post['variationid'])
+                    ->where('p.status', 'Y')
+                    ->where('p.orgid', $post['orgid'])
+                    ->select(
+                        'p.price as original_price',
+                        DB::raw("
+                            CASE
+                                WHEN d.id IS NULL THEN p.price
+                                WHEN d.type = 'percentage' THEN ROUND(p.price - (p.price * d.percentage / 100), 2)
+                                WHEN d.type = 'fixed'      THEN ROUND(p.price - d.value, 2)
+                                ELSE p.price
+                            END as price
+                        "),
+
+                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.type       END as discount_type"),
+                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.value      END as discount_value"),
+                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.percentage END as discount_percentage"),
+                    )
                     ->first();
 
                 if (!$price) {
@@ -139,6 +176,7 @@ class Cart extends Model
                         'unit_price'   => $price->price,
                         'total_price'  => $post['qty'] * $price->price,
                         'quantity'     => $post['qty'],
+                        'type'     => $post['type'],
                     ];
 
                     if (!Cart::insert($insertArray)) {
@@ -146,8 +184,6 @@ class Cart extends Model
                     }
                 }
             }
-
-
 
             return true;
         } catch (\Exception $e) {
@@ -158,48 +194,133 @@ class Cart extends Model
     public static function getData($post)
     {
         try {
-            $result = DB::table('carts as c')
-                ->select(
-                    'c.variation_id',
-                    'i.id as productid',
-                    DB::raw("CONCAT(i.title, ' ', it.value) as title"),
-                    'c.unit_price as productprice',
-                    'c.total_price as total_price',
-                    'c.quantity as total_quantity'
-                )
-                ->join('itemvariations as it', 'it.id', '=', 'c.variation_id')
-                ->join('retailer_prices as p', 'p.variation_id', '=', 'it.id')
-                ->join('items as i', 'i.id', '=', 'it.item_id')
-                ->where('c.userid', $post['userid'])
-                ->where('c.orgid', $post['orgid'])
-                ->where('c.status', 'Y')
-                ->whereNull('c.deleted_at')
-                ->groupBy(
-                    'c.variation_id',
-                    'i.id',
-                    'i.title',
-                    'p.price',
-                    'it.value',
-                    'c.unit_price',
-                    'c.total_price',
-                    'c.quantity'
-                )
-                ->get();
+            if (!empty($post['roleid'] && $post['roleid'] == 2)) {
 
-            $result->map(function ($item) {
+                $result = DB::table('carts as c')
+                    ->select(
+                        'c.variation_id',
+                        'i.id as productid',
+                        DB::raw("CONCAT(i.title, ' ', it.value) as title"),
+                        'c.unit_price as productprice',
+                        'c.total_price as total_price',
+                        'c.quantity as total_quantity'
+                    )
+                    ->join('itemvariations as it', 'it.id', '=', 'c.variation_id')
+                    ->join('retailer_prices as p', 'p.variation_id', '=', 'it.id')
+                    ->join('items as i', 'i.id', '=', 'it.item_id')
+                    ->where('c.userid', $post['userid'])
+                    ->where('c.orgid', $post['orgid'])
+                    ->where('c.status', 'Y')
+                    ->whereNull('c.deleted_at')
+                    ->where('c.type', 'W')
+                    ->groupBy(
+                        'c.variation_id',
+                        'i.id',
+                        'i.title',
+                        'p.price',
+                        'it.value',
+                        'c.unit_price',
+                        'c.total_price',
+                        'c.quantity'
+                    )
+                    ->get();
 
-                $image = DB::table('item_images')
-                    ->where('item_id', $item->productid)
-                    ->value('image');
+                $result->map(function ($item) {
 
-                $item->image = $image
-                    ? url('uploads/items/' . $image)
-                    : null;
+                    $image = DB::table('item_images')
+                        ->where('item_id', $item->productid)
+                        ->value('image');
 
-                return $item;
-            });
+                    $item->image = $image
+                        ? url('uploads/items/' . $image)
+                        : null;
 
-            return $result;
+                    return $item;
+                });
+
+                return $result;
+            } else {
+                $result = DB::table('carts as c')
+                    ->select(
+                        'c.variation_id',
+                        'i.id as productid',
+                        DB::raw("CONCAT(i.title, ' ', it.value) as title"),
+                        'c.unit_price as productprice',
+                        'c.total_price as total_price',
+                        'c.quantity as total_quantity',
+
+                        // original price before discount
+                        'p.price as original_price_per_unit',
+
+                        // final price after discount applied
+                        // DB::raw("
+                        //     CASE
+                        //         WHEN d.id IS NULL THEN p.price
+                        //         WHEN d.type = 'percentage' THEN ROUND(p.price - (p.price * d.percentage / 100), 2)
+                        //         WHEN d.type = 'fixed'      THEN ROUND(p.price - d.value, 2)
+                        //         ELSE p.price
+                        //     END as discounted_price
+                        // "),
+
+                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.type       END as discount_type"),
+                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.value      END as discount_value_per_unit"),
+                        // DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.value      END as discount_value_per_unit"),
+                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.percentage END as discount_percentage_per_unit"),
+                    )
+                    ->join('itemvariations as it', 'it.id', '=', 'c.variation_id')
+                    ->join('retailer_prices as p', 'p.variation_id', '=', 'it.id')
+                    ->join('items as i', 'i.id', '=', 'it.item_id')
+                    ->leftJoin('discounts as d', function ($join) {
+                        $join->on(function ($q) {
+                            $q->where('d.applies_to', 'entire')
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                        })->orOn(function ($q) {
+                            $q->where('d.applies_to', 'item')
+                                ->whereColumn('d.item_id', 'i.id')
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                        })->orOn(function ($q) {
+                            $q->where('d.applies_to', 'variation')
+                                ->whereColumn('d.variation_id', 'it.id')
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                        });
+                    })
+                    ->where('c.userid', $post['userid'])
+                    ->where('c.orgid', $post['orgid'])
+                    ->where('c.status', 'Y')
+                    ->whereNull('c.deleted_at')
+                    ->where('c.type', 'R')
+                    ->groupBy(
+                        'c.variation_id',
+                        'i.id',
+                        'i.title',
+                        'it.value',
+                        'p.price',
+                        'c.unit_price',
+                        'c.total_price',
+                        'c.quantity',
+                        'd.id',
+                        'd.type',
+                        'd.value',
+                        'd.percentage',
+                    )
+                    ->get();
+                $result->map(function ($item) {
+
+                    $image = DB::table('item_images')
+                        ->where('item_id', $item->productid)
+                        ->value('image');
+
+                    $item->image = $image
+                        ? url('uploads/items/' . $image)
+                        : null;
+
+                    return $item;
+                });
+                return $result;
+            }
         } catch (\Exception $e) {
             throw $e;
         }
