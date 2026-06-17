@@ -17,7 +17,7 @@ class SocialAuthController extends Controller
     protected $providers = ['google', 'facebook', 'github'];
 
     // ✅ Step 1: Redirect to provider
-    public function redirect($provider)
+    public function redirect($provider, Request $request)
     {
         if (!in_array($provider, $this->providers)) {
             return response()->json([
@@ -26,21 +26,34 @@ class SocialAuthController extends Controller
             ], 422);
         }
 
+        $state = base64_encode(json_encode([
+            'redirect_uri' => $request->input('redirect_uri')
+        ]));
+
+        // Store redirect URI in session
+        if ($request->filled('redirect_uri')) {
+            session([
+                'oauth_redirect_uri' => $request->input('redirect_uri')
+            ]);
+        }
+
         $url = Socialite::driver($provider)
             ->stateless()
+            ->with([
+                'state' => $state
+            ])
             ->redirect()
             ->getTargetUrl();
 
-        // ✅ Return unescaped JSON
         return response()->json([
             'type' => 'success',
-            'url'     => $url,
+            'url'  => $url,
         ], 200, [], JSON_UNESCAPED_SLASHES);
     }
-
     // ✅ Step 2: Handle callback
-    public function callback($provider)
+    public function callback($provider, Request $request)
     {
+
         // ✅ Check provider
         if (!in_array($provider, $this->providers)) {
             return response()->json([
@@ -116,6 +129,28 @@ class SocialAuthController extends Controller
 
         // ✅ Generate JWT token
         $token = JWTAuth::fromUser($user);
+
+        $state = json_decode(
+            base64_decode($request->input('state')),
+            true
+        );
+
+        $redirectUri = $state['redirect_uri'] ?? null;
+        if (!empty($redirectUri)) {
+            // Build the deep link URL: gharma://call-back?token=xxx&refresh_token=xxx
+            $params = [
+                'token'         => $token,
+                // 'refresh_token' => $refreshToken,
+            ];
+
+            // Append roles if user has multiple
+            // if (count($roles) > 1) {
+            //     $params['roles'] = json_encode($roles);
+            // }
+            
+            $deepLink = 'gharma://call-back?' . http_build_query($params);
+            return redirect()->away($deepLink);
+        }
 
         return response()->json([
             'success'    => true,

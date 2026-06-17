@@ -17,21 +17,23 @@ class CartController extends Controller
     public function saveAddToCart(AddToCartRequest $request)
     {
         // try {
-            DB::beginTransaction();
+        DB::beginTransaction();
 
-            $post = $request->all();
-            $post['roleid']         = $request->header('roleid');
+        $post = $request->all();
+        $post['roleid']         = $request->header('roleid');
 
-            if (!Cart::saveData($post)) {
-                throw new \Exception('Could not add product to cart');
-            }
+        $post['roleid']         = $request->header('roleid');
 
-            DB::commit();
+        if (!Cart::saveData($post)) {
+            throw new \Exception('Could not add product to cart');
+        }
 
-            return response()->json([
-                'type'    => 'success',
-                'message' => 'Product added to cart'
-            ], 200);
+        DB::commit();
+
+        return response()->json([
+            'type'    => 'success',
+            'message' => 'Product added to cart'
+        ], 200);
         // } catch (QueryException $e) {
         //     DB::rollBack();
         //     return response()->json([
@@ -51,27 +53,28 @@ class CartController extends Controller
     public function getList(Request $request)
     {
         // try {
-            $post = $request->all();
-            $payload = JWTAuth::parseToken()->getPayload();
-            $profile = $payload->get('profile');
-            $post['orgid'] = $profile['orgid'];
-            $post['userid'] = $profile['userid'];
+        $post = $request->all();
+        $post['roleid']         = $request->header('roleid');
 
-            $getData = Cart::getData($post);
+        $payload = JWTAuth::parseToken()->getPayload();
+        $profile = $payload->get('profile');
+        $post['orgid'] = $profile['orgid'];
+        $post['userid'] = $profile['userid'];
+        $getData = Cart::getData($post);
 
-            if (!$getData || $getData->isEmpty()) {
-                return response()->json([
-                    'type' => 'error',
-                    'message' => 'No product available in cart.',
-                    'data' => []
-                ], 200);
-            }
-
+        if (!$getData || $getData->isEmpty()) {
             return response()->json([
-                'type' => 'success',
-                'message' => 'Cart data fetched successfully.',
-                'data' => $getData
+                'type' => 'error',
+                'message' => 'No product available in cart.',
+                'data' => []
             ], 200);
+        }
+
+        return response()->json([
+            'type' => 'success',
+            'message' => 'Cart data fetched successfully.',
+            'data' => $getData
+        ], 200);
         // } catch (QueryException $e) {
         //     return response()->json([
         //         'type'    => 'error',
