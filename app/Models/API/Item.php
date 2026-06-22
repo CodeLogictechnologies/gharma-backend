@@ -92,6 +92,7 @@ class Item extends Model
             GROUP BY item_id
         ) as im'), 'im.item_id', '=', 'i.id')
             ->select(
+                'iv.id as variationid',
                 DB::raw("CONCAT(i.title, ' ', iv.value) as productname"),
                 DB::raw("iv.value as variation"),
                 DB::raw("CONCAT('" . url('uploads/items') . "/', im.image) as image"),

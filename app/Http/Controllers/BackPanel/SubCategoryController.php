@@ -39,36 +39,36 @@ class SubCategoryController extends Controller
     {
         try {
 
-        $rules = [
-            'title' => 'required|min:3|max:255',
-            // 'category' => 'required',
-        ];
-        if (empty($request->id)) {
-            $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
-        }
+            $rules = [
+                'title' => 'required|min:3|max:255',
+                // 'category' => 'required',
+            ];
+            if (empty($request->id)) {
+                $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
+            }
 
-        $message = [
-            'title.required' => 'Please enter sub category title.',
-            // 'category.required' => 'Please select category.',
-        ];
+            $message = [
+                'title.required' => 'Please enter sub category title.',
+                // 'category.required' => 'Please select category.',
+            ];
 
-        $validation = Validator::make($request->all(), $rules, $message);
+            $validation = Validator::make($request->all(), $rules, $message);
 
-        if ($validation->fails()) {
-            throw new Exception($validation->errors()->first(), 1);
-        }
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
+            }
 
-        $post = $request->all();
-        $post['orgid'] =  session('orgid');
+            $post = $request->all();
+            $post['orgid'] =  session('orgid');
 
-        $type = 'success';
-        $message = 'Records saved successfully';
-        DB::beginTransaction();
+            $type = 'success';
+            $message = 'Records saved successfully';
+            DB::beginTransaction();
 
-        if (!SubCategory::saveData($post)) {
-            throw new Exception('Could not save record', 1);
-        }
-        DB::commit();
+            if (!SubCategory::saveData($post)) {
+                throw new Exception('Could not save record', 1);
+            }
+            DB::commit();
         } catch (QueryException $e) {
             DB::rollBack();
             $type = 'error';
@@ -86,32 +86,32 @@ class SubCategoryController extends Controller
     public function list(Request $request)
     {
         try {
-        $post = $request->all();
-        $data = SubCategory::list($post);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs = $data["totalrecs"];
+            $post = $request->all();
+            $data = SubCategory::list($post);
+            $i = 0;
+            $array = [];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs = $data["totalrecs"];
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
-        foreach ($data as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["title"]    = $row->title;
-            $array[$i]["category_name"]    = $row->category_name;
-            if (!empty($row->image)) {
-                $imagePath = storage_path('app/public/subcategories/' . $row->image);
-                if (file_exists($imagePath)) {
-                    $imageUrl = asset('storage/subcategories/' . $row->image); // ✅
+            unset($data["totalfilteredrecs"]);
+            unset($data["totalrecs"]);
+            foreach ($data as $row) {
+                $array[$i]["sno"] = $i + 1;
+                $array[$i]["title"]    = $row->title;
+                $array[$i]["category_name"]    = $row->category_name;
+                if (!empty($row->image)) {
+                    $imagePath = storage_path('app/public/subcategories/' . $row->image);
+                    if (file_exists($imagePath)) {
+                        $imageUrl = asset('storage/subcategories/' . $row->image); // ✅
+                    } else {
+                        $imageUrl = asset('no-image.jpg');
+                    }
                 } else {
                     $imageUrl = asset('no-image.jpg');
                 }
-            } else {
-                $imageUrl = asset('no-image.jpg');
-            }
-            $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-            $action = '';
-            $action .= '<a href="javascript:;" 
+                $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
+                $action = '';
+                $action .= '<a href="javascript:;" 
                                 class="editSubCategory" 
                                 data-id="' . $row->id . '" 
                                 data-title="' . $row->title . '" 
@@ -119,14 +119,14 @@ class SubCategoryController extends Controller
                                 data-category="' . $row->category_id . '">
                                 <i class="fa-solid fa-pen-to-square text-primary"></i>
                             </a>';
-            $action .= '| <a href="javascript:;" class="deleteSubCategory" name="Delete Data" data-id="' . $row->id . '"><i class="fa fa-trash text-danger"></i></a>';
+                $action .= '| <a href="javascript:;" class="deleteSubCategory" name="Delete Data" data-id="' . $row->id . '"><i class="fa fa-trash text-danger"></i></a>';
 
-            $array[$i]["action"]  = $action;
-            $i++;
-        }
+                $array[$i]["action"]  = $action;
+                $i++;
+            }
 
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs) $totalrecs = 0;
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs) $totalrecs = 0;
         } catch (QueryException $e) {
             $array = [];
             $totalrecs = 0;
@@ -147,7 +147,10 @@ class SubCategoryController extends Controller
             $type = 'success';
             $message = "Record deleted successfully";
 
+            // $post = $request->all();
             $post = $request->all();
+            $post['image'] = $request->file('image');
+            $post['category_id'] = $request->category;
 
             DB::beginTransaction();
             $result = SubCategory::deleteCategory($post);

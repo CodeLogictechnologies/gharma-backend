@@ -26,10 +26,7 @@
                     <th>Vendor</th>
                     <td>{{ $inventoryDetails->vendor_name ?? '-' }}</td>
                 </tr>
-                <tr>
-                    <th>Stock</th>
-                    <td>{{ $inventoryDetails->stock ?? '-' }}</td>
-                </tr>
+               
                 <tr>
                     <th>Reorder Level</th>
                     <td>{{ $inventoryDetails->reorder_level ?? '-' }}</td>

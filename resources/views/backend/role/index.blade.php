@@ -218,8 +218,8 @@
 
                 var row = '<tr data-key="' + mod.key + '" data-indent="' + mod.indent + '">';
                 row += '<td>' + collapseBtn + '<input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
-                row += '<td style="padding-left:' + paddingLeft + ';">' + mod.label + '</td>';
-
+                row += '<td style="padding-left:calc(' + paddingLeft + ' + 0.75rem);">' + mod.label + '</td>';
+                
                 ['add', 'edit', 'view', 'delete'].forEach(function(action) {
                     var permName = mod.key + '.' + action;
                     var perm = allPermissions.find(function(p) {

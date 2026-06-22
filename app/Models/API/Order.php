@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\API\OrderDetail;
 use App\Models\API\OrderMaster;
 use App\Models\OrderStatus;
+use App\Models\BackPanel\Order as BackPanelOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class Order extends Model
 {
@@ -127,8 +130,50 @@ class Order extends Model
                     ]);
                 }
             }
-            
-            return true;
+
+            // ── Generate Invoice PDF ────────────────────────────
+$invoiceData = [
+    'orgid'  => $post['orgid'],
+    'userid' => $post['userid'],
+    'id'     => $insertOrderMaster['id'],
+];
+
+$orderDetail = BackPanelOrder::getDataInvoice($invoiceData);
+
+$invoiceNumber = 'INV-' . date('Y') . '-' . strtoupper(Str::random(6));
+$storagePath   = 'pdf/invoice-' . $invoiceNumber . '.pdf';
+
+if (Storage::disk('public')->exists($storagePath)) {
+    $pdfContent = Storage::disk('public')->get($storagePath);
+} else {
+    $pdf = Pdf::loadView('backend.invoice.download', [
+        'order'         => $orderDetail,
+        'invoiceNumber' => $invoiceNumber,
+    ])->setPaper('a4', 'portrait');
+
+    $pdfContent = $pdf->output();
+    Storage::disk('public')->put($storagePath, $pdfContent);
+}
+
+$invoiceId = (string) Str::uuid();
+
+DB::table('invoices')->insert([
+    'id'            => $invoiceId,
+    'ordermasterid' => $insertOrderMaster['id'],
+    'orgid'         => $post['orgid'],
+    'invoicenumber' => $invoiceNumber,
+    'storagepath'   => $storagePath,
+    'postedby'      => $post['userid'],
+    'created_at'    => Carbon::now(),
+    'updated_at'    => Carbon::now(),
+]);
+
+return [
+    'ordermasterid' => $insertOrderMaster['id'],
+    'invoicenumber' => $invoiceNumber,
+    'storagepath'   => $storagePath,
+    'storage_url'   => url('storage/' . $storagePath),
+];
         } catch (\Exception $e) {
             throw $e;
         }

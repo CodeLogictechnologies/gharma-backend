@@ -11,7 +11,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class RefundReturnController extends Controller
 {
-    public function getReturnPolicy(Request $request)
+    public function getReturnRefundPolicy(Request $request)
     {
         try {
             $payload = JWTAuth::parseToken()->getPayload();
@@ -19,41 +19,22 @@ class RefundReturnController extends Controller
             $orgid   = $profile['orgid'] ?? null;
 
             $returnPolicy = ReturnRefund::getPolicy($orgid, 'return');
-
-            return response()->json([
-                'type'    => 'success',
-                'message' => 'Return policy fetched successfully.',
-                'data' => [
-                    'return' => $returnPolicy->description ?? '',
-                ],
-            ], 200);
-
-        } catch (Exception $e) {
-            return response()->json([
-                'type' => 'error',
-                'message' => 'Invalid or expired token',
-                'data' => null
-            ], 401);
-        }
-    }
-
-    public function getRefundPolicy(Request $request)
-    {
-        try {
-            $payload = JWTAuth::parseToken()->getPayload();
-            $profile = $payload->get('profile') ?? [];
-            $orgid   = $profile['orgid'] ?? null;
-
             $refundPolicy = ReturnRefund::getPolicy($orgid, 'refund');
 
             return response()->json([
                 'type'    => 'success',
-                'message' => 'Refund policy fetched successfully.',
+                'message' => 'Return and refund policy fetched successfully.',
                 'data' => [
-                    'refund' => $refundPolicy->description ?? '',
+                    [
+                        'type'        => 'return',
+                        'description' => $returnPolicy->description ?? '',
+                    ],
+                    [
+                        'type'        => 'refund',
+                        'description' => $refundPolicy->description ?? '',
+                    ],
                 ],
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'type' => 'error',

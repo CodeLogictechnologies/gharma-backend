@@ -30,7 +30,7 @@
 
             <div class="col-md-4">
                 <label class="form-label">Email <span class="text-danger">*</span></label>
-                <input type="email" name="email" class="form-control" placeholder="org@example.com"
+                <input type="text" name="email" class="form-control" placeholder="org@example.com"
                     value="{{ @$email ?? '' }}" data-required />
                 <div class="invalid-feedback">Email is required.</div>
             </div>
@@ -58,13 +58,8 @@
                 <input type="file" name="image" id="image" class="form-control" accept="image/*" />
                 <div class="invalid-feedback">Image Field is required.</div>
 
-                @if (@$logo)
-                    <img id="img_preview" src="{{ asset('uploads/organizations/' . @$logo) }}"
-                        style="width:100px; margin-top:10px; border-radius:6px;" alt="Preview" />
-                @else
-                    <img id="img_preview" src="{{ asset('no-image.jpg') }}"
-                        style="width:100px; margin-top:10px; border-radius:6px;" alt="Preview" />
-                @endif
+                <img id="img_preview" src="{{ @$logo ?: asset('no-image.jpg') }}"
+    style="width:100px; margin-top:10px; border-radius:6px;" alt="Preview" />
             </div>
 
         </div>

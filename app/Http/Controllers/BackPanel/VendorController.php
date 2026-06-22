@@ -24,131 +24,177 @@ class VendorController extends Controller
         return view('backend.vendor.info.index');
     }
 
-public function save(Request $request)
-{
-    try {
-        $rules = [
-            'name'                => 'required|min:5|max:255',
-            'phone'               => 'required|min:5|max:20',
-            'address'             => 'required',
-            'email'               => 'required|email',
-            'company'             => 'required',
-            'pan'                 => 'required',
-            'registration_number' => 'required',
-            'city'                => 'required',
-            'pan_image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'registration_number_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-        ];
+    public function save(Request $request)
+    {
+        try {
+            $rules = [
+                'name'                => 'required|min:5|max:255',
+                'phone'               => 'required|min:5|max:20',
+                'address'             => 'required',
+                'email'               => 'required|email',
+                'company'             => 'required',
+                'pan'                 => 'required',
+                'registration_number' => 'required',
+                'city'                => 'required',
+                'pan_image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                'registration_number_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            ];
 
-        if (empty($request->id)) {
-            $rules['pan_image']                 = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
-            $rules['registration_number_image'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            if (empty($request->id)) {
+                $rules['pan_image']                 = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+                $rules['registration_number_image'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            }
+
+            $messages = [
+                'name.required'                      => 'Please enter vendor name',
+                'phone.required'                     => 'Phone number is required',
+                'address.required'                   => 'Address is required',
+                'email.required'                     => 'Email is required',
+                'email.email'                        => 'Please enter a valid email',
+                'company.required'                   => 'Company is required',
+                'pan.required'                       => 'PAN is required',
+                'registration_number.required'       => 'Registration number is required',
+                'city.required'                      => 'City is required',
+                'pan_image.required'                 => 'PAN image is required',
+                'pan_image.image'                    => 'PAN image must be a valid image',
+                'pan_image.mimes'                    => 'PAN image must be jpeg, png, jpg, gif, or webp',
+                'pan_image.max'                      => 'PAN image must not exceed 2MB',
+                'registration_number_image.required' => 'Registration image is required',
+                'registration_number_image.image'    => 'Registration image must be a valid image',
+                'registration_number_image.mimes'    => 'Registration image must be jpeg, png, jpg, gif, or webp',
+                'registration_number_image.max'      => 'Registration image must not exceed 2MB',
+            ];
+
+            $validate = Validator::make($request->all(), $rules, $messages);
+            if ($validate->fails()) {
+                throw new Exception($validate->errors()->first(), 1);
+            }
+
+            $post           = $request->all();
+            $post['orgid']  = session('orgid');
+            $post['userid'] = session('userid');
+
+            if ($request->hasFile('pan_image')) {
+                $panImage        = $request->file('pan_image');
+                $panName         = time() . '_pan.' . $panImage->getClientOriginalExtension();
+                $panImage->storeAs('vendor', $panName, 'public');
+                $post['pan_image'] = $panName;
+            }
+
+            if ($request->hasFile('registration_number_image')) {
+                $regImage                        = $request->file('registration_number_image');
+                $regName                         = time() . '_reg.' . $regImage->getClientOriginalExtension();
+                $regImage->storeAs('vendor', $regName, 'public');
+                $post['registration_number_image'] = $regName;
+            }
+
+            $type    = 'success';
+            $message = 'Vendor saved successfully';
+
+            DB::beginTransaction();
+
+            if (!Vendor::saveData($post)) {
+                throw new Exception('Could not save record', 1);
+            }
+
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = $e->getMessage();
         }
 
-        $messages = [
-            'name.required'                      => 'Please enter vendor name',
-            'phone.required'                     => 'Phone number is required',
-            'address.required'                   => 'Address is required',
-            'email.required'                     => 'Email is required',
-            'email.email'                        => 'Please enter a valid email',
-            'company.required'                   => 'Company is required',
-            'pan.required'                       => 'PAN is required',
-            'registration_number.required'       => 'Registration number is required',
-            'city.required'                      => 'City is required',
-            'pan_image.required'                 => 'PAN image is required',
-            'pan_image.image'                    => 'PAN image must be a valid image',
-            'pan_image.mimes'                    => 'PAN image must be jpeg, png, jpg, gif, or webp',
-            'pan_image.max'                      => 'PAN image must not exceed 2MB',
-            'registration_number_image.required' => 'Registration image is required',
-            'registration_number_image.image'    => 'Registration image must be a valid image',
-            'registration_number_image.mimes'    => 'Registration image must be jpeg, png, jpg, gif, or webp',
-            'registration_number_image.max'      => 'Registration image must not exceed 2MB',
-        ];
-
-        $validate = Validator::make($request->all(), $rules, $messages);
-        if ($validate->fails()) {
-            throw new Exception($validate->errors()->first(), 1);
-        }
-
-        $post           = $request->all();
-        $post['orgid']  = session('orgid');
-        $post['userid'] = session('userid');
-
-        if ($request->hasFile('pan_image')) {
-            $panImage        = $request->file('pan_image');
-            $panName         = time() . '_pan.' . $panImage->getClientOriginalExtension();
-            $panImage->storeAs('vendor', $panName, 'public');
-            $post['pan_image'] = $panName;
-        }
-
-        if ($request->hasFile('registration_number_image')) {
-            $regImage                        = $request->file('registration_number_image');
-            $regName                         = time() . '_reg.' . $regImage->getClientOriginalExtension();
-            $regImage->storeAs('vendor', $regName, 'public');
-            $post['registration_number_image'] = $regName;
-        }
-
-        $type    = 'success';
-        $message = 'Vendor saved successfully';
-
-        DB::beginTransaction();
-
-        if (!Vendor::saveData($post)) {
-            throw new Exception('Could not save record', 1);
-        }
-
-        DB::commit();
-
-    } catch (QueryException $e) {
-        DB::rollBack();
-        $type    = 'error';
-        $message = $this->queryMessage;
-    } catch (Exception $e) {
-        DB::rollBack();
-        $type    = 'error';
-        $message = $e->getMessage();
+        return json_encode(['type' => $type, 'message' => $message]);
     }
 
-    return json_encode(['type' => $type, 'message' => $message]);
-}
+    // public function list(Request $request)
+    // {
+    //     try {
+    //         $post = $request->all();
+    //         $data = Vendor::list($post);
+    //         $i = 0;
+    //         $array = [];
+    //         $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+    //         $totalrecs = $data["totalrecs"];
+
+    //         unset($data["totalfilteredrecs"]);
+    //         unset($data["totalrecs"]);
+    //         foreach ($data as $row) {
+    //             $array[$i]["sno"] = $i + 1;
+    //             $array[$i]["name"]    = $row->name;
+    //             $array[$i]["email"]    = $row->email;
+    //             $array[$i]["address"]    = $row->address;
+    //             $array[$i]["phone"]    = $row->phone;
+    //             $array[$i]["tax_number"]    = $row->tax_number;
+    //             $array[$i]["registration_number"]    = $row->registration_number;
+    //             $array[$i]["company_name"]    = $row->company_name;
+
+
+
+    //             $action = '';
+
+    //             // for edit
+    //             // for delete
+    //             $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteVendor px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+    //             // for show
+    //             $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewVendor" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
+
+    //             $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editVendor" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
+    //             $array[$i]["action"]  = $action;
+    //             $i++;
+    //         }
+    //         if (!$filtereddata) $filtereddata = 0;
+    //         if (!$totalrecs) $totalrecs = 0;
+    //     } catch (QueryException $e) {
+    //         $array = [];
+    //         $totalrecs = 0;
+    //         $filtereddata = 0;
+    //     } catch (Exception $e) {
+    //         $array = [];
+    //         $totalrecs = 0;
+    //         $filtereddata = 0;
+    //     }
+    //     return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
+    // }
+
     public function list(Request $request)
     {
         try {
-        $post = $request->all();
-        $data = Vendor::list($post);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs = $data["totalrecs"];
+            $post   = $request->all();
+            $offset = (int) ($request->input('iDisplayStart', 0)); // ← add
+            $data   = Vendor::list($post);
+            $i      = 0;
+            $array  = [];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs    = $data["totalrecs"];
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
-        foreach ($data as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["name"]    = $row->name;
-            $array[$i]["email"]    = $row->email;
-            $array[$i]["address"]    = $row->address;
-            $array[$i]["phone"]    = $row->phone;
-            $array[$i]["tax_number"]    = $row->tax_number;
-            $array[$i]["registration_number"]    = $row->registration_number;
-            $array[$i]["company_name"]    = $row->company_name;
+            unset($data["totalfilteredrecs"]);
+            unset($data["totalrecs"]);
 
+            foreach ($data as $row) {
+                $array[$i]["sno"]                 = $offset + $i + 1; // ← fix
+                $array[$i]["name"]                = $row->name;
+                $array[$i]["email"]               = $row->email;
+                $array[$i]["address"]             = $row->address;
+                $array[$i]["phone"]               = $row->phone;
+                $array[$i]["tax_number"]          = $row->tax_number;
+                $array[$i]["registration_number"] = $row->registration_number;
+                $array[$i]["company_name"]        = $row->company_name;
 
+                $action  = '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteVendor px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewVendor" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editVendor" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
 
-            $action = '';
+                $array[$i]["action"] = $action;
+                $i++;
+            }
 
-            // for edit
-            // for delete
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteVendor px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-            // for show
-            $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewVendor" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
-
-            $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editVendor" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
-            $array[$i]["action"]  = $action;
-            $i++;
-        }
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs) $totalrecs = 0;
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs)    $totalrecs    = 0;
         } catch (QueryException $e) {
             $array = [];
             $totalrecs = 0;
@@ -158,7 +204,8 @@ public function save(Request $request)
             $totalrecs = 0;
             $filtereddata = 0;
         }
-        return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
+
+        return json_encode(["recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array]);
     }
 
     public function form(Request $request)
@@ -167,22 +214,23 @@ public function save(Request $request)
             $data = [];
             if (!empty($request->id)) {
                 $post = $request->all();
-                $post['orgid'] = session('orgid'); 
+                $post['orgid'] = session('orgid');
                 $result = Vendor::getData($post);
                 if (!$result) {
                     throw new Exception("Vendor not found", 1);
                 }
 
-                $data['id']     = $result->id;
-                $data['name']   = $result->name;
-                $data['phone']  = $result->phone;
-                $data['address'] = $result->address;
-                $data['email']  = $result->email;
-                $data['address']  = $result->address;
-                $data['city']  = $result->city;
-                $data['pan']  = $result->tax_number;
-                $data['registration_number']  = $result->registration_number;
-                $data['company_name']  = $result->company_name;
+                $data['id']                          = $result->id;
+                $data['name']                        = $result->name;
+                $data['phone']                       = $result->phone;
+                $data['address']                     = $result->address;
+                $data['email']                       = $result->email;
+                $data['city']                        = $result->city;
+                $data['pan']                         = $result->tax_number;
+                $data['registration_number']         = $result->registration_number;
+                $data['company_name']                = $result->company_name;
+                $data['pan_image']                   = $result->pan_image;                   // ✅ add this
+                $data['registration_number_image']   = $result->registration_number_image;   // ✅ add this
             }
         } catch (QueryException $e) {
             $data['error'] = $this->queryMessage;

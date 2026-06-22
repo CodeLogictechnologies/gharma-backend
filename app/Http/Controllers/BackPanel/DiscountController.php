@@ -60,22 +60,62 @@ class DiscountController extends Controller
                 $binds[] = '%' . strtolower(trim($get['sSearch_3'])) . '%';
             }
 
-            $limit  = (int) ($get['length'] ?? 15);
-            $offset = (int) ($get['start']  ?? 0);
+            // $limit  = (int) ($get['length'] ?? 15);
+            // $offset = (int) ($get['start']  ?? 0);
+            $limit  = (int) ($get['iDisplayLength'] ?? 15);
+            $offset = (int) ($get['iDisplayStart']  ?? 0);
+
+            // $query = DB::table('discounts')
+            //     ->selectRaw("
+            //         (SELECT COUNT(*) FROM discounts WHERE {$cond}) AS totalrecs,
+            //         id, title, type, applies_to, min_requirement, starts_at, ends_at
+            //     ", $binds)
+            //     ->whereRaw($cond, $binds)
+            //     ->orderBy('created_at', 'desc');
+
+            // $result = ($limit > -1)
+            //     ? $query->offset($offset)->limit($limit)->get()
+            //     : $query->get();
+
+            // $totalrecs = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
+
+            // $rows = $result->map(function ($row, $i) use ($offset) {
+            //     $action  = '';
+            //     $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrg        px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
+            //     $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editDiscount   px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            //     $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteDiscount px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+
+            //     return [
+            //         'sno'             => $offset + $i + 1,
+            //         'title'           => $row->title ?? '-',
+            //         'type'            => ucfirst($row->type),
+            //         'applies_to'      => ucfirst($row->applies_to),
+            //         'min_requirement' => ucfirst($row->min_requirement),
+            //         'starts_at'       => $row->starts_at
+            //             ? \Carbon\Carbon::parse($row->starts_at)->format('d M Y') : '-',
+            //         'ends_at'         => $row->ends_at
+            //             ? \Carbon\Carbon::parse($row->ends_at)->format('d M Y') : '-',
+            //         'action'          => $action,
+            //     ];
+            // });
+
+            // return response()->json([
+            //     'iTotalRecords'        => $totalrecs,
+            //     'iTotalDisplayRecords' => $totalrecs,
+            //     'aaData'               => $rows,
+            // ]);
+            $totalrecs = DB::table('discounts')->whereRaw($cond, $binds)->count();
 
             $query = DB::table('discounts')
-                ->selectRaw("
-                    (SELECT COUNT(*) FROM discounts WHERE {$cond}) AS totalrecs,
-                    id, title, type, applies_to, min_requirement, starts_at, ends_at
-                ", $binds)
+                ->selectRaw("id, title, type, applies_to, min_requirement, starts_at, ends_at")
                 ->whereRaw($cond, $binds)
                 ->orderBy('created_at', 'desc');
+
+            $filteredCount = (clone $query)->count();
 
             $result = ($limit > -1)
                 ? $query->offset($offset)->limit($limit)->get()
                 : $query->get();
-
-            $totalrecs = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
 
             $rows = $result->map(function ($row, $i) use ($offset) {
                 $action  = '';
@@ -99,7 +139,7 @@ class DiscountController extends Controller
 
             return response()->json([
                 'iTotalRecords'        => $totalrecs,
-                'iTotalDisplayRecords' => $totalrecs,
+                'iTotalDisplayRecords' => $filteredCount,
                 'aaData'               => $rows,
             ]);
         } catch (\Exception $e) {

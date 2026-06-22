@@ -11,6 +11,8 @@ use App\Http\Controllers\API\FavouriteController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\API\StoreController;
 use App\Http\Controllers\API\BrandController;
+use App\Http\Controllers\API\InvoiceController;
+use App\Http\Controllers\API\RecentlyViewedController;
 use App\Http\Controllers\API\HomeTabController;
 /*
 |--------------------------------------------------------------------------
@@ -130,13 +132,18 @@ Route::middleware('auth:api')->group(function () {
 
     Route::get('/uses/order/history', [ItemController::class, 'getUserOrderHistory']);
 
+    // Recently Viewed
+    Route::get('/recently-viewed', [RecentlyViewedController::class, 'index']);
+    Route::post('/recently-viewed/save', [RecentlyViewedController::class, 'store']);
 
+     // Invoice
+    Route::get('/invoice', [InvoiceController::class, 'show']);
+    
     Route::get('/loyalty/list',    [LoyaltyController::class, 'getList']);
     Route::get('/coupon/list',    [CouponController::class, 'getCouponList']);
 
     // Refund-Return Policy
-    Route::get('/return/policy', [RefundReturnController::class, 'getReturnPolicy']);
-    Route::get('/refund/policy', [RefundReturnController::class, 'getRefundPolicy']);
+    Route::get('/refund-return/policy', [RefundReturnController::class, 'getReturnRefundPolicy']);
 
     Route::get('/items/search/history', [ItemController::class, 'searchHistory']);
 
@@ -177,8 +184,8 @@ Route::prefix('esewa')->name('esewa.')->group(function () {
     // Initiate a new payment
     Route::post('/initiate', [EsewaController::class, 'initiate'])
         ->name('initiate');
-
-
+    
+    
     // Check payment status
     Route::get('/status/{bookingId}', [EsewaController::class, 'status'])
         ->name('status');

@@ -11,7 +11,7 @@
             </button>
         </div>
 
-        <div class="table-responsive text-nowrap mx-4 mb-4">
+        <div class="mx-4 mb-4">
             <table class="table" id="homeTabTable">
                 <thead class="table-light">
                     <tr class="align-middle">

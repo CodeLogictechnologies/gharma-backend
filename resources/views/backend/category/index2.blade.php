@@ -245,7 +245,8 @@
                 fileInput.remove();
 
                 // ✅ Show existing image
-                $('#img_preview').attr('src', image ? '/uploads/categories/' + image : '/no-image.jpg');
+                $('#img_preview').attr('src', image ? '/storage/categories/' + image : '/no-image.jpg');
+
             });
 
 

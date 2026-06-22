@@ -20,10 +20,9 @@
 </div>
 
 <div class="container-xxl flex-grow-1 container-p-y">
-
-    <h4 class="fw-bold py-3 mb-4">
-        <span class="text-muted fw-light">Admin /</span> Organization Roles
-    </h4>
+    <div class="card-header border-bottom">
+        <h4 class="mb-0">Organization Roles</h4>
+    </div>
 
     <div class="card">
         <div class="card-header border-bottom">
@@ -38,7 +37,7 @@
                     <select id="organization_id" class="form-select">
                         <option value="">-- Select Organization --</option>
                         @foreach($organizations as $org)
-                            <option value="{{ $org->id }}">{{ $org->name }}</option>
+                        <option value="{{ $org->id }}">{{ $org->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -48,17 +47,16 @@
                     <select id="role_id" class="form-select">
                         <option value="">-- Select Role --</option>
                         @foreach($roles as $role)
-                            <option value="{{ $role->id }}">{{ ucfirst($role->name) }}</option>
+                        <option value="{{ $role->id }}">{{ ucfirst($role->name) }}</option>
                         @endforeach
                     </select>
                 </div>
 
-                {{-- Search button --}}
-                <div class="col-md-1">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="button" id="btn-load" class="btn btn-primary w-100">
-                        <i class="bx bx-search"></i>
-                    </button>
+                {{-- Loading spinner (hidden by default) --}}
+                <div class="col-md-1 d-flex align-items-end">
+                    <div id="loadingSpinner" style="display:none; padding-bottom:6px;">
+                        <span class="spinner-border spinner-border-sm text-primary"></span>
+                    </div>
                 </div>
 
                 <div class="col-md-3">
@@ -118,180 +116,189 @@
 
 @section('main-scripts')
 <script>
-$(document).ready(function () {
+    $(document).ready(function() {
 
-    var allPermissions = @json($permissions);
+        var allPermissions = @json($permissions);
 
-    var modules = [
-        { label: 'Favicon',      key: 'favicon' },
-        { label: 'Role',         key: 'role' },
-        { label: 'Home Tab',     key: 'hometab' },
-        { label: 'Store',        key: 'store' },
-        { label: 'Category',     key: 'category' },
-        { label: 'Brand',        key: 'brand' },
-        { label: 'Item',         key: 'item' },
-        { label: 'Users',        key: 'user' },
-        { label: 'Driver List',  key: 'driverlist' },
-        { label: 'Inventory',    key: 'inventory' },
-        { label: 'Vendor',       key: 'vendor' },
-        { label: 'Retailer',     key: 'retailer' },
-        { label: 'Wholesaler',   key: 'wholesaler' },
-        { label: 'Discount',     key: 'discount' },
-        { label: 'Coupon',       key: 'coupon' },
-        { label: 'Loyalty',      key: 'loyalty' },
-        { label: 'Order',        key: 'order' },
-        { label: 'Invoice',      key: 'invoice' },
-        { label: 'Refund',       key: 'refund' },
-        { label: 'Report',       key: 'report' },
-        { label: 'Heatmap',      key: 'heatmap' },
-        { label: 'Notification', key: 'notification' },
-    ];
+        var modules = [
+            { label: 'Favicon',      key: 'favicon'      },
+            { label: 'Role',         key: 'role'         },
+            { label: 'Home Tab',     key: 'hometab'      },
+            { label: 'Store',        key: 'store'        },
+            { label: 'Category',     key: 'category'     },
+            { label: 'Brand',        key: 'brand'        },
+            { label: 'Item',         key: 'item'         },
+            { label: 'Users',        key: 'user'         },
+            { label: 'Driver List',  key: 'driverlist'   },
+            { label: 'Inventory',    key: 'inventory'    },
+            { label: 'Vendor',       key: 'vendor'       },
+            { label: 'Retailer',     key: 'retailer'     },
+            { label: 'Wholesaler',   key: 'wholesaler'   },
+            { label: 'Discount',     key: 'discount'     },
+            { label: 'Coupon',       key: 'coupon'       },
+            { label: 'Loyalty',      key: 'loyalty'      },
+            { label: 'Order',        key: 'order'        },
+            { label: 'Invoice',      key: 'invoice'      },
+            { label: 'Refund',       key: 'refund'       },
+            { label: 'Report',       key: 'report'       },
+            { label: 'Heatmap',      key: 'heatmap'      },
+            { label: 'Notification', key: 'notification' },
+        ];
 
-    // ── Load Users on button click ───────────────────────────────────
-    $('#btn-load').on('click', function () {
-        var orgId  = $('#organization_id').val();
-        var roleId = $('#role_id').val();
+        // ── Auto-load users when BOTH org and role are selected ──────────
+        function tryLoadUsers() {
+            var orgId  = $('#organization_id').val();
+            var roleId = $('#role_id').val();
 
-        if (!orgId || !roleId) {
-            alert('Please select both Organization and Role.');
-            return;
+            // Reset state
+            $('#permissionTableWrap').hide();
+            $('#noMsg').hide();
+            $('#user_id').prop('disabled', true).html('<option value="">-- Select User --</option>');
+            $('#btn-view').prop('disabled', true);
+
+            if (!orgId || !roleId) return; // wait until both are chosen
+
+            $('#loadingSpinner').show();
+
+            $.ajax({
+                url: '{{ route("organization.role.users") }}',
+                type: 'POST',
+                data: {
+                    organization_id: orgId,
+                    role_id: roleId,
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(res) {
+                    var $sel = $('#user_id').html('<option value="">-- Select User --</option>');
+                    if (res.success && res.users.length > 0) {
+                        $.each(res.users, function(i, u) {
+                            $sel.append('<option value="' + u.id + '">' + u.name + ' (' + (u.email || '') + ')</option>');
+                        });
+                        $sel.prop('disabled', false);
+                    } else {
+                        $sel.prop('disabled', true);
+                        $('#noMsg').show();
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.responseText));
+                },
+                complete: function() {
+                    $('#loadingSpinner').hide();
+                }
+            });
         }
 
-        var btn = $(this);
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        // Trigger auto-load on either dropdown change
+        $('#organization_id, #role_id').on('change', function() {
+            tryLoadUsers();
+        });
 
-        $('#permissionTableWrap').hide();
-        $('#noMsg').hide();
-        $('#user_id').prop('disabled', true).html('<option value="">Loading...</option>');
-        $('#btn-view').prop('disabled', true);
+        // ── Enable View when user selected ──────────────────────────────
+        $('#user_id').on('change', function() {
+            $('#btn-view').prop('disabled', !$(this).val());
+            $('#permissionTableWrap').hide();
+        });
 
-        $.ajax({
-            url: '{{ route("organization.role.users") }}',
-            type: 'POST',
-            data: {
-                organization_id: orgId,
-                role_id: roleId,
-                _token: '{{ csrf_token() }}'
-            },
-            success: function (res) {
-                var $sel = $('#user_id').html('<option value="">-- Select User --</option>');
-                if (res.success && res.users.length > 0) {
-                    $.each(res.users, function (i, u) {
-                        $sel.append('<option value="' + u.id + '">' + u.name + ' (' + (u.email || '') + ')</option>');
+        // ── View permissions ─────────────────────────────────────────────
+        $('#btn-view').on('click', function() {
+            var userId = $('#user_id').val();
+            if (!userId) return;
+
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Loading...');
+
+            $.ajax({
+                url: '{{ route("organization.role.user-permissions") }}',
+                type: 'POST',
+                data: {
+                    user_id: userId,
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(res) {
+                    if (res.success) {
+                        $('#selected-user-name').text(res.user_name);
+                        buildMatrix(res.permissions);
+                        $('#permissionTableWrap').show();
+                    }
+                },
+                error: function() {
+                    alert('Error loading permissions.');
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="bx bx-show me-1"></i> View');
+                }
+            });
+        });
+
+        // ── Build matrix ─────────────────────────────────────────────────
+        function buildMatrix(userPermissionIds) {
+            var $tbody = $('#permissionBody').empty();
+
+            $.each(modules, function(i, mod) {
+                var row = '<tr>';
+                row += '<td><input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
+                row += '<td>' + mod.label + '</td>';
+
+                $.each(['add', 'edit', 'view', 'delete'], function(j, action) {
+                    var permName = mod.key + '.' + action;
+                    var perm = null;
+                    $.each(allPermissions, function(k, p) {
+                        if (p.name === permName) { perm = p; return false; }
                     });
-                    $sel.prop('disabled', false);
-                } else {
-                    $sel.prop('disabled', true);
-                    $('#noMsg').show();
-                }
-            },
-            error: function (xhr) {
-                alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.responseText));
-            },
-            complete: function () {
-                btn.prop('disabled', false).html('<i class="bx bx-search"></i>');
-            }
-        });
-    });
-
-    // ── Enable View when user selected ──────────────────────────────
-    $('#user_id').on('change', function () {
-        $('#btn-view').prop('disabled', !$(this).val());
-        $('#permissionTableWrap').hide();
-    });
-
-    // ── View permissions ─────────────────────────────────────────────
-    $('#btn-view').on('click', function () {
-        var userId = $('#user_id').val();
-        if (!userId) return;
-
-        var btn = $(this);
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Loading...');
-
-        $.ajax({
-            url: '{{ route("organization.role.user-permissions") }}',
-            type: 'POST',
-            data: { user_id: userId, _token: '{{ csrf_token() }}' },
-            success: function (res) {
-                if (res.success) {
-                    $('#selected-user-name').text(res.user_name);
-                    buildMatrix(res.permissions);
-                    $('#permissionTableWrap').show();
-                }
-            },
-            error: function (xhr) {
-                alert('Error loading permissions.');
-            },
-            complete: function () {
-                btn.prop('disabled', false).html('<i class="bx bx-show me-1"></i> View');
-            }
-        });
-    });
-
-    // ── Build matrix ─────────────────────────────────────────────────
-    function buildMatrix(userPermissionIds) {
-        var $tbody = $('#permissionBody').empty();
-
-        $.each(modules, function (i, mod) {
-            var row = '<tr>';
-            row += '<td><input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
-            row += '<td>' + mod.label + '</td>';
-
-            $.each(['add', 'edit', 'view', 'delete'], function (j, action) {
-                var permName = mod.key + '.' + action;
-                var perm     = null;
-                $.each(allPermissions, function (k, p) {
-                    if (p.name === permName) { perm = p; return false; }
+                    var permId  = perm ? perm.id : null;
+                    var checked = (perm && userPermissionIds.indexOf(perm.id) !== -1) ? 'checked' : '';
+                    row += '<td class="text-center"><input type="checkbox" class="form-check-input perm-check" data-perm-id="' + permId + '" data-key="' + mod.key + '" data-action="' + action + '" ' + checked + '></td>';
                 });
-                var permId  = perm ? perm.id : null;
-                var checked = (perm && userPermissionIds.indexOf(perm.id) !== -1) ? 'checked' : '';
-                row += '<td class="text-center"><input type="checkbox" class="form-check-input perm-check" data-perm-id="' + permId + '" data-key="' + mod.key + '" data-action="' + action + '" ' + checked + '></td>';
+
+                row += '</tr>';
+                $tbody.append(row);
             });
 
-            row += '</tr>';
-            $tbody.append(row);
+            $.each(modules, function(i, mod) {
+                var $checks = $('.perm-check[data-key="' + mod.key + '"]');
+                var allChk  = $checks.length > 0 && $checks.not(':checked').length === 0;
+                $('.row-select[data-key="' + mod.key + '"]').prop('checked', allChk);
+            });
+        }
+
+        $('#selectAll').on('change', function() {
+            $('.perm-check, .row-select').prop('checked', $(this).is(':checked'));
         });
 
-        $.each(modules, function (i, mod) {
-            var $checks = $('.perm-check[data-key="' + mod.key + '"]');
-            var allChk  = $checks.length > 0 && $checks.not(':checked').length === 0;
-            $('.row-select[data-key="' + mod.key + '"]').prop('checked', allChk);
-        });
-    }
-
-    $('#selectAll').on('change', function () {
-        $('.perm-check, .row-select').prop('checked', $(this).is(':checked'));
-    });
-
-    $(document).on('change', '.row-select', function () {
-        $('.perm-check[data-key="' + $(this).data('key') + '"]').prop('checked', $(this).is(':checked'));
-    });
-
-    $('#savePermissionsBtn').on('click', function () {
-        new bootstrap.Modal(document.getElementById('saveModal')).show();
-    });
-
-    $('#confirmSave').on('click', function () {
-        var userId    = $('#user_id').val();
-        var permNames = [];
-        $('.perm-check:checked').each(function () {
-            permNames.push($(this).data('key') + '.' + $(this).data('action'));
+        $(document).on('change', '.row-select', function() {
+            $('.perm-check[data-key="' + $(this).data('key') + '"]').prop('checked', $(this).is(':checked'));
         });
 
-        $.ajax({
-            url: '{{ route("organization.role.save-permissions") }}',
-            type: 'POST',
-            data: { user_id: userId, perm_names: permNames, _token: '{{ csrf_token() }}' },
-            success: function (res) {
-                bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
-                Swal.fire(res.success ? 'Success' : 'Error', res.message || 'Done', res.success ? 'success' : 'error');
-            },
-            error: function () {
-                Swal.fire('Error', 'Something went wrong!', 'error');
-            }
+        $('#savePermissionsBtn').on('click', function() {
+            new bootstrap.Modal(document.getElementById('saveModal')).show();
         });
-    });
 
-});
+        $('#confirmSave').on('click', function() {
+            var userId    = $('#user_id').val();
+            var permNames = [];
+            $('.perm-check:checked').each(function() {
+                permNames.push($(this).data('key') + '.' + $(this).data('action'));
+            });
+
+            $.ajax({
+                url: '{{ route("organization.role.save-permissions") }}',
+                type: 'POST',
+                data: {
+                    user_id: userId,
+                    perm_names: permNames,
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(res) {
+                    bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
+                    Swal.fire(res.success ? 'Success' : 'Error', res.message || 'Done', res.success ? 'success' : 'error');
+                },
+                error: function() {
+                    Swal.fire('Error', 'Something went wrong!', 'error');
+                }
+            });
+        });
+
+    });
 </script>
 @endsection
