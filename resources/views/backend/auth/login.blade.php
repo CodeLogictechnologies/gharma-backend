@@ -37,10 +37,23 @@
 
     <style>
         .custom-notification {
-            position: fixed; top: 20px; right: 20px;
-            padding: 15px; color: #fff;
-            border-radius: 5px; display: none; z-index: 9999;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            color: #fff;
+            border-radius: 5px;
+            display: none;
+            z-index: 9999;
         }
+
+        .input-group-text {
+    cursor: pointer;
+    z-index: 5;
+}
+.input-group-text i {
+    pointer-events: none;
+}
     </style>
 </head>
 
@@ -58,7 +71,7 @@
                             <a href="index.html" class="app-brand-link gap-2">
                                 <span class="app-brand-logo demo">
                                     <img style="width: 200px;" src="gharma ecommerce.svg" alt="logo"
-                                         onerror="this.style.display='none'">
+                                        onerror="this.style.display='none'">
                                 </span>
                             </a>
                         </div>
@@ -70,7 +83,7 @@
 
                         {{-- ✅ type="submit" so Enter key works natively --}}
                         <form id="login-form" class="mb-3" action="{{ route('loginuser') }}"
-                              method="POST" enctype="multipart/form-data" autocomplete="off">
+                            method="POST" enctype="multipart/form-data" autocomplete="off">
                             @csrf
 
                             <div class="mb-3">
@@ -78,7 +91,7 @@
                                 <input type="text" class="form-control" id="email" name="email"
                                     placeholder="Enter your email or username" autofocus />
                                 @error('email')
-                                    <p class="text-danger small">Please input email or username.</p>
+                                <p class="text-danger small">Please input email or username.</p>
                                 @enderror
                             </div>
 
@@ -97,7 +110,7 @@
                                     </span>
                                 </div>
                                 @error('password')
-                                    <p class="text-danger small">Please input password.</p>
+                                <p class="text-danger small">Please input password.</p>
                                 @enderror
                             </div>
 
@@ -133,42 +146,56 @@
             n.textContent = message;
             n.style.backgroundColor = (type === 'success') ? '#28a745' : '#dc3545';
             n.style.display = 'block';
-            setTimeout(function() { n.style.display = 'none'; }, 3000);
+            setTimeout(function() {
+                n.style.display = 'none';
+            }, 3000);
         }
 
-        $(document).ready(function () {
+        $(document).ready(function() {
 
             // ✅ Password toggle
-            $('#togglePassword').on('click', function () {
-                var input = $('#password');
-                var isPassword = input.attr('type') === 'password';
-                input.attr('type', isPassword ? 'text' : 'password');
-                $(this).toggleClass('bx-hide bx-show');
-            });
+            $('.input-group-text').on('click', function() {
+    var input = $('#password');
+    var isPassword = input.attr('type') === 'password';
+    input.attr('type', isPassword ? 'text' : 'password');
+    $(this).find('i').toggleClass('bx-hide bx-show');
+});
 
             // ✅ Validation rules
             $('#login-form').validate({
                 rules: {
-                    email:    { required: true },
-                    password: { required: true }
+                    email: {
+                        required: true
+                    },
+                    password: {
+                        required: true
+                    }
                 },
                 messages: {
-                    email:    { required: 'Please enter email or username' },
-                    password: { required: 'Please enter password' }
+                    email: {
+                        required: 'Please enter email or username'
+                    },
+                    password: {
+                        required: 'Please enter password'
+                    }
                 },
                 errorClass: 'text-danger small',
-                highlight:   function(el) { $(el).addClass('is-invalid'); },
-                unhighlight: function(el) { $(el).removeClass('is-invalid'); },
+                highlight: function(el) {
+                    $(el).addClass('is-invalid');
+                },
+                unhighlight: function(el) {
+                    $(el).removeClass('is-invalid');
+                },
 
                 // ✅ submitHandler fires on valid form submit (button click OR Enter key)
                 submitHandler: function(form) {
                     var $btn = $('#signin-btn');
                     $btn.prop('disabled', true)
-.html('<span class="spinner-border spinner-border-sm"></span> Signing in...');
+                        .html('<span class="spinner-border spinner-border-sm"></span> Signing in...');
                     $.ajax({
-                        url:         $(form).attr('action'),
-                        type:        'POST',
-                        data:        new FormData(form),
+                        url: $(form).attr('action'),
+                        type: 'POST',
+                        data: new FormData(form),
                         processData: false,
                         contentType: false,
                         success: function(result) {
@@ -200,4 +227,5 @@
     </script>
 
 </body>
+
 </html>
