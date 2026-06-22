@@ -92,13 +92,14 @@ class Item extends Model
                 items.description,
                 items.status,
                 items.type,
+                items.brand_id,
                 items.product_code,
                 items.company_product_code,
                 items.created_at
             ")
             ->where('items.status', 'Y')
             ->where('items.orgid', $orgid)
-->distinct();
+            ->distinct();
         if ($search1 !== '') {
             $query->whereRaw("LOWER(items.title) LIKE ?", ["%{$search1}%"]);
         }
@@ -110,8 +111,13 @@ class Item extends Model
         }
 
         // ← fix: filter totalrecs by orgid too
+        // $totalrecs     = self::from('items')->where('status', 'Y')->where('orgid', $orgid)->count();
+        // $filteredCount = (clone $query)->get()->count();
+
         $totalrecs     = self::from('items')->where('status', 'Y')->where('orgid', $orgid)->count();
-        $filteredCount = (clone $query)->count();
+        $filteredCount = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query->getQuery())
+            ->count();
 
         $sortDir = ($post['sSortDir_0'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy('items.id', $sortDir);
@@ -345,7 +351,6 @@ class Item extends Model
                     }
                     DB::table('item_images')->insert($imageRows);
                 }
-
             } else {
 
                 $itemId = (string) Str::uuid();
@@ -454,7 +459,6 @@ class Item extends Model
 
             DB::commit();
             return true;
-
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -480,7 +484,6 @@ class Item extends Model
 
             DB::commit();
             return true;
-
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
@@ -500,8 +503,9 @@ class Item extends Model
             ->leftJoin('categories as c',           'c.id',       '=', 'ci.categoryid')
             ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
             ->leftJoin('sub_categories as s',       's.id',       '=', 'sci.subcategoryid')
+            ->leftJoin('brands as b',               'b.id',       '=', 'i.brand_id')
             ->where('i.id', $id)
-            ->select('i.*', 'c.title as category_title', 's.title as subcategory_title')
+            ->select('i.*', 'c.title as category_title', 's.title as subcategory_title', 'b.name as brand')
             ->first();
 
         if (!$item) {

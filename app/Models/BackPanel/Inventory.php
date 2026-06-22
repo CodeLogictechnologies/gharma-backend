@@ -50,98 +50,189 @@ class Inventory extends Model
             throw $e;
         }
     }
-
-public static function list($post)
+    public static function list($post)
     {
         try {
-            $get = $_GET;
-            foreach ($get as $key => $value) {
-                $get[$key] = trim(strtolower(htmlspecialchars($get[$key], ENT_QUOTES)));
-            }
-            $cond = "1=1";
-
+            $orgid   = $post['orgid'] ?? '';
             $columns = $post['columns'] ?? [];
+            $cond    = "inv.orgid = ?";
+            $bindings = [$orgid];
 
             if (!empty($columns[1]['search']['value'])) {
-                $val    = strtolower(trim($columns[1]['search']['value']));
-                $cond  .= " and lower(c.title) like '%{$val}%'";
+                $val      = strtolower(trim($columns[1]['search']['value']));
+                $cond    .= " and lower(i.title) like ?";
+                $bindings[] = "%{$val}%";
             }
 
             if (!empty($columns[2]['search']['value'])) {
-                $val    = strtolower(trim($columns[2]['search']['value']));
-                $cond  .= " and lower(s.title) like '%{$val}%'";
+                $val      = strtolower(trim($columns[2]['search']['value']));
+                $cond    .= " and lower(iv.value) like ?";
+                $bindings[] = "%{$val}%";
             }
 
             if (!empty($columns[3]['search']['value'])) {
-                $val    = strtolower(trim($columns[3]['search']['value']));
-                $cond  .= " and lower(i.title) like '%{$val}%'";
+                $val      = strtolower(trim($columns[3]['search']['value']));
+                $cond    .= " and inv.quantity_available like ?";
+                $bindings[] = "%{$val}%";
             }
 
-            $limit = 15;
-            $offset = 0;
-            if (!empty($get["length"]) && $get["length"]) {
-                $limit = $get['length'];
-                $offset = $get["start"];
-            }
+            $limit  = isset($post['length']) ? (int) $post['length'] : 15;
+            $offset = isset($post['start'])  ? (int) $post['start']  : 0;
+
+            // Total count (unfiltered)
+            $totalrecs = DB::table('inventories as inv')
+                ->join('items as i',           'i.id',  '=', 'inv.item_id')
+                ->join('itemvariations as iv',  'iv.id', '=', 'inv.variation_id')
+                ->where('inv.orgid', $orgid)
+                ->count();
+
+            // Filtered count
+            $filteredCount = DB::table('inventories as inv')
+                ->join('items as i',           'i.id',  '=', 'inv.item_id')
+                ->join('itemvariations as iv',  'iv.id', '=', 'inv.variation_id')
+                ->whereRaw($cond, $bindings)
+                ->count();
 
             $query = DB::table('inventories as inv')
-                ->join('items as i',           'i.id',  '=', 'inv.item_id')
-                ->join('itemvariations as iv', 'iv.id', '=', 'inv.variation_id')
-
-                ->leftJoin('order_details as o',      function ($join) {
-                    $join->on('o.variation_id', '=', 'inv.variation_id');
-                })
-                ->leftJoin('profiles as p',    'p.id',  '=', 'o.userid')
+                ->join('items as i',            'i.id',  '=', 'inv.item_id')
+                ->join('itemvariations as iv',   'iv.id', '=', 'inv.variation_id')
+                ->leftJoin('order_details as o', 'o.variation_id', '=', 'inv.variation_id')
                 ->selectRaw("
-        (SELECT COUNT(*) FROM inventories as inv2
-            JOIN items i2          ON i2.id  = inv2.item_id
-            JOIN itemvariations iv2 ON iv2.id = inv2.variation_id
-         
-            WHERE {$cond}
-        ) as totalrecs,
-        inv.id,
-        inv.quantity_available           as stock,
-        inv.quantity_available - COALESCE(SUM(o.quantity), 0) AS remainingqty,
-        inv.selling_price              as price,
-        inv.unit_cost,
-        inv.reorder_level,
-        SUM(o.quantity)                     as soldqty,
-
-        i.title,
-        iv.attribute,
-        iv.value                       as variation_value
-    ")
-                ->whereRaw($cond)
+                inv.id,
+                inv.quantity_available              as stock,
+                inv.quantity_available - COALESCE(SUM(o.quantity), 0) AS remainingqty,
+                inv.selling_price                   as price,
+                inv.unit_cost,
+                inv.reorder_level,
+                inv.created_at,
+                COALESCE(SUM(o.quantity), 0)        as soldqty,
+                i.title,
+                iv.attribute,
+                iv.value                            as variation_value
+            ")
+                ->whereRaw($cond, $bindings)
                 ->groupBy(
                     'inv.id',
-                    'inv.quantity_in_hand',
                     'inv.quantity_available',
                     'inv.selling_price',
                     'inv.unit_cost',
                     'inv.reorder_level',
-                    'o.id',
+                    'inv.created_at',
                     'i.title',
                     'iv.attribute',
                     'iv.value'
-                );
+                )
+                ->orderBy('inv.created_at', 'desc');
 
             if ($limit > -1) {
-                $result = $query->orderby('o.id', 'desc')->offset($offset)->limit($limit)->get();
+                $result = $query->offset($offset)->limit($limit)->get();
             } else {
-                $result = $query->orderby('o.id', 'desc')->get();
+                $result = $query->get();
             }
-            if ($result) {
-                $ndata = $result;
-                $ndata['totalrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-                $ndata['totalfilteredrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-            } else {
-                $ndata = array();
-            }
+
+            $ndata                      = $result;
+            $ndata['totalrecs']         = $totalrecs;
+            $ndata['totalfilteredrecs'] = $filteredCount;
+
             return $ndata;
         } catch (Exception $e) {
             throw $e;
         }
     }
+
+    // public static function list($post)
+    // {
+    //     try {
+    //         $get = $_GET;
+    //         foreach ($get as $key => $value) {
+    //             $get[$key] = trim(strtolower(htmlspecialchars($get[$key], ENT_QUOTES)));
+    //         }
+    //         $cond = "1=1";
+
+    //         $columns = $post['columns'] ?? [];
+
+    //         if (!empty($columns[1]['search']['value'])) {
+    //             $val    = strtolower(trim($columns[1]['search']['value']));
+    //             $cond  .= " and lower(c.title) like '%{$val}%'";
+    //         }
+
+    //         if (!empty($columns[2]['search']['value'])) {
+    //             $val    = strtolower(trim($columns[2]['search']['value']));
+    //             $cond  .= " and lower(s.title) like '%{$val}%'";
+    //         }
+
+    //         if (!empty($columns[3]['search']['value'])) {
+    //             $val    = strtolower(trim($columns[3]['search']['value']));
+    //             $cond  .= " and lower(i.title) like '%{$val}%'";
+    //         }
+
+    //         $limit = 15;
+    //         $offset = 0;
+    //         if (!empty($get["length"]) && $get["length"]) {
+    //             $limit = $get['length'];
+    //             $offset = $get["start"];
+    //         }
+
+    //         $query = DB::table('inventories as inv')
+    //             ->join('items as i',           'i.id',  '=', 'inv.item_id')
+    //             ->join('itemvariations as iv', 'iv.id', '=', 'inv.variation_id')
+
+    //             ->leftJoin('order_details as o',      function ($join) {
+    //                 $join->on('o.variation_id', '=', 'inv.variation_id');
+    //             })
+    //             ->leftJoin('profiles as p',    'p.id',  '=', 'o.userid')
+    //             ->selectRaw("
+    //     (SELECT COUNT(*) FROM inventories as inv2
+    //         JOIN items i2          ON i2.id  = inv2.item_id
+    //         JOIN itemvariations iv2 ON iv2.id = inv2.variation_id
+
+    //         WHERE {$cond}
+    //     ) as totalrecs,
+    //     inv.id,
+    //     inv.quantity_available           as stock,
+    //     inv.quantity_available - COALESCE(SUM(o.quantity), 0) AS remainingqty,
+    //     inv.selling_price              as price,
+    //     inv.unit_cost,
+    //     inv.reorder_level,
+    //     SUM(o.quantity)                     as soldqty,
+
+    //     i.title,
+    //     iv.attribute,
+    //     iv.value                       as variation_value
+    // ")
+    //             ->whereRaw($cond)
+    //             ->groupBy(
+    //                 'inv.id',
+    //                 'inv.quantity_in_hand',
+    //                 'inv.quantity_available',
+    //                 'inv.selling_price',
+    //                 'inv.unit_cost',
+    //                 'inv.reorder_level',
+    //                 'o.id',
+    //                 'i.title',
+    //                 'iv.attribute',
+    //                 'iv.value'
+    //             );
+
+    //         if ($limit > -1) {
+    //             $result = $query->orderby('o.id', 'desc')->offset($offset)->limit($limit)->get();
+    //         } else {
+    //             $result = $query->orderby('o.id', 'desc')->get();
+    //         }
+    //         if ($result) {
+    //             $ndata = $result;
+    //             $ndata['totalrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
+    //             $ndata['totalfilteredrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
+    //         } else {
+    //             $ndata = array();
+    //         }
+    //         return $ndata;
+    //     } catch (Exception $e) {
+    //         throw $e;
+    //     }
+    // }
+
+
     // public static function getData($post)
     // {
     //     try {

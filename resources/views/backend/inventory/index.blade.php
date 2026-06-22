@@ -261,7 +261,8 @@
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
-                            inventoryTable.fnDraw();
+                            inventoryTable.api().ajax.reload(null, false);
+
                         } else {
                             showNotification(result.message, 'error');
                         }
@@ -336,7 +337,8 @@
                             response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
-                            inventoryTable.fnDraw();
+                            inventoryTable.api().ajax.reload(null, false);
+
                             bootstrap.Modal.getInstance(
                                 document.getElementById('invModel')
                             ).hide();

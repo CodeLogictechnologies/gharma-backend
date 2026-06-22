@@ -71,82 +71,58 @@
 
         // ── DataTable ─────────────────────────────────────────────────
         orgTable = $('#orgTable').dataTable({
-            sPaginationType: 'full_numbers',
-            bSearchable: false,
-            language: {
-                paginate: {
-                    first: '<i class="bx bx-chevrons-left"></i>',
-                    previous: '<i class="bx bx-chevron-left"></i>',
-                    next: '<i class="bx bx-chevron-right"></i>',
-                    last: '<i class="bx bx-chevrons-right"></i>'
-                }
-            },
-            lengthMenu: [
-                [10, 30, 50, 70, 90, -1],
-                [10, 30, 50, 70, 90, 'All']
-            ],
-            iDisplayLength: 10,
-            sDom: 'ltipr',
-            bAutoWidth: false,
-            aaSorting: [
-                [0, 'desc']
-            ],
-            bProcessing: true,
-            bServerSide: true,
-            sAjaxSource: '{{ route('organization.list') }}',
-            oLanguage: {
-                sEmptyTable: "<p class='no_data_message'>No data available.</p>"
-            },
-            aoColumnDefs: [{
-                    bSortable: false,
-                    aTargets: [0, 5, 6]
-                },
-                {
-                    sWidth: '10%',
-                    aTargets: [5]
-                }
-            ],
-            aoColumns: [{
-                    data: 'sno'
-                },
-                {
-                    data: 'name'
-                },
-                {
-                    data: 'phone'
-                },
-                {
-                    data: 'email'
-                },
-                {
-                    data: 'address'
-                },
-                {
-                    data: 'logo'
-                },
-                {
-                    data: 'action'
-                },
-            ],
-
-            initComplete: function() {
-                this.api().columns([1, 2, 3]).every(function() {
-                    var column = this;
-                    var header = $(column.header()).text()
-                        .trim(); // ← gets column header name
-
-                    var input = $(
-                            '<input type="text" class="form-control" placeholder="' +
-                            header + '..." style="width:100%;" />'
-                        )
-                        .appendTo($(column.header()).empty())
-                        .on('keyup change', function() {
-                            column.search(this.value).draw();
-                        });
+    sPaginationType: 'full_numbers',
+    bSearchable: false,
+    language: {
+        paginate: {
+            first: '<i class="bx bx-chevrons-left"></i>',
+            previous: '<i class="bx bx-chevron-left"></i>',
+            next: '<i class="bx bx-chevron-right"></i>',
+            last: '<i class="bx bx-chevrons-right"></i>'
+        }
+    },
+    lengthMenu: [
+        [10, 30, 50, 70, 90, -1],
+        [10, 30, 50, 70, 90, 'All']
+    ],
+    iDisplayLength: 10,
+    sDom: '<"row"<"col-sm-6"l><"col-sm-6">>tipr',  // ← fix sDom
+    bAutoWidth: false,
+    aaSorting: [[0, 'desc']],
+    bProcessing: true,
+    bServerSide: true,
+    sAjaxSource: '{{ route('organization.list') }}',
+    oLanguage: {
+        sEmptyTable: "<p class='no_data_message'>No data available.</p>",
+        sLengthMenu: 'Show _MENU_ entries',          // ← fix label
+        sInfo: 'Showing _START_ to _END_ of _TOTAL_ entries',
+        sInfoEmpty: 'Showing 0 to 0 of 0 entries',
+    },
+    aoColumnDefs: [
+        { bSortable: false, aTargets: [0, 5, 6] },
+        { sWidth: '10%', aTargets: [5] }
+    ],
+    aoColumns: [
+        { data: 'sno'     },
+        { data: 'name'    },
+        { data: 'phone'   },
+        { data: 'email'   },
+        { data: 'address' },
+        { data: 'logo'    },
+        { data: 'action'  },
+    ],
+    initComplete: function() {
+        this.api().columns([1, 2, 3]).every(function() {
+            var column = this;
+            var header = $(column.header()).text().trim();
+            $('<input type="text" class="form-control mt-1" placeholder="Search ' + header + '..." style="width:100%;" />')
+                .appendTo($(column.header()).empty())
+                .on('keyup change', function() {
+                    column.search(this.value).draw();
                 });
-            }
         });
-
+    }
+});
         // ── Helper: open modal via AJAX ───────────────────────────────
         function openOrgModal(url, data, method) {
             var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
@@ -154,8 +130,7 @@
             req.done(function(response) {
                 $('#organizationModalContent').html(response);
 
-                // Destroy previous instance if any, then show fresh
-                var modalEl = document.getElementById('organizationModal');
+                var modalEl  = document.getElementById('organizationModal');
                 var existing = bootstrap.Modal.getInstance(modalEl);
                 if (existing) existing.dispose();
 
@@ -178,10 +153,18 @@
         $(document).on('click', '.editOrg', function(e) {
             e.preventDefault();
             openOrgModal(
-                '{{ route('organization.form') }}', {
-                    id: $(this).data('id'),
-                    _token: '{{ csrf_token() }}'
-                },
+                '{{ route('organization.form') }}',
+                { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
+                'POST'
+            );
+        });
+
+        // ── View ──────────────────────────────────────────────────────
+        $(document).on('click', '.viewOrg', function(e) {
+            e.preventDefault();
+            openOrgModal(
+                '{{ route('organization.view') }}',
+                { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
                 'POST'
             );
         });
@@ -199,25 +182,25 @@
             if (!deleteId) return;
 
             $.post('{{ route('organization.delete') }}', {
-                        id: deleteId,
-                        _token: '{{ csrf_token() }}'
-                    })
-                .done(function(response) {
-                    var result = typeof response === 'string' ? JSON.parse(response) : response;
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        orgTable.fnDraw(); //  old-style API
-                    } else {
-                        showNotification(result.message, 'error');
-                    }
-                })
-                .fail(function() {
-                    showNotification('Delete failed. Please try again.', 'error');
-                })
-                .always(function() {
-                    deleteId = null;
-                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-                });
+                id: deleteId,
+                _token: '{{ csrf_token() }}'
+            })
+            .done(function(response) {
+                var result = typeof response === 'string' ? JSON.parse(response) : response;
+                if (result.type === 'success') {
+                    showNotification(result.message, 'success');
+                    orgTable.fnDraw();
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            })
+            .fail(function() {
+                showNotification('Delete failed. Please try again.', 'error');
+            })
+            .always(function() {
+                deleteId = null;
+                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+            });
         });
 
         // ── Clear modal content on close ──────────────────────────────
@@ -225,19 +208,21 @@
             $('#organizationModalContent').html('');
         });
 
-        // ── Image preview (delegated - works on AJAX loaded content) ──
+        // ── Image preview (delegated) ─────────────────────────────────
         $(document).on('change', '#image', function() {
             var file = this.files[0];
             if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
         });
 
-        // ── Form submit (delegated - works on AJAX loaded content) ────
+        // ── Form submit (delegated) ───────────────────────────────────
         $(document).on('submit', '#orgForm', function(e) {
             e.preventDefault();
 
-            // Basic required field check
+            var $form = $(this);
             var valid = true;
-            $(this).find('[data-required]').each(function() {
+
+            // ── Required fields ───────────────────────────────────────
+            $form.find('[data-required]').each(function() {
                 $(this).removeClass('is-invalid');
                 if (!$(this).val().trim()) {
                     $(this).addClass('is-invalid');
@@ -245,51 +230,72 @@
                 }
             });
 
-            // Image validation — 
-            var imageInput = $(this).find('#image');
-            var isEdit = $(this).find('input[name="id"]').val();
+            // ── Gmail validation ──────────────────────────────────────
+            var $emailInput = $form.find('[name="email"]');
+            var emailVal    = $emailInput.val().trim();
+            $emailInput.removeClass('is-invalid');
+            $emailInput.next('.invalid-feedback').text('');
 
-            if (imageInput.length && !isEdit && imageInput[0].files.length === 0) {
-                imageInput.addClass('is-invalid');
+            if (!emailVal) {
+                $emailInput.addClass('is-invalid');
+                $emailInput.next('.invalid-feedback').text('Email is required.');
+                valid = false;
+            } else if (!/^[a-zA-Z0-9._%+\-]+@gmail\.com$/.test(emailVal)) {
+                $emailInput.addClass('is-invalid');
+                $emailInput.next('.invalid-feedback').text('Email must be a Gmail address (e.g. example@gmail.com).');
+                valid = false;
+            }
+
+            // ── Image required on Add only ────────────────────────────
+            var $imageInput = $form.find('#image');
+            var isEdit      = $form.find('input[name="id"]').val();
+
+            if ($imageInput.length && !isEdit && $imageInput[0].files.length === 0) {
+                $imageInput.addClass('is-invalid');
                 valid = false;
             } else {
-                imageInput.removeClass('is-invalid');
+                $imageInput.removeClass('is-invalid');
             }
 
             if (!valid) return;
 
-            var $btn = $(this).find('[type=submit]');
-            $btn.prop('disabled', true).text('Saving...');
+            // ── Submit ────────────────────────────────────────────────
+            var $btn = $form.find('[type=submit]');
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving...');
             showLoader();
 
             $.ajax({
-                url: $(this).attr('action'),
+                url: $form.attr('action'),
                 type: 'POST',
                 data: new FormData(this),
                 processData: false,
                 contentType: false,
                 success: function(response) {
                     hideLoader();
-                    var result = typeof response === 'string' ? JSON.parse(response) :
-                        response;
+                    var result = typeof response === 'string' ? JSON.parse(response) : response;
 
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
-                        orgTable.fnDraw(); // old-style API
+                        orgTable.fnDraw();
 
-                        // Close modal
                         var modalEl = document.getElementById('organizationModal');
                         bootstrap.Modal.getInstance(modalEl).hide();
-
                     } else {
                         showNotification(result.message, 'error');
-                        $btn.prop('disabled', false).text('Save');
+                        $btn.prop('disabled', false).html(
+                            isEdit
+                                ? '<i class="bx bx-save me-1"></i> Update'
+                                : '<i class="bx bx-plus me-1"></i> Save'
+                        );
                     }
                 },
                 error: function(xhr) {
                     hideLoader();
-                    $btn.prop('disabled', false).text('Save');
-
+                    $btn.prop('disabled', false).html(
+                        isEdit
+                            ? '<i class="bx bx-save me-1"></i> Update'
+                            : '<i class="bx bx-plus me-1"></i> Save'
+                    );
                     if (xhr.status === 422) {
                         $.each(xhr.responseJSON.errors, function(field, messages) {
                             $('[name="' + field + '"]').addClass('is-invalid');
@@ -302,21 +308,12 @@
             });
         });
 
-        // ── Clear invalid state on input ──────────────────────────────
+        // ── Clear invalid on input ────────────────────────────────────
         $(document).on('input change', '#orgForm .form-control', function() {
             $(this).removeClass('is-invalid');
+            $(this).next('.invalid-feedback').text('');
         });
-        $(document).on('click', '.viewOrg', function(e) {
-            e.preventDefault();
-            var id = $(this).data('id');
-            openOrgModal(
-                '{{ route('organization.view') }}', {
-                    id: id,
-                    _token: '{{ csrf_token() }}'
-                },
-                'POST'
-            );
-        });
+
     });
 </script>
 @endsection

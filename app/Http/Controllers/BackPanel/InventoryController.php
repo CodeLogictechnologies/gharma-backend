@@ -98,7 +98,7 @@ class InventoryController extends Controller
 {
     // try {
         $post = $request->all();
-        $post['orgid'] = session('orgid'); // ← ADD THIS (missing!)
+        $post['orgid'] = session('orgid'); 
         $data = Inventory::list($post);
         $i = 0;
         $array = [];

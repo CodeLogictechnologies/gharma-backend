@@ -2,7 +2,63 @@
 @section('title', 'Return & Refund Policy')
 
 @section('content')
+<style>
+    .note-editor.note-frame.fullscreen {
+        z-index: 99999 !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: #fff !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
 
+    .note-editor.note-frame.fullscreen .note-toolbar {
+        flex-shrink: 0 !important;
+        background: #fff !important;
+        z-index: 100000 !important;
+    }
+
+    .note-editor.note-frame.fullscreen .note-editing-area {
+        flex: 1 !important;
+        height: auto !important;
+        overflow-y: auto !important;
+        background: #fff !important;
+    }
+
+    .note-editor.note-frame.fullscreen .note-editable {
+        height: 100% !important;
+        min-height: 300px !important;
+        background: #fff !important;
+        overflow-y: auto !important;
+    }
+
+    .note-editor.note-frame.fullscreen .note-statusbar {
+        flex-shrink: 0 !important;
+    }
+
+    #layout-menu,
+    #layout-navbar,
+    .layout-menu,
+    .layout-navbar,
+    .layout-overlay,
+    .layout-menu-toggle {
+        z-index: 1 !important;
+    }
+
+    .note-modal,
+    .note-popover,
+    .note-help-dialog,
+    .note-modal.open {
+        z-index: 100000 !important;
+    }
+
+    .note-modal .modal-dialog {
+        z-index: 100001 !important;
+    }
+</style>
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="card">
         <div class="card-header">
@@ -74,7 +130,7 @@ $(function () {
 
     const summernoteConfig = {
         height: 300,
-        dialogsInBody: true,
+        dialogsInBody: false,
         toolbar: [
             ['style',  ['style']],
             ['font',   ['bold', 'underline', 'italic', 'clear']],

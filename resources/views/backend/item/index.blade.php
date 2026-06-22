@@ -96,6 +96,19 @@
             bProcessing: true,
             bServerSide: true,
             sAjaxSource: '{{ route('item.list') }}',
+
+            // DELETE these lines from your DataTable config:
+            fnServerParams: function(aoData) {
+                aoData.push({
+                    name: 'iDisplayLength',
+                    value: this.fnSettings()._iDisplayLength
+                });
+                aoData.push({
+                    name: 'iDisplayStart',
+                    value: this.fnSettings()._iDisplayStart
+                });
+            },
+
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>"
             },
@@ -110,44 +123,38 @@
             ],
             aoColumns: [{
                     data: 'sno'
-                }, // [0]
+                },
                 {
                     data: 'name'
-                }, // [1] — searchable (column index 1)
+                },
                 {
                     data: 'category'
                 },
                 {
                     data: 'subcategory'
-                }, // [2] — searchable (column index 2)
+                },
                 {
                     data: 'type'
-                }, // [3]
+                },
                 {
                     data: 'brand'
                 },
                 {
                     data: 'action',
                     bSortable: false
-                }, // [6]
+                },
             ],
             initComplete: function() {
                 this.api().columns([1]).every(function() {
                     var column = this;
-                    var header = $(column.header()).text()
-                        .trim(); // ← gets column header name
-
-                    var input = $(
-                            '<input type="text" class="form-control" placeholder="' +
-                            header + '..." style="width:100%;" />'
-                        )
+                    var header = $(column.header()).text().trim();
+                    $('<input type="text" class="form-control" placeholder="' + header + '..." style="width:100%;" />')
                         .appendTo($(column.header()).empty())
                         .on('keyup change', function() {
                             column.search(this.value).draw();
                         });
                 });
             }
-
         });
 
         // ── Helper: open modal via AJAX ───────────────────────────────

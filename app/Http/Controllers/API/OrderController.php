@@ -26,13 +26,18 @@ class OrderController extends Controller
 
             DB::beginTransaction();
             $post = $request->all();
-            if (!APIOrder::saveData($post)) {
+
+            $invoiceInfo = APIOrder::saveData($post);
+
+            if (!$invoiceInfo) {
                 throw new Exception('Could not place order', 1);
             }
+
             DB::commit();
             return response()->json([
                 'type'    => $type,
-                'message' => $message
+                'message' => $message,
+                'invoice' => $invoiceInfo,
             ], 200);
         } catch (QueryException $e) {
             DB::rollBack();
@@ -41,13 +46,12 @@ class OrderController extends Controller
                 'message' => 'Something went wrong'
             ], 500);
         } catch (Exception $e) {
+            DB::rollBack();
             return response()->json([
-                'status' => 'error',
+                'type'    => 'error',
                 'message' => $e->getMessage(),
             ], 500);
         }
-
-        return json_encode(['type' => $type, 'message' => $message]);
     }
 
     public function orderStatus(Request $request)

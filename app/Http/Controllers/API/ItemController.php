@@ -279,22 +279,22 @@ class ItemController extends Controller
                     // Final price after discount
                     DB::raw("
             CASE
-                WHEN ANY_VALUE(d.id) IS NULL THEN p.price
-                WHEN ANY_VALUE(d.type) = 'percentage' THEN ROUND(p.price - (p.price * ANY_VALUE(d.percentage) / 100), 2)
-                WHEN ANY_VALUE(d.type) = 'fixed' THEN ROUND(p.price - ANY_VALUE(d.value), 2)
+                WHEN MAX(d.id) IS NULL THEN p.price
+                WHEN MAX(d.type) = 'percentage' THEN ROUND(p.price - (p.price * MAX(d.percentage) / 100), 2)
+                WHEN MAX(d.type) = 'fixed' THEN ROUND(p.price - MAX(d.value), 2)
                 ELSE p.price
             END as price
         "),
                     // Original price (null if no discount)
                     DB::raw("
             CASE
-                WHEN ANY_VALUE(d.id) IS NULL THEN NULL
+                WHEN MAX(d.id) IS NULL THEN NULL
                 ELSE p.price
             END as original_price
         "),
-                    DB::raw("ANY_VALUE(d.type) as discount_type"),
-                    DB::raw("ANY_VALUE(d.value) as discount_value"),
-                    DB::raw("ANY_VALUE(d.percentage) as discount_percentage"),
+                    DB::raw("MAX(d.type) as discount_type"),
+                    DB::raw("MAX(d.value) as discount_value"),
+                    DB::raw("MAX(d.percentage) as discount_percentage"),
                     'iv.created_at'
                 )
                 ->groupBy(
@@ -384,24 +384,24 @@ class ItemController extends Controller
                 ];
             });
         } else {
-           $items = collect($data->items())->map(function ($row) use ($allVariations) {
-    return [
-        'productid'            => $row->productid,
-        'title'                => $row->title,
-        'variationid'          => $row->variationid,
-        'value'                => $row->value,
-        'price'                => $row->price,
-        'original_price'       => $row->original_price,
-        'discount_type'        => $row->discount_type,
-        'discount_value'       => $row->discount_value,
-        'discount_percentage'  => $row->discount_percentage,
-        'images'               => $row->images
-            ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
-            : [],
-        'variations'           => $allVariations[$row->productid] ?? [],
-    ];
-});
-        }
+           $items = collect($data->items())->map(function ($row) use ($allVariations) {           
+            return [
+                'productid'            => $row->productid,
+                'title'                => $row->title,
+                'variationid'          => $row->variationid,
+                'value'                => $row->value,
+                'price'                => $row->price,
+                'original_price'       => $row->original_price,
+                'discount_type'        => $row->discount_type,
+                'discount_value'       => $row->discount_value,
+                'discount_percentage'  => $row->discount_percentage,
+                'images'               => $row->images
+                    ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
+                    : [],
+                    'variations'           => $allVariations[$row->productid] ?? [],
+                    ];
+                    });
+                    }
 
         return response()->json([
             'type'    => 'success',
@@ -999,6 +999,8 @@ class ItemController extends Controller
             return apiResponse('error', $e->getMessage(), null, 500);
         }
     }
+
+    
     public function searchHistory(Request $request)
     {
         try {

@@ -352,7 +352,7 @@
                 }
             });
 
-            $('#img_preview').attr('src', image ? '/uploads/brands/' + image : '/no-image.jpg');
+            $('#img_preview').attr('src', image ? '/storage/brands/' + image : '/no-image.jpg');
         });
 
         var deleteId = null;

@@ -77,11 +77,11 @@ class StoreController extends Controller
                 $array[$i]["phone"]    = $row->phone;
                 $array[$i]["city"]    = $row->city;
                 $array[$i]["country"]    = $row->country;
-               $array[$i]["latitude"]  = !empty($row->latitude)  ? $row->latitude  : '-';
-$array[$i]["longitude"] = !empty($row->longitude) ? $row->longitude : '-';
+                $array[$i]["latitude"]  = !empty($row->latitude)  ? $row->latitude  : '-';
+                $array[$i]["longitude"] = !empty($row->longitude) ? $row->longitude : '-';
 
-$action  = '';
-$action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewStore  px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
+                $action  = '';
+                $action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewStore  px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
 $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editStore  px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
 $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
                 $array[$i]["action"]  = $action;
@@ -125,7 +125,6 @@ $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteS
                 $data['latitude']  = $result->latitude;
                 $data['longitude'] = $result->longitude;
                 $data['radius']    = $result->radius;
-
             }
         } catch (QueryException $e) {
             $data['error'] = $this->queryMessage;
@@ -165,26 +164,26 @@ $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteS
     }
 
     public function view(Request $request)
-{
-    try {
-        $post = $request->all();
-        $orgDetails = Store::getData($post);
+    {
+        try {
+            $post = $request->all();
+            $orgDetails = Store::getData($post);
 
-        if (!$orgDetails) {
-            throw new Exception("Store not found");
+            if (!$orgDetails) {
+                throw new Exception("Store not found");
+            }
+
+            $data = [
+                'orgDetails' => $orgDetails,
+                'type'       => 'success',
+                'message'    => 'Successfully fetched store data.',
+            ];
+        } catch (QueryException $e) {
+            $data = ['type' => 'error', 'message' => 'Something went wrong.'];
+        } catch (Exception $e) {
+            $data = ['type' => 'error', 'message' => $e->getMessage()];
         }
 
-        $data = [
-            'orgDetails' => $orgDetails,
-            'type'       => 'success',
-            'message'    => 'Successfully fetched store data.',
-        ];
-    } catch (QueryException $e) {
-        $data = ['type' => 'error', 'message' => 'Something went wrong.'];
-    } catch (Exception $e) {
-        $data = ['type' => 'error', 'message' => $e->getMessage()];
+        return view('backend.store.view', $data);
     }
-
-    return view('backend.store.view', $data);
-}
 }

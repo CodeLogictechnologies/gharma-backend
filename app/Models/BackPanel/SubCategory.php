@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\File;
 class SubCategory extends Model
 {
     use HasFactory;
-
-
     public $incrementing = false;
     protected $keyType = 'string';
 
@@ -34,15 +32,15 @@ class SubCategory extends Model
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
 
                 // Move image to public folder
-                    $file->storeAs('subcategories', $imageName, 'public');
-
+                $file->storeAs('subcategories', $imageName, 'public');
             }
 
             $dataArray = [
                 'title' => $post['title'],
                 'slug' => Str::slug($post['title']) . '-' . time(),
                 'status' => 'Y',
-                'orgid' => $post['orgid']
+                'orgid' => $post['orgid'],
+                'category_id' => $post['category'] ?? null,
             ];
 
             // Save image if exists
@@ -56,12 +54,12 @@ class SubCategory extends Model
                 $oldData = SubCategory::find($post['id']);
 
                 // Delete old image if new uploaded
-              if ($imageName && $oldData && $oldData->image) {
-    $oldPath = storage_path('app/public/subcategories/' . $oldData->image);
-    if (File::exists($oldPath)) {
-        File::delete($oldPath);
-    }
-}
+                if ($imageName && $oldData && $oldData->image) {
+                    $oldPath = storage_path('app/public/subcategories/' . $oldData->image);
+                    if (File::exists($oldPath)) {
+                        File::delete($oldPath);
+                    }
+                }
 
                 $dataArray['updated_at'] = Carbon::now();
 
@@ -91,19 +89,17 @@ class SubCategory extends Model
         try {
             $get = $post;
 
-
             foreach ($get['columns'] as $key => $value) {
                 $get['columns'][$key]['search']['value'] = trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
             }
+
             $cond = " s.status = 'Y'";
 
-
             if ($get['columns'][1]['search']['value'])
-                $cond .= " and lower(s.title) like '%" . $get['columns'][1]['search']['value'] . "%'";
+                $cond .= " and lower(c.title) like '%" . $get['columns'][1]['search']['value'] . "%'";
 
             if ($get['columns'][2]['search']['value'])
                 $cond .= " and lower(s.title) like '%" . $get['columns'][2]['search']['value'] . "%'";
-
             $limit = 15;
             $offset = 0;
             if (!empty($get["length"]) && $get["length"]) {
@@ -112,26 +108,33 @@ class SubCategory extends Model
             }
 
             $query = SubCategory::from('sub_categories as s')
+                ->leftJoin('categories as c', 'c.id', '=', 's.category_id')  // ✅ join for category name
                 ->selectRaw("
-        (SELECT COUNT(*) FROM sub_categories WHERE {$cond}) as totalrecs,
-        s.id,
-        s.title,
-        s.image
-    ")
+    (SELECT COUNT(*) FROM sub_categories WHERE {$cond}) as totalrecs,
+    s.id,
+    s.title,
+    s.image,
+    s.category_id,
+    s.created_at,
+    s.updated_at,
+    c.title as category_name
+")
                 ->whereRaw($cond);
 
             if ($limit > -1) {
-                $result = $query->orderby('s.id', 'desc')->offset($offset)->limit($limit)->get();
+                $result = $query->orderByRaw('COALESCE(s.updated_at, s.created_at) desc')->offset($offset)->limit($limit)->get();
             } else {
-                $result = $query->orderby('s.id', 'desc')->get();
+                $result = $query->orderByRaw('COALESCE(s.updated_at, s.created_at) desc')->get();
             }
+
             if ($result) {
                 $ndata = $result;
                 $ndata['totalrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
                 $ndata['totalfilteredrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
             } else {
-                $ndata = array();
+                $ndata = [];
             }
+
             return $ndata;
         } catch (Exception $e) {
             throw $e;

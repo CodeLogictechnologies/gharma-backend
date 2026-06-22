@@ -82,61 +82,120 @@ class OrganizationController extends Controller
 
 
     //function to get list of organizations
+    // public function list(Request $request)
+    // {
+    //     try {
+    //         $post = $request->all();
+    //         $data = Organization::list($post);
+    //         $i = 0;
+    //         $array = [];
+    //         $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+    //         $totalrecs = $data["totalrecs"];
+
+    //         // ── Get current offset from DataTable ────────────────────────
+    //         $start = (int) ($request->input('start', 0));
+
+    //         unset($data["totalfilteredrecs"]);
+    //         unset($data["totalrecs"]);
+
+    //         foreach ($data as $row) {
+    //             $array[$i]["sno"]        = $start + $i + 1; // ← fix: use offset
+    //             $array[$i]["name"]       = $row->name;
+    //             $array[$i]["email"]      = $row->email;
+    //             $array[$i]["address"]    = $row->address;
+    //             $array[$i]["phone"]      = $row->phone;
+    //             $array[$i]["created_at"] = $row->created_at;
+
+    //             if (!empty($row->logo)) {
+    //                 $imagePath = storage_path('app/public/organizations/' . $row->logo);
+    //                 $imageUrl  = file_exists($imagePath)
+    //                     ? asset('storage/organizations/' . $row->logo)
+    //                     : asset('no-image.jpg');
+    //             } else {
+    //                 $imageUrl = asset('no-image.jpg');
+    //             }
+    //             $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
+
+    //             $action  = '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+    //             $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editOrg"   style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+    //             $array[$i]["action"] = $action;
+    //             $i++;
+    //         }
+
+    //         if (!$filtereddata) $filtereddata = 0;
+    //         if (!$totalrecs)    $totalrecs    = 0;
+    //     } catch (QueryException $e) {
+    //         $array        = [];
+    //         $totalrecs    = 0;
+    //         $filtereddata = 0;
+    //     } catch (Exception $e) {
+    //         $array        = [];
+    //         $totalrecs    = 0;
+    //         $filtereddata = 0;
+    //     }
+
+    //     return json_encode([
+    //         "recordsFiltered" => $filtereddata,
+    //         "recordsTotal"    => $totalrecs,
+    //         "data"            => $array
+    //     ]);
+    // }
+
     public function list(Request $request)
-    {
-        try {
-            $post = $request->all();
-            $data = Organization::list($post);
-            $i = 0;
-            $array = [];
-            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-            $totalrecs = $data["totalrecs"];
+{
+    try {
+        $post = $request->all();
+        $data = Organization::list($post);
+        $i    = 0;
+        $array = [];
 
-            unset($data["totalfilteredrecs"]);
-            unset($data["totalrecs"]);
-            foreach ($data as $row) {
-                $array[$i]["sno"] = $i + 1;
-                $array[$i]["name"]    = $row->name;
-                $array[$i]["email"]    = $row->email;
-                $array[$i]["address"]    = $row->address;
-                $array[$i]["phone"]    = $row->phone;
-                $array[$i]["logo"]    = $row->logo;
-                $array[$i]["created_at"]    = $row->created_at;
+        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+        $totalrecs    = $data["totalrecs"];
 
+        // ── Use iDisplayStart for correct serial number ───────────────
+        $start = (int) $request->input('iDisplayStart', 0);
 
-                if (!empty($row->logo)) {
-                    $imagePath = storage_path('app/public/organizations/' . $row->logo);
-                    if (file_exists($imagePath)) {
-                        $imageUrl = asset('storage/organizations/' . $row->logo); // ✅
-                    } else {
-                        $imageUrl = asset('no-image.jpg');
-                    }
-                } else {
-                    $imageUrl = asset('no-image.jpg');
-                }
-                $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
+        unset($data["totalfilteredrecs"]);
+        unset($data["totalrecs"]);
 
-                $action = '';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editOrg" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
-                $array[$i]["action"]  = $action;
-                $i++;
+        foreach ($data as $row) {
+            $array[$i]["sno"]     = $start + $i + 1;
+            $array[$i]["name"]    = $row->name;
+            $array[$i]["email"]   = $row->email;
+            $array[$i]["address"] = $row->address;
+            $array[$i]["phone"]   = $row->phone;
+
+            if (!empty($row->logo)) {
+                $imagePath = storage_path('app/public/organizations/' . $row->logo);
+                $imageUrl  = file_exists($imagePath)
+                    ? asset('storage/organizations/' . $row->logo)
+                    : asset('no-image.jpg');
+            } else {
+                $imageUrl = asset('no-image.jpg');
             }
+            $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
 
-            if (!$filtereddata) $filtereddata = 0;
-            if (!$totalrecs) $totalrecs = 0;
-        } catch (QueryException $e) {
-            $array = [];
-            $totalrecs = 0;
-            $filtereddata = 0;
-        } catch (Exception $e) {
-            $array = [];
-            $totalrecs = 0;
-            $filtereddata = 0;
+            $action  = '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg"        style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            $array[$i]["action"] = $action;
+            $i++;
         }
-        return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
+
+        if (!$filtereddata) $filtereddata = 0;
+        if (!$totalrecs)    $totalrecs    = 0;
+
+    } catch (QueryException $e) {
+        $array = []; $totalrecs = 0; $filtereddata = 0;
+    } catch (Exception $e) {
+        $array = []; $totalrecs = 0; $filtereddata = 0;
     }
 
+    return json_encode([
+        "recordsFiltered" => $filtereddata,
+        "recordsTotal"    => $totalrecs,
+        "data"            => $array
+    ]);
+}
 
     //function to get value while editing
     public function form(Request $request)

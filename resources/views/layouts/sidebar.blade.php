@@ -53,7 +53,7 @@
 
 
         <!-- Organization Roles -->
-        <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
+        <li class="menu-item {{ request()->routeIs('organization.role') ? 'active' : '' }}">
             <a href="{{ route('organization.role') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-shield"></i>
                 <div>Organization Roles</div>
@@ -212,12 +212,12 @@
         </li>
 
         <!-- Return Refund poilcy -->
-         <li class="menu-item">
-    <a href="{{ route('refunds.policy') }}" class="menu-link">
-        <i class="menu-icon bx bx-shield"></i>
-        <div>Return & Refund Policy</div>
-    </a>
-</li>
+        <li class="menu-item">
+            <a href="{{ route('refunds.policy') }}" class="menu-link">
+                <i class="menu-icon bx bx-shield"></i>
+                <div>Return & Refund Policy</div>
+            </a>
+        </li>
 
 
         <!-- Home Tab -->
@@ -231,7 +231,7 @@
 
         <!-- Discount / Loyalty -->
         <li
-            class="menu-item {{ request()->routeIs('loyalty') || request()->routeIs('discount') ? 'active open' : '' }}">
+            class="menu-item {{ request()->routeIs('loyalty') || request()->routeIs('discount') || request()->routeIs('coupon') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
                 <div>Discount / Loyalty/</div>
@@ -280,8 +280,6 @@
                 <div>Invoice</div>
             </a>
         </li>
-
-
 
         <!-- Refund -->
         <li class="menu-item {{ request()->routeIs('refund') ? 'active' : '' }}">

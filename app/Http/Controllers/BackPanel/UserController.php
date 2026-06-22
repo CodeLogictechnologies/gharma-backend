@@ -40,7 +40,9 @@ class UserController extends Controller
                 'phone'      => 'required|min:5|max:20',
                 'address'    => 'required',
                 'email'      => [
-                    'required', 'email',
+                    'required',
+                    'email',
+                    'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/',
                     function ($attribute, $value, $fail) use ($request) {
                         $exists = DB::table('users')
                             ->where('email', $value)
@@ -62,6 +64,7 @@ class UserController extends Controller
                 'phone.required'                  => 'Phone number is required',
                 'address.required'                => 'Address is required',
                 'email.required'                  => 'Email is required',
+                'email.regex' => 'Email must be a valid @gmail.com address',
                 'username.required'               => 'Username is required',
                 'gender.required'                 => 'Gender is required',
                 'roles.required'                  => 'Please select at least one role',
@@ -149,7 +152,6 @@ class UserController extends Controller
 
             DB::commit();
             $type = 'success';
-
         } catch (QueryException $e) {
             DB::rollBack();
             $type    = 'error';
@@ -200,9 +202,13 @@ class UserController extends Controller
             if (!$filtereddata) $filtereddata = 0;
             if (!$totalrecs)    $totalrecs    = 0;
         } catch (QueryException $e) {
-            $array = []; $totalrecs = 0; $filtereddata = 0;
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         } catch (Exception $e) {
-            $array = []; $totalrecs = 0; $filtereddata = 0;
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         }
 
         return json_encode([
@@ -251,9 +257,13 @@ class UserController extends Controller
             if (!$filtereddata) $filtereddata = 0;
             if (!$totalrecs)    $totalrecs    = 0;
         } catch (QueryException $e) {
-            $array = []; $totalrecs = 0; $filtereddata = 0;
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         } catch (Exception $e) {
-            $array = []; $totalrecs = 0; $filtereddata = 0;
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         }
 
         return json_encode([
@@ -273,11 +283,22 @@ class UserController extends Controller
                 $result = DB::table('users as u')
                     ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
                     ->select(
-                        'u.id', 'u.name as username', 'u.email',
-                        'p.first_name', 'p.middle_name', 'p.last_name',
-                        'p.gender', 'p.phone', 'p.address', 'p.image',
-                        'p.company_name', 'p.tax_number', 'p.registration_number',
-                        'p.pan_number', 'p.pan_image', 'p.registration_number_image'
+                        'u.id',
+                        'u.name as username',
+                        'u.email',
+                        'p.first_name',
+                        'p.middle_name',
+                        'p.last_name',
+                        'p.gender',
+                        'p.phone',
+                        'p.address',
+                        'p.image',
+                        'p.company_name',
+                        'p.tax_number',
+                        'p.registration_number',
+                        'p.pan_number',
+                        'p.pan_image',
+                        'p.registration_number_image'
                     )
                     ->where('u.id', $request->id)
                     ->first();
@@ -343,9 +364,13 @@ class UserController extends Controller
 
             DB::commit();
         } catch (QueryException $e) {
-            DB::rollBack(); $type = 'error'; $message = $e->getMessage();
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         } catch (Exception $e) {
-            DB::rollBack(); $type = 'error'; $message = $e->getMessage();
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
 
         return json_encode(['type' => $type, 'message' => $message]);
@@ -359,11 +384,26 @@ class UserController extends Controller
             $userDetails = DB::table('users as u')
                 ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
                 ->select(
-                    'u.id', 'u.name', 'u.email', 'u.phone', 'u.user_status',
-                    'p.first_name', 'p.middle_name', 'p.last_name', 'p.username',
-                    'p.gender', 'p.phone as profile_phone', 'p.address', 'p.image',
-                    'p.type', 'p.company_name', 'p.tax_number', 'p.registration_number',
-                    'p.pan_number', 'p.pan_image', 'p.registration_number_image'
+                    'u.id',
+                    'u.name',
+                    'u.email',
+                    'u.phone',
+                    'u.user_status',
+                    'p.first_name',
+                    'p.middle_name',
+                    'p.last_name',
+                    'p.username',
+                    'p.gender',
+                    'p.phone as profile_phone',
+                    'p.address',
+                    'p.image',
+                    'p.type',
+                    'p.company_name',
+                    'p.tax_number',
+                    'p.registration_number',
+                    'p.pan_number',
+                    'p.pan_image',
+                    'p.registration_number_image'
                 )
                 ->where('u.id', $request->id)
                 ->first();
@@ -372,8 +412,8 @@ class UserController extends Controller
 
             $fullName = trim(
                 ($userDetails->first_name ?? '') . ' ' .
-                ($userDetails->middle_name ?? '') . ' ' .
-                ($userDetails->last_name ?? '')
+                    ($userDetails->middle_name ?? '') . ' ' .
+                    ($userDetails->last_name ?? '')
             );
             if ($fullName) $userDetails->name = $fullName;
 
@@ -422,9 +462,12 @@ class UserController extends Controller
     public function tabs(Request $request)
     {
         switch ($request->input('tabid')) {
-            case 'active':   return view('backend.users.index');
-            case 'inactive': return view('backend.users.inactiveuser');
-            default:         return '<div class="alert alert-warning">Invalid tab</div>';
+            case 'active':
+                return view('backend.users.index');
+            case 'inactive':
+                return view('backend.users.inactiveuser');
+            default:
+                return '<div class="alert alert-warning">Invalid tab</div>';
         }
     }
 }

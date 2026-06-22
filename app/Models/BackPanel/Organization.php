@@ -143,56 +143,101 @@ class Organization extends Model
     }
 
     //function got list of organizations
+    // public static function list($post)
+    // {
+    //     try {
+    //         $get = $_GET;
+    //         foreach ($get as $key => $value) {
+    //             $get[$key] = trim(strtolower(htmlspecialchars($get[$key], ENT_QUOTES)));
+    //         }
+    //         $cond = " status = 'Y'";
+    //         if ($get['sSearch_1']) {
+    //             $cond .= "and lower(name) like'%" . $get['sSearch_1'] . "%'";
+    //         }
+
+    //         if ($get['sSearch_3']) {
+    //             $cond .= "and lower(email) like'%" . $get['sSearch_3'] . "%'";
+    //         }
+
+
+    //         if ($get['sSearch_2']) {
+    //             $cond .= "and lower(phone) like'%" . $get['sSearch_2'] . "%'";
+    //         }
+
+
+    //         $limit = 15;
+    //         $offset = 0;
+    //         if (!empty($get["length"]) && $get["length"]) {
+    //             $limit = $get['length'];
+    //             $offset = $get["start"];
+    //         }
+
+    //         $query = Organization::selectRaw("(SELECT count(*) FROM organizations where {$cond}) AS totalrecs,name,email, id as id, phone, address, logo,active, created_at")
+    //             ->whereRaw($cond);
+
+    //         if ($limit > -1) {
+    //             $result = $query->orderBy('id', 'asc')->offset($offset)->limit($limit)->get();
+    //         } else {
+    //             $result = $query->orderBy('id', 'asc')->get();
+    //         }
+    //         if ($result) {
+    //             $ndata = $result;
+    //             $ndata['totalrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
+    //             $ndata['totalfilteredrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
+    //         } else {
+    //             $ndata = array();
+    //         }
+    //         return $ndata;
+    //     } catch (Exception $e) {
+    //         throw $e;
+    //     }
+    // }
+
     public static function list($post)
     {
         try {
-            $get = $_GET;
-            foreach ($get as $key => $value) {
-                $get[$key] = trim(strtolower(htmlspecialchars($get[$key], ENT_QUOTES)));
-            }
             $cond = " status = 'Y'";
-            if ($get['sSearch_1']) {
-                $cond .= "and lower(name) like'%" . $get['sSearch_1'] . "%'";
+
+            $search1 = trim(strtolower($post['sSearch_1'] ?? ''));
+            $search2 = trim(strtolower($post['sSearch_2'] ?? ''));
+            $search3 = trim(strtolower($post['sSearch_3'] ?? ''));
+
+            if (!empty($search1)) {
+                $cond .= " and lower(name) like '%" . addslashes($search1) . "%'";
+            }
+            if (!empty($search2)) {
+                $cond .= " and lower(phone) like '%" . addslashes($search2) . "%'";
+            }
+            if (!empty($search3)) {
+                $cond .= " and lower(email) like '%" . addslashes($search3) . "%'";
             }
 
-            if ($get['sSearch_3']) {
-                $cond .= "and lower(email) like'%" . $get['sSearch_3'] . "%'";
-            }
+            // ── Read length and start from post (DataTable sends these) ──
+            $length = isset($post['iDisplayLength']) ? (int)$post['iDisplayLength'] : 10;
+            $offset = isset($post['iDisplayStart'])  ? (int)$post['iDisplayStart']  : 0;
 
+            $totalrecs = Organization::whereRaw($cond)->count();
 
-            if ($get['sSearch_2']) {
-                $cond .= "and lower(phone) like'%" . $get['sSearch_2'] . "%'";
-            }
+            $query = Organization::selectRaw("name, email, id, phone, address, logo, created_at")
+                ->whereRaw($cond)
+                ->orderBy('created_at', 'desc');
 
-
-            $limit = 15;
-            $offset = 0;
-            if (!empty($get["length"]) && $get["length"]) {
-                $limit = $get['length'];
-                $offset = $get["start"];
-            }
-
-            $query = Organization::selectRaw("(SELECT count(*) FROM organizations where {$cond}) AS totalrecs,name,email, id as id, phone, address, logo,active, created_at")
-                ->whereRaw($cond);
-
-            if ($limit > -1) {
-                $result = $query->orderBy('id', 'asc')->offset($offset)->limit($limit)->get();
+            // ── -1 means All ──────────────────────────────────────────────
+            if ($length === -1) {
+                $result = $query->get();
             } else {
-                $result = $query->orderBy('id', 'asc')->get();
+                $result = $query->offset($offset)->limit($length)->get();
             }
-            if ($result) {
-                $ndata = $result;
-                $ndata['totalrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-                $ndata['totalfilteredrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-            } else {
-                $ndata = array();
-            }
+
+            $ndata                      = $result;
+            $ndata['totalrecs']         = $totalrecs;
+            $ndata['totalfilteredrecs'] = $totalrecs;
+
             return $ndata;
         } catch (Exception $e) {
             throw $e;
         }
     }
-
 
     //function to get data of an organization
     public static function getData($post)

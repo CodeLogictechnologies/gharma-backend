@@ -116,13 +116,13 @@ class Brand extends Model
             $offset = !empty($get["start"]) ? (int)$get["start"] : 0;
 
             // Use selectRaw with fully built string
-            $query = Brand::selectRaw("(SELECT count(*) FROM brands WHERE {$cond}) AS totalrecs, name, logo, description, id")
+            $query = Brand::selectRaw("(SELECT count(*) FROM brands WHERE {$cond}) AS totalrecs, name, logo, description, id, created_at, updated_at")
                 ->whereRaw($cond);
 
             if ($limit > -1) {
-                $result = $query->orderBy('id', 'desc')->offset($offset)->limit($limit)->get();
+                $result = $query->orderByRaw('COALESCE(updated_at, created_at) desc')->offset($offset)->limit($limit)->get();
             } else {
-                $result = $query->orderBy('id', 'desc')->get();
+                $result = $query->orderByRaw('COALESCE(updated_at, created_at) desc')->get();
             }
 
             if ($result) {

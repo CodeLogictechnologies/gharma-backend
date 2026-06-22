@@ -125,11 +125,11 @@
             <div class="col-md-4">
                 <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
                 <select name="gender" id="gender" class="form-control">
-                    <option value="">Select Gender</option>
-                    <option value="Male" @if(@$gender=='Male') selected @endif>Male</option>
-                    <option value="Female" @if(@$gender=='Female') selected @endif>Female</option>
-                    <option value="Other" @if(@$gender=='Other') selected @endif>Other</option>
-                </select>
+    <option value="">Select Gender</option>
+    <option value="Male" @if(trim(strtolower(@$gender))=='male') selected @endif>Male</option>
+    <option value="Female" @if(trim(strtolower(@$gender))=='female') selected @endif>Female</option>
+    <option value="Other" @if(trim(strtolower(@$gender))=='other') selected @endif>Other</option>
+</select>
                 <div class="invalid-feedback">Select gender</div>
             </div>
             <div class="col-md-4">
@@ -322,6 +322,53 @@ function checkWholesalerRole() {
         });
 
         /* ── jQuery Validation ───────────────────────────────────── */
+        // $('#userForm').validate({
+        //     ignore: [],
+        //     rules: {
+        //         first_name: 'required',
+        //         last_name:  'required',
+        //         username:   'required',
+        //         email: {
+        //             required: true,
+        //             email:    true
+        //         },
+        //         phone:   'required',
+        //         address: 'required',
+        //         gender:  'required',
+        //         'roles[]': {
+        //             required:  true,
+        //             minlength: 1
+        //         }
+        //     },
+        //     messages: {
+        //         first_name: 'Enter first name',
+        //         last_name:  'Enter last name',
+        //         username:   'Enter username',
+        //         email:      'Enter a valid email',
+        //         phone:      'Enter phone',
+        //         address:    'Enter address',
+        //         gender:     'Select gender',
+        //         'roles[]':  'Select at least one role'
+        //     },
+        //     highlight: function(el) {
+        //         $(el).addClass('border-danger');
+        //     },
+        //     unhighlight: function(el) {
+        //         $(el).removeClass('border-danger');
+        //     },
+        //     errorPlacement: function(error, element) {
+        //         if (element.attr('id') === 'roles') {
+        //             error.insertAfter(element.next('.select2-container'));
+        //         } else {
+        //             error.insertAfter(element);
+        //         }
+        //     }
+        // });
+/* ── jQuery Validation ───────────────────────────────────── */
+        $.validator.addMethod('gmailOnly', function(value) {
+            return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(value);
+        }, 'Email must be a valid @gmail.com address');
+
         $('#userForm').validate({
             ignore: [],
             rules: {
@@ -330,7 +377,8 @@ function checkWholesalerRole() {
                 username:   'required',
                 email: {
                     required: true,
-                    email:    true
+                    email:    true,
+                    gmailOnly: true
                 },
                 phone:   'required',
                 address: 'required',
@@ -344,7 +392,11 @@ function checkWholesalerRole() {
                 first_name: 'Enter first name',
                 last_name:  'Enter last name',
                 username:   'Enter username',
-                email:      'Enter a valid email',
+                email: {
+                    required: 'Enter email',
+                    email:    'Enter a valid email',
+                    gmailOnly: 'Email must be a valid @gmail.com address'
+                },
                 phone:      'Enter phone',
                 address:    'Enter address',
                 gender:     'Select gender',
@@ -364,7 +416,6 @@ function checkWholesalerRole() {
                 }
             }
         });
-
         /* ── Run wholesaler check on load (edit mode) ────────────── */
         checkWholesalerRole();
 
