@@ -276,13 +276,24 @@
                             showNotification(result.message, 'error');
                         }
                     })
-                    .fail(function() {
-                        // Revert dropdown on AJAX failure
-                        if ($activeDropdown) {
-                            $activeDropdown.val(previousStatus);
-                        }
-                        showNotification('Status update failed. Please try again.', 'error');
-                    })
+                    // .fail(function() {
+                    //     // Revert dropdown on AJAX failure
+                    //     if ($activeDropdown) {
+                    //         $activeDropdown.val(previousStatus);
+                    //     }
+                    //     showNotification('Status update failed. Please try again.', 'error');
+                    // })
+                    .fail(function(xhr) {
+    if ($activeDropdown) {
+        $activeDropdown.val(previousStatus);
+    }
+    let msg = 'Status update failed. Please try again.';
+    try {
+        let res = xhr.responseJSON || JSON.parse(xhr.responseText);
+        if (res && res.message) msg = res.message;
+    } catch(e) {}
+    showNotification(msg, 'error');
+})
                     .always(function() {
                         var modalInstance = bootstrap.Modal.getInstance(document.getElementById(
                             'statusModal'));

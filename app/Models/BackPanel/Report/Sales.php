@@ -44,7 +44,7 @@ class Sales extends Model
                     $post['to_date'],
                 ]);
             } elseif ($filter === 'month' && !empty($post['month'])) {
-                $query->whereRaw("DATE_FORMAT(om.created_at, '%Y-%m') = ?", [$post['month']]);
+                $query->whereRaw("TO_CHAR(om.created_at, '%Y-%m') = ?", [$post['month']]);
             } elseif ($filter === 'year' && !empty($post['year'])) {
                 $query->whereYear('om.created_at', $post['year']);
             }

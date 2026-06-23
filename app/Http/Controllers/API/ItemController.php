@@ -204,7 +204,7 @@ class ItemController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('item_images')
-                        ->select('item_id', DB::raw('GROUP_CONCAT(image) as images'))
+                        ->select('item_id', DB::raw("string_agg(image, ',') as images"))
                         ->groupBy('item_id'),
                     'img',
                     'img.item_id',
@@ -243,7 +243,7 @@ class ItemController extends Controller
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
                 ->leftJoinSub(
                     DB::table('item_images')
-                        ->select('item_id', DB::raw('GROUP_CONCAT(image) as images'))
+                        ->select('item_id', DB::raw("string_agg(image, ',') as images"))
                         ->groupBy('item_id'),
                     'img',
                     'img.item_id',
@@ -254,17 +254,17 @@ class ItemController extends Controller
                     $join->on(function ($q) {
                         $q->where('d.applies_to', 'entire')
                             ->where('d.status', 'Y')
-                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                     })->orOn(function ($q) {
                         $q->where('d.applies_to', 'item')
                             ->whereColumn('d.item_id', 'it.id')
                             ->where('d.status', 'Y')
-                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                     })->orOn(function ($q) {
                         $q->where('d.applies_to', 'variation')
                             ->whereColumn('d.variation_id', 'iv.id')
                             ->where('d.status', 'Y')
-                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                     });
                 })
                 // ->where('it.orgid', $orgId)
@@ -384,24 +384,24 @@ class ItemController extends Controller
                 ];
             });
         } else {
-           $items = collect($data->items())->map(function ($row) use ($allVariations) {           
-            return [
-                'productid'            => $row->productid,
-                'title'                => $row->title,
-                'variationid'          => $row->variationid,
-                'value'                => $row->value,
-                'price'                => $row->price,
-                'original_price'       => $row->original_price,
-                'discount_type'        => $row->discount_type,
-                'discount_value'       => $row->discount_value,
-                'discount_percentage'  => $row->discount_percentage,
-                'images'               => $row->images
-                    ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
-                    : [],
+            $items = collect($data->items())->map(function ($row) use ($allVariations) {
+                return [
+                    'productid'            => $row->productid,
+                    'title'                => $row->title,
+                    'variationid'          => $row->variationid,
+                    'value'                => $row->value,
+                    'price'                => $row->price,
+                    'original_price'       => $row->original_price,
+                    'discount_type'        => $row->discount_type,
+                    'discount_value'       => $row->discount_value,
+                    'discount_percentage'  => $row->discount_percentage,
+                    'images'               => $row->images
+                        ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
+                        : [],
                     'variations'           => $allVariations[$row->productid] ?? [],
-                    ];
-                    });
-                    }
+                ];
+            });
+        }
 
         return response()->json([
             'type'    => 'success',
@@ -421,11 +421,11 @@ class ItemController extends Controller
         try {
             $item = DB::table('items as i')
                 ->leftJoin('brands as b', 'b.id', '=', 'i.brand_id')
-                ->leftJoin(DB::raw('(
-                SELECT item_id, GROUP_CONCAT(image ORDER BY order_number ASC) as images
-                FROM item_images
-                GROUP BY item_id
-            ) as img'), 'img.item_id', '=', 'i.id')
+                ->leftJoin(DB::raw("(
+        SELECT item_id, string_agg(image, ',' ORDER BY order_number ASC) as images
+        FROM item_images
+        GROUP BY item_id
+    ) as img"), 'img.item_id', '=', 'i.id')
                 ->where('i.product_code', $product_code)
                 ->where('i.status', 'Y')
                 ->select(
@@ -563,11 +563,11 @@ class ItemController extends Controller
                         ->on('wp.variation_id', '=', 'iv.id')
                         ->where('wp.status', 'Y');  // ← inside join, not outside
                 })
-                ->leftJoin(DB::raw('(
-                SELECT item_id, GROUP_CONCAT(image) as images
+                ->leftJoin(DB::raw("(
+                SELECT item_id, string_agg(image, ',') as images
                 FROM item_images
                 GROUP BY item_id
-            ) as im'), 'im.item_id', '=', 'i.id')
+            ) as im"), 'im.item_id', '=', 'i.id')
                 ->select(
                     'i.id as productid',
                     'iv.id as variationid',
@@ -581,26 +581,26 @@ class ItemController extends Controller
             $query = DB::table('items as i')
                 ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-                ->leftJoin(DB::raw('(
-                        SELECT item_id, GROUP_CONCAT(image) as images
+                ->leftJoin(DB::raw("(
+                        SELECT item_id, string_agg(image, ',') as images
                         FROM item_images
                         GROUP BY item_id
-                    ) as im'), 'im.item_id', '=', 'i.id')
+                    ) as im"), 'im.item_id', '=', 'i.id')
                 ->leftJoin('discounts as d', function ($join) {
                     $join->on(function ($q) {
                         $q->where('d.applies_to', 'entire')
                             ->where('d.status', 'Y')
-                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                     })->orOn(function ($q) {
                         $q->where('d.applies_to', 'item')
                             ->whereColumn('d.item_id', 'i.id')
                             ->where('d.status', 'Y')
-                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                     })->orOn(function ($q) {
                         $q->where('d.applies_to', 'variation')
                             ->whereColumn('d.variation_id', 'iv.id')
                             ->where('d.status', 'Y')
-                            ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                     });
                 })
                 ->select(
@@ -609,19 +609,19 @@ class ItemController extends Controller
                     DB::raw("CONCAT(i.title) as title"),
                     DB::raw("
         CASE
-            WHEN ANY_VALUE(d.id) IS NULL THEN p.price
-            WHEN ANY_VALUE(d.type) = 'percentage' THEN ROUND(p.price - (p.price * ANY_VALUE(d.percentage) / 100), 2)
-            WHEN ANY_VALUE(d.type) = 'fixed' THEN ROUND(p.price - ANY_VALUE(d.value), 2)
+            WHEN MAX(d.id) IS NULL THEN p.price
+            WHEN MAX(d.type) = 'percentage' THEN ROUND(p.price - (p.price * MAX(d.percentage) / 100), 2)
+            WHEN MAX(d.type) = 'fixed' THEN ROUND(p.price - MAX(d.value), 2)
             ELSE p.price
         END as price
     "),
                     'im.images',
-                    DB::raw("ANY_VALUE(d.type) as discount_type"),
-                    DB::raw("ANY_VALUE(d.value) as discount_value"),
-                    DB::raw("ANY_VALUE(d.percentage) as discount_percentage"),
+                    DB::raw("MAX(d.type) as discount_type"),
+                    DB::raw("MAX(d.value) as discount_value"),
+                    DB::raw("MAX(d.percentage) as discount_percentage"),
                     DB::raw("
         CASE
-            WHEN ANY_VALUE(d.id) IS NULL THEN NULL
+            WHEN MAX(d.id) IS NULL THEN NULL
             ELSE p.price
         END as original_price
     ")
@@ -1000,7 +1000,7 @@ class ItemController extends Controller
         }
     }
 
-    
+
     public function searchHistory(Request $request)
     {
         try {

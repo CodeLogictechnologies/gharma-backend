@@ -105,9 +105,9 @@ class Store extends Model
                 ->whereRaw($cond);
 
             if ($limit > -1) {
-                $result = $query->orderBy('id', 'asc')->offset($offset)->limit($limit)->get();
+                $result = $query->orderBy('created_at', 'desc')->offset($offset)->limit($limit)->get();
             } else {
-                $result = $query->orderBy('id', 'asc')->get();
+                $result = $query->orderBy('created_at', 'desc')->get();
             }
             if ($result) {
                 $ndata = $result;

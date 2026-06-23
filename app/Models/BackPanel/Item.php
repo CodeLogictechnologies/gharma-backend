@@ -238,9 +238,6 @@ class Item extends Model
                     $ids                     = [];
                     $attributeCases          = [];
                     $valueCases              = [];
-                    $priceCases              = [];
-                    $thresholdCases          = [];
-                    $statusCases             = [];
                     $productCodeCases        = [];
                     $companyProductCodeCases = [];
 
@@ -254,12 +251,9 @@ class Item extends Model
                             $ids[] = $id;
 
                             $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($variation['name'])                . "'";
-                            $valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
-                            $priceCases[]              = "WHEN '$id' THEN "  . floatval($variation['price']            ?? 0);
-                            $thresholdCases[]          = "WHEN '$id' THEN "  . intval($variation['threshold']          ?? 0);
-                            $statusCases[]             = "WHEN '$id' THEN '$status'";
-                            $productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
-                            $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
+$valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
+$productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
+$companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
                         } else {
                             DB::table('itemvariations')->insert([
                                 'id'                   => (string) Str::uuid(),
@@ -283,18 +277,15 @@ class Item extends Model
                     if (!empty($ids)) {
                         $idsList = "'" . implode("','", $ids) . "'";
                         DB::statement("
-                            UPDATE itemvariations SET
-                                attribute            = CASE id " . implode(' ', $attributeCases)          . " END,
-                                value                = CASE id " . implode(' ', $valueCases)               . " END,
-                                price                = CASE id " . implode(' ', $priceCases)               . " END,
-                                threshold            = CASE id " . implode(' ', $thresholdCases)           . " END,
-                                status               = CASE id " . implode(' ', $statusCases)              . " END,
-                                product_code         = CASE id " . implode(' ', $productCodeCases)         . " END,
-                                company_product_code = CASE id " . implode(' ', $companyProductCodeCases)  . " END,
-                                updated_at           = NOW(),
-                                updatedby            = ?
-                            WHERE id IN ($idsList)
-                        ", [$post['userid']]);
+    UPDATE itemvariations SET
+        attribute            = CASE id " . implode(' ', $attributeCases)          . " END,
+        value                = CASE id " . implode(' ', $valueCases)               . " END,
+        product_code         = CASE id " . implode(' ', $productCodeCases)         . " END,
+        company_product_code = CASE id " . implode(' ', $companyProductCodeCases)  . " END,
+        updated_at           = NOW(),
+        updatedby            = ?
+    WHERE id IN ($idsList)
+", [$post['userid']]);
                     }
                 }
 
