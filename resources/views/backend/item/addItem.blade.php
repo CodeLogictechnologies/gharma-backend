@@ -410,19 +410,19 @@
                                         class="form-control" placeholder="0" min="0" step="1"
                                         value="{{ $v['threshold'] ?? '' }}">
                                 </div>
-                                <div class="col-md-1">
+                                <!-- <div class="col-md-1">
                                     <label class="form-label mb-1">Price</label>
                                     <input type="number" name="variations[{{ $i }}][price]"
                                         class="form-control" placeholder="0.00" min="0" step="0.01"
                                         value="{{ $v['price'] ?? '' }}">
-                                </div>
+                                </div> -->
                                 <!-- <div class="col-md-1">
                                     <label class="form-label mb-1">Stock</label>
                                     <input type="number" name="variations[{{ $i }}][stock]"
                                         class="form-control" placeholder="0" min="0" step="1"
                                         value="{{ $v['stock'] ?? '' }}">
                                 </div> -->
-                                <div class="col-md-1">
+                                <!-- <div class="col-md-1">
                                     <label class="form-label mb-1">Status</label>
                                     <select name="variations[{{ $i }}][status]" class="form-select">
                                         <option value="active"
@@ -434,7 +434,7 @@
                                             Inactive
                                         </option>
                                     </select>
-                                </div>
+                                </div> -->
                             </div>
                         </div>
                     @endforeach
@@ -707,22 +707,6 @@ $(function () {
                     <input type="number" name="variations[${idx}][threshold]"
                            class="form-control" placeholder="0" min="0" step="1">
                 </div>
-                <div class="col-md-1">
-                    <label class="form-label mb-1">Price</label>
-                    <input type="number" name="variations[${idx}][price]"
-                           class="form-control" placeholder="0.00" min="0" step="0.01">
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label mb-1">Stock</label>
-                    <input type="number" name="variations[${idx}][stock]"
-                           class="form-control" placeholder="0" min="0" step="1">
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label mb-1">Status</label>
-                    <select name="variations[${idx}][status]" class="form-select">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
                 </div>
             </div>
         </div>`;

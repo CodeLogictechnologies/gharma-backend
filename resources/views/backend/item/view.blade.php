@@ -94,9 +94,9 @@
                             <th>#</th>
                             <th>Attribute</th>
                             <th>Value</th>
-                            <th>Price</th>
+                            <!-- <th>Price</th>
                             <th>Stock</th>
-                            <th>Status</th>
+                            <th>Status</th> -->
                         </tr>
                     </thead>
                     <tbody>

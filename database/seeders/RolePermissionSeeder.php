@@ -1,36 +1,39 @@
 <?php
 
-// database/seeders/RolePermissionSeeder.php
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 
 class RolePermissionSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        $permissions = ['post.view', 'post.create', 'post.edit', 'post.delete'];
+        // Get all permissions inserted by PermissionSeeder
+        $allPermissions = Permission::all();
 
-        foreach ($permissions as $perm) {
-            Permission::firstOrCreate(['name' => $perm]);
+        // Give Super Admin all permissions
+        $superAdmin = Role::where('name', 'Super Admin')->first();
+        if ($superAdmin) {
+            $superAdmin->syncPermissions($allPermissions);
         }
 
-        $admin = Role::firstOrCreate(['name' => 'admin']);
-        $admin->givePermissionTo($permissions);
+        // Give Admin all permissions except role management
+        $admin = Role::where('name', 'Admin')->first();
+        if ($admin) {
+            $adminPermissions = $allPermissions->filter(fn($p) => !in_array($p->name, [
+                'add.role', 'edit.role', 'delete.role',
+            ]));
+            $admin->syncPermissions($adminPermissions);
+        }
 
-        $editor = Role::firstOrCreate(['name' => 'editor']);
-        $editor->givePermissionTo(['post.view', 'post.create', 'post.edit']);
-
-        $viewer = Role::firstOrCreate(['name' => 'viewer']);
-        $viewer->givePermissionTo(['post.view']);
-
-        // Assign admin role to first user
+        // Assign Super Admin role to first user
         $user = User::first();
         if ($user) {
-            $user->assignRole('admin');
+            $user->assignRole('Super Admin');
         }
     }
 }

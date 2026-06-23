@@ -53,16 +53,13 @@ class ItemController extends Controller
             'sub_categories'       => [],
             'description'          => '',
             'images'               => [],
-            'variations'           => [
+            'variations' => [
                 [
                     'variationid'          => '',
                     'name'                 => 'Size',
                     'value'                => '',
-                    'threshold'            => '',
-                    'price'                => '',
                     'product_code'         => '',
                     'company_product_code' => '',
-                    'status'               => 'active',
                 ],
             ],
         ];
@@ -102,11 +99,8 @@ class ItemController extends Controller
                     'variationid'          => $v->id,
                     'name'                 => $v->attribute,
                     'value'                => $v->value,
-                    'threshold'            => $v->threshold,
-                    'price'                => $v->price ?? 0,
                     'product_code'         => $v->product_code         ?? '',
                     'company_product_code' => $v->company_product_code ?? '',
-                    'status'               => ($v->status === 'Y') ? 'active' : 'inactive',
                 ])
                 ->toArray();
 
@@ -184,7 +178,6 @@ class ItemController extends Controller
             }
 
             DB::commit();
-
         } catch (QueryException $e) {
             DB::rollBack();
             $type    = 'error';

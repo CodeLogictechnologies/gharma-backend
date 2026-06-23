@@ -42,7 +42,7 @@ class UserController extends Controller
                 'email'      => [
                     'required',
                     'email',
-                    'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/',
+                        'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/',
                     function ($attribute, $value, $fail) use ($request) {
                         $exists = DB::table('users')
                             ->where('email', $value)
@@ -278,7 +278,6 @@ class UserController extends Controller
         try {
             $data              = [];
             $data['rolesList'] = Role::getRole();
-
             if (!empty($request->id)) {
                 $result = DB::table('users as u')
                     ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')

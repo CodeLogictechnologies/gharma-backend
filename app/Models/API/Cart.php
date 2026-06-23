@@ -98,17 +98,17 @@ class Cart extends Model
                         $join->on(function ($q) {
                             $q->where('d.applies_to', 'entire')
                                 ->where('d.status', 'Y')
-                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                         })->orOn(function ($q) use ($post) {
                             $q->where('d.applies_to', 'item')
                                 ->whereColumn('d.item_id', 'p.itemid')
                                 ->where('d.status', 'Y')
-                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                         })->orOn(function ($q) use ($post) {
                             $q->where('d.applies_to', 'variation')
                                 ->where('d.variation_id', $post['variationid'])
                                 ->where('d.status', 'Y')
-                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                         });
                     })
                     ->where('p.variation_id', $post['variationid'])
@@ -274,17 +274,17 @@ class Cart extends Model
                         $join->on(function ($q) {
                             $q->where('d.applies_to', 'entire')
                                 ->where('d.status', 'Y')
-                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                         })->orOn(function ($q) {
                             $q->where('d.applies_to', 'item')
                                 ->whereColumn('d.item_id', 'i.id')
                                 ->where('d.status', 'Y')
-                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                         })->orOn(function ($q) {
                             $q->where('d.applies_to', 'variation')
                                 ->whereColumn('d.variation_id', 'it.id')
                                 ->where('d.status', 'Y')
-                                ->whereRaw('CURDATE() BETWEEN d.starts_at AND d.ends_at');
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
                         });
                     })
                     ->where('c.userid', $post['userid'])
