@@ -80,7 +80,7 @@ class RecentlyViewed extends Model
             ->where('iv.id', $variationId)
             ->select(
                 'iv.id as variationid',
-                
+
             )
             ->first();
     }
@@ -113,7 +113,7 @@ class RecentlyViewed extends Model
                 DB::raw("CONCAT(i.title) as title"),
                 'iv.value',
                 'p.price',
-                DB::raw("CONCAT('" . url('uploads/items') . "/', im.image) as image"),
+                DB::raw("CONCAT('" . url('storage/items') . "/', im.image) as image"),
                 'rv.updated_at as viewed_at'
             )
             ->orderBy('rv.updated_at', 'desc');

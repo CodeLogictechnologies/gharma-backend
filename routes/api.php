@@ -33,6 +33,7 @@ use App\Http\Controllers\API\SearchHistoryController;
 use App\Http\Controllers\AssignDriverController;
 use App\Http\Controllers\BackPanel\AssignDriverController as BackPanelAssignDriverController;
 use App\Http\Controllers\EsewaController;
+use App\Http\Controllers\EsewaPaymentController;
 use App\Http\Controllers\TransactionController;
 use App\Models\Esewa;
 
@@ -136,9 +137,9 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/recently-viewed', [RecentlyViewedController::class, 'index']);
     Route::post('/recently-viewed/save', [RecentlyViewedController::class, 'store']);
 
-     // Invoice
+    // Invoice
     Route::get('/invoice', [InvoiceController::class, 'show']);
-    
+
     Route::get('/loyalty/list',    [LoyaltyController::class, 'getList']);
     Route::get('/coupon/list',    [CouponController::class, 'getCouponList']);
 
@@ -182,24 +183,24 @@ Route::prefix('esewa')->name('esewa.')->group(function () {
     // Route::middleware([])->group(function () {
 
     // Initiate a new payment
-    Route::post('/initiate', [EsewaController::class, 'initiate'])
+    Route::post('/initiate', [EsewaPaymentController::class, 'initiate'])
         ->name('initiate');
-    
-    
+
+
     // Check payment status
-    Route::get('/status/{bookingId}', [EsewaController::class, 'status'])
+    Route::get('/status/{bookingId}', [EsewaPaymentController::class, 'status'])
         ->name('status');
 
     // Cancel a booked payment
-    Route::post('/cancel/{bookingId}', [EsewaController::class, 'cancel'])
+    Route::post('/cancel/{bookingId}', [EsewaPaymentController::class, 'cancel'])
         ->name('cancel');
 
     // List all transactions
-    Route::get('/transactions', [EsewaController::class, 'index'])
+    Route::get('/transactions', [EsewaPaymentController::class, 'index'])
         ->name('transactions.index');
 
     // Single transaction detail
-    Route::get('/transactions/{esewaTransaction}', [EsewaController::class, 'show'])
+    Route::get('/transactions/{esewaTransaction}', [EsewaPaymentController::class, 'show'])
         ->name('transactions.show');
     // });
 });

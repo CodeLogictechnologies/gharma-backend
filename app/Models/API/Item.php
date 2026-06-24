@@ -64,7 +64,7 @@ class Item extends Model
 
 
         $result->images = collect($images)->map(function ($img) {
-            return url('uploads/items/' . $img);
+            return url('storage/items/' . $img);
         })->values();
         $result->variations = collect($variations)->map(function ($v) {
             return [
@@ -95,7 +95,7 @@ class Item extends Model
                 'iv.id as variationid',
                 DB::raw("CONCAT(i.title, ' ', iv.value) as productname"),
                 DB::raw("iv.value as variation"),
-                DB::raw("CONCAT('" . url('uploads/items') . "/', im.image) as image"),
+                DB::raw("CONCAT('" . url('storage/items') . "/', im.image) as image"),
                 'od.quantity',
                 'od.order_detail_total_price as price',
                 'om.order_status',
