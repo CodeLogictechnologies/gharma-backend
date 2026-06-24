@@ -10,13 +10,13 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        $now   = Carbon::now();
+        $now  = Carbon::now();
         $roles = [
-            ['id' => 1, 'name' => 'Super Admin'],
-            ['id' => 2, 'name' => 'Admin'],
-            ['id' => 3, 'name' => 'Wholesaler'],
-            ['id' => 4, 'name' => 'Retailer'],
-            ['id' => 5, 'name' => 'Driver'],
+            ['id' => '550e8400-e29b-41d4-a716-446655440000', 'name' => 'Super Admin'],
+            ['id' => '550e8400-e29b-41d4-a716-446655440001', 'name' => 'Admin'],
+            ['id' => '550e8400-e29b-41d4-a716-446655440002', 'name' => 'Wholesaler'],
+            ['id' => '550e8400-e29b-41d4-a716-446655440003', 'name' => 'Retailer'],
+            ['id' => '550e8400-e29b-41d4-a716-446655440004', 'name' => 'Driver'],
         ];
 
         foreach ($roles as $role) {

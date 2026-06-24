@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('favicons', function (Blueprint $table) {
-            $table->id();
+            $table->uuid();
             $table->string('image')->nullable();
             $table->timestamps();
         });
