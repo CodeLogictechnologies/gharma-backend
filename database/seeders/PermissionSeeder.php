@@ -1,9 +1,9 @@
 <?php
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class PermissionSeeder extends Seeder
@@ -38,6 +38,7 @@ class PermissionSeeder extends Seeder
 
         foreach ($permissions as $permission) {
             DB::table('permissions')->insertOrIgnore([
+                'id'         => Str::uuid()->toString(),
                 'name'       => $permission,
                 'guard_name' => 'web',
                 'status'     => 'Y',

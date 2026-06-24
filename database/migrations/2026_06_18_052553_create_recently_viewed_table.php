@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('recently_viewed', function (Blueprint $table) {
-            $table->id();
+            $table->uuid();
 
             // Comes from the route's :variationid param (the item being viewed)
             $table->unsignedBigInteger('variation_id');
