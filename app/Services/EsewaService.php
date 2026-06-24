@@ -3,179 +3,125 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class EsewaService
 {
+    private string $baseUrl;
     private string $productCode;
     private string $accessKey;
-    private string $baseUrl;
 
     public function __construct()
     {
-        $this->productCode = config('esewa.product_code', 'INTENT');
-        $this->accessKey   = config('esewa.access_key', 'LB0REg8HUSw3MTYrI1s6JTE8Kyc6JyAqJiA3MQ=='); // fallback
-        $this->baseUrl     = config('esewa.base_url', 'https://rc-checkout.esewa.com.np/api/client/intent/payment');
+        $this->baseUrl    = 'https://rc-checkout.esewa.com.np/api/client/intent/payment';
+        $this->productCode = 'INTENT';
+        $this->accessKey  = 'LB0REg8HUSw3MTYrI1s6JTE8Kyc6JyAqJiA3MQ==';
     }
-    // ---------------------------------------------------------------
-    // Signature
-    // ---------------------------------------------------------------
 
-    public function generateSignature(array $fields, string $signedFieldNames): string
+    /**
+     * Generate HMAC-SHA256 signature in Base64
+     */
+    public function generateSignature(string $message): string
+    {
+        $hash = hash_hmac('sha256', $message, $this->accessKey, true);
+        return base64_encode($hash);
+    }
+
+    /**
+     * Build the signature message from field values
+     */
+    public function buildSignatureMessage(array $fields, array $data): string
     {
         $parts = [];
-        foreach (explode(',', $signedFieldNames) as $name) {
-            $key    = trim($name);
-            $parts[] = $key . '=' . ($fields[$key] ?? '');
+        foreach ($fields as $field) {
+            $parts[] = "{$field}={$data[$field]}";
         }
-        $message = implode(',', $parts);
-        return base64_encode(hash_hmac('sha256', $message, $this->accessKey, true));
+        return implode(',', $parts);
     }
 
+    /**
+     * Verify an incoming signature (e.g. from callback)
+     */
     public function verifySignature(array $payload): bool
     {
-        $signedFieldNames = $payload['signed_field_names'] ?? '';
-        $receivedSig      = $payload['signature']          ?? '';
-
-        if (empty($signedFieldNames) || empty($receivedSig)) {
-            return false;
-        }
-
-        $expectedSig = $this->generateSignature($payload, $signedFieldNames);
-        return hash_equals($expectedSig, $receivedSig);
+        $signedFields = explode(',', $payload['signed_field_names']);
+        $message      = $this->buildSignatureMessage($signedFields, $payload);
+        $expected     = $this->generateSignature($message);
+        return hash_equals($expected, $payload['signature']);
     }
 
-    // ---------------------------------------------------------------
-    // 1. Book / Initialize Payment
-    // ---------------------------------------------------------------
-
-    public function bookPayment(
-        float  $amount,
-        string $transactionUuid,
-        string $callbackUrl,
-        string $redirectUrl = '',
-        array  $properties  = [],
-        string $signature   = ''   // add this
-    ): array {
-        $signedFieldNames = 'product_code,amount,transaction_uuid';
-
-        // Use passed signature or generate one
-        if (empty($signature)) {
-            $fields    = [
-                'product_code'     => $this->productCode,
-                'amount'           => $amount,
-                'transaction_uuid' => $transactionUuid,
-            ];
-            $signature = $this->generateSignature($fields, $signedFieldNames);
-        }
-
-        $payload = [
+    /**
+     * Initialize / Book a payment
+     */
+    public function bookPayment(array $params): array
+    {
+        $signedFields = ['product_code', 'amount', 'transaction_uuid'];
+        $data = [
             'product_code'       => $this->productCode,
-            'amount'             => $amount,
-            'transaction_uuid'   => $transactionUuid,
-            'signed_field_names' => $signedFieldNames,
-            'signature'          => $signature,
-            'callback_url'       => $callbackUrl,
-            'redirect_url'       => $redirectUrl,
-            'properties'         => $properties,
+            'amount'             => $params['amount'],
+            'transaction_uuid'   => $params['transaction_uuid'],
         ];
+        $message   = $this->buildSignatureMessage($signedFields, $data);
+        $signature = $this->generateSignature($message);
+        $payload = array_merge($data, [
+            'signed_field_names' => implode(',', $signedFields),
+            'signature'          => $signature,
+            'callback_url'       => $params['callback_url'] ?? config('services.esewa.callback_url'),
+            'redirect_url'       => $params['redirect_url'] ?? config('services.esewa.redirect_url'),
+            'properties'         => $params['properties'] ?? [],
+        ]);
+        // dd($payload);
+        $response = Http::post("{$this->baseUrl}/book", $payload);
+        // dd($response->json());
+        return $response->json();
     }
-    // ---------------------------------------------------------------
-    // 2. Status Check
-    // ---------------------------------------------------------------
 
+    /**
+     * Check payment status
+     */
     public function checkStatus(string $bookingId, string $correlationId): array
     {
-        $signedFieldNames = 'booking_id,product_code,correlation_id';
-
-        $fields = [
+        $signedFields = ['booking_id', 'product_code', 'correlation_id'];
+        $data = [
             'booking_id'     => $bookingId,
             'product_code'   => $this->productCode,
             'correlation_id' => $correlationId,
         ];
 
-        $payload = array_merge($fields, [
-            'signed_field_names' => $signedFieldNames,
-            'signature'          => $this->generateSignature($fields, $signedFieldNames),
+        $message   = $this->buildSignatureMessage($signedFields, $data);
+        $signature = $this->generateSignature($message);
+
+        $payload = array_merge($data, [
+            'signed_field_names' => implode(',', $signedFields),
+            'signature'          => $signature,
         ]);
-
-        try {
-            $response = Http::timeout(30)
-                ->acceptJson()
-                ->post($this->baseUrl . '/status', $payload);
-
-            $data = $response->json();
-
-            if ($response->successful() && ($data['code'] ?? '') === 'IP-200') {
-                $d = $data['data'] ?? [];
-                return [
-                    'success'        => true,
-                    'status'         => $d['status']         ?? 'UNKNOWN',
-                    'booking_id'     => $d['booking_id']     ?? null,
-                    'correlation_id' => $d['correlation_id'] ?? null,
-                    'transaction_id' => $d['transaction_id'] ?? null,
-                    'reference_code' => $d['reference_code'] ?? null,
-                    'updated_at'     => $d['updated_at']     ?? null,
-                    'message'        => $data['message']     ?? '',
-                ];
-            }
-
-            return [
-                'success' => false,
-                'code'    => $data['code']          ?? null,
-                'error'   => $data['error_message'] ?? 'Status check failed',
-            ];
-        } catch (\Exception $e) {
-            Log::error('eSewa checkStatus error', ['error' => $e->getMessage()]);
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        // ✅ Full correct URL
+        $response = Http::post("{$this->baseUrl}/status", $payload);
+        // dd($response->json());
+        return $response->json();
     }
 
-    // ---------------------------------------------------------------
-    // 3. Cancel Payment
-    // ---------------------------------------------------------------
-
+    /**
+     * Cancel a payment
+     */
     public function cancelPayment(string $bookingId): array
     {
-        $signedFieldNames = 'booking_id,product_code';
-
-        $fields = [
+        $signedFields = ['booking_id', 'product_code'];
+        $data = [
             'booking_id'   => $bookingId,
             'product_code' => $this->productCode,
         ];
 
-        $payload = array_merge($fields, [
-            'signed_field_names' => $signedFieldNames,
-            'signature'          => $this->generateSignature($fields, $signedFieldNames),
+        $message   = $this->buildSignatureMessage($signedFields, $data);
+        $signature = $this->generateSignature($message);
+
+        $payload = array_merge($data, [
+            'signed_field_names' => implode(',', $signedFields),
+            'signature'          => $signature,
         ]);
 
-        try {
-            $response = Http::timeout(30)
-                ->acceptJson()
-                ->post($this->baseUrl . '/cancel', $payload);
+        $response = Http::post("{$this->baseUrl}/cancel", $payload);
 
-            $data = $response->json();
-
-            if (($data['code'] ?? '') === 'IP-210') {
-                $d = $data['data'] ?? [];
-                return [
-                    'success'        => true,
-                    'status'         => $d['status']         ?? 'CANCELED',
-                    'booking_id'     => $d['booking_id']     ?? null,
-                    'correlation_id' => $d['correlation_id'] ?? null,
-                    'transaction_id' => $d['transaction_id'] ?? null,
-                    'message'        => $data['message']     ?? 'Cancelled',
-                ];
-            }
-
-            return [
-                'success' => false,
-                'code'    => $data['code']          ?? null,
-                'error'   => $data['error_message'] ?? 'Cancel failed',
-            ];
-        } catch (\Exception $e) {
-            Log::error('eSewa cancelPayment error', ['error' => $e->getMessage()]);
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        return $response->json();
     }
 }

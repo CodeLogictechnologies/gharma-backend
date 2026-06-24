@@ -77,17 +77,15 @@ class CategoryListController extends Controller
                     DB::raw("CONCAT('" . url('storage/subcategories') . "/', s.image) as image")
                 )
                 ->where('s.status', 'Y');
-
             if (!empty($categoryId)) {
                 $query->join('sub_category_items as sci', 'sci.subcategoryid', '=', 's.id')
                     ->join('items as i', 'i.id', '=', 'sci.itemid')
                     ->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                     ->where('ci.categoryid', $categoryId)
-                    ->distinct();
+                    ->groupBy('s.id', 's.title', 's.slug', 's.status', 's.image', 's.created_at');
             }
 
             $data = $query->orderBy('s.created_at', 'asc')->get();
-
             if ($data->isEmpty()) {
                 return response()->json([
                     'type'    => 'error',

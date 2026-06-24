@@ -232,7 +232,7 @@ class Cart extends Model
                         ->value('image');
 
                     $item->image = $image
-                        ? url('uploads/items/' . $image)
+                        ? url('storage/items/' . $image)
                         : null;
 
                     return $item;
@@ -314,7 +314,7 @@ class Cart extends Model
                         ->value('image');
 
                     $item->image = $image
-                        ? url('uploads/items/' . $image)
+                        ? url('storage/items/' . $image)
                         : null;
 
                     return $item;

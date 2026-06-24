@@ -33,7 +33,7 @@ class Favourite extends Model
         }
     }
 
-       public static function getListData($post)
+    public static function getListData($post)
     {
         $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
         $page    = isset($post['page'])     ? (int)$post['page']     : 1;
@@ -47,7 +47,7 @@ class Favourite extends Model
             ->where('f.orgid', $post['orgid'])
             ->where('f.status', 'Y')
             ->select(
-                DB::raw('MIN(f.id::text) as favouriteid'), 
+                DB::raw('MIN(f.id::text) as favouriteid'),
                 'i.id as productid',
                 'p.price',
                 'iv.id as variationid',
@@ -83,7 +83,7 @@ class Favourite extends Model
 
         $result = $result->map(function ($item) use ($images) {
             $firstImage = optional($images[$item->productid]->first())->image ?? null;
-            $item->image = $firstImage ? url('uploads/items/' . $firstImage) : null;
+            $item->image = $firstImage ? url('storage/items/' . $firstImage) : null;
             return $item;
         });
 
@@ -100,7 +100,7 @@ class Favourite extends Model
             ]
         ];
     }
-    
+
     public static function deleteFavourite($post)
     {
         try {
