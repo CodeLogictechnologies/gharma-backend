@@ -125,11 +125,11 @@
             <div class="col-md-4">
                 <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
                 <select name="gender" id="gender" class="form-control">
-    <option value="">Select Gender</option>
-    <option value="Male" @if(trim(strtolower(@$gender))=='male') selected @endif>Male</option>
-    <option value="Female" @if(trim(strtolower(@$gender))=='female') selected @endif>Female</option>
-    <option value="Other" @if(trim(strtolower(@$gender))=='other') selected @endif>Other</option>
-</select>
+                    <option value="">Select Gender</option>
+                    <option value="Male" @if(trim(strtolower(@$gender))=='male' ) selected @endif>Male</option>
+                    <option value="Female" @if(trim(strtolower(@$gender))=='female' ) selected @endif>Female</option>
+                    <option value="Other" @if(trim(strtolower(@$gender))=='other' ) selected @endif>Other</option>
+                </select>
                 <div class="invalid-feedback">Select gender</div>
             </div>
             <div class="col-md-4">
@@ -137,7 +137,7 @@
                 <select name="roles[]" id="roles" class="form-control" multiple>
                     @foreach ($rolesList as $role)
                     <option value="{{ $role->id }}"
-                        @if (!empty($userRoles) && in_array($role->id, $userRoles)) selected @endif>
+                        @if (!empty($userRoles) && in_array((string)$role->id, $userRoles)) selected @endif>
                         {{ $role->name }}
                     </option>
                     @endforeach
@@ -261,50 +261,49 @@
         /* ── Wholesaler role detection ───────────────────────────── */
         var wholesalerRoleId = null;
         $('#roles option').each(function() {
-            if ($(this).text().toLowerCase().includes('wholesaler')) {
+            if ($(this).text().toLowerCase().indexOf('wholesaler') !== -1) {
                 wholesalerRoleId = $(this).val();
             }
         });
 
-var isEdit = $('#userForm input[name="id"]').val() !== '';
-var hasPanImage = {{ !empty($pan_image) ? 'true' : 'false' }};
-var hasRegImage = {{ !empty($registration_number_image) ? 'true' : 'false' }};
+        var isEdit      = $('#userForm input[name="id"]').val() !== '';
+        var hasPanImage = {{ !empty($pan_image) ? 'true' : 'false' }};
+        var hasRegImage = {{ !empty($registration_number_image) ? 'true' : 'false' }};
 
-function checkWholesalerRole() {
-    var selected     = $('#roles').val() || [];
-    var isWholesaler = wholesalerRoleId && selected.includes(String(wholesalerRoleId));
-    var v            = $('#userForm').validate();
+        function checkWholesalerRole() {
+            var selected     = $('#roles').val() || [];
+            var isWholesaler = wholesalerRoleId && selected.indexOf(String(wholesalerRoleId)) !== -1;
+            var v            = $('#userForm').validate();
 
-    if (isWholesaler) {
-        $('#wholesalerFields').slideDown(200);
-        v.settings.rules['company_name']        = 'required';
-        v.settings.rules['tax_number']          = 'required';
-        v.settings.rules['registration_number'] = 'required';
-        v.settings.rules['pan_number']          = 'required';
+            if (isWholesaler) {
+                $('#wholesalerFields').slideDown(200);
+                v.settings.rules['company_name']        = 'required';
+                v.settings.rules['tax_number']          = 'required';
+                v.settings.rules['registration_number'] = 'required';
+                v.settings.rules['pan_number']          = 'required';
 
-        // Require image only if: new user OR edit user with no existing image
-        if (!isEdit || !hasPanImage) {
-            v.settings.rules['pan_image'] = 'required';
-        } else {
-            delete v.settings.rules['pan_image'];
+                if (!isEdit || !hasPanImage) {
+                    v.settings.rules['pan_image'] = 'required';
+                } else {
+                    delete v.settings.rules['pan_image'];
+                }
+
+                if (!isEdit || !hasRegImage) {
+                    v.settings.rules['registration_number_image'] = 'required';
+                } else {
+                    delete v.settings.rules['registration_number_image'];
+                }
+            } else {
+                $('#wholesalerFields').slideUp(200);
+                delete v.settings.rules['company_name'];
+                delete v.settings.rules['tax_number'];
+                delete v.settings.rules['registration_number'];
+                delete v.settings.rules['pan_number'];
+                delete v.settings.rules['pan_image'];
+                delete v.settings.rules['registration_number_image'];
+            }
         }
 
-        if (!isEdit || !hasRegImage) {
-            v.settings.rules['registration_number_image'] = 'required';
-        } else {
-            delete v.settings.rules['registration_number_image'];
-        }
-
-    } else {
-        $('#wholesalerFields').slideUp(200);
-        delete v.settings.rules['company_name'];
-        delete v.settings.rules['tax_number'];
-        delete v.settings.rules['registration_number'];
-        delete v.settings.rules['pan_number'];
-        delete v.settings.rules['pan_image'];
-        delete v.settings.rules['registration_number_image'];
-    }
-}
         $('#roles').on('change', checkWholesalerRole);
 
         /* ── Image previews ──────────────────────────────────────── */
@@ -322,49 +321,6 @@ function checkWholesalerRole() {
         });
 
         /* ── jQuery Validation ───────────────────────────────────── */
-        // $('#userForm').validate({
-        //     ignore: [],
-        //     rules: {
-        //         first_name: 'required',
-        //         last_name:  'required',
-        //         username:   'required',
-        //         email: {
-        //             required: true,
-        //             email:    true
-        //         },
-        //         phone:   'required',
-        //         address: 'required',
-        //         gender:  'required',
-        //         'roles[]': {
-        //             required:  true,
-        //             minlength: 1
-        //         }
-        //     },
-        //     messages: {
-        //         first_name: 'Enter first name',
-        //         last_name:  'Enter last name',
-        //         username:   'Enter username',
-        //         email:      'Enter a valid email',
-        //         phone:      'Enter phone',
-        //         address:    'Enter address',
-        //         gender:     'Select gender',
-        //         'roles[]':  'Select at least one role'
-        //     },
-        //     highlight: function(el) {
-        //         $(el).addClass('border-danger');
-        //     },
-        //     unhighlight: function(el) {
-        //         $(el).removeClass('border-danger');
-        //     },
-        //     errorPlacement: function(error, element) {
-        //         if (element.attr('id') === 'roles') {
-        //             error.insertAfter(element.next('.select2-container'));
-        //         } else {
-        //             error.insertAfter(element);
-        //         }
-        //     }
-        // });
-/* ── jQuery Validation ───────────────────────────────────── */
         $.validator.addMethod('gmailOnly', function(value) {
             return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(value);
         }, 'Email must be a valid @gmail.com address');
@@ -376,13 +332,13 @@ function checkWholesalerRole() {
                 last_name:  'required',
                 username:   'required',
                 email: {
-                    required: true,
-                    email:    true,
+                    required:  true,
+                    email:     true,
                     gmailOnly: true
                 },
-                phone:   'required',
-                address: 'required',
-                gender:  'required',
+                phone:    'required',
+                address:  'required',
+                gender:   'required',
                 'roles[]': {
                     required:  true,
                     minlength: 1
@@ -393,14 +349,14 @@ function checkWholesalerRole() {
                 last_name:  'Enter last name',
                 username:   'Enter username',
                 email: {
-                    required: 'Enter email',
-                    email:    'Enter a valid email',
+                    required:  'Enter email',
+                    email:     'Enter a valid email',
                     gmailOnly: 'Email must be a valid @gmail.com address'
                 },
-                phone:      'Enter phone',
-                address:    'Enter address',
-                gender:     'Select gender',
-                'roles[]':  'Select at least one role'
+                phone:     'Enter phone',
+                address:   'Enter address',
+                gender:    'Select gender',
+                'roles[]': 'Select at least one role'
             },
             highlight: function(el) {
                 $(el).addClass('border-danger');
@@ -416,8 +372,10 @@ function checkWholesalerRole() {
                 }
             }
         });
-        /* ── Run wholesaler check on load (edit mode) ────────────── */
-        checkWholesalerRole();
+
+        /* ── Trigger Select2 to render pre-selected roles on edit ── */
+        $('#roles').trigger('change'); // ← THIS renders existing roles as tags
+        checkWholesalerRole();         // ← THEN check if wholesaler fields needed
 
         /* ── Save / Update ───────────────────────────────────────── */
         $('#saveUser').off('click').on('click', function() {
@@ -440,7 +398,6 @@ function checkWholesalerRole() {
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
 
-                        // 1. Close modal FIRST
                         if (typeof window._forceModalCleanup === 'function') {
                             window._forceModalCleanup();
                         } else {
@@ -455,7 +412,6 @@ function checkWholesalerRole() {
                             }, 350);
                         }
 
-                        // 2. Redraw table AFTER modal cleanup finishes (350ms)
                         setTimeout(function() {
                             if (typeof userTable !== 'undefined' && userTable) {
                                 userTable.fnDraw();

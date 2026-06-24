@@ -33,7 +33,7 @@ class Favourite extends Model
         }
     }
 
-    public static function getListData($post)
+       public static function getListData($post)
     {
         $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
         $page    = isset($post['page'])     ? (int)$post['page']     : 1;
@@ -47,11 +47,11 @@ class Favourite extends Model
             ->where('f.orgid', $post['orgid'])
             ->where('f.status', 'Y')
             ->select(
-                DB::raw('MIN(f.id) as favouriteid'),
+                DB::raw('MIN(f.id::text) as favouriteid'), 
                 'i.id as productid',
                 'p.price',
                 'iv.id as variationid',
-                DB::raw("CONCAT(i.title, ' ', iv.value) as itemname")
+                DB::raw("i.title || ' ' || iv.value as itemname")
             )
             ->groupBy('iv.id', 'i.id', 'i.title', 'iv.value', 'p.price');
 
@@ -100,6 +100,7 @@ class Favourite extends Model
             ]
         ];
     }
+    
     public static function deleteFavourite($post)
     {
         try {

@@ -141,7 +141,7 @@ class ItemController extends Controller
     //     ]);
     // }
 
-    public function recommended(Request $request)
+     public function recommended(Request $request)
     {
         $payload = JWTAuth::parseToken()->getPayload();
         $profile = $payload->get('profile');
@@ -149,17 +149,17 @@ class ItemController extends Controller
         $perPage     = (int) $request->get('per_page', 10);
         $userId      = $profile['userid'];
         $orgId       = $profile['orgid'];
-        $tabId       = $request->input('tab_id');    // can be UUID or tab_name string
+        $tabId       = $request->input('tab_id');
         $categoryIds = [];
-        $post['roleid']         = $request->header('roleid');
+        $post['roleid'] = $request->header('roleid');
 
         // ── Resolve tab by id OR tab_name ──
         if (!empty($tabId)) {
             $tab = DB::table('home_tabs')
                 ->where('status', 'Y')
                 ->where(function ($q) use ($tabId) {
-                    $q->where('id', $tabId)                              // UUID match
-                        ->orWhereRaw('LOWER(tab_name) = ?', [strtolower($tabId)]);  // name match
+                    $q->where('id', $tabId)
+                        ->orWhereRaw('LOWER(tab_name) = ?', [strtolower($tabId)]);
                 })
                 ->first();
 
@@ -171,7 +171,6 @@ class ItemController extends Controller
                 ]);
             }
 
-            // If tab_name is "all", skip category filter → return all items
             if (strtolower($tab->tab_name) !== 'all') {
                 $categoryIds = DB::table('home_tab_categories')
                     ->where('home_tab_id', $tab->id)
@@ -191,8 +190,8 @@ class ItemController extends Controller
         $hasOrders = DB::table('order_details')
             ->where('userid', $userId)
             ->exists();
-        if (!empty($post['roleid']) && $post['roleid'] == 2) {
 
+        if (!empty($post['roleid']) && $post['roleid'] == "550e8400-e29b-41d4-a716-446655440002") {
 
             $query = DB::table('itemvariations as iv')
                 ->join('items as it', 'it.id', '=', 'iv.item_id')
@@ -204,7 +203,7 @@ class ItemController extends Controller
                 })
                 ->leftJoinSub(
                     DB::table('item_images')
-                        ->select('item_id', DB::raw("string_agg(image, ',') as images"))
+                        ->select('item_id', DB::raw("STRING_AGG(image::text, ',') as images"))
                         ->groupBy('item_id'),
                     'img',
                     'img.item_id',
@@ -216,12 +215,11 @@ class ItemController extends Controller
                 ->where('p.status', 'Y')
                 ->select(
                     'it.id as productid',
-                    DB::raw("CONCAT(it.title) as title"),
+                    'it.title as title',
                     'iv.id as variationid',
                     'iv.value',
                     'img.images',
-                    'wp.id as wholesaler_price_id',  // ← must be here
-
+                    'wp.id as wholesaler_price_id',
                     'p.price',
                     'iv.created_at'
                 )
@@ -231,89 +229,74 @@ class ItemController extends Controller
                     'iv.id',
                     'iv.value',
                     'img.images',
-                    'wp.id',                         // ← must be here
-
+                    'wp.id',
                     'p.price',
                     'iv.created_at'
                 )
                 ->orderBy('iv.created_at', 'asc');
         } else {
-            $query = DB::table('itemvariations as iv')
-                ->join('items as it', 'it.id', '=', 'iv.item_id')
+
+            $query = DB::table('items as i')
+                ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
                 ->leftJoinSub(
                     DB::table('item_images')
-                        ->select('item_id', DB::raw("string_agg(image, ',') as images"))
+                        ->select('item_id', DB::raw("STRING_AGG(image::text, ',') as images"))
                         ->groupBy('item_id'),
-                    'img',
-                    'img.item_id',
+                    'im',
+                    'im.item_id',
                     '=',
-                    'it.id'
+                    'i.id'
                 )
                 ->leftJoin('discounts as d', function ($join) {
-                    $join->on(function ($q) {
+                    $join->where(function ($q) {
                         $q->where('d.applies_to', 'entire')
                             ->where('d.status', 'Y')
                             ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                    })->orOn(function ($q) {
-                        $q->where('d.applies_to', 'item')
-                            ->whereColumn('d.item_id', 'it.id')
-                            ->where('d.status', 'Y')
-                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                    })->orOn(function ($q) {
-                        $q->where('d.applies_to', 'variation')
-                            ->whereColumn('d.variation_id', 'iv.id')
-                            ->where('d.status', 'Y')
-                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                    });
+                    })
+                        ->orWhere(function ($q) {
+                            $q->where('d.applies_to', 'item')
+                                ->whereColumn('d.item_id', 'i.id')
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
+                        })
+                        ->orWhere(function ($q) {
+                            $q->where('d.applies_to', 'variation')
+                                ->whereColumn('d.variation_id', 'iv.id')
+                                ->where('d.status', 'Y')
+                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
+                        });
                 })
-                // ->where('it.orgid', $orgId)
-                ->where('iv.status', 'Y')
-                ->where('p.status', 'Y')
                 ->select(
-                    'it.id as productid',
-                    DB::raw("CONCAT(it.title) as title"),
+                    'i.id as productid',
                     'iv.id as variationid',
+                    'i.title as title',
                     'iv.value',
-                    'img.images',
-                    // Final price after discount
                     DB::raw("
-            CASE
-                WHEN MAX(d.id) IS NULL THEN p.price
-                WHEN MAX(d.type) = 'percentage' THEN ROUND(p.price - (p.price * MAX(d.percentage) / 100), 2)
-                WHEN MAX(d.type) = 'fixed' THEN ROUND(p.price - MAX(d.value), 2)
-                ELSE p.price
-            END as price
-        "),
-                    // Original price (null if no discount)
-                    DB::raw("
-            CASE
-                WHEN MAX(d.id) IS NULL THEN NULL
-                ELSE p.price
-            END as original_price
-        "),
+                CASE
+                    WHEN MAX(d.id::text) IS NULL THEN p.price
+                    WHEN MAX(d.type) = 'percentage' THEN ROUND(CAST(p.price - (p.price * MAX(d.percentage) / 100) AS numeric), 2)
+                    WHEN MAX(d.type) = 'fixed' THEN ROUND(CAST(p.price - MAX(d.value) AS numeric), 2)
+                    ELSE p.price
+                END as price
+            "),
+                    'im.images',
                     DB::raw("MAX(d.type) as discount_type"),
                     DB::raw("MAX(d.value) as discount_value"),
                     DB::raw("MAX(d.percentage) as discount_percentage"),
-                    'iv.created_at'
+                    DB::raw("
+                CASE
+                    WHEN MAX(d.id::text) IS NULL THEN NULL
+                    ELSE p.price
+                END as original_price
+            ")
                 )
-                ->groupBy(
-                    'it.id',
-                    'it.title',
-                    'iv.id',
-                    'iv.value',
-                    'img.images',
-                    'p.price',
-                    'iv.created_at'
-                );
+                ->whereRaw("p.status = 'Y'")
+                ->whereRaw("iv.status = 'Y'")
+                ->groupBy('i.id', 'i.title', 'iv.id', 'iv.value', 'im.images', 'p.price');
         }
-        // ── Filter by categories only if not "all" ──
-        if (!empty($categoryIds)) {
-            $query->join('category_items as ci', 'ci.itemid', '=', 'it.id')
-                ->whereIn('ci.categoryid', $categoryIds);
-        }
-
         $data = $query->paginate($perPage);
+
         if ($data->isEmpty()) {
             return response()->json([
                 'type'    => 'error',
@@ -332,7 +315,7 @@ class ItemController extends Controller
             ->select(
                 'iv.id as variationid',
                 'iv.item_id as productid',
-                DB::raw("CONCAT(iv.value) as name"),
+                'iv.value as name',
                 'p.price'
             )
             ->whereIn('iv.item_id', $productIds)
@@ -341,21 +324,20 @@ class ItemController extends Controller
             ->get()
             ->groupBy('productid');
 
-
         $wholesalerDetails = DB::table('wholesaler_price_details as wd')
             ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
             ->where('wd.status', 'Y')
             ->where('wp.status', 'Y')
             ->where('wp.orgid', $orgId)
             ->select(
-                'wd.wholesalermasterid',   // ← no alias, keep original name
+                'wd.wholesalermasterid',
                 'wd.min_qty',
                 'wd.max_qty',
                 'wd.price'
             )
             ->orderBy('wd.min_qty', 'asc')
             ->get()
-            ->groupBy('wholesalermasterid')  // ← matches column name
+            ->groupBy('wholesalermasterid')
             ->map(function ($details) {
                 return $details->map(function ($detail) {
                     return [
@@ -365,40 +347,42 @@ class ItemController extends Controller
                     ];
                 })->values();
             });
+
         if (!empty($post['roleid']) && $post['roleid'] == 2) {
 
             $items = collect($data->items())->map(function ($row) use ($allVariations, $wholesalerDetails) {
                 return [
-                    'productid'   => $row->productid,
-                    'title'       => $row->title,
-                    'variationid' => $row->variationid,
-                    'value'       => $row->value,
-                    'price'       => $row->price,
-                    'images'      => $row->images
+                    'productid'        => $row->productid,
+                    'title'            => $row->title,
+                    'variationid'      => $row->variationid,
+                    'value'            => $row->value,
+                    'price'            => $row->price,
+                    'images'           => $row->images
                         ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
                         : [],
                     'wholesaler_price' => !empty($row->wholesaler_price_id)
                         ? $wholesalerDetails->get($row->wholesaler_price_id, collect([]))->values()
                         : [],
-                    'variations'  => $allVariations[$row->productid] ?? [],
+                    'variations'       => $allVariations[$row->productid] ?? [],
                 ];
             });
         } else {
+
             $items = collect($data->items())->map(function ($row) use ($allVariations) {
                 return [
-                    'productid'            => $row->productid,
-                    'title'                => $row->title,
-                    'variationid'          => $row->variationid,
-                    'value'                => $row->value,
-                    'price'                => $row->price,
-                    'original_price'       => $row->original_price,
-                    'discount_type'        => $row->discount_type,
-                    'discount_value'       => $row->discount_value,
-                    'discount_percentage'  => $row->discount_percentage,
-                    'images'               => $row->images
+                    'productid'           => $row->productid,
+                    'title'               => $row->title,
+                    'variationid'         => $row->variationid,
+                    'value'               => $row->value,
+                    'price'               => $row->price,
+                    'original_price'      => $row->original_price,
+                    'discount_type'       => $row->discount_type,
+                    'discount_value'      => $row->discount_value,
+                    'discount_percentage' => $row->discount_percentage,
+                    'images'              => $row->images
                         ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
                         : [],
-                    'variations'           => $allVariations[$row->productid] ?? [],
+                    'variations'          => $allVariations[$row->productid] ?? [],
                 ];
             });
         }
@@ -415,6 +399,7 @@ class ItemController extends Controller
             ],
         ]);
     }
+
 
     public function getByProductCode(Request $request, $product_code)
     {
@@ -502,6 +487,9 @@ class ItemController extends Controller
      |    — items sorted by created_at DESC, paginated.
      |      Optional: filter by category.
      ========================================================= */
+    
+
+
     public function latest(Request $request)
     {
         $request->validate([
@@ -518,7 +506,7 @@ class ItemController extends Controller
         $categoryIds    = [];
         $roleId         = $request->header('roleid');
         // dd($roleId);
-        $isWholesaler   = !empty($roleId) && $roleId == 2;  // ← define once, reuse
+        $isWholesaler   = !empty($roleId) && $roleId == "550e8400-e29b-41d4-a716-446655440002";
         // dd($isWholesaler);
         // ── Resolve tab ──
         if (!empty($tabId) && empty($categoryId)) {
@@ -558,76 +546,110 @@ class ItemController extends Controller
         if ($isWholesaler) {
             $query = DB::table('items as i')
                 ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+
                 ->leftJoin('wholesaler_prices as wp', function ($join) {
-                    $join->on('wp.itemid', '=', 'i.id')
-                        ->on('wp.variation_id', '=', 'iv.id')
-                        ->where('wp.status', 'Y');  // ← inside join, not outside
+                    $join->whereColumn('wp.itemid', 'i.id')
+                        ->whereColumn('wp.variation_id', 'iv.id')
+                        ->where('wp.status', 'Y');
                 })
-                ->leftJoin(DB::raw("(
-                SELECT item_id, string_agg(image, ',') as images
+
+                ->leftJoin(
+                    DB::raw("
+            (
+                SELECT
+                    item_id,
+                    STRING_AGG(image::text, ',') AS images
                 FROM item_images
                 GROUP BY item_id
-            ) as im"), 'im.item_id', '=', 'i.id')
+            ) AS im
+        "),
+                    'im.item_id',
+                    '=',
+                    'i.id'
+                )
+
                 ->select(
                     'i.id as productid',
                     'iv.id as variationid',
-                    DB::raw("CONCAT(i.title) as title"),
+                    'i.title as title',
                     'im.images',
                     'wp.id as wholesaler_price_id',
                     'iv.created_at'
                 )
-                ->where('iv.status', 'Y');
+
+                ->where('iv.status', 'Y')
+
+                ->groupBy(
+                    'i.id',
+                    'iv.id',
+                    'i.title',
+                    'im.images',
+                    'wp.id',
+                    'iv.created_at'
+                );
         } else {
             $query = DB::table('items as i')
                 ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-                ->leftJoin(DB::raw("(
-                        SELECT item_id, string_agg(image, ',') as images
-                        FROM item_images
-                        GROUP BY item_id
-                    ) as im"), 'im.item_id', '=', 'i.id')
-                ->leftJoin('discounts as d', function ($join) {
-                    $join->on(function ($q) {
-                        $q->where('d.applies_to', 'entire')
-                            ->where('d.status', 'Y')
-                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                    })->orOn(function ($q) {
-                        $q->where('d.applies_to', 'item')
-                            ->whereColumn('d.item_id', 'i.id')
-                            ->where('d.status', 'Y')
-                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                    })->orOn(function ($q) {
-                        $q->where('d.applies_to', 'variation')
-                            ->whereColumn('d.variation_id', 'iv.id')
-                            ->where('d.status', 'Y')
-                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                    });
-                })
+                ->leftJoinSub(
+                    DB::table('item_images')
+                        ->select('item_id', DB::raw("STRING_AGG(image::text, ',') as images"))
+                        ->groupBy('item_id'),
+                    'im',
+                    'im.item_id',
+                    '=',
+                    'i.id'
+                )
+                ->leftJoin(
+                    DB::raw('discounts as d'),
+                    function ($join) {
+                        $join->whereRaw("
+            (
+                d.applies_to = 'entire'
+                AND d.status = 'Y'
+                AND CURRENT_DATE BETWEEN d.starts_at AND d.ends_at
+            )
+            OR (
+                d.applies_to = 'item'
+                AND d.item_id = i.id
+                AND d.status = 'Y'
+                AND CURRENT_DATE BETWEEN d.starts_at AND d.ends_at
+            )
+            OR (
+                d.applies_to = 'variation'
+                AND d.variation_id = iv.id
+                AND d.status = 'Y'
+                AND CURRENT_DATE BETWEEN d.starts_at AND d.ends_at
+            )
+        ");
+                    }
+                )
                 ->select(
                     'i.id as productid',
                     'iv.id as variationid',
-                    DB::raw("CONCAT(i.title) as title"),
+                    'i.title as title',
                     DB::raw("
-        CASE
-            WHEN MAX(d.id) IS NULL THEN p.price
-            WHEN MAX(d.type) = 'percentage' THEN ROUND(p.price - (p.price * MAX(d.percentage) / 100), 2)
-            WHEN MAX(d.type) = 'fixed' THEN ROUND(p.price - MAX(d.value), 2)
-            ELSE p.price
-        END as price
-    "),
+            CASE
+                WHEN MAX(d.id::text) IS NULL THEN p.price
+                WHEN MAX(d.type) = 'percentage' THEN ROUND(CAST(p.price - (p.price * MAX(d.percentage) / 100) AS numeric), 2)
+                WHEN MAX(d.type) = 'fixed' THEN ROUND(CAST(p.price - MAX(d.value) AS numeric), 2)
+                ELSE p.price
+            END as price
+        "),
                     'im.images',
                     DB::raw("MAX(d.type) as discount_type"),
                     DB::raw("MAX(d.value) as discount_value"),
                     DB::raw("MAX(d.percentage) as discount_percentage"),
                     DB::raw("
-        CASE
-            WHEN MAX(d.id) IS NULL THEN NULL
-            ELSE p.price
-        END as original_price
-    ")
+            CASE
+                WHEN MAX(d.id::text) IS NULL THEN NULL
+                ELSE p.price
+            END as original_price
+        ")
                 )
                 ->where('p.status', 'Y')
-                ->where('iv.status', 'Y');
+                ->where('iv.status', 'Y')
+                ->groupBy('i.id', 'i.title', 'iv.id', 'iv.value', 'im.images', 'p.price');
         }
         // dd($query);
         // ── Filter logic (shared for both) ──
@@ -741,7 +763,7 @@ class ItemController extends Controller
             'result'  => $this->paginateResponse($items)
         ]);
     }
-
+    
     public function search(Request $request)
     {
         try {
