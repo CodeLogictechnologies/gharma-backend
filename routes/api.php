@@ -21,6 +21,7 @@ use App\Http\Controllers\API\HomeTabController;
 */
 use App\Http\Controllers\Api\HelloController;
 use App\Http\Controllers\API\ItemController;
+use App\Http\Controllers\API\VariationAttributeController as APIVariationAttributeController;
 use App\Http\Controllers\API\RefundReturnController;
 use App\Http\Controllers\API\LocationTrackerController;
 use App\Http\Controllers\API\LoyaltyController;
@@ -65,6 +66,9 @@ Route::get('/items/latest', [ItemController::class, 'latest']);
 Route::get('/items/search', [ItemController::class, 'search']);
 Route::get('/item/detail/{variationid}', [ItemController::class, 'getDetails']);
 Route::get('/item/by-product-code/{product_code}',   [ItemController::class, 'getByProductCode']);
+
+// Variation attribute list
+Route::get('/variation-attributes', [APIVariationAttributeController::class, 'index']);
 
 // Brand list
 Route::get('/brands/{brandid?}', [BrandController::class, 'index']);
@@ -176,7 +180,7 @@ Route::middleware('auth:api')->group(function () {
 Route::prefix('esewa')->name('esewa.')->group(function () {
 
     // Public — eSewa server POSTs to this (no auth token)
-    Route::post('/callback', [EsewaController::class, 'callback'])
+    Route::post('/callback', [EsewaPaymentController::class, 'callback'])
         ->name('callback');
 
     // Protected routes (add ->middleware('auth:sanctum') if using Sanctum)

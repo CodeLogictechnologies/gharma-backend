@@ -33,6 +33,7 @@ use App\Http\Controllers\BackPanel\VendorController;
 use App\Http\Controllers\BackPanel\WholesalerPriceController;
 use App\Http\Controllers\BackPanel\ItemImageController;
 use App\Http\Controllers\BackPanel\HomeTabController;
+use App\Http\Controllers\BackPanel\VariationAttributeController;
 use App\Http\Controllers\BackPanel\InvoiceController;
 use App\Http\Controllers\BackPanel\LoyaltySetupController;
 use App\Http\Controllers\PaymentController;
@@ -207,6 +208,13 @@ Route::group(['middleware' => ['auth']], function () {
             Route::any('/form', [BrandController::class, 'form'])->name('brand.form');
             Route::post('/save', [BrandController::class, 'save'])->name('brand.save');
             Route::post('/delete', [BrandController::class, 'delete'])->name('brand.delete');
+        });
+
+        Route::group(['prefix' => 'variation-attribute'], function () {
+            Route::get('/',        [VariationAttributeController::class, 'index'])->name('variation-attribute');
+            Route::post('/list',   [VariationAttributeController::class, 'list'])->name('variation-attribute.list');
+            Route::post('/save',   [VariationAttributeController::class, 'save'])->name('variation-attribute.save');
+            Route::post('/delete', [VariationAttributeController::class, 'delete'])->name('variation-attribute.delete');
         });
 
         Route::group(['prefix' => 'item'], function () {

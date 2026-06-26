@@ -9,6 +9,7 @@ use App\Models\BackPanel\Item;
 use App\Models\BackPanel\ItemImage;
 use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\SubCategory;
+use App\Models\BackPanel\VariationAttribute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -38,9 +39,10 @@ class ItemController extends Controller
         $post = $request->all();
         $post['orgid'] = session('orgid');
 
-        $categories    = Category::getCategory($post);
-        $subCategories = SubCategory::getSubCategory($post);
-        $brands        = Brand::getBrand($post);
+        $categories          = Category::getCategory($post);
+        $subCategories       = SubCategory::getSubCategory($post);
+        $brands              = Brand::getBrand($post);
+        $variationAttributes = VariationAttribute::fetchVariationAttributes($post);
 
         $data = [
             'id'                   => null,
@@ -56,7 +58,8 @@ class ItemController extends Controller
             'variations' => [
                 [
                     'variationid'          => '',
-                    'name'                 => 'Size',
+                    'attribute_id'         => '',
+                    'name'                 => '',
                     'value'                => '',
                     'product_code'         => '',
                     'company_product_code' => '',
@@ -97,6 +100,7 @@ class ItemController extends Controller
                 ->get()
                 ->map(fn($v) => [
                     'variationid'          => $v->id,
+                    'attribute_id'         => $v->variation_attribute_id ?? '',
                     'name'                 => $v->attribute,
                     'value'                => $v->value,
                     'product_code'         => $v->product_code         ?? '',
@@ -122,11 +126,12 @@ class ItemController extends Controller
         }
 
         return view('backend.item.addItem', [
-            'data'          => $data,
-            'id'            => $id,
-            'categories'    => $categories,
-            'subCategories' => $subCategories,
-            'brands'        => $brands,
+            'data'                => $data,
+            'id'                  => $id,
+            'categories'          => $categories,
+            'subCategories'       => $subCategories,
+            'brands'              => $brands,
+            'variationAttributes' => $variationAttributes,
         ]);
     }
 
