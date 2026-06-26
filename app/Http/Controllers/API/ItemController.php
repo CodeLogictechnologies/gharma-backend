@@ -12,11 +12,8 @@ use Exception;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Str;
 
-
 class ItemController extends Controller
 {
-
-
     private function paginateResponse($data)
     {
         return [
@@ -348,7 +345,7 @@ class ItemController extends Controller
                 })->values();
             });
 
-        if (!empty($post['roleid']) && $post['roleid'] == 2) {
+        if (!empty($post['roleid']) && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002') {
 
             $items = collect($data->items())->map(function ($row) use ($allVariations, $wholesalerDetails) {
                 return [
@@ -375,10 +372,10 @@ class ItemController extends Controller
                     'variationid'         => $row->variationid,
                     'value'               => $row->value,
                     'price'               => $row->price,
-                    'original_price'      => $row->original_price,
-                    'discount_type'       => $row->discount_type,
-                    'discount_value'      => $row->discount_value,
-                    'discount_percentage' => $row->discount_percentage,
+                    'original_price'      => $row->original_price??null,
+                    'discount_type'       => $row->discount_type??null,
+                    'discount_value'      => $row->discount_value??null,
+                    'discount_percentage' => $row->discount_percentage??null,
                     'images'              => $row->images
                         ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
                         : [],
@@ -532,13 +529,15 @@ class ItemController extends Controller
                     ->pluck('category_id')
                     ->toArray();
 
-                if (empty($categoryIds)) {
+                if (empty($tabCategoryIds)) {
                     return response()->json([
                         'type'    => 'error',
                         'message' => 'No categories assigned to this tab.',
                         'result'  => []
                     ]);
                 }
+                // expand: if a tab category is a parent, include its children too
+        $categoryIds = $this->expandCategoryIds($tabCategoryIds);
             }
         }
 

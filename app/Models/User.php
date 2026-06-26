@@ -49,8 +49,21 @@ class User extends Authenticatable implements JWTSubject
         return $this->getKey();
     }
 
+    // public function getJWTCustomClaims()
+    // {
+    //     $profile = DB::table('userorganizations')
+    //         ->where('userid', $this->id)
+    //         ->select('userid', 'orgid')
+    //         ->first();
+
+    //     return [
+    //         'roles'   => $this->getRoleNames(),
+    //         'profile' => $profile,
+    //     ];
+    // }
     public function getJWTCustomClaims()
-    {
+{
+    try {
         $profile = DB::table('userorganizations')
             ->where('userid', $this->id)
             ->select('userid', 'orgid')
@@ -60,7 +73,18 @@ class User extends Authenticatable implements JWTSubject
             'roles'   => $this->getRoleNames(),
             'profile' => $profile,
         ];
+    } catch (\Exception $e) {
+        $profile = DB::table('userorganizations')
+            ->where('userid', $this->id)
+            ->select('userid', 'orgid')
+            ->first();
+
+        return [
+            'roles'   => [],
+            'profile' => $profile,
+        ];
     }
+}
 
     /* ── Helper: store a single image file ───────────────────── */
     private static function storeImage($file, string $folder = 'profiles', string $prefix = ''): string
@@ -109,68 +133,80 @@ class User extends Authenticatable implements JWTSubject
     /* ── update profile info ──────────────────────────────────── */
     public static function updatedata($post)
     {
-        try {
-            DB::table('users')->where('id', auth()->id())->update([
-                'name'       => $post['name'],
+        // try {
+        DB::table('users')->where('id', auth()->id())->update([
+            'name'       => $post['name'],
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $profile = DB::table('profiles')
+            ->join('users', 'users.id', '=', 'profiles.user_id')
+            ->where('users.email', auth()->user()->email)
+            ->select('profiles.id')
+            ->first();
+
+        if ($profile) {
+            DB::table('profiles')->where('id', $profile->id)->update([
+                'address'    => $post['address'],
+                'user_id'    => auth()->id(),
                 'updated_at' => Carbon::now(),
             ]);
-
-            $profile = DB::table('profiles')
-                ->join('users', 'users.id', '=', 'profiles.user_id')
-                ->where('users.email', auth()->user()->email)
-                ->select('profiles.id')
-                ->first();
-
-            if ($profile) {
-                DB::table('profiles')->where('id', $profile->id)->update([
-                    'address'    => $post['address'],
-                    'user_id'    => auth()->id(),
-                    'updated_at' => Carbon::now(),
-                ]);
-            }
-
-            return true;
-        } catch (Exception $e) {
-            throw $e;
         }
+
+        return true;
+        // } catch (Exception $e) {
+        //     throw $e;
+        // }
     }
 
     /* ── update profile image ─────────────────────────────────── */
     public static function saveProfileImage($post)
     {
-        try {
-            if (empty($post['image']) || !($post['image'] instanceof \Illuminate\Http\UploadedFile)) {
-                return true;
-            }
+        // try {
+        if (empty($post['image']) || !($post['image'] instanceof \Illuminate\Http\UploadedFile)) {
+            return true;
+        }
 
-            $profile = DB::table('profiles')
-                ->join('users', 'users.id', '=', 'profiles.user_id')
-                ->where('users.email', auth()->user()->email)
-                ->select('profiles.*')
-                ->first();
+        $profile = DB::table('profiles')
+            ->join('users', 'users.id', '=', 'profiles.user_id')
+            ->where('users.email', auth()->user()->email)
+            ->select('profiles.*')
+            ->first();
 
-            if (!$profile) {
-                $profile = DB::table('profiles')->where('user_id', auth()->id())->first();
-            }
+        if (!$profile) {
+            $profile = DB::table('profiles')->where('user_id', auth()->id())->first();
+        }
 
-            if (!$profile) {
-                throw new Exception('Profile not found.');
-            }
-
-            self::deleteImage('profiles', $profile->image);
-
-            $fileName = self::storeImage($post['image']);
-
-            DB::table('profiles')->where('id', $profile->id)->update([
-                'image'      => $fileName,
+        if (!$profile) {
+            $newProfileId = (string) Str::uuid();
+            DB::table('profiles')->insert([
+                'id'         => $newProfileId,
                 'user_id'    => auth()->id(),
+                'username'   => auth()->user()->name,
+                'first_name' => auth()->user()->name,
+                'last_name'  => '',
+                'status'     => 'Y',
+                'orgid'      => session('orgid'),
+                'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]);
-
-            return true;
-        } catch (Exception $e) {
-            throw $e;
+            $profile = DB::table('profiles')->where('id', $newProfileId)->first();
         }
+
+        self::deleteImage('profiles', $profile->image);
+
+        $fileName = self::storeImage($post['image']);
+
+        DB::table('profiles')->where('id', $profile->id)->update([
+            'image'      => $fileName,
+            'user_id'    => auth()->id(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        return true;
+        // } catch (Exception $e) {
+        //     throw $e;
+        // }
     }
 
     /* ── save new user ────────────────────────────────────────── */
@@ -248,6 +284,11 @@ class User extends Authenticatable implements JWTSubject
                 $user->assignRole($post['role']);
             }
 
+            if (!empty($post['type'])) {
+                $post['role'] = $post['type'] == 'retailer' ? '550e8400-e29b-41d4-a716-446655440003' : '550e8400-e29b-41d4-a716-446655440002';
+            }
+
+
             $profileData = [
                 'id'                         => (string) Str::uuid(),
                 'user_id'                    => $newUuid,
@@ -259,7 +300,7 @@ class User extends Authenticatable implements JWTSubject
                 'address'                    => $post['address'],
                 'gender'                     => $post['gender'],
                 'type'                       => $post['type'],
-                    'status'              => 'Y',             // ← add this
+                'status'              => 'Y',             // ← add this
                 'company_name'               => $post['company_name'] ?? null,
                 'tax_number'                 => $post['tax_number'] ?? null,
                 'pan_number'                 => $post['pan_number'] ?? null,
@@ -324,7 +365,8 @@ class User extends Authenticatable implements JWTSubject
 
             DB::table('users')->where('id', $userId)->update([
                 'name'       => $post['username'] ?? '',
-                'email'      => $post['email'] ?? '',
+                'phone'      => $post['phone'] ?? '',
+
                 'updated_at' => Carbon::now(),
             ]);
 

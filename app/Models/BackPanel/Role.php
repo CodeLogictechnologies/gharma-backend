@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role as SpatieRole;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class Role extends SpatieRole
 {
-    use HasFactory;
-
+    use HasFactory, HasUuids;
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
         'name',
         'guard_name',

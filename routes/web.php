@@ -172,25 +172,31 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/status-update', [UserController::class, 'updateStatus'])->name('user.status');
         });
 
+        // Route::group(['prefix' => 'category'], function () {
+        //     Route::get('/', [BackPanelCategoryController::class, 'index'])->name('category');
+        //     Route::post('/tabs', [BackPanelCategoryController::class, 'tabs'])->name('category.tabs');
+        //     Route::post('/list', [BackPanelCategoryController::class, 'list'])->name('category.list');
+        //     Route::any('/form', [BackPanelCategoryController::class, 'form'])->name('category.form');
+        //     Route::post('/save', [BackPanelCategoryController::class, 'save'])->name('category.save');
+        //     Route::post('/delete', [BackPanelCategoryController::class, 'delete'])->name('category.delete');
+        // });
+
+        // Route::group(['prefix' => 'subcategory'], function () {
+        //     Route::get('/', [SubCategoryController::class, 'index'])->name('subcategory');
+        //     Route::post('/list', [SubCategoryController::class, 'list'])->name('subcategory.list');
+        //     Route::any('/form', [SubCategoryController::class, 'form'])->name('subcategory.form');
+        //     Route::post('/save', [SubCategoryController::class, 'save'])->name('subcategory.save');
+        //     Route::post('/delete', [SubCategoryController::class, 'delete'])->name('subcategory.delete');
+        // });
+
         Route::group(['prefix' => 'category'], function () {
-            Route::get('/', [BackPanelCategoryController::class, 'index'])->name('category');
-            Route::post('/tabs', [BackPanelCategoryController::class, 'tabs'])->name('category.tabs');
-            Route::post('/list', [BackPanelCategoryController::class, 'list'])->name('category.list');
-            Route::any('/form', [BackPanelCategoryController::class, 'form'])->name('category.form');
-            Route::post('/save', [BackPanelCategoryController::class, 'save'])->name('category.save');
-            Route::post('/delete', [BackPanelCategoryController::class, 'delete'])->name('category.delete');
-        });
-
-        Route::group(['prefix' => 'subcategory'], function () {
-            Route::get('/', [SubCategoryController::class, 'index'])->name('subcategory');
-            Route::post('/list', [SubCategoryController::class, 'list'])->name('subcategory.list');
-            Route::any('/form', [SubCategoryController::class, 'form'])->name('subcategory.form');
-            Route::post('/save', [SubCategoryController::class, 'save'])->name('subcategory.save');
-            Route::post('/delete', [SubCategoryController::class, 'delete'])->name('subcategory.delete');
-        });
-
-
-
+            Route::get('/',                [BackPanelCategoryController::class, 'index'])->name('category');
+            Route::post('/list',           [BackPanelCategoryController::class, 'list'])->name('category.list');
+            Route::post('/save',           [BackPanelCategoryController::class, 'save'])->name('category.save');
+            Route::post('/delete',         [BackPanelCategoryController::class, 'delete'])->name('category.delete');
+            Route::get('/parent-options',  [BackPanelCategoryController::class, 'getParentOptions'])->name('category.parent-options');
+            });
+            
         Route::group(['prefix' => 'hometab'], function () {
             Route::get('/',        [HomeTabController::class, 'index'])->name('hometab');
             Route::get('/list',    [HomeTabController::class, 'list'])->name('hometab.list');
