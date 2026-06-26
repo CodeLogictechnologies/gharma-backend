@@ -15,13 +15,15 @@ class Cart extends Model
     {
         try {
             $insertArray = [];
-            if (!empty($post['roleid']) && $post['roleid'] == 2) {
+            if (!empty($post['roleid']) && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002') {
                 $post['type'] = 'W';
             } else {
                 $post['type'] = 'R';
             }
             // dd($post);
-            if (!empty($post['roleid']) && $post['roleid'] == 2) {
+            if (!empty($post['roleid']) && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002') {
+
+                // Fetch wholesaler price with min_qty
                 $price = DB::table('wholesaler_price_details as wd')
                     ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
                     ->where('wd.status', 'Y')
@@ -30,20 +32,13 @@ class Cart extends Model
                     ->where('wp.variation_id', $post['variationid'])
                     ->where('wd.min_qty', '<=', $post['qty'])
                     ->where('wd.max_qty', '>=', $post['qty'])
-                    ->select('wd.price')
+                    ->select('wd.price', 'wd.min_qty')
                     ->first();
 
-                if (!$price) {
-                    $price = DB::table('retailer_prices')
-                        ->where('variation_id', $post['variationid'])
-                        ->where('status', 'Y')
-                        ->where('orgid', $post['orgid'])
-                        ->select('price')
-                        ->first();
-                    if (!$price) {
-                        throw new \Exception("Price not found for this product.");
-                    }
-                }
+                // No retailer fallback — price stays null if not found
+                $resolvedPrice = $price?->price ?? null;
+                $resolvedMinQty = $price?->min_qty ?? null;
+
                 if ($post['qty'] == 0 || $post['qty'] == "0") {
                     $delete = Cart::where('variation_id', $post['variationid'])
                         ->where('orgid', $post['orgid'])
@@ -56,6 +51,7 @@ class Cart extends Model
 
                     return true;
                 }
+
                 // Check if this item already exists in the cart
                 $existingCart = Cart::where('variation_id', $post['variationid'])
                     ->where('orgid', $post['orgid'])
@@ -66,11 +62,18 @@ class Cart extends Model
                     // Item exists — update quantity and recalculate total_price
                     $newQty = $post['qty'];
 
-                    $updated = Cart::where('id', $existingCart->id)
-                        ->update([
-                            'quantity'    => $newQty,
-                            'total_price' => $newQty * $price->price,
-                        ]);
+                    $updateData = [
+                        'quantity'    => $newQty,
+                        'total_price' => $resolvedPrice !== null ? $newQty * $resolvedPrice : null,
+                        'unit_price'  => $resolvedPrice,  // save null if no wholesaler price
+                    ];
+
+                    // Include min_qty only if price is null
+                    if ($resolvedPrice === null) {
+                        $updateData['min_qty'] = $resolvedMinQty;
+                    }
+
+                    $updated = Cart::where('id', $existingCart->id)->update($updateData);
 
                     if (!$updated) {
                         throw new \Exception("Couldn't update product in cart.");
@@ -82,11 +85,16 @@ class Cart extends Model
                         'orgid'        => $post['orgid'],
                         'userid'       => $post['userid'],
                         'variation_id' => $post['variationid'],
-                        'unit_price'   => $price->price,
-                        'total_price'  => $post['qty'] * $price->price,
+                        'unit_price'   => $resolvedPrice,
+                        'total_price'  => $resolvedPrice !== null ? $post['qty'] * $resolvedPrice : null,
                         'quantity'     => $post['qty'],
-                        'type'     => $post['type'],
+                        'type'         => $post['type'],
                     ];
+
+                    // Include min_qty only if price is null
+                    // if ($resolvedPrice === null) {
+                    //     $insertArray['min_qty'] = $resolvedMinQty;
+                    // }
 
                     if (!Cart::insert($insertArray)) {
                         throw new \Exception("Couldn't save product to cart.");
@@ -194,8 +202,7 @@ class Cart extends Model
     public static function getData($post)
     {
         try {
-            if (!empty($post['roleid'] && $post['roleid'] == 2)) {
-
+            if (!empty($post['roleid'] && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002')) {
                 $result = DB::table('carts as c')
                     ->select(
                         'c.variation_id',
@@ -203,10 +210,17 @@ class Cart extends Model
                         DB::raw("CONCAT(i.title, ' ', it.value) as title"),
                         'c.unit_price as productprice',
                         'c.total_price as total_price',
-                        'c.quantity as total_quantity'
+                        'c.quantity as total_quantity',
+                        DB::raw('(
+                            SELECT MIN(wd2.min_qty)
+                            FROM wholesaler_price_details as wd2
+                            INNER JOIN wholesaler_prices as wp2 ON wp2.id = wd2.wholesalermasterid
+                            WHERE wp2.variation_id = c.variation_id
+                            AND wd2.status = \'Y\'
+                            AND wp2.status = \'Y\'
+                        ) as min_qty')
                     )
                     ->join('itemvariations as it', 'it.id', '=', 'c.variation_id')
-                    ->join('retailer_prices as p', 'p.variation_id', '=', 'it.id')
                     ->join('items as i', 'i.id', '=', 'it.item_id')
                     ->where('c.userid', $post['userid'])
                     ->where('c.orgid', $post['orgid'])
@@ -217,7 +231,6 @@ class Cart extends Model
                         'c.variation_id',
                         'i.id',
                         'i.title',
-                        'p.price',
                         'it.value',
                         'c.unit_price',
                         'c.total_price',
@@ -234,6 +247,18 @@ class Cart extends Model
                     $item->image = $image
                         ? url('storage/items/' . $image)
                         : null;
+
+                    if ($item->productprice !== null) {
+                        unset($item->min_qty);
+                    }
+
+                    $item->original_price_per_unit      = null;
+
+                    $item->discount_type                =  null;
+
+                    $item->discount_value_per_unit      =  null;
+
+                    $item->discount_percentage_per_unit =  null;
 
                     return $item;
                 });
@@ -316,6 +341,8 @@ class Cart extends Model
                     $item->image = $image
                         ? url('storage/items/' . $image)
                         : null;
+                    $item->min_qty      = null;
+
 
                     return $item;
                 });
