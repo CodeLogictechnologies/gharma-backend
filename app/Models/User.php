@@ -14,10 +14,11 @@ use Illuminate\Support\Str;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Support\Facades\File;
 use App\Jobs\SendUserPasswordMail;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, HasUuids;
 
     public $incrementing = false;
     protected $keyType   = 'string';
