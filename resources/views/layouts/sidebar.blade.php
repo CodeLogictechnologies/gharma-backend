@@ -94,7 +94,7 @@
 
         <!-- Category / Brand / Item -->
         <li
-            class="menu-item {{ request()->routeIs('category') || request()->routeIs('brand') || request()->routeIs('item') ? 'active open' : '' }}">
+            class="menu-item {{ request()->routeIs('category') || request()->routeIs('brand') || request()->routeIs('item') || request()->routeIs('variation-attribute') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-category"></i>
                 <div>Category / Brand / Item</div>
@@ -119,6 +119,13 @@
                     <a href="{{ route('item') }}" class="menu-link">
                         <i class="bx bx-box me-2"></i>
                         <div>Item</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('variation-attribute') ? 'active' : '' }}">
+                    <a href="{{ route('variation-attribute') }}" class="menu-link">
+                        <i class="bx bx-slider me-2"></i>
+                        <div>Variation Attributes</div>
                     </a>
                 </li>
             </ul>

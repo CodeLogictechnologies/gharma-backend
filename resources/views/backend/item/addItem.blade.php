@@ -375,13 +375,15 @@
                             <div class="row g-2 align-items-end">
                                 <div class="col-md-2">
                                     <label class="form-label mb-1">Attribute</label>
-                                    <select name="variations[{{ $i }}][name]" class="form-select">
-                                        @foreach (['Size', 'Color', 'Weight', 'Material', 'Other'] as $attr)
-                                            <option value="{{ $attr }}"
-                                                {{ ($v['name'] ?? 'Size') === $attr ? 'selected' : '' }}>
-                                                {{ $attr }}
+                                    <select name="variations[{{ $i }}][attribute_id]" class="form-select">
+                                        @forelse ($variationAttributes as $attr)
+                                            <option value="{{ $attr->id }}"
+                                                {{ ($v['attribute_id'] ?? '') === $attr->id ? 'selected' : '' }}>
+                                                {{ $attr->name }}
                                             </option>
-                                        @endforeach
+                                        @empty
+                                            <option value="">No attributes defined</option>
+                                        @endforelse
                                     </select>
                                 </div>
                                 <div class="col-md-2">
@@ -671,6 +673,18 @@ $(function () {
     ───────────────────────────────────────────── */
     let varIdx = {{ count($data['variations'] ?? [['']]) }};
 
+    const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
+
+    function buildAttributeOptions(selectedId) {
+        if (!variationAttributeOptions.length) {
+            return '<option value="">No attributes defined</option>';
+        }
+        return variationAttributeOptions.map(a => {
+            const sel = (selectedId && a.id === selectedId) ? ' selected' : '';
+            return `<option value="${a.id}"${sel}>${a.name}</option>`;
+        }).join('');
+    }
+
     function newVariationRow(idx) {
         return `
         <div class="variation-row" data-index="${idx}">
@@ -678,12 +692,8 @@ $(function () {
             <div class="row g-2 align-items-end">
                 <div class="col-md-2">
                     <label class="form-label mb-1">Attribute</label>
-                    <select name="variations[${idx}][name]" class="form-select">
-                        <option value="Size">Size</option>
-                        <option value="Color">Color</option>
-                        <option value="Weight">Weight</option>
-                        <option value="Material">Material</option>
-                        <option value="Other">Other</option>
+                    <select name="variations[${idx}][attribute_id]" class="form-select">
+                        ${buildAttributeOptions(null)}
                     </select>
                 </div>
                 <div class="col-md-2">

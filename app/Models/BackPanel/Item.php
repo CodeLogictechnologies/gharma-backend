@@ -237,39 +237,53 @@ class Item extends Model
                 if (!empty($post['variations'])) {
                     $ids                     = [];
                     $attributeCases          = [];
+                    $varAttrIdCases          = [];
                     $valueCases              = [];
                     $productCodeCases        = [];
                     $companyProductCodeCases = [];
 
+                    $attrNameMap = DB::table('variation_attributes')
+                        ->where('orgid', $post['orgid'] ?? null)
+                        ->where('status', 'Y')
+                        ->pluck('name', 'id')
+                        ->toArray();
+
                     foreach ($post['variations'] as $variation) {
                         if (empty($variation['value'])) continue;
 
-                        $status = ($variation['status'] === 'active') ? 'Y' : 'N';
+                        $status = (($variation['status'] ?? 'active') === 'active') ? 'Y' : 'N';
 
                         if (!empty($variation['variationid'])) {
-                            $id    = $variation['variationid'];
-                            $ids[] = $id;
+                            $id          = $variation['variationid'];
+                            $ids[]       = $id;
+                            $attrId      = $variation['attribute_id'] ?? null;
+                            $attrName    = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
 
-                            $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($variation['name'])                . "'";
+                            $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($attrName) . "'";
+                            $varAttrIdCases[]          = !empty($attrId) ? "WHEN '$id' THEN '$attrId'::uuid" : "WHEN '$id' THEN NULL::uuid";
 $valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
 $productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
 $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
                         } else {
+                            $attrId   = $variation['attribute_id'] ?? null;
+                            $attrName = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+
                             DB::table('itemvariations')->insert([
-                                'id'                   => (string) Str::uuid(),
-                                'item_id'              => $itemId,
-                                'attribute'            => $variation['name'],
-                                'value'                => $variation['value'],
-                                'threshold'            => $variation['threshold']          ?? 0,
-                                'price'                => $variation['price']              ?? 0,
-                                'product_code'         => $variation['product_code']         ?? null,
-                                'company_product_code' => $variation['company_product_code'] ?? null,
-                                'status'               => $status,
-                                'orgid'                => $post['orgid']                   ?? null,
-                                'created_at'           => Carbon::now(),
-                                'updated_at'           => Carbon::now(),
-                                'postedby'             => $post['userid'],
-                                'updatedby'            => $post['userid'],
+                                'id'                     => (string) Str::uuid(),
+                                'item_id'                => $itemId,
+                                'attribute'              => $attrName,
+                                'variation_attribute_id' => $attrId ?: null,
+                                'value'                  => $variation['value'],
+                                'threshold'              => $variation['threshold']          ?? 0,
+                                'price'                  => $variation['price']              ?? 0,
+                                'product_code'           => $variation['product_code']         ?? null,
+                                'company_product_code'   => $variation['company_product_code'] ?? null,
+                                'status'                 => $status,
+                                'orgid'                  => $post['orgid']                   ?? null,
+                                'created_at'             => Carbon::now(),
+                                'updated_at'             => Carbon::now(),
+                                'postedby'               => $post['userid'],
+                                'updatedby'              => $post['userid'],
                             ]);
                         }
                     }
@@ -278,12 +292,13 @@ $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['compan
                         $idsList = "'" . implode("','", $ids) . "'";
                         DB::statement("
     UPDATE itemvariations SET
-        attribute            = CASE id " . implode(' ', $attributeCases)          . " END,
-        value                = CASE id " . implode(' ', $valueCases)               . " END,
-        product_code         = CASE id " . implode(' ', $productCodeCases)         . " END,
-        company_product_code = CASE id " . implode(' ', $companyProductCodeCases)  . " END,
-        updated_at           = NOW(),
-        updatedby            = ?
+        attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
+        variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
+        value                  = CASE id " . implode(' ', $valueCases)              . " END,
+        product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
+        company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
+        updated_at             = NOW(),
+        updatedby              = ?
     WHERE id IN ($idsList)
 ", [$post['userid']]);
                     }
@@ -416,26 +431,36 @@ $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['compan
 
                 if (!empty($post['variations'])) {
                     $variationRows = [];
+
+                    $attrNameMap = DB::table('variation_attributes')
+                        ->where('orgid', $post['orgid'] ?? null)
+                        ->where('status', 'Y')
+                        ->pluck('name', 'id')
+                        ->toArray();
+
                     foreach ($post['variations'] as $variation) {
                         if (empty($variation['value'])) continue;
 
-                        $status = ($variation['status'] === 'active') ? 'Y' : 'N';
+                        $status   = (($variation['status'] ?? 'active') === 'active') ? 'Y' : 'N';
+                        $attrId   = $variation['attribute_id'] ?? null;
+                        $attrName = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
 
                         $variationRows[] = [
-                            'id'                   => (string) Str::uuid(),
-                            'item_id'              => $itemId,
-                            'attribute'            => $variation['name'],
-                            'value'                => $variation['value'],
-                            'threshold'            => $variation['threshold']          ?? 0,
-                            'price'                => $variation['price']              ?? 0,
-                            'product_code'         => $variation['product_code']         ?? null,
-                            'company_product_code' => $variation['company_product_code'] ?? null,
-                            'status'               => $status,
-                            'orgid'                => $post['orgid']                   ?? null,
-                            'created_at'           => Carbon::now(),
-                            'updated_at'           => Carbon::now(),
-                            'postedby'             => $post['userid'],
-                            'updatedby'            => $post['userid'],
+                            'id'                     => (string) Str::uuid(),
+                            'item_id'                => $itemId,
+                            'attribute'              => $attrName,
+                            'variation_attribute_id' => $attrId ?: null,
+                            'value'                  => $variation['value'],
+                            'threshold'              => $variation['threshold']          ?? 0,
+                            'price'                  => $variation['price']              ?? 0,
+                            'product_code'           => $variation['product_code']         ?? null,
+                            'company_product_code'   => $variation['company_product_code'] ?? null,
+                            'status'                 => $status,
+                            'orgid'                  => $post['orgid']                   ?? null,
+                            'created_at'             => Carbon::now(),
+                            'updated_at'             => Carbon::now(),
+                            'postedby'               => $post['userid'],
+                            'updatedby'              => $post['userid'],
                         ];
                     }
 
