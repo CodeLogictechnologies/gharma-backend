@@ -18,7 +18,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
-use App\Services\FirebaseService;          // ← add this
+use App\Services\FirebaseService;
 
 class DriverController extends Controller
 {
@@ -28,81 +28,165 @@ class DriverController extends Controller
         return view('backend.driver.list.index');
     }
 
-    //function to redirect page to driver list
+    //function to assign driver form
     public function assignIndex(Request $request)
-    {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $data['drivers'] = Driver::getDrivers($post);
-        $data['ordermasterid'] = $post['id'] ?? null;
-        return view('backend.order.form', $data);
-    }
+{
+    $ordermasterid = $request->input('id');
+    $orgid = session('orgid');
+
+    $drivers = DB::table('users')
+        ->join('profiles', 'profiles.user_id', '=', 'users.id')
+        ->join('userorganizations as u', 'u.userid', '=', 'users.id')
+        ->where('profiles.status', 'Y')
+        ->where('u.orgid', $orgid)
+        ->where('users.user_status', 'Approve')
+        ->whereExists(function ($q) {
+            $q->select(DB::raw(1))
+                ->from('model_has_roles as mhr')
+                ->join('roles as r', 'r.id', '=', 'mhr.role_id')
+                ->whereColumn('mhr.model_id', 'users.id')
+                ->whereRaw('LOWER(r.name) LIKE ?', ['%driver%']);
+        })
+        ->select('users.id', 'users.name')
+        ->get();
+
+    $existing = DB::table('assign_drivers')
+        ->where('ordermasterid', $ordermasterid)
+        ->first(); // removed orgid filter temporarily
+
+    // DEBUG - remove after fixing
+    \Log::info('Existing assignment: ', (array) $existing);
+    \Log::info('Drivers list: ', $drivers->toArray());
+    \Log::info('assigned_driver value: ' . ($existing->driverid ?? 'NULL'));
+
+    return view('backend.order.assign_driver', [
+        'ordermasterid'   => $ordermasterid,
+        'drivers'         => $drivers,
+        'assigned_driver' => $existing->driverid ?? null,
+        'assigned_date'   => $existing->delivery_date ?? date('Y-m-d'),
+        'is_assigned'     => !empty($existing),
+    ]);
+}
 
     //function to assign driver
-    public function save(AssignDriverRequest $request)
+    public function save(Request $request)
     {
         try {
-            $post = $request->all();
-            $post['orgid'] =  session('orgid');
-            $type = 'success';
-            $message = 'Order Assigned to driver successfully';
-            DB::beginTransaction();
-            if (!FirebaseService::AssignDriverNotice($post)) {
-                throw new Exception('Could not assign driver', 1);
+            $post          = $request->all();
+            $post['orgid'] = session('orgid');
+
+            $existing = DB::table('assign_drivers')
+                ->where('ordermasterid', $post['ordermasterid'])
+                ->first();
+
+            if ($existing) {
+                DB::table('assign_drivers')
+                    ->where('id', $existing->id)
+                    ->update([
+                        'driverid'      => $post['driver_id'],
+                        'delivery_date' => $post['delivery_date'],  // ← must be delivery_date
+                        'updated_at'    => now(),
+                    ]);
+            } else {
+                DB::table('assign_drivers')->insert([
+                    'id'            => (string) \Illuminate\Support\Str::uuid(),
+                    'ordermasterid' => $post['ordermasterid'],
+                    'driverid'      => $post['driver_id'],
+                    'orgid'         => $post['orgid'],
+                    'delivery_date' => $post['delivery_date'],  // ← must be delivery_date
+                    'status'        => 'Y',
+                    'created_at'    => now(),
+                ]);
             }
-            DB::commit();
+
+            DB::table('order_masters')
+                ->where('id', $post['ordermasterid'])
+                ->update(['order_status' => 'Shipped']);
+
+            return json_encode(['type' => 'success', 'message' => 'Driver assigned successfully']);
         } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
+            return json_encode(['type' => 'error', 'message' => 'DB Error: ' . $e->getMessage()]);
         } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
+            return json_encode(['type' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
         }
-        return json_encode(['type' => $type, 'message' => $message]);
     }
 
     //function to get driver list
     public function list(Request $request)
     {
         try {
-            $post           = $request->all();
-            $post['orgid']  = session('orgid');
-            $post['role']   = 4;
-            $data           = User::list($post);
-            $i = 0;
-            $array = [];
-            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-            $totalrecs    = $data["totalrecs"];
+            $post          = $request->all();
+            $post['orgid'] = session('orgid');
 
-            foreach ($data["data"] as $row) {
-                $array[$i]["sno"]     = $i + 1;
-                $array[$i]["name"]    = $row->name;
-                $array[$i]["email"]   = $row->email;
-                $array[$i]["address"] = $row->address;
-                $array[$i]["phone"]   = $row->phone;
+            $limit  = (int) ($post['iDisplayLength'] ?? 15);
+            $offset = (int) ($post['iDisplayStart']  ?? 0);
+
+            $query = \App\Models\User::query()
+                ->select(
+                    'users.id',
+                    'users.user_status',
+                    'users.name',
+                    'users.email',
+                    'profiles.phone',
+                    'profiles.address',
+                )
+                ->join('profiles', 'profiles.user_id', '=', 'users.id')
+                ->join('userorganizations as u', 'u.userid', '=', 'users.id')
+                ->where('profiles.status', 'Y')
+                ->where('u.orgid', $post['orgid'])
+                ->where('users.user_status', 'Approve')
+                ->whereExists(function ($q) {
+                    $q->select(\DB::raw(1))
+                        ->from('model_has_roles as mhr')
+                        ->join('roles as r', 'r.id', '=', 'mhr.role_id')
+                        ->whereColumn('mhr.model_id', 'users.id')
+                        ->whereRaw('LOWER(r.name) LIKE ?', ['%driver%']);
+                });
+
+            if (!empty($post['sSearch_1'])) {
+                $query->whereRaw('LOWER(users.name) LIKE ?', ['%' . strtolower($post['sSearch_1']) . '%']);
+            }
+            if (!empty($post['sSearch_2'])) {
+                $query->whereRaw('LOWER(profiles.phone) LIKE ?', ['%' . strtolower($post['sSearch_2']) . '%']);
+            }
+            if (!empty($post['sSearch_3'])) {
+                $query->whereRaw('LOWER(users.email) LIKE ?', ['%' . strtolower($post['sSearch_3']) . '%']);
+            }
+
+            $totalrecs = (clone $query)->count();
+
+            $result = $limit > -1
+                ? $query->orderBy('users.id', 'asc')->offset($offset)->limit($limit)->get()
+                : $query->orderBy('users.id', 'asc')->get();
+
+            $i     = 0;
+            $array = [];
+            foreach ($result as $row) {
+                $array[$i]['sno']     = $offset + $i + 1;
+                $array[$i]['name']    = $row->name    ?? '-';
+                $array[$i]['email']   = $row->email   ?? '-';
+                $array[$i]['address'] = $row->address ?? '-';
+                $array[$i]['phone']   = $row->phone   ?? '-';
+
                 $action  = '';
                 $action .= '<a href="javascript:;" class="deleteDriver px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editDriver" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
+                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editDriver px-2" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
 
-                $array[$i]["action"] = $action;
-
+                $array[$i]['action'] = $action;
                 $i++;
             }
         } catch (QueryException $e) {
-            $array = [];
+            $array     = [];
             $totalrecs = 0;
-            $filtereddata = 0;
         } catch (Exception $e) {
-            $array = [];
+            $array     = [];
             $totalrecs = 0;
-            $filtereddata = 0;
         }
+
         return json_encode([
-            "recordsFiltered" => $filtereddata ?? 0,
-            "recordsTotal"    => $totalrecs ?? 0,
-            "data"            => $array
+            'recordsFiltered' => $totalrecs,
+            'recordsTotal'    => $totalrecs,
+            'data'            => $array,
         ]);
     }
 
@@ -122,16 +206,16 @@ class DriverController extends Controller
                 if (!$result) {
                     throw new Exception("User not found", 1);
                 }
-                $data['id']         = $result->id;
-                $data['username']   = $result->username;
-                $data['first_name'] = $result->first_name;
+                $data['id']          = $result->id;
+                $data['username']    = $result->username;
+                $data['first_name']  = $result->first_name;
                 $data['middle_name'] = $result->middle_name;
-                $data['last_name']  = $result->last_name;
-                $data['gender']     = $result->gender;
-                $data['phone']      = $result->phone;
-                $data['address']    = $result->address;
-                $data['email']      = $result->email;
-                $data['userRoles']  = $result->roles;
+                $data['last_name']   = $result->last_name;
+                $data['gender']      = $result->gender;
+                $data['phone']       = $result->phone;
+                $data['address']     = $result->address;
+                $data['email']       = $result->email;
+                $data['userRoles']   = $result->roles;
 
                 if ($result->image) {
                     $data['image'] = $result->image;
@@ -141,7 +225,6 @@ class DriverController extends Controller
         } catch (QueryException $e) {
             return back()->with('error', 'Something went wrong. Please try again.');
         } catch (\Exception $e) {
-            // Log::error('Order form error: ' . $e->getMessage());
             return back()->with('error', 'Something went wrong. Please try again.');
         }
     }
@@ -153,14 +236,14 @@ class DriverController extends Controller
             $post = $request->all();
             $rules = [
                 'first_name' => 'required|min:3|max:255',
-                'phone' => 'required|min:5|max:5000',
-                'address' => 'required',
-                'email' => [
+                'phone'      => 'required|min:5|max:5000',
+                'address'    => 'required',
+                'email'      => [
                     'required',
                     'email',
                     Rule::unique('users')->ignore($request->id)
                 ],
-                'username' => 'required',
+                'username'   => 'required',
             ];
 
             if (empty($request->id)) {
@@ -170,10 +253,10 @@ class DriverController extends Controller
             $message = [
                 'first_name.required' => 'Please enter first name',
                 'first_name.min'      => 'First name must be at least 3 characters',
-                'phone.required' => 'Phone number is required',
-                'address.required' => 'Address is required',
-                'email.required' => 'Email is required',
-                'username.required' => 'User Name is required',
+                'phone.required'      => 'Phone number is required',
+                'address.required'    => 'Address is required',
+                'email.required'      => 'Email is required',
+                'username.required'   => 'User Name is required',
             ];
 
             $validate = Validator::make($request->all(), $rules, $message);
@@ -182,15 +265,17 @@ class DriverController extends Controller
                 throw new Exception($validate->errors()->first(), 1);
             }
 
-            $post = $request->all();
-            $post['type'] = 'driver';
-            $type = 'success';
+            $post          = $request->all();
+            $post['type']  = 'driver';
+            $type          = 'success';
+            $post['orgid'] = session('orgid');
+
             if (!empty($post['id'])) {
                 $message = 'Driver updated successfully';
             } else {
                 $message = 'Driver saved successfully';
             }
-            $post['orgid'] = session('orgid');
+
             DB::beginTransaction();
 
             if (!Driver::saveData($post)) {
@@ -199,13 +284,14 @@ class DriverController extends Controller
             DB::commit();
         } catch (QueryException $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $this->queryMessage;
         } catch (Exception $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         }
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -219,14 +305,14 @@ class DriverController extends Controller
             DB::rollBack();
             $type    = 'success';
             $message = 'Driver deleted successfully';
-            $result = Common::deleteUser($post);
+            $result  = Common::deleteUser($post);
         } catch (QueryException $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $this->queryMessage;
         } catch (Exception $e) {
             DB::rollBack();
-            $type = 'error';
+            $type    = 'error';
             $message = $e->getMessage();
         }
 

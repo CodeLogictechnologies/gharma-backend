@@ -21,7 +21,7 @@ class Driver extends Model
             $users = User::role('Driver')
                 ->join('profiles', 'profiles.user_id', '=', 'users.id')
                 ->where('profiles.status', 'Y')
-                ->where('profiles.orgid', $post['orgid'])
+                ->whereRaw('profiles.orgid = ?::uuid', [$post['orgid']])
                 ->select(
                     'users.id as id',
                     DB::raw("CONCAT(profiles.first_name, ' ', COALESCE(profiles.middle_name, ''), ' ', profiles.last_name) as name"),

@@ -281,13 +281,29 @@ class AuthController extends SessionController
             $fileName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
             $file->storeAs('profiles', $fileName, 'public');
 
-            // ✅ Find profile by username (bypasses user_id mismatch)
-            $profile = DB::table('profiles')
-                ->where('username', auth()->user()->name)
-                ->first();
+            //  Find profile by username (bypasses user_id mismatch)
+            // $profile = DB::table('profiles')->where('user_id', auth()->id())->first();
+
+            // if (!$profile) {
+            //     throw new Exception('Profile not found.');
+            // }
+
+            $profile = DB::table('profiles')->where('user_id', auth()->id())->first();
 
             if (!$profile) {
-                throw new Exception('Profile not found.');
+                $newId = (string) Str::uuid();
+                DB::table('profiles')->insert([
+                    'id'         => $newId,
+                    'user_id'    => auth()->id(),
+                    'username'   => auth()->user()->name,
+                    'first_name' => auth()->user()->name,
+                    'last_name'  => '',
+                    'status'     => 'Y',
+                    'orgid'      => session('orgid'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $profile = DB::table('profiles')->where('id', $newId)->first();
             }
 
             // ✅ Delete old image

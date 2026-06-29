@@ -62,6 +62,7 @@ class StoreController extends Controller
         try {
             $post = $request->all();
             $data = Store::list($post);
+            $offset = !empty($request->input('iDisplayStart')) ? (int) $request->input('iDisplayStart') : 0;
             $i = 0;
             $array = [];
             $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
@@ -70,7 +71,7 @@ class StoreController extends Controller
             unset($data["totalfilteredrecs"]);
             unset($data["totalrecs"]);
             foreach ($data as $row) {
-                $array[$i]["sno"] = $i + 1;
+                $array[$i]["sno"] = $offset + $i + 1;
                 $array[$i]["name"]    = $row->name;
                 $array[$i]["email"]    = $row->email;
                 $array[$i]["address"]    = $row->address;
@@ -82,8 +83,8 @@ class StoreController extends Controller
 
                 $action  = '';
                 $action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewStore  px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
-$action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editStore  px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-$action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editStore  px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
                 $array[$i]["action"]  = $action;
                 $i++;
             }

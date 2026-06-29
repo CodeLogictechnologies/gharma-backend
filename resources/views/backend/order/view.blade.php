@@ -1,5 +1,3 @@
-{{-- resources/views/backend/organization/view.blade.php --}}
-
 @if ($type == 'error')
     <div class="modal-header">
         <h1 class="modal-title fs-5">Error</h1>

@@ -7,7 +7,8 @@ use App\Models\BackPanel\Organization;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+// use Spatie\Permission\Models\Role;
+use App\Models\BackPanel\Role;
 use Illuminate\Support\Facades\DB;
 
 class OrganizationRoleController extends Controller
@@ -24,8 +25,8 @@ class OrganizationRoleController extends Controller
     public function getUsers(Request $request)
     {
         $request->validate([
-            'organization_id' => 'required|exists:organizations,id',
-            'role_id'         => 'required|exists:roles,id',
+            'organization_id' => 'required|uuid|exists:organizations,id',
+            'role_id'          => 'required|uuid|exists:roles,id',
         ]);
 
         // Get user IDs from pivot
@@ -61,7 +62,7 @@ class OrganizationRoleController extends Controller
     public function getUserPermissions(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'required|uuid|exists:users,id',
         ]);
 
         $user          = User::findOrFail($request->user_id);
@@ -78,7 +79,7 @@ class OrganizationRoleController extends Controller
     public function saveUserPermissions(Request $request)
     {
         $request->validate([
-            'user_id'    => 'required|exists:users,id',
+            'user_id'    => 'required|uuid|exists:users,id',
             'perm_names' => 'array',
         ]);
 

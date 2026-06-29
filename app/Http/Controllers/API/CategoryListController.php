@@ -74,9 +74,12 @@ class CategoryListController extends Controller
                     's.title',
                     's.slug',
                     's.status',
+                    's.parent_id',
                     DB::raw("CONCAT('" . url('storage/subcategories') . "/', s.image) as image")
                 )
-                ->where('s.status', 'Y');
+                ->where('s.status', 'Y')
+                ->whereNotNull('s.parent_id');
+                 
             if (!empty($categoryId)) {
                 $query->join('sub_category_items as sci', 'sci.subcategoryid', '=', 's.id')
                     ->join('items as i', 'i.id', '=', 'sci.itemid')
