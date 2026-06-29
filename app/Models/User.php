@@ -440,8 +440,8 @@ class User extends Authenticatable implements JWTSubject
                 $query->where('users.user_status', '=', 'Approve');
             }
 
-            if (!empty($post['role']) && $post['role'] == 4) {
-                $query->where('mhr.role_id', 4);
+            if (!empty($post['role']) && ($post['role'] == '550e8400-e29b-41d4-a716-446655440004')) {
+                $query->where('mhr.role_id', '550e8400-e29b-41d4-a716-446655440004');
             }
 
             if (!empty($get['sSearch_1'])) {
