@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Permission\Models\Role;
+use App\Models\BackPanel\Role;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -54,12 +54,14 @@ class Driver extends Model
 
                 $newUuid  = (string) Str::uuid();
                 $userData = [
-                    'id'         => $newUuid,
-                    'name'       => $post['username'],
-                    'email'      => $post['email'],
-                    'phone'      => $post['phone'],
-                    'password' => bcrypt($plainPassword),
-                    'created_at' => Carbon::now(),
+                    'id'               => $newUuid,
+                    'name'             => $post['username'],
+                    'email'            => $post['email'],
+                    'phone'            => $post['phone'],
+                    'password'         => bcrypt($plainPassword),
+                    'user_status'      => 'Approve',
+                    'first_time_login' => 0,
+                    'created_at'       => Carbon::now(),
                 ];
 
                 if (!DB::table('users')->insert($userData)) {

@@ -122,38 +122,63 @@ class Item extends Model
         ];
     }
 
-    public static function getUserRecommendation($post)
-    {
-        try {
-            $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
-            $page    = isset($post['page'])     ? (int)$post['page']     : 1;
-            $offset  = ($page - 1) * $perPage;
+public static function getUserRecommendation($post)
+{
+    try {
 
-            $query = DB::table('search_histories')
-                ->where('userid', $post['userid'])
-                ->where('orgid', $post['orgid'])
-                ->where('status', 'Y')
-                ->select('id as searchid', 'text')
-                ->groupBy('text', 'id')
-                ->orderBy('created_at', 'desc');
+        $perPage = isset($post['per_page']) ? (int)$post['per_page'] : 10;
+        $page    = isset($post['page']) ? (int)$post['page'] : 1;
+        $offset  = ($page - 1) * $perPage;
 
-            $total   = (clone $query)->count();
-            $records = $query->offset($offset)->limit($perPage)->get();
 
-            return [
-                'data'       => $records,
-                'pagination' => [
-                    'current_page' => $page,
-                    'last_page'    => $total > 0 ? (int)ceil($total / $perPage) : 1,
-                    'per_page'     => $perPage,
-                    'total'        => $total,
-                    'has_more'     => ($page * $perPage) < $total,
-                    'next_page'    => ($page * $perPage) < $total ? $page + 1 : null,
-                    'prev_page'    => $page > 1 ? $page - 1 : null,
-                ]
-            ];
-        } catch (\Exception $e) {
-            throw $e;
-        }
+        $query = DB::table('search_histories')
+            ->where('userid', $post['userid'])
+            ->where('orgid', $post['orgid'])
+            ->where('status', 'Y')
+            ->select(
+                'id as searchid',
+                'text',
+                DB::raw('MAX(created_at) as created_at')
+            )
+            ->groupBy('text','searchid')
+            ->orderByDesc(DB::raw('MAX(created_at)'));
+
+
+        // total unique searches
+        $total = (clone $query)->get()->count();
+
+
+        $records = $query
+            ->offset($offset)
+            ->limit($perPage)
+            ->get();
+
+
+        return [
+            'data' => $records,
+
+            'pagination' => [
+                'current_page' => $page,
+                'last_page'    => $total > 0 
+                                    ? (int)ceil($total / $perPage) 
+                                    : 1,
+                'per_page'     => $perPage,
+                'total'        => $total,
+                'has_more'     => ($page * $perPage) < $total,
+                'next_page'    => ($page * $perPage) < $total 
+                                    ? $page + 1 
+                                    : null,
+                'prev_page'    => $page > 1 
+                                    ? $page - 1 
+                                    : null,
+            ]
+        ];
+
+
+    } catch (\Exception $e) {
+
+        throw $e;
+
     }
+}
 }

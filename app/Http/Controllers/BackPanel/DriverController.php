@@ -115,6 +115,7 @@ class DriverController extends Controller
     public function list(Request $request)
     {
         try {
+<<<<<<< HEAD
             $post          = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -167,6 +168,16 @@ class DriverController extends Controller
                 $array[$i]['email']   = $row->email   ?? '-';
                 $array[$i]['address'] = $row->address ?? '-';
                 $array[$i]['phone']   = $row->phone   ?? '-';
+=======
+            $post           = $request->all();
+            $post['orgid']  = session('orgid');
+            $post['role']   = '550e8400-e29b-41d4-a716-446655440004';
+            $data           = User::list($post);
+            $i = 0;
+            $array = [];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs    = $data["totalrecs"];
+>>>>>>> 3de0801896e887a7f32b7451c98171184a6f0efe
 
                 $action  = '';
                 $action .= '<a href="javascript:;" class="deleteDriver px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
@@ -197,7 +208,7 @@ class DriverController extends Controller
             $data = [];
             $post = $request->all();
             $post['orgid'] = session('orgid');
-            $allRoles = DB::table('roles')->where('id', 4)->get();
+            $allRoles = DB::table('roles')->where('id', '550e8400-e29b-41d4-a716-446655440004')->get();
             $data['rolesList'] = $allRoles;
             if (!empty($request->id)) {
                 $post = $request->all();
@@ -223,8 +234,17 @@ class DriverController extends Controller
             }
             return view('backend.driver.list.form', $data);
         } catch (QueryException $e) {
+            if ($request->ajax()) {
+                return response()->json(['type' => 'error', 'message' => 'Database error. Please try again.']);
+            }
             return back()->with('error', 'Something went wrong. Please try again.');
         } catch (\Exception $e) {
+<<<<<<< HEAD
+=======
+            if ($request->ajax()) {
+                return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+            }
+>>>>>>> 3de0801896e887a7f32b7451c98171184a6f0efe
             return back()->with('error', 'Something went wrong. Please try again.');
         }
     }
@@ -284,7 +304,12 @@ class DriverController extends Controller
             DB::commit();
         } catch (QueryException $e) {
             DB::rollBack();
+<<<<<<< HEAD
             $type    = 'error';
+=======
+            $type = 'error';
+            Log::error('Driver saveDriver QueryException: ' . $e->getMessage());
+>>>>>>> 3de0801896e887a7f32b7451c98171184a6f0efe
             $message = $this->queryMessage;
         } catch (Exception $e) {
             DB::rollBack();

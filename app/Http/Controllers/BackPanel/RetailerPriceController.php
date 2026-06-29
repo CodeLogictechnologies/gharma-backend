@@ -69,11 +69,15 @@ class RetailerPriceController extends Controller
             $post['orgid'] =  session('orgid');
             $post['userid'] =  session('userid');
 
-            $exists = RetailerPrice::where('itemid', $post['itemid'])
+            $duplicateQuery = RetailerPrice::where('itemid', $post['itemid'])
                 ->where('variation_id', $post['variationid'])
-                ->exists();
+                ->where('status', 'Y');
 
-            if ($exists) {
+            if (!empty($post['id'])) {
+                $duplicateQuery->where('id', '!=', $post['id']);
+            }
+
+            if ($duplicateQuery->exists()) {
                 throw new Exception('This item variation already exists.', 1);
             }
 

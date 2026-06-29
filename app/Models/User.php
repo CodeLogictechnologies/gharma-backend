@@ -14,10 +14,11 @@ use Illuminate\Support\Str;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Support\Facades\File;
 use App\Jobs\SendUserPasswordMail;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, HasUuids;
 
     public $incrementing = false;
     protected $keyType   = 'string';
@@ -471,11 +472,81 @@ class User extends Authenticatable implements JWTSubject
     // }
 
     public static function list($post)
+<<<<<<< HEAD
 {
     try {
         $get = $post;
         foreach ($get as $key => $value) {
             $get[$key] = is_string($value) ? trim(strtolower($value)) : $value;
+=======
+    {
+        try {
+            $get = $post;
+            foreach ($get as $key => $value) {
+                $get[$key] = is_string($value) ? trim(strtolower($value)) : $value;
+            }
+
+            $limit  = !empty($get["length"]) ? (int)$get["length"] : 15;
+            $offset = !empty($get["start"])  ? (int)$get["start"]  : 0;
+
+            $query = User::query()
+                ->select(
+                    'users.id',
+                    'users.user_status',
+                    'users.name',
+                    'users.email',
+                    'profiles.first_name',
+                    'profiles.middle_name',
+                    'profiles.last_name',
+                    'profiles.username',
+                    'profiles.gender',
+                    'profiles.phone',
+                    'profiles.address',
+                    'profiles.image',
+                    'profiles.type',
+                    'profiles.status'
+                )
+                ->join('profiles', 'profiles.user_id', '=', 'users.id')
+                ->join('userorganizations as u', 'u.userid', '=', 'users.id')
+                ->leftJoin('model_has_roles as mhr', function ($join) {
+                    $join->on('mhr.model_id', '=', 'users.id')
+                        ->where('mhr.model_type', '=', User::class);
+                })
+                ->where('profiles.status', 'Y')
+                ->where('u.orgid', $post['orgid']);
+
+            if (!empty($post['inactiveuser']) && $post['inactiveuser'] == 'Y') {
+                $query->where('users.user_status', '!=', 'Approve');
+            } else if (empty($post['inactiveuser'])) {
+                $query->where('users.user_status', '=', 'Approve');
+            }
+
+            if (!empty($post['role']) && ($post['role'] == '550e8400-e29b-41d4-a716-446655440004')) {
+                $query->where('mhr.role_id', '550e8400-e29b-41d4-a716-446655440004');
+            }
+
+            if (!empty($get['sSearch_1'])) {
+                $query->whereRaw('LOWER(users.name) LIKE ?', ['%' . $get['sSearch_1'] . '%']);
+            }
+
+            if (!empty($get['sSearch_2'])) {
+                $query->whereRaw('LOWER(users.email) LIKE ?', ['%' . $get['sSearch_2'] . '%']);
+            }
+
+            $total = (clone $query)->count();
+
+            $result = $limit > -1
+                ? $query->orderBy('users.id', 'asc')->offset($offset)->limit($limit)->get()
+                : $query->orderBy('users.id', 'asc')->get();
+
+            return [
+                'data'              => $result,
+                'totalrecs'         => $total,
+                'totalfilteredrecs' => $total,
+            ];
+        } catch (Exception $e) {
+            throw $e;
+>>>>>>> 3de0801896e887a7f32b7451c98171184a6f0efe
         }
 
         $limit  = !empty($get["length"]) ? (int)$get["length"] : 15;
