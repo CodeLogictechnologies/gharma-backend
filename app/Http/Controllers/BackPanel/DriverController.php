@@ -69,7 +69,7 @@ class DriverController extends Controller
         try {
             $post           = $request->all();
             $post['orgid']  = session('orgid');
-            $post['role']   = 4;
+            $post['role']   = '550e8400-e29b-41d4-a716-446655440004';
             $data           = User::list($post);
             $i = 0;
             $array = [];
@@ -113,7 +113,7 @@ class DriverController extends Controller
             $data = [];
             $post = $request->all();
             $post['orgid'] = session('orgid');
-            $allRoles = DB::table('roles')->where('id', 4)->get();
+            $allRoles = DB::table('roles')->where('id', '550e8400-e29b-41d4-a716-446655440004')->get();
             $data['rolesList'] = $allRoles;
             if (!empty($request->id)) {
                 $post = $request->all();
@@ -139,9 +139,14 @@ class DriverController extends Controller
             }
             return view('backend.driver.list.form', $data);
         } catch (QueryException $e) {
+            if ($request->ajax()) {
+                return response()->json(['type' => 'error', 'message' => 'Database error. Please try again.']);
+            }
             return back()->with('error', 'Something went wrong. Please try again.');
         } catch (\Exception $e) {
-            // Log::error('Order form error: ' . $e->getMessage());
+            if ($request->ajax()) {
+                return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+            }
             return back()->with('error', 'Something went wrong. Please try again.');
         }
     }
@@ -200,6 +205,7 @@ class DriverController extends Controller
         } catch (QueryException $e) {
             DB::rollBack();
             $type = 'error';
+            Log::error('Driver saveDriver QueryException: ' . $e->getMessage());
             $message = $this->queryMessage;
         } catch (Exception $e) {
             DB::rollBack();
