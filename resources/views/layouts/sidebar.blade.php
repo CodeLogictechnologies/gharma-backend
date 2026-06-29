@@ -2,7 +2,12 @@
     <div class="app-brand demo">
         <a href="{{ route('admin.dashboard') }}" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img style="width: 200px;" src="{{ asset('gharma ecommerce.svg') }}" alt="logo"> </span>
+                <img style="width: 200px;"
+                    src="{{ $orgLogo 
+                 ? asset('storage/organizations/' . $orgLogo) 
+                 : asset('gharma ecommerce.svg') }}"
+                    alt="{{ $orgName ?? 'logo' }}">
+            </span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">

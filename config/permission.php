@@ -14,6 +14,7 @@ return [
          */
 
         'permission' => Spatie\Permission\Models\Permission::class,
+        'role' => App\Models\BackPanel\Role::class,
 
         /*
          * When using the "HasRoles" trait from this package, we need to know which

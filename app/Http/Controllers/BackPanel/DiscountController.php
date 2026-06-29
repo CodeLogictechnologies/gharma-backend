@@ -237,7 +237,7 @@ class DiscountController extends Controller
             }
 
             if (!empty($discount->variation_id)) {
-                $variation = DB::table('item_variations')->where('id', $discount->variation_id)->first();
+                $variation = DB::table('itemvariations')->where('id', $discount->variation_id)->first();
                 $discount->variation_label = $variation
                     ? ($variation->attribute . ' - ' . $variation->value)
                     : null;

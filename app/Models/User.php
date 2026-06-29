@@ -63,29 +63,29 @@ class User extends Authenticatable implements JWTSubject
     //     ];
     // }
     public function getJWTCustomClaims()
-{
-    try {
-        $profile = DB::table('userorganizations')
-            ->where('userid', $this->id)
-            ->select('userid', 'orgid')
-            ->first();
+    {
+        try {
+            $profile = DB::table('userorganizations')
+                ->where('userid', $this->id)
+                ->select('userid', 'orgid')
+                ->first();
 
-        return [
-            'roles'   => $this->getRoleNames(),
-            'profile' => $profile,
-        ];
-    } catch (\Exception $e) {
-        $profile = DB::table('userorganizations')
-            ->where('userid', $this->id)
-            ->select('userid', 'orgid')
-            ->first();
+            return [
+                'roles'   => $this->getRoleNames(),
+                'profile' => $profile,
+            ];
+        } catch (\Exception $e) {
+            $profile = DB::table('userorganizations')
+                ->where('userid', $this->id)
+                ->select('userid', 'orgid')
+                ->first();
 
-        return [
-            'roles'   => [],
-            'profile' => $profile,
-        ];
+            return [
+                'roles'   => [],
+                'profile' => $profile,
+            ];
+        }
     }
-}
 
     /* ── Helper: store a single image file ───────────────────── */
     private static function storeImage($file, string $folder = 'profiles', string $prefix = ''): string
@@ -397,6 +397,81 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /* ── user list ────────────────────────────────────────────── */
+    // public static function list($post)
+    // {
+    //     try {
+    //         $get = $post;
+    //         foreach ($get as $key => $value) {
+    //             $get[$key] = is_string($value) ? trim(strtolower($value)) : $value;
+    //         }
+
+    //         $limit  = !empty($get["length"]) ? (int)$get["length"] : 15;
+    //         $offset = !empty($get["start"])  ? (int)$get["start"]  : 0;
+
+    //         $query = User::query()
+    //             ->select(
+    //                 'users.id',
+    //                 'users.user_status',
+    //                 'users.name',
+    //                 'users.email',
+    //                 'profiles.first_name',
+    //                 'profiles.middle_name',
+    //                 'profiles.last_name',
+    //                 'profiles.username',
+    //                 'profiles.gender',
+    //                 'profiles.phone',
+    //                 'profiles.address',
+    //                 'profiles.image',
+    //                 'profiles.type',
+    //                 'profiles.status'
+    //             )
+    //             ->join('profiles', 'profiles.user_id', '=', 'users.id')
+    //             ->join('userorganizations as u', 'u.userid', '=', 'users.id')
+    //             ->leftJoin('model_has_roles as mhr', function ($join) {
+    //                 $join->on('mhr.model_id', '=', 'users.id')
+    //                     ->where('mhr.model_type', '=', User::class);
+    //             })
+    //             ->where('profiles.status', 'Y')
+    //             ->where('u.orgid', $post['orgid']);
+
+    //         if (!empty($post['inactiveuser']) && $post['inactiveuser'] == 'Y') {
+    //             $query->where('users.user_status', '!=', 'Approve');
+    //         } else if (empty($post['inactiveuser'])) {
+    //             $query->where('users.user_status', '=', 'Approve');
+    //         }
+
+    //         if (!empty($post['role']) && $post['role'] == 4) {
+    //             $query->where('mhr.role_id', 4);
+    //         }
+
+    //         if (!empty($get['sSearch_1'])) {
+    //             $query->whereRaw('LOWER(users.name) LIKE ?', ['%' . $get['sSearch_1'] . '%']);
+    //         }
+
+    //         if (!empty($get['sSearch_2'])) {
+    //             $query->whereRaw('LOWER(users.email) LIKE ?', ['%' . $get['sSearch_2'] . '%']);
+    //         }
+
+    //         // $total = (clone $query)->count();
+    //         $total = DB::table(DB::raw("({$query->toSql()}) as sub"))
+    //             ->mergeBindings($query->getQuery())
+    //             ->count();
+
+    //         $result = $limit > -1
+    //             ? $query->orderBy('users.id', 'asc')->offset($offset)->limit($limit)->get()
+    //             : $query->orderBy('users.id', 'asc')->get();
+
+    //         return [
+    //             'data'              => $result,
+    //             'totalrecs'         => $total,
+    //             'totalfilteredrecs' => $total,
+    //         ];
+    //     } catch (Exception $e) {
+    //         throw $e;
+    //     }
+    // }
+
+
     public static function list($post)
     {
         try {
@@ -436,11 +511,11 @@ class User extends Authenticatable implements JWTSubject
 
             if (!empty($post['inactiveuser']) && $post['inactiveuser'] == 'Y') {
                 $query->where('users.user_status', '!=', 'Approve');
-            } else if (empty($post['inactiveuser'])) {
+            } elseif (empty($post['inactiveuser'])) {
                 $query->where('users.user_status', '=', 'Approve');
             }
 
-            if (!empty($post['role']) && ($post['role'] == '550e8400-e29b-41d4-a716-446655440004')) {
+            if (!empty($post['role']) && $post['role'] == '550e8400-e29b-41d4-a716-446655440004') {
                 $query->where('mhr.role_id', '550e8400-e29b-41d4-a716-446655440004');
             }
 

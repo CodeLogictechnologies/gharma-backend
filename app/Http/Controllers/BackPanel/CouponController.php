@@ -70,8 +70,8 @@ class CouponController extends Controller
                 $binds[] = '%' . strtolower(trim($get['sSearch_2'])) . '%';
             }
 
-            $limit  = (int) ($get['length'] ?? 15);
-            $offset = (int) ($get['start']  ?? 0);
+            $limit  = (int) ($get['iDisplayLength'] ?? 15);
+            $offset = (int) ($get['iDisplayStart']  ?? 0);
 
             $query = DB::table('coupons')
                 ->selectRaw("
@@ -116,6 +116,7 @@ class CouponController extends Controller
             });
 
             return response()->json([
+                'sEcho'                => (int) ($get['sEcho'] ?? 1),
                 'iTotalRecords'        => $totalrecs,
                 'iTotalDisplayRecords' => $totalrecs,
                 'aaData'               => $rows,

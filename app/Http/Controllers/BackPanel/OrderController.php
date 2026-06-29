@@ -18,58 +18,55 @@ class OrderController extends Controller
     }
 
     public function list(Request $request)
-    {
-        $post   = $request->all();
-        $offset = (int) ($request->input('iDisplayStart', 0));
+{
+    $post   = $request->all();
+    $offset = (int) ($request->input('iDisplayStart', 0));
 
-        $data = Order::list($post);
-        $i    = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs    = $data["totalrecs"];
+    $data         = Order::list($post);
+    $result       = $data['data'];
+    $totalrecs    = $data['totalrecs'];
+    $filtereddata = $data['totalfilteredrecs'];
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
+    $i     = 0;
+    $array = [];
 
-        $statuses = [
-            'Pending', 'Confirmed', 'Packed', 'Shipped',
-            'Delivered', 'Cancelled', 'Returned', 'Refunded'
-        ];
+    $statuses = [
+        'Pending', 'Confirmed', 'Packed', 'Shipped',
+        'Delivered', 'Cancelled', 'Returned', 'Refunded'
+    ];
 
-        foreach ($data as $row) {
-            $array[$i]["sno"]      = $offset + $i + 1;
-            $array[$i]["username"] = $row->username;
-            $array[$i]["email"]    = $row->email;
-            $array[$i]["created_at"] = $row->created_at;
+    foreach ($result as $row) {
+        $array[$i]['sno']        = $offset + $i + 1;
+        $array[$i]['username']   = $row->username;
+        $array[$i]['email']      = $row->email;
+        $array[$i]['created_at'] = $row->created_at;
 
-            $options = '';
-            foreach ($statuses as $status) {
-                $selected = ($row->order_status === $status) ? 'selected' : '';
-                $options .= "<option value='{$status}' {$selected}>" . ucfirst($status) . "</option>";
-            }
-            $array[$i]["order_status"] = "
-                <select class='form-select changeStatus'
-                        data-id='{$row->id}'
-                        data-current='{$row->order_status}'>
-                    {$options}
-                </select>";
-
-            $action  = '<a href="javascript:;" title="View Order" class="tooltipdiv viewOrder" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-            $action .= ' &nbsp;<a href="javascript:;" title="Assign Driver" class="tooltipdiv assignDriver" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-user-plus"></i></a>';
-
-            $array[$i]["action"] = $action;
-            $i++;
+        $options = '';
+        foreach ($statuses as $status) {
+            $selected = ($row->order_status === $status) ? 'selected' : '';
+            $options .= "<option value='{$status}' {$selected}>" . ucfirst($status) . "</option>";
         }
 
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs)    $totalrecs    = 0;
+        $array[$i]['order_status'] = "
+            <select class='form-select changeStatus'
+                    data-id='{$row->id}'
+                    data-current='{$row->order_status}'>
+                {$options}
+            </select>";
 
-        return json_encode([
-            "recordsFiltered" => $filtereddata,
-            "recordsTotal"    => $totalrecs,
-            "data"            => $array
-        ]);
+        $action  = '<a href="javascript:;" title="View Order" class="tooltipdiv viewOrder" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+        $action .= ' &nbsp;<a href="javascript:;" title="Assign Driver" class="tooltipdiv assignDriver" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-user-plus"></i></a>';
+
+        $array[$i]['action'] = $action;
+        $i++;
     }
+
+    return response()->json([
+        'recordsFiltered' => $filtereddata,
+        'recordsTotal'    => $totalrecs,
+        'data'            => $array,
+    ]);
+}
 
     public function view(Request $request)
     {
@@ -102,9 +99,20 @@ class OrderController extends Controller
             ->where('id', $request->id)
             ->update(['order_status' => $request->status]);
 
-        DB::table('loyalties')
+        // DB::table('loyalties')
+        //     ->where('ordermasterid', $request->id)
+        //     ->update(['order_status' => $request->status]);
+
+        $orderDetailIds = DB::table('order_details')
             ->where('ordermasterid', $request->id)
-            ->update(['order_status' => $request->status]);
+            ->pluck('id')
+            ->toArray();
+
+        if (!empty($orderDetailIds)) {
+            DB::table('loyalties')
+                ->whereIn('order_detail_id', $orderDetailIds)
+                ->update(['order_status' => $request->status]);
+        }
 
         if ($updated) {
             $order = DB::table('order_masters')

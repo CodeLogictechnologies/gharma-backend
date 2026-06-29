@@ -4,12 +4,12 @@
 
 <style>
     #storeTable td:last-child {
-        display: flex;
-        align-items: center;
         white-space: nowrap;
+        vertical-align: middle;
     }
     #storeTable td:last-child a {
         display: inline-flex;
+        align-items: center;
         margin-right: 4px;
     }
 </style>
@@ -152,6 +152,20 @@
                     data: 'action'
                 },
             ],
+            fnServerParams: function(aoData) {
+                aoData.push({
+                    name: 'sSearch_1',
+                    value: $('#storeTable thead th:eq(1) input').val() || ''
+                });
+                aoData.push({
+                    name: 'sSearch_2',
+                    value: $('#storeTable thead th:eq(2) input').val() || ''
+                });
+                aoData.push({
+                    name: 'sSearch_3',
+                    value: $('#storeTable thead th:eq(3) input').val() || ''
+                });
+            },
 
             initComplete: function() {
                 this.api().columns([1, 2, 3]).every(function() {

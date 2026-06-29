@@ -71,58 +71,57 @@ class Order extends Model
     // }
 
     public static function list($post)
-    {
-        try {
-            $cond     = "1=1";
-            $bindings = [];
+{
+    try {
+        $cond     = "1=1";
+        $bindings = [];
 
-            if (!empty($post['sSearch_1'])) {
-                $val      = strtolower(trim($post['sSearch_1']));
-                $cond    .= " and lower(u.name) like ?";
-                $bindings[] = "%{$val}%";
-            }
-
-            if (!empty($post['sSearch_2'])) {
-                $val      = strtolower(trim($post['sSearch_2']));
-                $cond    .= " and lower(u.email) like ?";
-                $bindings[] = "%{$val}%";
-            }
-
-            if (!empty($post['type']) && $post['type'] == 'invoice') {
-                $cond .= " and om.order_status = 'Delivered'";
-            }
-
-            $limit  = isset($post['iDisplayLength']) ? (int) $post['iDisplayLength'] : 15;
-            $offset = isset($post['iDisplayStart'])  ? (int) $post['iDisplayStart']  : 0;
-
-            $totalrecs = DB::table('order_masters as om')
-                ->join('users as u', 'u.id', '=', 'om.userid')
-                ->whereRaw($cond, $bindings)
-                ->count();
-
-            $query = Order::from('order_masters as om')
-                ->join('users as u', 'u.id', '=', 'om.userid')
-                ->selectRaw("om.id, om.order_status, u.name as username, om.created_at, u.email")
-                ->whereRaw($cond, $bindings)
-                ->orderBy('om.created_at', 'desc');
-
-            $filteredCount = (clone $query)->count();
-
-            if ($limit > -1) {
-                $result = $query->offset($offset)->limit($limit)->get();
-            } else {
-                $result = $query->get();
-            }
-
-            $ndata                      = $result;
-            $ndata['totalrecs']         = $totalrecs;
-            $ndata['totalfilteredrecs'] = $filteredCount;
-
-            return $ndata;
-        } catch (Exception $e) {
-            throw $e;
+        if (!empty($post['sSearch_1'])) {
+            $val        = strtolower(trim($post['sSearch_1']));
+            $cond      .= " and lower(u.name) like ?";
+            $bindings[] = "%{$val}%";
         }
+
+        if (!empty($post['sSearch_2'])) {
+            $val        = strtolower(trim($post['sSearch_2']));
+            $cond      .= " and lower(u.email) like ?";
+            $bindings[] = "%{$val}%";
+        }
+
+        if (!empty($post['type']) && $post['type'] == 'invoice') {
+            $cond .= " and om.order_status = 'Delivered'";
+        }
+
+        $limit  = isset($post['iDisplayLength']) ? (int) $post['iDisplayLength'] : 15;
+        $offset = isset($post['iDisplayStart'])  ? (int) $post['iDisplayStart']  : 0;
+
+        $totalrecs = DB::table('order_masters as om')
+            ->join('users as u', 'u.id', '=', 'om.userid')
+            ->whereRaw($cond, $bindings)
+            ->count();
+
+        $query = DB::table('order_masters as om')
+            ->join('users as u', 'u.id', '=', 'om.userid')
+            ->selectRaw("om.id, om.order_status, u.name as username, om.created_at, u.email")
+            ->whereRaw($cond, $bindings)
+            ->orderBy('om.created_at', 'desc');
+
+        $filteredCount = (clone $query)->count();
+
+        $result = $limit > -1
+            ? $query->offset($offset)->limit($limit)->get()
+            : $query->get();
+
+        return [
+            'data'             => $result,
+            'totalrecs'        => $totalrecs,
+            'totalfilteredrecs'=> $filteredCount,
+        ];
+
+    } catch (Exception $e) {
+        throw $e;
     }
+}
     public static function getData($post)
     {
         $result = DB::table('order_details as od')
