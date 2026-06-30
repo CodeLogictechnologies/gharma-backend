@@ -12,8 +12,8 @@ return [
          * The model you want to use as a Permission model needs to implement the
          * `Spatie\Permission\Contracts\Permission` contract.
          */
-
-        'permission' => Spatie\Permission\Models\Permission::class,
+        
+        'permission' => App\Models\BackPanel\Permission::class,
         'role' => App\Models\BackPanel\Role::class,
 
         /*

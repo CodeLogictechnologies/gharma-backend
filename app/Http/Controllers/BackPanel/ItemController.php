@@ -51,6 +51,7 @@ class ItemController extends Controller
             'type'                 => 'Regular',
             'product_code'         => '',
             'company_product_code' => '',
+            'hs_code'              => '',
             'categories'           => [],
             'sub_categories'       => [],
             'description'          => '',
@@ -62,7 +63,9 @@ class ItemController extends Controller
                     'name'                 => '',
                     'value'                => '',
                     'product_code'         => '',
+                    'hs_code'              => '',
                     'company_product_code' => '',
+                    'threshold'            => '',
                 ],
             ],
         ];
@@ -105,6 +108,8 @@ class ItemController extends Controller
                     'value'                => $v->value,
                     'product_code'         => $v->product_code         ?? '',
                     'company_product_code' => $v->company_product_code ?? '',
+                    'hs_code'              => $v->hs_code               ?? '',
+            'threshold'            => $v->threshold             ?? '', 
                 ])
                 ->toArray();
 
@@ -115,6 +120,7 @@ class ItemController extends Controller
                 'type'                 => $item->type,
                 'product_code'         => $item->product_code         ?? '',
                 'company_product_code' => $item->company_product_code ?? '',
+                'hs_code'              => $item->hs_code               ?? '',
                 'categories'           => $categoryIds,
                 'sub_categories'       => $subCategoryIds,
                 'description'          => $item->description,
@@ -148,6 +154,7 @@ class ItemController extends Controller
                 'sub_categories'       => 'required|exists:sub_categories,id',
                 'product_code'         => 'nullable|string|max:255',
                 'company_product_code' => 'nullable|string|max:255',
+                'hs_code' => 'nullable|string|max:50',
                 'status'               => 'nullable|in:Y,N',
                 'variations'           => 'nullable|array',
             ];

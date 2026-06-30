@@ -33,7 +33,7 @@
                 <select class="form-select" id="orgSelect" style="max-width: 280px;">
                     <option value="">-- Select Organization --</option>
                     @foreach ($organizations as $org)
-                        <option value="{{ $org->id }}">{{ $org->name }}</option>
+                    <option value="{{ $org->id }}">{{ $org->name }}</option>
                     @endforeach
                 </select>
                 <button type="button" class="btn btn-primary" id="viewBtn">View</button>
@@ -80,43 +80,110 @@
 
 @section('main-scripts')
 <script>
-    $(document).ready(function () {
+    $(document).ready(function() {
 
         $.ajaxSetup({
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
         });
 
         // ── Module definitions (same as role permissions) ───────────────
-        var modules = [
-            { label: 'Favicon',       key: 'favicon' },
-            { label: 'Role',          key: 'role' },
-            { label: 'Home Tab',      key: 'hometab' },
-            { label: 'Store',         key: 'store' },
-            { label: 'Category',      key: 'category' },
-            { label: 'Brand',         key: 'brand' },
-            { label: 'Item',          key: 'item' },
-            { label: 'Users',         key: 'user' },
-            { label: 'Driver List',   key: 'driverlist' },
-            { label: 'Inventory',     key: 'inventory' },
-            { label: 'Vendor',        key: 'vendor' },
-            { label: 'Retailer',      key: 'retailer' },
-            { label: 'Wholesaler',    key: 'wholesaler' },
-            { label: 'Discount',      key: 'discount' },
-            { label: 'Coupon',        key: 'coupon' },
-            { label: 'Loyalty',       key: 'loyalty' },
-            { label: 'Order',         key: 'order' },
-            { label: 'Invoice',       key: 'invoice' },
-            { label: 'Refund',        key: 'refund' },
-            { label: 'Report',        key: 'report' },
-            { label: 'Heatmap',       key: 'heatmap' },
-            { label: 'Notification',  key: 'notification' },
+        var modules = [{
+                label: 'Favicon',
+                key: 'favicon'
+            },
+            {
+                label: 'Role',
+                key: 'role'
+            },
+            {
+                label: 'Home Tab',
+                key: 'hometab'
+            },
+            {
+                label: 'Store',
+                key: 'store'
+            },
+            {
+                label: 'Category',
+                key: 'category'
+            },
+            {
+                label: 'Brand',
+                key: 'brand'
+            },
+            {
+                label: 'Item',
+                key: 'item'
+            },
+            {
+                label: 'Users',
+                key: 'user'
+            },
+            {
+                label: 'Driver List',
+                key: 'driverlist'
+            },
+            {
+                label: 'Inventory',
+                key: 'inventory'
+            },
+            {
+                label: 'Vendor',
+                key: 'vendor'
+            },
+            {
+                label: 'Retailer',
+                key: 'retailer'
+            },
+            {
+                label: 'Wholesaler',
+                key: 'wholesaler'
+            },
+            {
+                label: 'Discount',
+                key: 'discount'
+            },
+            {
+                label: 'Coupon',
+                key: 'coupon'
+            },
+            {
+                label: 'Loyalty',
+                key: 'loyalty'
+            },
+            {
+                label: 'Order',
+                key: 'order'
+            },
+            {
+                label: 'Invoice',
+                key: 'invoice'
+            },
+            {
+                label: 'Refund',
+                key: 'refund'
+            },
+            {
+                label: 'Report',
+                key: 'report'
+            },
+            {
+                label: 'Heatmap',
+                key: 'heatmap'
+            },
+            {
+                label: 'Notification',
+                key: 'notification'
+            },
         ];
 
-        var allPermissions  = @json($permissions);
-        var orgPermissions  = []; // permission IDs assigned to selected org
+        var allPermissions = @json($permissions);
+        var orgPermissions = []; // permission IDs assigned to selected org
 
         // ── View button ─────────────────────────────────────────────────
-        $('#viewBtn').on('click', function () {
+        $('#viewBtn').on('click', function() {
             var orgId = $('#orgSelect').val();
             if (!orgId) {
                 $('#permissionTableWrap').hide();
@@ -124,7 +191,9 @@
                 return;
             }
 
-            $.post('{{ route("organization.access.getPermissions") }}', { id: orgId }, function (res) {
+            $.post('{{ route("organization.access.getPermissions") }}', {
+                id: orgId
+            }, function(res) {
                 var result = typeof res === 'string' ? JSON.parse(res) : res;
                 orgPermissions = result.permissions || [];
                 buildMatrix();
@@ -137,16 +206,26 @@
         function buildMatrix() {
             var $tbody = $('#permissionBody').empty();
 
-            modules.forEach(function (mod) {
+            // normalize once, outside the loop, for safety
+            var orgPermissionsNormalized = orgPermissions.map(function(id) {
+                return String(id).trim().toLowerCase();
+            });
+
+            modules.forEach(function(mod) {
                 var row = '<tr data-key="' + mod.key + '">';
                 row += '<td><input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
                 row += '<td>' + mod.label + '</td>';
 
-                ['add', 'edit', 'view', 'delete'].forEach(function (action) {
-                    var permName = mod.key + '.' + action;
-                    var perm     = allPermissions.find(function (p) { return p.name === permName; });
-                    var permId   = perm ? perm.id : null;
-                    var checked  = perm && orgPermissions.indexOf(perm.id) !== -1 ? 'checked' : '';
+                ['add', 'edit', 'view', 'delete'].forEach(function(action) {
+                    var permName = action + '.' + mod.key;
+                    var perm = allPermissions.find(function(p) {
+                        return p.name === permName;
+                    });
+                    var permId = perm ? perm.id : null;
+
+                    var checked = perm && orgPermissionsNormalized.indexOf(String(permId).trim().toLowerCase()) !== -1 ?
+                        'checked' :
+                        '';
 
                     row += '<td class="text-center"><input type="checkbox" class="form-check-input perm-check" ' +
                         'data-perm-id="' + permId + '" data-key="' + mod.key + '" data-action="' + action + '" ' + checked + '></td>';
@@ -158,43 +237,43 @@
         }
 
         // ── Select All ──────────────────────────────────────────────────
-        $('#selectAll').on('change', function () {
+        $('#selectAll').on('change', function() {
             var checked = $(this).is(':checked');
             $('.perm-check').prop('checked', checked);
             $('.row-select').prop('checked', checked);
         });
 
         // ── Row select ──────────────────────────────────────────────────
-        $(document).on('change', '.row-select', function () {
-            var key     = $(this).data('key');
+        $(document).on('change', '.row-select', function() {
+            var key = $(this).data('key');
             var checked = $(this).is(':checked');
             $('.perm-check[data-key="' + key + '"]').prop('checked', checked);
         });
 
         // ── Save button → confirm modal ──────────────────────────────────
-        $('#savePermissionsBtn').on('click', function () {
+        $('#savePermissionsBtn').on('click', function() {
             new bootstrap.Modal(document.getElementById('saveModal')).show();
         });
 
-        $('#confirmSave').on('click', function () {
-            var orgId     = $('#orgSelect').val();
+        $('#confirmSave').on('click', function() {
+            var orgId = $('#orgSelect').val();
             var permNames = [];
 
-            $('.perm-check:checked').each(function () {
-                var key    = $(this).data('key');
+            $('.perm-check:checked').each(function() {
+                var key = $(this).data('key');
                 var action = $(this).data('action');
-                permNames.push(key + '.' + action);
+                permNames.push(action + '.' + key);
             });
 
             $.post('{{ route("organization.access.save-permissions") }}', {
-                id:         orgId,
+                id: orgId,
                 perm_names: permNames,
-                _token:     '{{ csrf_token() }}'
-            }, function (res) {
+                _token: '{{ csrf_token() }}'
+            }, function(res) {
                 var result = typeof res === 'string' ? JSON.parse(res) : res;
                 showNotification(result.message, result.type);
                 bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
-            }).fail(function () {
+            }).fail(function() {
                 showNotification('Something went wrong!', 'error');
             });
         });

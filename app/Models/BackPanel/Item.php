@@ -183,6 +183,7 @@ class Item extends Model
                 'description'          => $post['description']          ?? null,
                 'product_code'         => $post['product_code']         ?? null,
                 'company_product_code' => $post['company_product_code'] ?? null,
+                'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,   // ← fixed
                 'postedby'             => $post['userid'],
                 'orgid'                => $post['orgid']                ?? null,
             ];
@@ -241,6 +242,8 @@ class Item extends Model
                     $valueCases              = [];
                     $productCodeCases        = [];
                     $companyProductCodeCases = [];
+                    $hsCodeCases              = [];   // ← new
+                    $thresholdCases           = [];   // ← new
 
                     $attrNameMap = DB::table('variation_attributes')
                         ->where('orgid', $post['orgid'] ?? null)
@@ -254,19 +257,23 @@ class Item extends Model
                         $status = (($variation['status'] ?? 'active') === 'active') ? 'Y' : 'N';
 
                         if (!empty($variation['variationid'])) {
-                            $id          = $variation['variationid'];
-                            $ids[]       = $id;
-                            $attrId      = $variation['attribute_id'] ?? null;
-                            $attrName    = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $id       = $variation['variationid'];
+                            $ids[]    = $id;
+                            $attrId   = $variation['attribute_id'] ?? null;
+                            $attrName = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $threshold = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
 
                             $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($attrName) . "'";
                             $varAttrIdCases[]          = !empty($attrId) ? "WHEN '$id' THEN '$attrId'::uuid" : "WHEN '$id' THEN NULL::uuid";
-$valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
-$productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
-$companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
+                            $valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
+                            $productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
+                            $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
+                            $hsCodeCases[] = "WHEN '$id' THEN " . (!empty($variation['hs_code']) ? "'" . addslashes($variation['hs_code']) . "'" : 'NULL');
+                            $thresholdCases[]           = "WHEN '$id' THEN $threshold";
                         } else {
-                            $attrId   = $variation['attribute_id'] ?? null;
-                            $attrName = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $attrId    = $variation['attribute_id'] ?? null;
+                            $attrName  = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $threshold = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
 
                             DB::table('itemvariations')->insert([
                                 'id'                     => (string) Str::uuid(),
@@ -274,10 +281,11 @@ $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['compan
                                 'attribute'              => $attrName,
                                 'variation_attribute_id' => $attrId ?: null,
                                 'value'                  => $variation['value'],
-                                'threshold'              => $variation['threshold']          ?? 0,
+                                'threshold'              => $threshold,
                                 'price'                  => $variation['price']              ?? 0,
                                 'product_code'           => $variation['product_code']         ?? null,
                                 'company_product_code'   => $variation['company_product_code'] ?? null,
+                                'hs_code' => !empty($variation['hs_code']) ? $variation['hs_code'] : null,
                                 'status'                 => $status,
                                 'orgid'                  => $post['orgid']                   ?? null,
                                 'created_at'             => Carbon::now(),
@@ -291,15 +299,17 @@ $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['compan
                     if (!empty($ids)) {
                         $idsList = "'" . implode("','", $ids) . "'";
                         DB::statement("
-    UPDATE itemvariations SET
-        attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
-        variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
-        value                  = CASE id " . implode(' ', $valueCases)              . " END,
-        product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
-        company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
-        updated_at             = NOW(),
-        updatedby              = ?
-    WHERE id IN ($idsList)
+UPDATE itemvariations SET
+    attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
+    variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
+    value                  = CASE id " . implode(' ', $valueCases)              . " END,
+    product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
+    company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
+    hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
+    threshold               = CASE id " . implode(' ', $thresholdCases)          . " END,
+    updated_at              = NOW(),
+    updatedby               = ?
+WHERE id IN ($idsList)
 ", [$post['userid']]);
                     }
                 }
@@ -455,6 +465,8 @@ $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['compan
                             'price'                  => $variation['price']              ?? 0,
                             'product_code'           => $variation['product_code']         ?? null,
                             'company_product_code'   => $variation['company_product_code'] ?? null,
+                            'hs_code'                => !empty($variation['hs_code']) ? $variation['hs_code'] : null,   // ← add this
+
                             'status'                 => $status,
                             'orgid'                  => $post['orgid']                   ?? null,
                             'created_at'             => Carbon::now(),

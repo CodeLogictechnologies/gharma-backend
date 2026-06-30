@@ -2,6 +2,7 @@
 
 namespace App\Models\BackPanel;
 
+use Spatie\Permission\Models\Permission as SpatiePermission;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,7 +10,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class Permission extends Model
+class Permission extends SpatiePermission
 {
     use HasFactory;
     public $incrementing = false;
@@ -93,10 +94,10 @@ class Permission extends Model
     }
 
 
-    public static function getPermission()
+    // after — renamed, no longer collides with Spatie's internal getPermission()
+    public static function getPermissionList()
     {
         $result = DB::table('permissions')->select('id', 'name')->get();
-
         return $result;
     }
 }
