@@ -69,6 +69,13 @@
                                 <div class="invalid-feedback">Price is required.</div>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label">Discount</label>
+                                <input type="number" class="form-control" name="discount" id="discount"
+                                    placeholder="2%" min="0" max="100" step="0.01" />
+                                <div class="invalid-feedback">Discount must be between 0 and 100.</div>
+                            </div>
+
                             <button type="button" class="btn btn-primary saveRetailer">
                                 <i class="fa fa-save"></i> Save
                             </button>
@@ -89,6 +96,7 @@
                                             <th>Product</th>
                                             <th>Variation</th>
                                             <th>Price</th>
+                                            <th>Discount</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -135,6 +143,10 @@
                     required: true,
                     min: 0
                 },
+                discount: {
+                    min: 0,
+                    max: 100
+                },
             },
             messages: {
                 itemid: {
@@ -146,6 +158,10 @@
                 price: {
                     required: 'Price is required.',
                     min: 'Price must be 0 or greater.'
+                },
+                discount: {
+                    min: 'Discount must be 0 or greater.',
+                    max: 'Discount cannot exceed 100.'
                 },
             },
             highlight: function(element) {
@@ -199,7 +215,7 @@
             },
             aoColumnDefs: [{
                 bSortable: false,
-                aTargets: [2, 3]
+                aTargets: [2, 3, 4]
             }],
             aoColumns: [{
                     data: 'sno'
@@ -212,6 +228,9 @@
                 },
                 {
                     data: 'price'
+                },
+                {
+                    data: 'discount'
                 },
                 {
                     data: 'action'
@@ -273,10 +292,12 @@
             var itemId = $(this).data('itemid');
             var variationId = $(this).data('variationid');
             var price = $(this).data('price');
+            var discount = $(this).data('discount');
 
-            // Populate hidden id and price
+            // Populate hidden id, price and discount
             $('#id').val(id);
             $('#price').val(price);
+            $('#discount').val(discount);
 
             // Set the product dropdown, then load variations
             $('#itemSelect').val(itemId).trigger('change', [variationId]);

@@ -129,7 +129,7 @@
         background: #f8f9fa;
         border: 1px solid #dee2e6;
         border-radius: 8px;
-        padding: 12px 14px;
+        padding: 32px 14px 12px;
         margin-bottom: 10px;
         position: relative;
     }
@@ -471,6 +471,7 @@
                     'name' => 'Size',
                     'value' => '',
                     'threshold' => '',
+                    'discount' => '',
                     'price' => '',
                     'stock' => '',
                     'product_code' => '',
@@ -527,6 +528,12 @@
                                 <input type="number" name="variations[{{ $i }}][threshold]"
                                     class="form-control" placeholder="0" min="0" step="1"
                                     value="{{ $v['threshold'] ?? '' }}">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label mb-1">Discount</label>
+                                <input type="number" name="variations[{{ $i }}][discount]"
+                                    class="form-control" placeholder="2%" min="0" max="100" step="0.01"
+                                    value="{{ $v['discount'] ?? '' }}">
                             </div>
                             <!-- <div class="col-md-1">
                                     <label class="form-label mb-1">Price</label>
@@ -837,6 +844,11 @@ $(function () {
                     <label class="form-label mb-1">Threshold</label>
                     <input type="number" name="variations[${idx}][threshold]"
                            class="form-control" placeholder="0" min="0" step="1">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label mb-1">Discount</label>
+                    <input type="number" name="variations[${idx}][discount]"
+                           class="form-control" placeholder="2%" min="0" max="100" step="0.01">
                 </div>
             </div>
         </div>`;
