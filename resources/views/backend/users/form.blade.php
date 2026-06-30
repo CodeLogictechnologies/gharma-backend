@@ -157,18 +157,18 @@
                         placeholder="Enter company name" value="{{ @$company_name }}">
                     <div class="invalid-feedback">Enter company name</div>
                 </div>
-                <div class="col-md-4">
+                <!-- <div class="col-md-4">
                     <label class="form-label">Tax Number <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" name="tax_number" id="tax_number"
                         placeholder="Enter tax number" value="{{ @$tax_number }}">
                     <div class="invalid-feedback">Enter tax number</div>
-                </div>
-                <div class="col-md-4">
+                </div> -->
+                <!-- <div class="col-md-4">
                     <label class="form-label">Registration Number <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" name="registration_number" id="registration_number"
                         placeholder="Enter registration number" value="{{ @$registration_number }}">
                     <div class="invalid-feedback">Enter registration number</div>
-                </div>
+                </div> -->
             </div>
             <div class="row mb-2">
                 <div class="col-md-4">
@@ -188,7 +188,7 @@
                         @endif
                     </div>
                 </div>
-                <div class="col-md-4">
+                <!-- <div class="col-md-4">
                     <label class="form-label">Registration Image<span class="text-danger">*</span></label>
                     <input type="file" class="form-control" name="registration_number_image" id="registration_number_image" accept="image/*">
                     <div class="mt-2">
@@ -198,7 +198,7 @@
                         <img src="{{ asset('/no-image.jpg') }}" id="reg_img_preview" class="_image">
                         @endif
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
 

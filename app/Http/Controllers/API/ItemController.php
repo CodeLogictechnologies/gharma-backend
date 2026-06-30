@@ -673,12 +673,15 @@ class ItemController extends Controller
             'category_id'    => 'sometimes|string|nullable',
             'tab_id'         => 'sometimes|string|nullable',
             'subcategory_id' => 'sometimes|string|nullable',
+            'brand_id'       => 'sometimes|string|nullable',
+
         ]);
 
         $perPage        = $request->input('per_page', 15);
         $categoryId     = $request->input('category_id');
         $tabId          = $request->input('tab_id');
         $subcategory_id = $request->input('subcategory_id');
+        $brandId        = $request->input('brand_id');
         $categoryIds    = [];
         $roleId         = $request->header('roleid');
         // dd($roleId);
@@ -750,6 +753,7 @@ class ItemController extends Controller
                     'i.id as productid',
                     'iv.id as variationid',
                     'i.title as title',
+                    'i.brand_id as brand_id',
                     'im.images',
                     'wp.id as wholesaler_price_id',
                     'iv.created_at'
@@ -761,6 +765,7 @@ class ItemController extends Controller
                     'i.id',
                     'iv.id',
                     'i.title',
+                    'i.brand_id',
                     'im.images',
                     'wp.id',
                     'iv.created_at'
@@ -806,6 +811,7 @@ class ItemController extends Controller
                     'i.id as productid',
                     'iv.id as variationid',
                     'i.title as title',
+                    'i.brand_id as brand_id',
                     DB::raw("
             CASE
                 WHEN MAX(d.id::text) IS NULL THEN p.price
@@ -881,11 +887,15 @@ class ItemController extends Controller
                 ->where('ci.categoryid', $categoryId);
         }
 
+        // ── Brand filter ──
+        if (!empty($brandId)) {
+            $query->where('i.brand_id', $brandId);
+        }
         // ── GroupBy ──
         if ($isWholesaler) {
-            $query->groupBy('i.id', 'iv.id', 'i.title', 'im.images', 'wp.id', 'iv.created_at');
+            $query->groupBy('i.id', 'iv.id', 'i.title','i.brand_id', 'im.images', 'wp.id', 'iv.created_at');
         } else {
-            $query->groupBy('i.id', 'p.price', 'iv.id', 'i.title', 'im.images', 'iv.created_at');
+            $query->groupBy('i.id', 'p.price', 'iv.id', 'i.title', 'i.brand_id','im.images', 'iv.created_at');
         }
 
         $query->orderBy('iv.created_at', 'desc');

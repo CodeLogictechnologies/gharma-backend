@@ -109,7 +109,7 @@ class Organization extends Model
                 $userArray = [
                     'id'      => $post['userid'],
                     'email'      => $post['email'],
-                    'name'       => $post['name'],
+                    'name'       => $post['username'],
                     'password'   => Hash::make($plainPassword),
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
