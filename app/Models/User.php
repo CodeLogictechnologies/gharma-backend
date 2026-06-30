@@ -134,7 +134,7 @@ class User extends Authenticatable implements JWTSubject
     /* ── update profile info ──────────────────────────────────── */
     public static function updatedata($post)
     {
-        // try {
+        try {
         DB::table('users')->where('id', auth()->id())->update([
             'name'       => $post['name'],
             'updated_at' => Carbon::now(),
@@ -155,15 +155,15 @@ class User extends Authenticatable implements JWTSubject
         }
 
         return true;
-        // } catch (Exception $e) {
-        //     throw $e;
-        // }
+        } catch (Exception $e) {
+            throw $e;
+        }
     }
 
     /* ── update profile image ─────────────────────────────────── */
     public static function saveProfileImage($post)
     {
-        // try {
+        try {
         if (empty($post['image']) || !($post['image'] instanceof \Illuminate\Http\UploadedFile)) {
             return true;
         }
@@ -205,9 +205,9 @@ class User extends Authenticatable implements JWTSubject
         ]);
 
         return true;
-        // } catch (Exception $e) {
-        //     throw $e;
-        // }
+        } catch (Exception $e) {
+            throw $e;
+        }
     }
 
     /* ── save new user ────────────────────────────────────────── */
@@ -303,9 +303,9 @@ class User extends Authenticatable implements JWTSubject
                 'type'                       => $post['type'],
                 'status'              => 'Y',             // ← add this
                 'company_name'               => $post['company_name'] ?? null,
-                'tax_number'                 => $post['tax_number'] ?? null,
+                // 'tax_number'                 => $post['tax_number'] ?? null,
                 'pan_number'                 => $post['pan_number'] ?? null,
-                'registration_number'        => $post['registration_number'] ?? null,
+                // 'registration_number'        => $post['registration_number'] ?? null,
                 'orgid'                      => $firstOrg,
                 'created_at'                 => Carbon::now(),
                 'updated_at'                 => Carbon::now(),
@@ -313,7 +313,7 @@ class User extends Authenticatable implements JWTSubject
 
             if ($imageName)        $profileData['image']                     = $imageName;
             if ($panImage)         $profileData['pan_image']                 = $panImage;
-            if ($registrationImage) $profileData['registration_number_image'] = $registrationImage;
+            // if ($registrationImage) $profileData['registration_number_image'] = $registrationImage;
 
             DB::table('profiles')->insert($profileData);
 
@@ -358,11 +358,11 @@ class User extends Authenticatable implements JWTSubject
             }
 
             // Registration image
-            $registrationImage = null;
-            if (!empty($post['registration_number_image']) && $post['registration_number_image'] instanceof \Illuminate\Http\UploadedFile) {
-                self::deleteImage('profiles', $oldData->registration_number_image ?? null);
-                $registrationImage = self::storeImage($post['registration_number_image'], 'profiles', 'reg');
-            }
+            // $registrationImage = null;
+            // if (!empty($post['registration_number_image']) && $post['registration_number_image'] instanceof \Illuminate\Http\UploadedFile) {
+            //     self::deleteImage('profiles', $oldData->registration_number_image ?? null);
+            //     $registrationImage = self::storeImage($post['registration_number_image'], 'profiles', 'reg');
+            // }
 
             DB::table('users')->where('id', $userId)->update([
                 'name'       => $post['username'] ?? '',
@@ -380,15 +380,15 @@ class User extends Authenticatable implements JWTSubject
                 'address'                    => $post['address'] ?? '',
                 'gender'                     => $post['gender'] ?? '',
                 'company_name'               => $post['company_name'] ?? null,
-                'tax_number'                 => $post['tax_number'] ?? null,
-                'registration_number'        => $post['registration_number'] ?? null,
+                // 'tax_number'                 => $post['tax_number'] ?? null,
+                // 'registration_number'        => $post['registration_number'] ?? null,
                 'pan_number'                 => $post['pan_number'] ?? null,
                 'updated_at'                 => Carbon::now(),
             ];
 
             if ($imageName)         $profileData['image']                     = $imageName;
             if ($panImage)          $profileData['pan_image']                 = $panImage;
-            if ($registrationImage) $profileData['registration_number_image'] = $registrationImage;
+            // if ($registrationImage) $profileData['registration_number_image'] = $registrationImage;
 
             return DB::table('profiles')->where('user_id', $userId)->update($profileData);
         } catch (Exception $e) {
@@ -530,8 +530,8 @@ class User extends Authenticatable implements JWTSubject
             $total = (clone $query)->count();
 
             $result = $limit > -1
-                ? $query->orderBy('users.id', 'asc')->offset($offset)->limit($limit)->get()
-                : $query->orderBy('users.id', 'asc')->get();
+                ? $query->orderBy('users.id', 'desc')->offset($offset)->limit($limit)->get()
+                : $query->orderBy('users.id', 'desc')->get();
 
             return [
                 'data'              => $result,

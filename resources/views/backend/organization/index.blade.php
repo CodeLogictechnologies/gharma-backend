@@ -93,7 +93,8 @@
             ],
             bProcessing: true,
             bServerSide: true,
-            sAjaxSource: '{{ route('organization.list') }}',
+            sAjaxSource: '{{ route('
+            organization.list ') }}',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>",
                 sLengthMenu: 'Show _MENU_ entries', // ← fix label
@@ -268,8 +269,8 @@
                 $emailInput.addClass('is-invalid');
                 $emailInput.next('.invalid-feedback').text('Email is required.');
                 valid = false;
-            } else if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(emailVal)) {
-                $emailInput.next('.invalid-feedback').text('Please enter a valid email address.');
+            } else if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.com$/.test(emailVal)) {
+                $emailInput.next('.invalid-feedback').text('Email must end with .com');
                 valid = false;
             }
 

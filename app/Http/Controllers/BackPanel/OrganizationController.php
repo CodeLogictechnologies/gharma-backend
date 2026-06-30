@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
-use Illuminate\Validation\Rule;
 
 class OrganizationController extends Controller
 {
@@ -35,7 +34,7 @@ class OrganizationController extends Controller
                 'email' => [
                     'required',
                     'email',
-                    Rule::unique('organizations', 'email')->ignore($request->id, 'id')
+                    'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/',
                 ],
                 'username' => 'required',
             ];
@@ -49,6 +48,7 @@ class OrganizationController extends Controller
                 'phone.required' => 'Phone number is required',
                 'address.required' => 'Address is required',
                 'email.required' => 'Email is required',
+                'email.regex' => 'Email must end with .com',
                 'username.required' => 'User Name is required',
             ];
 
