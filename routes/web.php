@@ -113,7 +113,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/delete', [OrganizationController::class, 'delete'])->name('organization.delete');
         Route::post('/view', [OrganizationController::class, 'view'])->name('organization.view');
 
-        Route::group(['prefix' => 'organization.access'], function () {
+        Route::group(['prefix' => 'organization/access'], function () {
             Route::get('/', [OrganizationAccessController::class, 'index'])->name('organization.access');
             Route::post('/save', [OrganizationAccessController::class, 'save'])->name('organization.access.save');
             Route::post('/list', [OrganizationAccessController::class, 'list'])->name('organization.access.list');
@@ -123,7 +123,7 @@ Route::group(['middleware' => ['auth']], function () {
         });
 
         // Add OrganizationRoleController
-        Route::group(['prefix' => 'organization.role'], function () {
+        Route::group(['prefix' => 'organization/role'], function () {
             Route::get('/',                  [OrganizationRoleController::class, 'index'])->name('organization.role');
             Route::post('/users',            [OrganizationRoleController::class, 'getUsers'])->name('organization.role.users');
             Route::post('/user-permissions', [OrganizationRoleController::class, 'getUserPermissions'])->name('organization.role.user-permissions');

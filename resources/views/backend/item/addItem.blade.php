@@ -831,7 +831,7 @@ $(function () {
                 <div class="col-md-2">
                     <label class="form-label mb-1">HS Code</label>
                     <input type="text" name="variations[${idx}][hs_code]"
-                           class="form-control" placeholder="HS-001" maxlength="6">
+                           class="form-control" placeholder="HS-001" maxlength="15">
                 </div>
                 <div class="col-md-1">
                     <label class="form-label mb-1">Threshold</label>
@@ -909,7 +909,7 @@ $(function () {
         let hsValid = true;
         $('input[name="hs_code"], input[name^="variations"][name$="[hs_code]"]').each(function () {
             const val = $(this).val().trim();
-            if (val && !/^\d{6}$/.test(val)) {
+            if (val && !/^\d{15}$/.test(val)) {
                 $(this).addClass('is-invalid-select');
                 hsValid = false;
             } else {

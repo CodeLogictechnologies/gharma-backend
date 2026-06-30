@@ -183,7 +183,7 @@ class Item extends Model
                 'description'          => $post['description']          ?? null,
                 'product_code'         => $post['product_code']         ?? null,
                 'company_product_code' => $post['company_product_code'] ?? null,
-                'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,   // ← fixed
+                'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,  
                 'postedby'             => $post['userid'],
                 'orgid'                => $post['orgid']                ?? null,
             ];
@@ -465,7 +465,7 @@ WHERE id IN ($idsList)
                             'price'                  => $variation['price']              ?? 0,
                             'product_code'           => $variation['product_code']         ?? null,
                             'company_product_code'   => $variation['company_product_code'] ?? null,
-                            'hs_code'                => !empty($variation['hs_code']) ? $variation['hs_code'] : null,   // ← add this
+                            'hs_code'                => !empty($variation['hs_code']) ? $variation['hs_code'] : null,   
 
                             'status'                 => $status,
                             'orgid'                  => $post['orgid']                   ?? null,

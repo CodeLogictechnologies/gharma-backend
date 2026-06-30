@@ -82,8 +82,8 @@ class UserController extends Controller
 
             if ($isWholesaler) {
                 $rules['company_name']        = 'required|max:255';
-                $rules['tax_number']          = 'required|max:100';
-                $rules['registration_number'] = 'required|max:100';
+                // $rules['tax_number']          = 'required|max:100';
+                // $rules['registration_number'] = 'required|max:100';
                 $rules['pan_number']          = 'required|max:100';
 
                 // Check existing images if editing
@@ -93,7 +93,7 @@ class UserController extends Controller
                 if ($isEdit) {
                     $profile          = DB::table('profiles')->where('user_id', $request->id)->first();
                     $existingPanImage = $profile->pan_image ?? null;
-                    $existingRegImage = $profile->registration_number_image ?? null;
+                    // $existingRegImage = $profile->registration_number_image ?? null;
                 }
 
                 // PAN image: required only if new user OR edit with no existing image
@@ -105,12 +105,12 @@ class UserController extends Controller
                 }
 
                 // Registration image: required only if new user OR edit with no existing image
-                if (!$isEdit || empty($existingRegImage)) {
-                    $rules['registration_number_image']             = 'required|mimes:jpg,jpeg,png,pdf|max:2048';
-                    $messages['registration_number_image.required'] = 'Registration image is required';
-                } else {
-                    $rules['registration_number_image'] = 'nullable|mimes:jpg,jpeg,png,pdf|max:2048';
-                }
+                // if (!$isEdit || empty($existingRegImage)) {
+                //     $rules['registration_number_image']             = 'required|mimes:jpg,jpeg,png,pdf|max:2048';
+                //     $messages['registration_number_image.required'] = 'Registration image is required';
+                // } else {
+                //     $rules['registration_number_image'] = 'nullable|mimes:jpg,jpeg,png,pdf|max:2048';
+                // }
             }
 
             $validate = Validator::make($request->all(), $rules, $messages);
@@ -121,7 +121,7 @@ class UserController extends Controller
 
             if ($request->hasFile('image'))                     $post['image']                     = $request->file('image');
             if ($request->hasFile('pan_image'))                 $post['pan_image']                 = $request->file('pan_image');
-            if ($request->hasFile('registration_number_image')) $post['registration_number_image'] = $request->file('registration_number_image');
+            // if ($request->hasFile('registration_number_image')) $post['registration_number_image'] = $request->file('registration_number_image');
 
             DB::beginTransaction();
 
@@ -293,11 +293,11 @@ class UserController extends Controller
                         'p.address',
                         'p.image',
                         'p.company_name',
-                        'p.tax_number',
-                        'p.registration_number',
+                        // 'p.tax_number',
+                        // 'p.registration_number',
                         'p.pan_number',
                         'p.pan_image',
-                        'p.registration_number_image'
+                        // 'p.registration_number_image'
                     )
                     ->where('u.id', $request->id)
                     ->first();
@@ -320,11 +320,11 @@ class UserController extends Controller
                 $data['email']                     = $result->email;
                 $data['userRoles']                 = $userRoles;
                 $data['company_name']              = $result->company_name;
-                $data['tax_number']                = $result->tax_number;
-                $data['registration_number']       = $result->registration_number;
+                // $data['tax_number']                = $result->tax_number;
+                // $data['registration_number']       = $result->registration_number;
                 $data['pan_number']                = $result->pan_number;
                 $data['pan_image']                 = $result->pan_image;
-                $data['registration_number_image'] = $result->registration_number_image;
+                // $data['registration_number_image'] = $result->registration_number_image;
 
                 if (!empty($result->image)) $data['image'] = $result->image;
             }
@@ -398,11 +398,11 @@ class UserController extends Controller
                     'p.image',
                     'p.type',
                     'p.company_name',
-                    'p.tax_number',
-                    'p.registration_number',
+                    // 'p.tax_number',
+                    // 'p.registration_number',
                     'p.pan_number',
                     'p.pan_image',
-                    'p.registration_number_image'
+                    // 'p.registration_number_image'
                 )
                 ->where('u.id', $request->id)
                 ->first();

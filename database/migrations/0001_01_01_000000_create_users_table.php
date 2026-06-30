@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary();                                          // ✅ added primary()
+            $table->uuid('id')->primary();                                          
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->enum('user_status', ['Pending', 'Approve', 'Reject'])
-                ->default('Pending');                                               // ✅ removed ->after()
+                ->default('Pending');                                               
             $table->string('phone', 20)->nullable();
             $table->string('password');
-            $table->text('remarks')->nullable();                                    // ✅ added nullable()
+            $table->text('remarks')->nullable();                                    
             $table->rememberToken();
             $table->timestamps();
         });
