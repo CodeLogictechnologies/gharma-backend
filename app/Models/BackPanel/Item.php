@@ -183,7 +183,7 @@ class Item extends Model
                 'description'          => $post['description']          ?? null,
                 'product_code'         => $post['product_code']         ?? null,
                 'company_product_code' => $post['company_product_code'] ?? null,
-                'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,  
+                'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,
                 'postedby'             => $post['userid'],
                 'orgid'                => $post['orgid']                ?? null,
             ];

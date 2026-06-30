@@ -93,8 +93,7 @@
             ],
             bProcessing: true,
             bServerSide: true,
-            sAjaxSource: '{{ route('
-            organization.list ') }}',
+            sAjaxSource: '{{ route('organization.list') }}',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>",
                 sLengthMenu: 'Show _MENU_ entries', // ← fix label
@@ -167,16 +166,14 @@
 
         // ── Add ───────────────────────────────────────────────────────
         $('#addOrg').on('click', function() {
-            openOrgModal('{{ route('
-                organization.form ') }}', {}, 'GET');
+            openOrgModal('{{ route('organization.form') }}', {}, 'GET');
         });
 
         // ── Edit ──────────────────────────────────────────────────────
         $(document).on('click', '.editOrg', function(e) {
             e.preventDefault();
             openOrgModal(
-                '{{ route('
-                organization.form ') }}', {
+                '{{ route('organization.form') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 },
@@ -188,8 +185,7 @@
         $(document).on('click', '.viewOrg', function(e) {
             e.preventDefault();
             openOrgModal(
-                '{{ route('
-                organization.view ') }}', {
+                '{{ route('organization.view') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 },
@@ -209,8 +205,7 @@
         $('#confirmDelete').on('click', function() {
             if (!deleteId) return;
 
-            $.post('{{ route('
-                    organization.delete ') }}', {
+            $.post('{{ route('organization.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })
