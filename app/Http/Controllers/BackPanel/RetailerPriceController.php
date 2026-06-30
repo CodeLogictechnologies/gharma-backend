@@ -46,6 +46,7 @@ class RetailerPriceController extends Controller
                 'itemid'     => 'required|uuid',
                 'variationid' => 'required|uuid',
                 'price'      => 'required|numeric|min:0',
+                'discount'   => 'nullable|numeric|min:0|max:100',
             ];
 
             $messages = [
@@ -57,6 +58,9 @@ class RetailerPriceController extends Controller
 
                 'price.required'       => 'Price is required.',
                 'price.numeric'        => 'Price must be a number.',
+
+                'discount.numeric'     => 'Discount must be a number.',
+                'discount.max'         => 'Discount cannot exceed 100%.',
             ];
 
             $validation = Validator::make($request->all(), $rules, $messages);
@@ -120,13 +124,15 @@ class RetailerPriceController extends Controller
             $array[$i]["title"]    = $row->title;
             $array[$i]["value"]    = $row->value;
             $array[$i]["price"]    = $row->price;
+            $array[$i]["discount"] = $row->discount;
 
             $action = '';
-            $action .= '<a href="javascript:;" 
-                    class="editRetailer" 
-                    data-id="' . $row->id . '" 
-                    data-itemid="' . $row->itemid . '" 
-                    data-price="' . $row->price . '" 
+            $action .= '<a href="javascript:;"
+                    class="editRetailer"
+                    data-id="' . $row->id . '"
+                    data-itemid="' . $row->itemid . '"
+                    data-price="' . $row->price . '"
+                    data-discount="' . $row->discount . '"
                     data-variationid="' . $row->variationid . '">
                     <i class="fa-solid fa-pen-to-square text-primary"></i>
                 </a>';

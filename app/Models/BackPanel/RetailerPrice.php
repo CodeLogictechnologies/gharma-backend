@@ -47,6 +47,15 @@ class RetailerPrice extends Model
                 }
             }
 
+            if (array_key_exists('discount', $post)) {
+                DB::table('itemvariations')
+                    ->where('id', $post['variationid'])
+                    ->update([
+                        'discount'   => is_numeric($post['discount']) ? $post['discount'] : null,
+                        'updated_at' => Carbon::now(),
+                    ]);
+            }
+
             return true;
         } catch (\Exception $e) {
             throw $e;
@@ -91,7 +100,8 @@ class RetailerPrice extends Model
                 i.id as itemid,
                 i.title,
                 iv.id as variationid,
-                iv.value
+                iv.value,
+                iv.discount
             ")
                 ->whereRaw($cond);
 

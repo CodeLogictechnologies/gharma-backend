@@ -244,6 +244,7 @@ class Item extends Model
                     $companyProductCodeCases = [];
                     $hsCodeCases              = [];   // ← new
                     $thresholdCases           = [];   // ← new
+                    $discountCases            = [];
 
                     $attrNameMap = DB::table('variation_attributes')
                         ->where('orgid', $post['orgid'] ?? null)
@@ -262,6 +263,7 @@ class Item extends Model
                             $attrId   = $variation['attribute_id'] ?? null;
                             $attrName = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
                             $threshold = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
+                            $discount  = is_numeric($variation['discount'] ?? null) ? (float) $variation['discount'] : null;
 
                             $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($attrName) . "'";
                             $varAttrIdCases[]          = !empty($attrId) ? "WHEN '$id' THEN '$attrId'::uuid" : "WHEN '$id' THEN NULL::uuid";
@@ -270,10 +272,12 @@ class Item extends Model
                             $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
                             $hsCodeCases[] = "WHEN '$id' THEN " . (!empty($variation['hs_code']) ? "'" . addslashes($variation['hs_code']) . "'" : 'NULL');
                             $thresholdCases[]           = "WHEN '$id' THEN $threshold";
+                            $discountCases[]            = "WHEN '$id' THEN " . ($discount !== null ? $discount : 'NULL');
                         } else {
                             $attrId    = $variation['attribute_id'] ?? null;
                             $attrName  = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
                             $threshold = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
+                            $discount  = is_numeric($variation['discount'] ?? null) ? (float) $variation['discount'] : null;
 
                             DB::table('itemvariations')->insert([
                                 'id'                     => (string) Str::uuid(),
@@ -282,6 +286,7 @@ class Item extends Model
                                 'variation_attribute_id' => $attrId ?: null,
                                 'value'                  => $variation['value'],
                                 'threshold'              => $threshold,
+                                'discount'               => $discount,
                                 'price'                  => $variation['price']              ?? 0,
                                 'product_code'           => $variation['product_code']         ?? null,
                                 'company_product_code'   => $variation['company_product_code'] ?? null,
@@ -307,6 +312,7 @@ UPDATE itemvariations SET
     company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
     hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
     threshold               = CASE id " . implode(' ', $thresholdCases)          . " END,
+    discount                = CASE id " . implode(' ', $discountCases)           . " END,
     updated_at              = NOW(),
     updatedby               = ?
 WHERE id IN ($idsList)
@@ -462,6 +468,7 @@ WHERE id IN ($idsList)
                             'variation_attribute_id' => $attrId ?: null,
                             'value'                  => $variation['value'],
                             'threshold'              => $variation['threshold']          ?? 0,
+                            'discount'               => is_numeric($variation['discount'] ?? null) ? (float) $variation['discount'] : null,
                             'price'                  => $variation['price']              ?? 0,
                             'product_code'           => $variation['product_code']         ?? null,
                             'company_product_code'   => $variation['company_product_code'] ?? null,
