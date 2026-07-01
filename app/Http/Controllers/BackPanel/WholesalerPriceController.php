@@ -44,7 +44,8 @@ class WholesalerPriceController extends Controller
     {
         $id   = $request->id ?? null;
         $post = $request->all();
-        $post['orgid'] = session('orgid');
+        $post['orgid']          = session('orgid');
+        $post['wholesale_only'] = true;
         $items = Item::getItem($post);
 
         $data = [

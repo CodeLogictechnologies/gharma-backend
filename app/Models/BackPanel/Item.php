@@ -28,6 +28,7 @@ class Item extends Model
         'product_code',
         'company_product_code',
         'hs_code',
+        'is_wholesale',
         'vat_status',
         'excise_status',
         'excise_type',
@@ -190,6 +191,7 @@ class Item extends Model
                 'product_code'         => $post['product_code']         ?? null,
                 'company_product_code' => $post['company_product_code'] ?? null,
                 'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,
+                'is_wholesale'         => !empty($post['is_wholesale']) ? 'Y' : 'N',
                 'vat_status'           => !empty($post['vat_status']) ? 'Y' : 'N',
                 'excise_status'        => !empty($post['excise_status']) ? 'Y' : 'N',
                 'excise_type'          => !empty($post['excise_status']) ? ($post['excise_type'] ?? null) : null,
@@ -662,11 +664,16 @@ WHERE id IN ($idsList)
     public static function getItem($post)
     {
         try {
-            return DB::table('items')
+            $query = DB::table('items')
                 ->select('id as itemid', 'title as itemname')
                 ->where('orgid', $post['orgid'])
-                ->where('status', 'Y')
-                ->get();
+                ->where('status', 'Y');
+
+            if (!empty($post['wholesale_only'])) {
+                $query->where('is_wholesale', 'Y');
+            }
+
+            return $query->get();
         } catch (Exception $e) {
             throw $e;
         }

@@ -335,58 +335,73 @@
                     value="{{ $data['hs_code'] ?? '' }}">
             </div>
 
-            <div class="col-md-2 d-flex flex-column align-items-center">
-                <label class="form-label">VAT STATUS</label>
-                <input type="hidden" name="vat_status" value="0">
-                <input class="form-check-input" type="checkbox" id="vatStatus"
-                    name="vat_status" value="1" aria-label="VAT Status"
-                    {{ !empty($data['vat_status']) ? 'checked' : '' }}>
+            {{-- Three toggle checkboxes grouped compactly --}}
+            <div class="col-auto">
+                <div class="d-flex gap-4">
+                    <div class="d-flex flex-column align-items-center">
+                        <label class="form-label" for="isWholesale">IS WHOLESALE</label>
+                        <input type="hidden" name="is_wholesale" value="0">
+                        <input class="form-check-input" type="checkbox" id="isWholesale"
+                            name="is_wholesale" value="1" aria-label="Is Wholesale"
+                            {{ !empty($data['is_wholesale']) ? 'checked' : '' }}>
+                    </div>
+                    <div class="d-flex flex-column align-items-center">
+                        <label class="form-label" for="vatStatus">VAT STATUS</label>
+                        <input type="hidden" name="vat_status" value="0">
+                        <input class="form-check-input" type="checkbox" id="vatStatus"
+                            name="vat_status" value="1" aria-label="VAT Status"
+                            {{ !empty($data['vat_status']) ? 'checked' : '' }}>
+                    </div>
+                    <div class="d-flex flex-column align-items-center">
+                        <label class="form-label" for="exciseStatus">EXCISE DUTY</label>
+                        <input type="hidden" name="excise_status" value="0">
+                        <input class="form-check-input" type="checkbox" id="exciseStatus"
+                            name="excise_status" value="1" aria-label="Excise Duty Status"
+                            {{ !empty($data['excise_status']) ? 'checked' : '' }}>
+                    </div>
+                </div>
             </div>
 
-            <div class="col-md-2 d-flex flex-column align-items-center">
-                <label class="form-label">Excise Duty</label>
-                <input type="hidden" name="excise_status" value="0">
-                <input class="form-check-input" type="checkbox" id="exciseStatus"
-                    name="excise_status" value="1" aria-label="Excise Duty Status"
-                    {{ !empty($data['excise_status']) ? 'checked' : '' }}>
-            </div>
-
-            {{-- Excise type: shown only when Excise Duty is enabled --}}
-            <div class="col-md-3" id="exciseTypeField"
+            {{-- Excise type + value fields side by side --}}
+            <div class="col" id="exciseTypeField"
                 style="display: {{ !empty($data['excise_status']) ? 'block' : 'none' }};">
-                <label class="form-label" for="exciseType">Excise Type <span class="text-danger">*</span></label>
-                <select name="excise_type" id="exciseType" class="form-select">
-                    <option value="">-- Select Type --</option>
-                    <option value="percentage" {{ ($data['excise_type'] ?? '') === 'percentage' ? 'selected' : '' }}>Percentage (%)</option>
-                    <option value="fixed"      {{ ($data['excise_type'] ?? '') === 'fixed'      ? 'selected' : '' }}>Fixed Amount</option>
-                </select>
-                <div class="field-error" id="exciseTypeError">Excise type is required.</div>
-            </div>
+                <div class="d-flex gap-2 align-items-start">
+                    <div style="min-width: 160px;">
+                        <label class="form-label" for="exciseType">Excise Type <span class="text-danger">*</span></label>
+                        <select name="excise_type" id="exciseType" class="form-select">
+                            <option value="">-- Select Type --</option>
+                            <option value="percentage" {{ ($data['excise_type'] ?? '') === 'percentage' ? 'selected' : '' }}>Percentage (%)</option>
+                            <option value="fixed"      {{ ($data['excise_type'] ?? '') === 'fixed'      ? 'selected' : '' }}>Fixed Amount</option>
+                        </select>
+                        <div class="field-error" id="exciseTypeError">Excise type is required.</div>
+                    </div>
 
-            {{-- Percentage field: shown when excise type = percentage --}}
-            <div class="col-md-2" id="excisePercentageField"
-                style="display: {{ ($data['excise_status'] ?? false) && ($data['excise_type'] ?? '') === 'percentage' ? 'block' : 'none' }};">
-                <label class="form-label" for="excisePercentage">Percentage (%) <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <input type="number" class="form-control" name="excise_percentage" id="excisePercentage"
-                        placeholder="e.g. 10" min="0" max="100" step="0.01"
-                        value="{{ $data['excise_percentage'] ?? '' }}">
-                    <span class="input-group-text">%</span>
-                </div>
-                <div class="field-error" id="excisePercentageError">Excise percentage is required.</div>
-            </div>
+                    {{-- Percentage field: shown when excise type = percentage --}}
+                    <div id="excisePercentageField" style="min-width: 130px;
+                        display: {{ ($data['excise_status'] ?? false) && ($data['excise_type'] ?? '') === 'percentage' ? 'block' : 'none' }};">
+                        <label class="form-label" for="excisePercentage">Percentage (%) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="excise_percentage" id="excisePercentage"
+                                placeholder="e.g. 10" min="0" max="100" step="0.01"
+                                value="{{ $data['excise_percentage'] ?? '' }}">
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <div class="field-error" id="excisePercentageError">Excise percentage is required.</div>
+                    </div>
 
-            {{-- Fixed amount field: shown when excise type = fixed --}}
-            <div class="col-md-2" id="exciseFixedField"
-                style="display: {{ ($data['excise_status'] ?? false) && ($data['excise_type'] ?? '') === 'fixed' ? 'block' : 'none' }};">
-                <label class="form-label" for="exciseValue">Fixed Amount <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text">Rs</span>
-                    <input type="number" class="form-control" name="excise_value" id="exciseValue"
-                        placeholder="e.g. 50" min="0" step="0.01"
-                        value="{{ $data['excise_value'] ?? '' }}">
+                    {{-- Fixed amount field: shown when excise type = fixed --}}
+                    <div id="exciseFixedField" style="min-width: 150px;
+                        display: {{ ($data['excise_status'] ?? false) && ($data['excise_type'] ?? '') === 'fixed' ? 'block' : 'none' }};">
+                        <label class="form-label" for="exciseValue">Fixed Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rs</span>
+                            <input type="number" class="form-control" name="excise_value" id="exciseValue"
+                                placeholder="e.g. 50" min="0" step="0.01"
+                                value="{{ $data['excise_value'] ?? '' }}">
+                        </div>
+                        <div class="field-error" id="exciseValueError">Excise amount is required.</div>
+                    </div>
                 </div>
-                <div class="field-error" id="exciseValueError">Excise amount is required.</div>
             </div>
         </div>
 
@@ -457,7 +472,7 @@
         {{-- ── Row 4: Description ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-12">
-                <label class="form-label">Description</label>
+                <label class="form-label" for="description">Description</label>
                 <textarea name="description" id="description" class="form-control"
                     rows="5">{!! $data['description'] ?? '' !!}</textarea>
             </div>
