@@ -328,11 +328,65 @@
                 <div class="field-error" id="company_product_codeError">Company product code is required.</div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">HS Code</label>
                 <input type="text" class="form-control" name="hs_code"
                     placeholder="Enter HS code..."
                     value="{{ $data['hs_code'] ?? '' }}">
+            </div>
+
+            <div class="col-md-2 d-flex flex-column align-items-center">
+                <label class="form-label">VAT STATUS</label>
+                <input type="hidden" name="vat_status" value="0">
+                <input class="form-check-input" type="checkbox" id="vatStatus"
+                    name="vat_status" value="1" aria-label="VAT Status"
+                    {{ !empty($data['vat_status']) ? 'checked' : '' }}>
+            </div>
+
+            <div class="col-md-2 d-flex flex-column align-items-center">
+                <label class="form-label">Excise Duty</label>
+                <input type="hidden" name="excise_status" value="0">
+                <input class="form-check-input" type="checkbox" id="exciseStatus"
+                    name="excise_status" value="1" aria-label="Excise Duty Status"
+                    {{ !empty($data['excise_status']) ? 'checked' : '' }}>
+            </div>
+
+            {{-- Excise type: shown only when Excise Duty is enabled --}}
+            <div class="col-md-3" id="exciseTypeField"
+                style="display: {{ !empty($data['excise_status']) ? 'block' : 'none' }};">
+                <label class="form-label" for="exciseType">Excise Type <span class="text-danger">*</span></label>
+                <select name="excise_type" id="exciseType" class="form-select">
+                    <option value="">-- Select Type --</option>
+                    <option value="percentage" {{ ($data['excise_type'] ?? '') === 'percentage' ? 'selected' : '' }}>Percentage (%)</option>
+                    <option value="fixed"      {{ ($data['excise_type'] ?? '') === 'fixed'      ? 'selected' : '' }}>Fixed Amount</option>
+                </select>
+                <div class="field-error" id="exciseTypeError">Excise type is required.</div>
+            </div>
+
+            {{-- Percentage field: shown when excise type = percentage --}}
+            <div class="col-md-2" id="excisePercentageField"
+                style="display: {{ ($data['excise_status'] ?? false) && ($data['excise_type'] ?? '') === 'percentage' ? 'block' : 'none' }};">
+                <label class="form-label" for="excisePercentage">Percentage (%) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <input type="number" class="form-control" name="excise_percentage" id="excisePercentage"
+                        placeholder="e.g. 10" min="0" max="100" step="0.01"
+                        value="{{ $data['excise_percentage'] ?? '' }}">
+                    <span class="input-group-text">%</span>
+                </div>
+                <div class="field-error" id="excisePercentageError">Excise percentage is required.</div>
+            </div>
+
+            {{-- Fixed amount field: shown when excise type = fixed --}}
+            <div class="col-md-2" id="exciseFixedField"
+                style="display: {{ ($data['excise_status'] ?? false) && ($data['excise_type'] ?? '') === 'fixed' ? 'block' : 'none' }};">
+                <label class="form-label" for="exciseValue">Fixed Amount <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text">Rs</span>
+                    <input type="number" class="form-control" name="excise_value" id="exciseValue"
+                        placeholder="e.g. 50" min="0" step="0.01"
+                        value="{{ $data['excise_value'] ?? '' }}">
+                </div>
+                <div class="field-error" id="exciseValueError">Excise amount is required.</div>
             </div>
         </div>
 
@@ -585,6 +639,30 @@
 
 <script>
 $(function () {
+
+    /* ─────────────────────────────────────────────
+    // EXCISE DUTY → show/hide type & value fields
+    ───────────────────────────────────────────── */
+    function applyExciseTypeUI(type) {
+        $('#excisePercentageField').toggle(type === 'percentage');
+        $('#exciseFixedField').toggle(type === 'fixed');
+        if (type !== 'percentage') $('#excisePercentage').val('');
+        if (type !== 'fixed')      $('#exciseValue').val('');
+    }
+
+    function toggleExciseFields() {
+        const enabled = $('#exciseStatus').is(':checked');
+        $('#exciseTypeField').toggle(enabled);
+        if (!enabled) {
+            $('#exciseType').val('');
+        }
+        applyExciseTypeUI(enabled ? $('#exciseType').val() : '');
+    }
+    $('#exciseStatus').on('change', toggleExciseFields);
+    $('#exciseType').on('change', function () {
+        applyExciseTypeUI(this.value);
+    });
+    toggleExciseFields();
 
     /* ─────────────────────────────────────────────
        IMAGE UPLOAD & PREVIEW
@@ -931,6 +1009,27 @@ $(function () {
         if (!hsValid) {
             showNotification('HS Code must be exactly 6 digits.', 'error');
             valid = false;
+        }
+
+        if ($('#exciseStatus').is(':checked')) {
+            const exciseType = $('#exciseType').val();
+            if (!exciseType) {
+                $('#exciseType').addClass('is-invalid-select');
+                $('#exciseTypeError').addClass('show');
+                valid = false;
+            } else if (exciseType === 'percentage') {
+                if (!$('#excisePercentage').val().toString().trim()) {
+                    $('#excisePercentage').addClass('is-invalid-select');
+                    $('#excisePercentageError').addClass('show');
+                    valid = false;
+                }
+            } else if (exciseType === 'fixed') {
+                if (!$('#exciseValue').val().toString().trim()) {
+                    $('#exciseValue').addClass('is-invalid-select');
+                    $('#exciseValueError').addClass('show');
+                    valid = false;
+                }
+            }
         }
 
         return valid;

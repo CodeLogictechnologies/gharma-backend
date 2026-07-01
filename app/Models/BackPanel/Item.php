@@ -27,6 +27,12 @@ class Item extends Model
         'updatedby',
         'product_code',
         'company_product_code',
+        'hs_code',
+        'vat_status',
+        'excise_status',
+        'excise_type',
+        'excise_percentage',
+        'excise_value',
     ];
 
     protected $casts = [
@@ -184,6 +190,13 @@ class Item extends Model
                 'product_code'         => $post['product_code']         ?? null,
                 'company_product_code' => $post['company_product_code'] ?? null,
                 'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,
+                'vat_status'           => !empty($post['vat_status']) ? 'Y' : 'N',
+                'excise_status'        => !empty($post['excise_status']) ? 'Y' : 'N',
+                'excise_type'          => !empty($post['excise_status']) ? ($post['excise_type'] ?? null) : null,
+                'excise_percentage'    => (!empty($post['excise_status']) && ($post['excise_type'] ?? '') === 'percentage')
+                                            ? ($post['excise_percentage'] ?? null) : null,
+                'excise_value'         => (!empty($post['excise_status']) && ($post['excise_type'] ?? '') === 'fixed')
+                                            ? ($post['excise_value'] ?? null) : null,
                 'postedby'             => $post['userid'],
                 'orgid'                => $post['orgid']                ?? null,
             ];
