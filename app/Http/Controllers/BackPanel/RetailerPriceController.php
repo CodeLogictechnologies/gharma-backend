@@ -120,11 +120,15 @@ class RetailerPriceController extends Controller
         unset($data["totalfilteredrecs"]);
         unset($data["totalrecs"]);
         foreach ($data as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["title"]    = $row->title;
-            $array[$i]["value"]    = $row->value;
-            $array[$i]["price"]    = $row->price;
-            $array[$i]["discount"] = $row->discount;
+            $price    = (float) $row->price;
+            $discount = (float) ($row->discount ?? 0);
+
+            $array[$i]["sno"]           = $i + 1;
+            $array[$i]["title"]         = $row->title;
+            $array[$i]["value"]         = $row->value;
+            $array[$i]["price"]         = number_format($price, 2);
+            $array[$i]["discount"]      = $discount > 0 ? $discount . '%' : '—';
+            $array[$i]["selling_price"] = number_format($price - ($price * $discount / 100), 2);
 
             $action = '';
             $action .= '<a href="javascript:;"

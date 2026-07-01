@@ -97,6 +97,7 @@
                                             <th>Variation</th>
                                             <th>Price</th>
                                             <th>Discount</th>
+                                            <th>Selling Price</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -215,7 +216,7 @@
             },
             aoColumnDefs: [{
                 bSortable: false,
-                aTargets: [2, 3, 4]
+                aTargets: [2, 3, 4, 5]
             }],
             aoColumns: [{
                     data: 'sno'
@@ -231,6 +232,9 @@
                 },
                 {
                     data: 'discount'
+                },
+                {
+                    data: 'selling_price'
                 },
                 {
                     data: 'action'
