@@ -571,7 +571,7 @@
                                     class="form-control" placeholder="CC-001"
                                     value="{{ $v['company_product_code'] ?? '' }}">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <label class="form-label mb-1">HS Code</label>
                                 <input type="text" name="variations[{{ $i }}][hs_code]"
                                     class="form-control" placeholder="HS-001"
@@ -589,31 +589,12 @@
                                     class="form-control" placeholder="2%" min="0" max="100" step="0.01"
                                     value="{{ $v['discount'] ?? '' }}">
                             </div>
-                            <!-- <div class="col-md-1">
-                                    <label class="form-label mb-1">Price</label>
-                                    <input type="number" name="variations[{{ $i }}][price]"
-                                        class="form-control" placeholder="0.00" min="0" step="0.01"
-                                        value="{{ $v['price'] ?? '' }}">
-                                </div> -->
-                            <!-- <div class="col-md-1">
-                                    <label class="form-label mb-1">Stock</label>
-                                    <input type="number" name="variations[{{ $i }}][stock]"
-                                        class="form-control" placeholder="0" min="0" step="1"
-                                        value="{{ $v['stock'] ?? '' }}">
-                                </div> -->
-                            <!-- <div class="col-md-1">
-                                    <label class="form-label mb-1">Status</label>
-                                    <select name="variations[{{ $i }}][status]" class="form-select">
-                                        <option value="active"
-                                            {{ ($v['status'] ?? 'active') === 'active' ? 'selected' : '' }}>
-                                            Active
-                                        </option>
-                                        <option value="inactive"
-                                            {{ ($v['status'] ?? '') === 'inactive' ? 'selected' : '' }}>
-                                            Inactive
-                                        </option>
-                                    </select>
-                                </div> -->
+                            <div class="col-md-1">
+                                <label class="form-label mb-1">Price</label>
+                                <input type="number" name="variations[{{ $i }}][price]"
+                                    class="form-control" placeholder="0.00" min="0" step="0.01"
+                                    value="{{ $v['price'] ?? '' }}">
+                            </div>
                         </div>
                     </div>
                     @endforeach
@@ -913,7 +894,7 @@ $(function () {
                     <input type="text" name="variations[${idx}][company_product_code]"
                            class="form-control" placeholder="CC-001">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <label class="form-label mb-1">HS Code</label>
                     <input type="text" name="variations[${idx}][hs_code]"
                            class="form-control" placeholder="HS-001" maxlength="15">
@@ -927,6 +908,11 @@ $(function () {
                     <label class="form-label mb-1">Discount</label>
                     <input type="number" name="variations[${idx}][discount]"
                            class="form-control" placeholder="2%" min="0" max="100" step="0.01">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label mb-1">Price</label>
+                    <input type="number" name="variations[${idx}][price]"
+                           class="form-control" placeholder="0.00" min="0" step="0.01">
                 </div>
             </div>
         </div>`;

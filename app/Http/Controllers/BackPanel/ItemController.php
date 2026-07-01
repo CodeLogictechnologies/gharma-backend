@@ -72,6 +72,7 @@ class ItemController extends Controller
                     'company_product_code' => '',
                     'threshold'            => '',
                     'discount'             => '',
+                    'price'                => '',
                 ],
             ],
         ];
@@ -117,6 +118,7 @@ class ItemController extends Controller
                     'hs_code'              => $v->hs_code               ?? '',
                     'threshold'            => $v->threshold             ?? '',
                     'discount'             => $v->discount              ?? '',
+                    'price'                => $v->price                 ?? '',
                 ])
                 ->toArray();
 
