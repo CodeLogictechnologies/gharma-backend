@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Validation\Rule;
 
 class OrganizationController extends Controller
 {
@@ -35,6 +35,8 @@ class OrganizationController extends Controller
                     'required',
                     'email',
                     'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/',
+                    Rule::unique('organizations', 'email')->ignore($request->id, 'id'),
+
                 ],
                 'username' => 'required',
             ];
@@ -48,7 +50,8 @@ class OrganizationController extends Controller
                 'phone.required' => 'Phone number is required',
                 'address.required' => 'Address is required',
                 'email.required' => 'Email is required',
-                'email.regex' => 'Email must end with .com',
+                'email.regex' => 'Email must be a valid .com address (e.g. name@example.com)',
+                'email.unique' => 'This email is already in use. Please use a different email.',
                 'username.required' => 'User Name is required',
             ];
 
@@ -142,60 +145,63 @@ class OrganizationController extends Controller
     // }
 
     public function list(Request $request)
-{
-    try {
-        $post = $request->all();
-        $data = Organization::list($post);
-        $i    = 0;
-        $array = [];
+    {
+        try {
+            $post = $request->all();
+            $data = Organization::list($post);
+            $i    = 0;
+            $array = [];
 
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs    = $data["totalrecs"];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs    = $data["totalrecs"];
 
-        // ── Use iDisplayStart for correct serial number ───────────────
-        $start = (int) $request->input('iDisplayStart', 0);
+            // ── Use iDisplayStart for correct serial number ───────────────
+            $start = (int) $request->input('iDisplayStart', 0);
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
+            unset($data["totalfilteredrecs"]);
+            unset($data["totalrecs"]);
 
-        foreach ($data as $row) {
-            $array[$i]["sno"]     = $start + $i + 1;
-            $array[$i]["name"]    = $row->name;
-            $array[$i]["email"]   = $row->email;
-            $array[$i]["address"] = $row->address;
-            $array[$i]["phone"]   = $row->phone;
+            foreach ($data as $row) {
+                $array[$i]["sno"]     = $start + $i + 1;
+                $array[$i]["name"]    = $row->name;
+                $array[$i]["email"]   = $row->email;
+                $array[$i]["address"] = $row->address;
+                $array[$i]["phone"]   = $row->phone;
 
-            if (!empty($row->logo)) {
-                $imagePath = storage_path('app/public/organizations/' . $row->logo);
-                $imageUrl  = file_exists($imagePath)
-                    ? asset('storage/organizations/' . $row->logo)
-                    : asset('no-image.jpg');
-            } else {
-                $imageUrl = asset('no-image.jpg');
+                if (!empty($row->logo)) {
+                    $imagePath = storage_path('app/public/organizations/' . $row->logo);
+                    $imageUrl  = file_exists($imagePath)
+                        ? asset('storage/organizations/' . $row->logo)
+                        : asset('no-image.jpg');
+                } else {
+                    $imageUrl = asset('no-image.jpg');
+                }
+                $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
+
+                $action  = '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg"        style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                $array[$i]["action"] = $action;
+                $i++;
             }
-            $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
 
-            $action  = '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
-            $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg"        style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-            $array[$i]["action"] = $action;
-            $i++;
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs)    $totalrecs    = 0;
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         }
 
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs)    $totalrecs    = 0;
-
-    } catch (QueryException $e) {
-        $array = []; $totalrecs = 0; $filtereddata = 0;
-    } catch (Exception $e) {
-        $array = []; $totalrecs = 0; $filtereddata = 0;
+        return json_encode([
+            "recordsFiltered" => $filtereddata,
+            "recordsTotal"    => $totalrecs,
+            "data"            => $array
+        ]);
     }
-
-    return json_encode([
-        "recordsFiltered" => $filtereddata,
-        "recordsTotal"    => $totalrecs,
-        "data"            => $array
-    ]);
-}
 
     //function to get value while editing
     public function form(Request $request)
