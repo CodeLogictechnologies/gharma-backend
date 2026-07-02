@@ -5,6 +5,7 @@ namespace App\Http\Controllers\BackPanel;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use App\Models\EnumType;
 
 class HeatmapController extends Controller
 {
@@ -128,10 +129,7 @@ class HeatmapController extends Controller
 
         $data = $this->collectData($orderStatus, $dateFrom, $dateTo);
 
-        $orderStatuses = [
-            'Pending', 'Confirmed', 'Packed', 'Shipped',
-            'Delivered', 'Cancelled', 'Returned', 'Refunded',
-        ];
+        $orderStatuses = EnumType::orderStatuses();
 
         return view('backend.heatmap.index', array_merge($data, compact(
             'orderStatuses',

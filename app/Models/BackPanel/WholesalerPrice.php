@@ -150,7 +150,7 @@ class WholesalerPrice extends Model
         $columns = $post['columns'] ?? [];
 
         // ── Base conditions (keep as array) ────────────────────
-        $conditions = ["wp.status = 'Y'"];
+        $conditions = ["wp.status = 'Y'", "i.is_wholesale = 'Y'"];
         $orgid      = $post['orgid'] ?? null;
 
         if ($orgid) {
