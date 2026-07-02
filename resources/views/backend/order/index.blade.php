@@ -13,7 +13,24 @@
                 <h5 class="mb-0">Order List</h5>
             </div>
 
-            <div class="table-responsive text-nowrap mx-4 mb-4">
+            <div class="px-4 pt-3">
+                <ul class="nav nav-tabs flex-nowrap overflow-auto" id="orderStatusTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="javascript:;" data-status="All">
+                            All <span class="badge bg-label-primary rounded-pill ms-1" id="count-All">0</span>
+                        </a>
+                    </li>
+                    @foreach ($statuses as $status)
+                        <li class="nav-item">
+                            <a class="nav-link" href="javascript:;" data-status="{{ $status }}">
+                                {{ $status }} <span class="badge bg-label-secondary rounded-pill ms-1" id="count-{{ $status }}">0</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+
+            <div class="table-responsive text-nowrap mx-4 mb-4 mt-3">
                 <table class="table" id="orderTable">
                     <thead class="table-light">
                         <tr class="align-middle">
@@ -70,8 +87,35 @@
 @section('main-scripts')
     <script>
         var orderTable;
+        var currentStatus = 'All';
 
         $(document).ready(function() {
+
+            // ── Load status tab counts ─────────────────────────────────────
+            function loadStatusCounts() {
+                $.get('{{ route('order.status.counts') }}')
+                    .done(function(res) {
+                        $.each(res, function(status, count) {
+                            $('#count-' + status).text(count);
+                        });
+                    });
+            }
+            loadStatusCounts();
+
+            // ── Status tab click ─────────────────────────────────────────
+            $(document).on('click', '#orderStatusTabs .nav-link', function(e) {
+                e.preventDefault();
+
+                if ($(this).hasClass('active')) return;
+
+                $('#orderStatusTabs .nav-link').removeClass('active');
+                $(this).addClass('active');
+
+                currentStatus = $(this).data('status');
+
+                orderTable.fnSettings()._iDisplayStart = 0;
+                orderTable.fnDraw();
+            });
             function openOrgModal(url, data, method) {
                 var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
 
@@ -140,6 +184,12 @@
                 bProcessing: true,
                 bServerSide: true,
                 sAjaxSource: '{{ route('order.list') }}',
+                fnServerParams: function(aoData) {
+                    aoData.push({
+                        name: 'status',
+                        value: currentStatus
+                    });
+                },
                 oLanguage: {
                     sEmptyTable: "<p class='no_data_message'>No data available.</p>"
                 },
@@ -268,6 +318,7 @@
                             }
                             showNotification(result.message, 'success');
                             orderTable.fnDraw(); // ← fixed: was userTable
+                            loadStatusCounts();
                         } else {
                             // Revert dropdown on failure
                             if ($activeDropdown) {

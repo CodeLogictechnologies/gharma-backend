@@ -5,6 +5,7 @@ namespace App\Models\BackPanel;
 use Illuminate\Database\Eloquent\Model;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use App\Models\EnumType;
 
 
 class Order extends Model
@@ -92,6 +93,11 @@ class Order extends Model
             $cond .= " and om.order_status = 'Delivered'";
         }
 
+        if (!empty($post['status']) && $post['status'] !== 'All') {
+            $cond      .= " and om.order_status = ?";
+            $bindings[] = $post['status'];
+        }
+
         $limit  = isset($post['iDisplayLength']) ? (int) $post['iDisplayLength'] : 15;
         $offset = isset($post['iDisplayStart'])  ? (int) $post['iDisplayStart']  : 0;
 
@@ -122,6 +128,24 @@ class Order extends Model
         throw $e;
     }
 }
+    public static function statusCounts()
+    {
+        $statuses = EnumType::orderStatuses();
+
+        $counts = DB::table('order_masters')
+            ->select('order_status', DB::raw('count(*) as total'))
+            ->groupBy('order_status')
+            ->pluck('total', 'order_status');
+
+        $result = ['All' => (int) $counts->sum()];
+
+        foreach ($statuses as $status) {
+            $result[$status] = (int) ($counts[$status] ?? 0);
+        }
+
+        return $result;
+    }
+
     public static function getData($post)
     {
         $result = DB::table('order_details as od')

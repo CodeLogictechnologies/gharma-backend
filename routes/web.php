@@ -238,6 +238,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::group(['prefix' => 'order'], function () {
             Route::get('/', [OrderController::class, 'index'])->name('order');
             Route::get('/list', [OrderController::class, 'list'])->name('order.list');
+            Route::get('/status-counts', [OrderController::class, 'statusCounts'])->name('order.status.counts');
             Route::post('/view', [OrderController::class, 'view'])->name('order.view');
             Route::post('/order-status-update', [OrderController::class, 'updateStatus'])->name('order.status.update');
         });
