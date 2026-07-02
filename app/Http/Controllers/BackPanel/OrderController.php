@@ -9,12 +9,15 @@ use Illuminate\Database\QueryException;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use App\Services\FirebaseService;
+use App\Models\EnumType;
 
 class OrderController extends Controller
 {
     public function index()
     {
-        return view('backend.order.index');
+        return view('backend.order.index', [
+            'statuses' => EnumType::orderStatuses(),
+        ]);
     }
 
     public function list(Request $request)
@@ -30,10 +33,7 @@ class OrderController extends Controller
     $i     = 0;
     $array = [];
 
-    $statuses = [
-        'Pending', 'Confirmed', 'Packed', 'Shipped',
-        'Delivered', 'Cancelled', 'Returned', 'Refunded'
-    ];
+    $statuses = EnumType::orderStatuses();
 
     foreach ($result as $row) {
         $array[$i]['sno']        = $offset + $i + 1;
@@ -67,6 +67,11 @@ class OrderController extends Controller
         'data'            => $array,
     ]);
 }
+
+    public function statusCounts()
+    {
+        return response()->json(Order::statusCounts());
+    }
 
     public function view(Request $request)
     {
