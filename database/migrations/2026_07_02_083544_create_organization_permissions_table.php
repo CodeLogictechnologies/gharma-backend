@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('organization_permissions', function (Blueprint $table) {
             $table->uuid('org_id');
-            $table->unsignedBigInteger('permission_id');
+            $table->uuid('permission_id');
 
             $table->foreign('org_id')
                 ->references('id')

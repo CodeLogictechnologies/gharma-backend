@@ -59,7 +59,7 @@
                 <div class="invalid-feedback">Image Field is required.</div>
 
                 <img id="img_preview" src="{{ @$logo ?: asset('no-image.jpg') }}"
-    style="width:100px; margin-top:10px; border-radius:6px;" alt="Preview" />
+                    style="width:100px; margin-top:10px; border-radius:6px;" alt="Preview" />
             </div>
 
         </div>
