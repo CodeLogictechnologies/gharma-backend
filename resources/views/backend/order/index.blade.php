@@ -8,26 +8,26 @@
 @section('content')
 
     <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="nav-align-top mb-4">
+            <ul class="nav nav-tabs flex-nowrap overflow-auto" id="orderStatusTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="javascript:;" data-status="All">
+                        All <span class="badge bg-label-primary rounded-pill ms-1" id="count-All">0</span>
+                    </a>
+                </li>
+                @foreach ($statuses as $status)
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:;" data-status="{{ $status }}">
+                            {{ $status }} <span class="badge bg-label-secondary rounded-pill ms-1" id="count-{{ $status }}">0</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+
         <div class="card">
             <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
                 <h5 class="mb-0">Order List</h5>
-            </div>
-
-            <div class="px-4 pt-3">
-                <ul class="nav nav-tabs flex-nowrap overflow-auto" id="orderStatusTabs">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="javascript:;" data-status="All">
-                            All <span class="badge bg-label-primary rounded-pill ms-1" id="count-All">0</span>
-                        </a>
-                    </li>
-                    @foreach ($statuses as $status)
-                        <li class="nav-item">
-                            <a class="nav-link" href="javascript:;" data-status="{{ $status }}">
-                                {{ $status }} <span class="badge bg-label-secondary rounded-pill ms-1" id="count-{{ $status }}">0</span>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
             </div>
 
             <div class="table-responsive text-nowrap mx-4 mb-4 mt-3">
