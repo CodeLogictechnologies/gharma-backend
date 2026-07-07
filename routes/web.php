@@ -13,6 +13,8 @@ use App\Http\Controllers\BackPanel\InventoryController;
 use App\Http\Controllers\BackPanel\InventoryReportController;
 use App\Http\Controllers\BackPanel\PurchaseVoucherController;
 use App\Http\Controllers\BackPanel\PurchaseReturnController;
+use App\Http\Controllers\BackPanel\SalesController;
+use App\Http\Controllers\BackPanel\SalesReturnController;
 use App\Http\Controllers\BackPanel\OtpController;
 use App\Http\Controllers\BackPanel\ItemController;
 use App\Http\Controllers\BackPanel\NotificationController;
@@ -274,6 +276,29 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/vendor-vouchers', [PurchaseReturnController::class, 'vendorVouchers'])->name('purchase-return.vendor-vouchers');
             Route::get('/voucher-items', [PurchaseReturnController::class, 'voucherItems'])->name('purchase-return.voucher-items');
             Route::post('/status', [PurchaseReturnController::class, 'updateStatus'])->name('purchase-return.status');
+        });
+
+        Route::group(['prefix' => 'sales'], function () {
+            Route::get('/', [SalesController::class, 'index'])->name('sales');
+            Route::post('/list', [SalesController::class, 'list'])->name('sales.list');
+            Route::any('/form', [SalesController::class, 'form'])->name('sales.form');
+            Route::post('/save', [SalesController::class, 'save'])->name('sales.save');
+            Route::post('/view', [SalesController::class, 'view'])->name('sales.view');
+            Route::post('/delete', [SalesController::class, 'delete'])->name('sales.delete');
+            Route::get('/customer-orders', [SalesController::class, 'customerOrders'])->name('sales.customer-orders');
+            Route::get('/order-items', [SalesController::class, 'orderItems'])->name('sales.order-items');
+        });
+
+        Route::group(['prefix' => 'sales-return'], function () {
+            Route::get('/', [SalesReturnController::class, 'index'])->name('sales-return');
+            Route::post('/list', [SalesReturnController::class, 'list'])->name('sales-return.list');
+            Route::any('/form', [SalesReturnController::class, 'form'])->name('sales-return.form');
+            Route::post('/save', [SalesReturnController::class, 'save'])->name('sales-return.save');
+            Route::post('/view', [SalesReturnController::class, 'view'])->name('sales-return.view');
+            Route::post('/delete', [SalesReturnController::class, 'delete'])->name('sales-return.delete');
+            Route::get('/customer-vouchers', [SalesReturnController::class, 'customerVouchers'])->name('sales-return.customer-vouchers');
+            Route::get('/voucher-items', [SalesReturnController::class, 'voucherItems'])->name('sales-return.voucher-items');
+            Route::post('/status', [SalesReturnController::class, 'updateStatus'])->name('sales-return.status');
         });
 
 

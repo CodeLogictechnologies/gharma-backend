@@ -175,7 +175,7 @@
 
         <!-- Inventory Management -->
         <li
-            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') || request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active open' : '' }}">
+            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') || request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') || request()->routeIs('sales') || request()->routeIs('sales.*') || request()->routeIs('sales-return') || request()->routeIs('sales-return.*') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-store"></i>
                 <div>Inventory Management</div>
@@ -200,6 +200,20 @@
                     <a href="{{ route('purchase-return') }}" class="menu-link">
                         <i class="bx bx-transfer-alt me-2"></i>
                         <div>Purchase Return (Dr. Note)</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('sales') || request()->routeIs('sales.*') ? 'active' : '' }}">
+                    <a href="{{ route('sales') }}" class="menu-link">
+                        <i class="bx bx-cart-alt me-2"></i>
+                        <div>Sales</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('sales-return') || request()->routeIs('sales-return.*') ? 'active' : '' }}">
+                    <a href="{{ route('sales-return') }}" class="menu-link">
+                        <i class="bx bx-revision me-2"></i>
+                        <div>Sales Return (Cr. Note)</div>
                     </a>
                 </li>
             </ul>
