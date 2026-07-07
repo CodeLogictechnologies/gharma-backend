@@ -16,24 +16,31 @@ class Userdevicetoken extends Model
     public static function saveDate($post)
     {
         try {
-            // $post['mobilenumber'] = $post['mobilenumber'];
-            // $post['devicetoken'] = $post['devicetoken'];
-            $post['devicename'] = 'iphone14';
-            $post['devicetype'] = 'apple';
+            $post['devicename'] = '';
+            $post['devicetype'] = '';
+
+            $exists = Userdevicetoken::where('userid', $post['userid'])
+                ->where('devicetoken', $post['devicetoken'])
+                ->exists();
+
+            if ($exists) {
+                return true;
+            }
 
             $insertUserAddress = [
-                'id'         => (string) Str::uuid(),
-                'userid'     => $post['userid'],
-                'mobilenumber'     => $post['phone'],
-                'devicetoken'     => $post['devicetoken'],
-                'devicename'     => $post['devicename'],
-                'devicetype'      => $post['devicetype'],
-                'created_at' => Carbon::now(),
+                'id'           => (string) Str::uuid(),
+                'userid'       => $post['userid'],
+                'mobilenumber' => $post['phone'],
+                'devicetoken'  => $post['devicetoken'],
+                'devicename'   => $post['devicename'],
+                'devicetype'   => $post['devicetype'],
+                'created_at'   => Carbon::now(),
             ];
 
             if (!Userdevicetoken::insert($insertUserAddress)) {
                 throw new \Exception("Couldn't save user device token.");
             }
+
             return true;
         } catch (\Exception $e) {
             throw $e;

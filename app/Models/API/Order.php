@@ -43,6 +43,7 @@ class Order extends Model
             $insertOrderStatusArray = [
                 'id'         => (string) Str::uuid(),
                 'orgid'      => $post['orgid'],
+                // 'payment_method'      => $post['payment_method'] ?? 'COD',
                 'customerid'     => $post['userid'],
                 'ordermasterid' => $insertOrderMaster['id'],
                 'created_at' => Carbon::now(),
@@ -86,7 +87,7 @@ class Order extends Model
                 ->where('status', 'Y')
                 ->delete();
             // ->update($cartArray);
-            
+
             $setup = DB::table('loyalty_setups')
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
@@ -132,48 +133,77 @@ class Order extends Model
             }
 
             // ── Generate Invoice PDF ────────────────────────────
-$invoiceData = [
-    'orgid'  => $post['orgid'],
-    'userid' => $post['userid'],
-    'id'     => $insertOrderMaster['id'],
-];
+            $invoiceData = [
+                'orgid'  => $post['orgid'],
+                'userid' => $post['userid'],
+                'id'     => $insertOrderMaster['id'],
+            ];
 
-$orderDetail = BackPanelOrder::getDataInvoice($invoiceData);
+            $orderDetail = BackPanelOrder::getDataInvoice($invoiceData);
 
-$invoiceNumber = 'INV-' . date('Y') . '-' . strtoupper(Str::random(6));
-$storagePath   = 'pdf/invoice-' . $invoiceNumber . '.pdf';
+            // $invoiceNumber = 'INV-' . date('Y') . '-' . strtoupper(Str::random(6));
+            // $storagePath   = 'pdf/invoice-' . $invoiceNumber . '.pdf';
 
-if (Storage::disk('public')->exists($storagePath)) {
-    $pdfContent = Storage::disk('public')->get($storagePath);
-} else {
-    $pdf = Pdf::loadView('backend.invoice.download', [
-        'order'         => $orderDetail,
-        'invoiceNumber' => $invoiceNumber,
-    ])->setPaper('a4', 'portrait');
+            // if (Storage::disk('public')->exists($storagePath)) {
+            //     $pdfContent = Storage::disk('public')->get($storagePath);
+            // } else {
+            //     $pdf = Pdf::loadView('backend.invoice.download', [
+            //         'order'         => $orderDetail,
+            //         'invoiceNumber' => $invoiceNumber,
+            //     ])->setPaper('a4', 'portrait');
 
-    $pdfContent = $pdf->output();
-    Storage::disk('public')->put($storagePath, $pdfContent);
-}
+            //     $pdfContent = $pdf->output();
+            //     Storage::disk('public')->put($storagePath, $pdfContent);
+            // }
 
-$invoiceId = (string) Str::uuid();
+            // $invoiceId = (string) Str::uuid();
 
-DB::table('invoices')->insert([
-    'id'            => $invoiceId,
-    'ordermasterid' => $insertOrderMaster['id'],
-    'orgid'         => $post['orgid'],
-    'invoicenumber' => $invoiceNumber,
-    'storagepath'   => $storagePath,
-    'postedby'      => $post['userid'],
-    'created_at'    => Carbon::now(),
-    'updated_at'    => Carbon::now(),
-]);
+            $adminUserId = DB::table('userorganizations as uo')
+                ->join('model_has_roles as mr', 'mr.model_id', '=', 'uo.userid')
+                ->where('mr.role_id', '550e8400-e29b-41d4-a716-446655440001')
+                ->where('uo.orgid', $post['orgid'])
+                ->where('uo.status', 'Y')
+                ->value('uo.userid');
 
-return [
-    'ordermasterid' => $insertOrderMaster['id'],
-    'invoicenumber' => $invoiceNumber,
-    'storagepath'   => $storagePath,
-    'storage_url'   => url('storage/' . $storagePath),
-];
+            if ($adminUserId) {
+                $token = DB::table('userdevicetokens')
+                    ->where('userid', $adminUserId)
+                    ->value('devicetoken');
+                    
+                if (!empty($token)) {
+                    try {
+                        app(\App\Services\FirebaseService::class)->sendNotification(
+                            $token,
+                            'New Order Received',
+                            'A new order has been placed. Please check the admin panel for the order details.'
+                        );
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send order notification.', [
+                            'user_id' => $adminUserId,
+                            'order_id' => $insertOrderMaster['id'],
+                            'message' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            // DB::table('invoices')->insert([
+            //     'id'            => $invoiceId,
+            //     'ordermasterid' => $insertOrderMaster['id'],
+            //     'orgid'         => $post['orgid'],
+            //     'invoicenumber' => $invoiceNumber,
+            //     'storagepath'   => $storagePath,
+            //     'postedby'      => $post['userid'],
+            //     'created_at'    => Carbon::now(),
+            //     'updated_at'    => Carbon::now(),
+            // ]);
+
+            return [
+                'ordermasterid' => $insertOrderMaster['id'],
+                // 'invoicenumber' => $invoiceNumber,
+                // 'storagepath'   => $storagePath,
+                // 'storage_url'   => url('storage/' . $storagePath),
+            ];
         } catch (\Exception $e) {
             throw $e;
         }
