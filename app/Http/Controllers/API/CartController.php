@@ -16,7 +16,7 @@ class CartController extends Controller
 {
     public function saveAddToCart(AddToCartRequest $request)
     {
-        // try {
+        try {
         DB::beginTransaction();
 
         $post = $request->all();
@@ -34,25 +34,25 @@ class CartController extends Controller
             'type'    => 'success',
             'message' => 'Product added to cart'
         ], 200);
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => 'Something went wrong'
-        //     ], 500);
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong'
+            ], 500);
+        } catch (\Exception $e) {
+            DB::rollBack();
 
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => $e->getMessage()
-        //     ], 400);
-        // }
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
     public function getList(Request $request)
     {
-        // try {
+        try {
         $post = $request->all();
         $post['roleid']         = $request->header('roleid');
 
@@ -75,20 +75,20 @@ class CartController extends Controller
             'message' => 'Cart data fetched successfully.',
             'data' => $getData
         ], 200);
-        // } catch (QueryException $e) {
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => 'Something went wrong',
-        //         'data' => []
-        //     ], 500);
-        // } catch (\Exception $e) {
+        } catch (QueryException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong',
+                'data' => []
+            ], 500);
+        } catch (\Exception $e) {
 
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => $e->getMessage(),
-        //         'data' => []
-        //     ], 500);
-        // }
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage(),
+                'data' => []
+            ], 500);
+        }
     }
 
     public function deleteCart(Request $request, $variationid)

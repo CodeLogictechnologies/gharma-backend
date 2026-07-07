@@ -25,44 +25,58 @@ class OrganizationAccess extends Model
     ];
 
     //function to save organization permissions
+    // public static function saveData($post)
+    // {
+    //     try {
+    //     $orgId = $post['id'] ?? null;
+
+    //     if (empty($orgId)) {
+    //         throw new Exception('Organization ID is required.', 1);
+    //     }
+
+    //     $permissionNames = [];
+
+    //     if (!empty($post['permissions'])) {
+    //         $permissionNames = Permission::whereIn('id', $post['permissions'])
+    //             ->pluck('name')
+    //             ->toArray();
+    //     }
+
+    //     self::syncByNames($orgId, $permissionNames);
+
+    //     return true;
+    //     } catch (Exception $e) {
+    //         throw $e;
+    //     }
+    // }
+
     public static function saveData($post)
-    {
-        try {
-            $orgId = $post['id'] ?? null;
+{
+    $orgId = $post['id'] ?? null;
 
-            if (empty($orgId)) {
-                throw new Exception('Organization ID is required.', 1);
-            }
-
-            if (!empty($post['permissions'])) {
-                $permissionNames = Permission::whereIn('id', $post['permissions'])
-                    ->pluck('name')
-                    ->toArray();
-
-                self::syncByNames($orgId, $permissionNames);
-            } else {
-                self::syncByIds($orgId, []);
-            }
-
-            return true;
-        } catch (Exception $e) {
-            throw $e;
-        }
+    if (empty($orgId)) {
+        throw new Exception('Organization ID is required.', 1);
     }
 
+    $permissionIds = collect($post['permissions'] ?? [])
+        ->filter(fn ($id) => \Illuminate\Support\Str::isUuid((string) $id))
+        ->unique()
+        ->values()
+        ->all();
+
+    self::syncByIds($orgId, $permissionIds);
+
+    return true;
+}
     //function to get permission IDs assigned to an organization
     public static function getPermissionIds($orgId)
-    {
-        try {
-            $org = Organization::find($orgId);
-            if (!$org) {
-                throw new Exception('Organization not found.', 1);
-            }
-            return $org->permissions()->pluck('id')->toArray();
-        } catch (Exception $e) {
-            throw $e;
-        }
+{
+    $org = Organization::find($orgId);
+    if (!$org) {
+        throw new Exception('Organization not found.', 1);
     }
+    return $org->permissions()->pluck('id')->toArray();
+}
     //function to sync (replace) permissions for an organization by permission names
     public static function syncByNames($orgId, array $permissionNames)
     {

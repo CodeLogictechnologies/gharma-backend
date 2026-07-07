@@ -22,14 +22,11 @@ class Role extends SpatieRole
         'status',
     ];
 
-
-
     //function to save role
     public static function saveData($post)
     {
         try {
             if (!empty($post['id'])) {
-
                 $role = Role::findOrFail($post['id']);
                 $role->update([
                     'name'         => $post['name'],
@@ -45,7 +42,6 @@ class Role extends SpatieRole
             }
 
             if (!empty($post['permissions'])) {
-
                 $permissions = Permission::whereIn('id', $post['permissions'])
                     ->pluck('name')
                     ->toArray();
@@ -67,7 +63,6 @@ class Role extends SpatieRole
         try {
             $get = $post;
             $sorting = !empty($get['order'][0]['dir']) ? $get['order'][0]['dir'] : 'asc';
-            // $orderby = " order_number " . $sorting;
 
             foreach ($get['columns'] as $key => $value) {
                 $get['columns'][$key]['search']['value'] = trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));

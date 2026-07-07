@@ -69,9 +69,9 @@ class Cart extends Model
                     ];
 
                     // Include min_qty only if price is null
-                    if ($resolvedPrice === null) {
-                        $updateData['min_qty'] = $resolvedMinQty;
-                    }
+                    // if ($resolvedPrice === null) {
+                    //     $updateData['min_qty'] = $resolvedMinQty;
+                    // }
 
                     $updated = Cart::where('id', $existingCart->id)->update($updateData);
 

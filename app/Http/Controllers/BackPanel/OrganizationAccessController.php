@@ -59,34 +59,31 @@ class OrganizationAccessController extends Controller
     }
 
     // POST admin/organization.access/save-permissions
-    public function savePermissions(Request $request)
-    {
-        try {
-            if (empty($request->id)) {
-                throw new Exception('Organization ID is required.', 1);
-            }
-
-            $orgId     = $request->id;
-            $permNames = $request->perm_names ?? [];
-
-            OrganizationAccess::syncByNames($orgId, $permNames);
-
-            return response()->json([
-                'type'    => 'success',
-                'message' => 'Permissions saved successfully.',
-            ]);
-        } catch (QueryException $e) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => $this->queryMessage,
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => $e->getMessage(),
-            ]);
+public function savePermissions(Request $request)
+{
+    try {
+        if (empty($request->id)) {
+            throw new Exception('Organization ID is required.', 1);
         }
+
+        OrganizationAccess::saveData($request->all());
+
+        return response()->json([
+            'type'    => 'success',
+            'message' => 'Permissions saved successfully.',
+        ]);
+    } catch (QueryException $e) {
+        return response()->json([
+            'type'    => 'error',
+            'message' => $e->getMessage(),
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'type'    => 'error',
+            'message' => $e->getMessage(),
+        ]);
     }
+}
 
     // POST admin/organization.access/list
     public function list(Request $request)

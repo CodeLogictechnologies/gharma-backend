@@ -86,7 +86,7 @@
                 [10, 30, 50, 70, 90, 'All']
             ],
             iDisplayLength: 10,
-            sDom: '<"row"<"col-sm-6"l><"col-sm-6">>tipr', // ← fix sDom
+            sDom: '<"row"<"col-sm-6"l><"col-sm-6">>tipr',
             bAutoWidth: false,
             aaSorting: [
                 [0, 'desc']
@@ -96,7 +96,7 @@
             sAjaxSource: '{{ route('organization.list') }}',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>",
-                sLengthMenu: 'Show _MENU_ entries', // ← fix label
+                sLengthMenu: 'Show _MENU_ entries',
                 sInfo: 'Showing _START_ to _END_ of _TOTAL_ entries',
                 sInfoEmpty: 'Showing 0 to 0 of 0 entries',
             },
@@ -143,6 +143,7 @@
                 });
             }
         });
+
         // ── Helper: open modal via AJAX ───────────────────────────────
         function openOrgModal(url, data, method) {
             var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
@@ -254,7 +255,10 @@
                 }
             });
 
-            // ── Gmail validation ──────────────────────────────────────
+            // ── Email: format check only (.com) ───────────────────────
+            // Duplicate-email check is left to the server (Rule::unique),
+            // since that's the only place that can reliably know what's
+            // already in the database.
             var $emailInput = $form.find('[name="email"]');
             var emailVal = $emailInput.val().trim();
             $emailInput.removeClass('is-invalid');
@@ -265,7 +269,8 @@
                 $emailInput.next('.invalid-feedback').text('Email is required.');
                 valid = false;
             } else if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.com$/.test(emailVal)) {
-                $emailInput.next('.invalid-feedback').text('Email must end with .com');
+                $emailInput.addClass('is-invalid');
+                $emailInput.next('.invalid-feedback').text('Email must be a valid .com address (e.g. name@example.com)');
                 valid = false;
             }
 
@@ -304,6 +309,8 @@
                         var modalEl = document.getElementById('organizationModal');
                         bootstrap.Modal.getInstance(modalEl).hide();
                     } else {
+                        // ── This is where the "email already used" or
+                        // any other server-side validation message shows.
                         showNotification(result.message, 'error');
                         $btn.prop('disabled', false).html(
                             isEdit ?
@@ -331,7 +338,7 @@
             });
         });
 
-        // ── Clear invalid on input ────────────────────────────────────
+        // ── Clear invalid state on input ──────────────────────────────
         $(document).on('input change', '#orgForm .form-control', function() {
             $(this).removeClass('is-invalid');
             $(this).next('.invalid-feedback').text('');
