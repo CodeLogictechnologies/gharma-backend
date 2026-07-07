@@ -65,42 +65,36 @@ class DriverController extends Controller
         try {
             $post          = $request->all();
             $post['orgid'] = session('orgid');
+            $rules = [
+                'driver_id' => 'required|min:3|max:255',
+            ];
 
-            $existing = DB::table('assign_drivers')
-                ->where('ordermasterid', $post['ordermasterid'])
-                ->first();
+            $message = [
+                'driver_id.required' => 'Please select driver.',
+            ];
+            $validation = Validator::make($request->all(), $rules, $message);
 
-            if ($existing) {
-                DB::table('assign_drivers')
-                    ->where('id', $existing->id)
-                    ->update([
-                        'driverid'      => $post['driver_id'],
-                        'delivery_date' => $post['delivery_date'],
-                        'updated_at'    => now(),
-                    ]);
-            } else {
-                DB::table('assign_drivers')->insert([
-                    'id'            => (string) \Illuminate\Support\Str::uuid(),
-                    'ordermasterid' => $post['ordermasterid'],
-                    'driverid'      => $post['driver_id'],
-                    'orgid'         => $post['orgid'],
-                    'delivery_date' => $post['delivery_date'],
-                    'status'        => 'Y',
-                    'created_at'    => now(),
-                ]);
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
             }
+            $type = 'success';
+            $message = 'Driver assign successfully';
 
-            DB::table('order_masters')
-                ->where('id', $post['ordermasterid'])
-                ->update(['order_status' => 'Shipped']);
-
-            return json_encode(['type' => 'success', 'message' => 'Driver assigned successfully']);
-
+            DB::beginTransaction();
+            if (!FirebaseService::AssignDriverNotice($post)) {
+                throw new Exception('Could not assign driver', 1);
+            }
+            DB::commit();
         } catch (QueryException $e) {
-            return json_encode(['type' => 'error', 'message' => 'DB Error: ' . $e->getMessage()]);
+            DB::rollBack();
+            $type = 'error';
+            $message = 'Something went wrong';
         } catch (Exception $e) {
-            return json_encode(['type' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
+        return json_encode(['type' => $type, 'message' => $message]);
     }
 
     public function list(Request $request)
@@ -166,7 +160,6 @@ class DriverController extends Controller
                 $array[$i]['action'] = $action;
                 $i++;
             }
-
         } catch (QueryException $e) {
             $array     = [];
             $totalrecs = 0;
@@ -270,7 +263,6 @@ class DriverController extends Controller
                 throw new Exception('Could not save record', 1);
             }
             DB::commit();
-
         } catch (QueryException $e) {
             DB::rollBack();
             $type    = 'error';

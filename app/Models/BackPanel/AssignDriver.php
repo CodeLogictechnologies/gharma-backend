@@ -86,7 +86,7 @@ class AssignDriver extends Model
                 ->where('m.orgid', $post['orgid']);
 
             if ($post['type'] === 'pending') {
-                $query->whereIn('d.order_status', ['pending', 'start']);
+                $query->whereIn('d.order_status', ['Pending', 'Start']);
             } else {
                 $query->where('d.order_status', $post['type']);
             }
@@ -242,16 +242,24 @@ class AssignDriver extends Model
                     ->where('userid', $userid)
                     ->value('devicetoken');
 
+
                 if ($token) {
-                    $firebase->sendNotification(
-                        $token,
-                        "Order Update",
-                        "Your order confirmation OTP is " . $otp,
-                        [
-                            'otp' => (string) $otp,
-                            'type' => 'order_confirmation'
-                        ]
-                    );
+                    try {
+                        $firebase->sendNotification(
+                            $token,
+                            "Order Update",
+                            "Your order confirmation OTP is " . $otp
+                        );
+                    } catch (\Kreait\Firebase\Exception\Messaging\NotFound $e) {
+                        \Log::warning('Stale FCM token removed.', ['userid' => $userid, 'token' => $token]);
+
+                        DB::table('userdevicetokens')
+                            ->where('userid', $userid)
+                            ->where('devicetoken', $token)
+                            ->delete();
+                    } catch (\Exception $e) {
+                        \Log::warning('FCM send failed: ' . $e->getMessage(), ['userid' => $userid]);
+                    }
                 }
 
                 // DB::table('order_masters')
