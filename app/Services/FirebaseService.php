@@ -21,7 +21,7 @@ class FirebaseService
         $this->messaging = $factory->createMessaging();
     }
 
-    public function sendNotification($token, $title, $body, $data = [])
+    public function sendNotification($token, $title, $body)
     {
         $message = [
             'token' => $token,
@@ -29,9 +29,7 @@ class FirebaseService
                 'title' => $title,
                 'body'  => $body,
             ],
-            'data' => $data
         ];
-
         return $this->messaging->send($message);
     }
 
@@ -52,6 +50,7 @@ class FirebaseService
                 throw new \Exception("Couldn't Assign Driver");
             }
 
+
             DB::table('order_masters')
                 ->where('id', $post['ordermasterid'])
                 ->update(['order_status' => 'Shipped']);
@@ -62,34 +61,35 @@ class FirebaseService
                 ->where('id', $post['ordermasterid'])
                 ->first();
 
-            // if ($order) {
-            //     // Fetch all device tokens for that user
-            //     $tokens = DB::table('userdevicetokens')
-            //         ->where('userid', $order->userid)
-            //         ->pluck('devicetoken');
+            if ($order) {
+                // Fetch all device tokens for that user
+                $tokens = DB::table('userdevicetokens')
+                    ->where('userid', $order->userid)
+                    ->pluck('devicetoken');
 
-            //     if ($tokens->isNotEmpty()) {
-            //         $firebase = new self(); // instantiate to use sendNotification()
 
-            //         foreach ($tokens as $token) {
-            //             try {
-            //                 $firebase->sendNotification(
-            //                     $token,
-            //                     'Order Shipped',
-            //                     'Your order has been assigned to a driver and is on the way!',
-            //                     [
-            //                         'ordermasterid' => (string) $post['ordermasterid'],
-            //                         'order_status'  => 'Shipped',
-            //                     ]
-            //                 );
-            //             } catch (\Exception $e) {
-            //                 // log bad token but don't break the flow
-            //                 \Log::warning('FCM send failed for token ' . $token . ': ' . $e->getMessage());
-            //             }
-            //         }
-            //     }
-            // }
-            // ───────────────────────────────────────────────────
+                if ($tokens->isNotEmpty()) {
+                    $firebase = new self(); // instantiate to use sendNotification()
+
+                    foreach ($tokens as $token) {
+                        try {
+                            $firebase->sendNotification(
+                                $token,
+                                'Order Shipped',
+                                'You have been assigned an order. Open the app to see details.',
+                                // [
+                                //     'ordermasterid' => (string) $post['ordermasterid'],
+                                //     'order_status'  => 'Shipped',
+                                // ]
+                            );
+                        } catch (\Exception $e) {
+                            // log bad token but don't break the flow
+                            \Log::warning('FCM send failed for token ' . $token . ': ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
 
             return true;
         } catch (\Exception $e) {

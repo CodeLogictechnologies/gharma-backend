@@ -11,6 +11,7 @@ use App\Http\Controllers\API\FavouriteController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\API\StoreController;
 use App\Http\Controllers\API\BrandController;
+use App\Http\Controllers\API\GetCustomerOrderStatus;
 use App\Http\Controllers\API\InvoiceController;
 use App\Http\Controllers\API\RecentlyViewedController;
 use App\Http\Controllers\API\HomeTabController;
@@ -175,6 +176,9 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/driver/order/customerdetail', [BackPanelAssignDriverController::class, 'getCustomerDetail']);
     Route::post('/driver/order/status/change', [BackPanelAssignDriverController::class, 'changeOrderStatus']);
     Route::post('customer/order/checkotp', [BackPanelAssignDriverController::class, 'verifyOtp']);
+
+
+    Route::get('get/customer/orderstatus/{ordermasterid}', [GetCustomerOrderStatus::class, 'getstatus']);
 });
 
 Route::prefix('esewa')->name('esewa.')->group(function () {

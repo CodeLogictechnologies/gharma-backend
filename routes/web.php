@@ -464,13 +464,11 @@ Route::group(['middleware' => ['auth']], function () {
 Route::get('auth/{provider}/redirect',  [SocialAuthController::class, 'redirect'])->name('admin.sitesetting');
 Route::get('auth/{provider}/call-back', [SocialAuthController::class, 'callback'])->name('admin.sitesetting');
 
-
 Route::get('/success', [PaymentController::class, 'success']);
 Route::get('/failure', [PaymentController::class, 'failure']);
 
 Route::get('/khalti/success', [PaymentController::class, 'success']);
 Route::get('/khalti/failure', [PaymentController::class, 'failure']);
-
 
 Route::get('/payment', [PaymentController::class, 'index']);
 Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('payment.initiate');
