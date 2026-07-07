@@ -198,7 +198,11 @@ class Vendor extends Model
     public static function getVendor($post)
     {
         try {
-            $data = DB::table('vendors')->select('id as vendorid', 'name as vendorname')->where('orgid', $post['orgid'])->get();
+            $data = DB::table('vendors')
+                ->select('id as vendorid', 'name as vendorname', 'tax_number as vendorpan')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->get();
             return $data;
         } catch (Exception $e) {
             throw $e;

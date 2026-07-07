@@ -173,12 +173,36 @@
         </li>
 
 
-        <!-- Inventory -->
-        <li class="menu-item {{ request()->routeIs('inventory') ? 'active' : '' }}">
-            <a href="{{ route('inventory') }}" class="menu-link">
+        <!-- Inventory Management -->
+        <li
+            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') || request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-store"></i>
-                <div>Inventory</div>
+                <div>Inventory Management</div>
             </a>
+
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('inventory') ? 'active' : '' }}">
+                    <a href="{{ route('inventory') }}" class="menu-link">
+                        <i class="bx bx-building-house me-2"></i>
+                        <div>Stock</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') ? 'active' : '' }}">
+                    <a href="{{ route('purchase-voucher') }}" class="menu-link">
+                        <i class="bx bx-file me-2"></i>
+                        <div>Purchase</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active' : '' }}">
+                    <a href="{{ route('purchase-return') }}" class="menu-link">
+                        <i class="bx bx-transfer-alt me-2"></i>
+                        <div>Purchase Return (Dr. Note)</div>
+                    </a>
+                </li>
+            </ul>
         </li>
 
         <!-- Vendor -->

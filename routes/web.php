@@ -11,6 +11,8 @@ use App\Http\Controllers\BackPanel\HeatmapController;
 use App\Http\Controllers\BackPanel\HomeController;
 use App\Http\Controllers\BackPanel\InventoryController;
 use App\Http\Controllers\BackPanel\InventoryReportController;
+use App\Http\Controllers\BackPanel\PurchaseVoucherController;
+use App\Http\Controllers\BackPanel\PurchaseReturnController;
 use App\Http\Controllers\BackPanel\OtpController;
 use App\Http\Controllers\BackPanel\ItemController;
 use App\Http\Controllers\BackPanel\NotificationController;
@@ -251,6 +253,27 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/list', [InventoryController::class, 'list'])->name('inventory.list');
             Route::post('/view', [InventoryController::class, 'view'])->name('inventory.view');
             Route::any('/form', [InventoryController::class, 'form'])->name('inventory.form');
+        });
+
+        Route::group(['prefix' => 'purchase-voucher'], function () {
+            Route::get('/', [PurchaseVoucherController::class, 'index'])->name('purchase-voucher');
+            Route::post('/list', [PurchaseVoucherController::class, 'list'])->name('purchase-voucher.list');
+            Route::any('/form', [PurchaseVoucherController::class, 'form'])->name('purchase-voucher.form');
+            Route::post('/save', [PurchaseVoucherController::class, 'save'])->name('purchase-voucher.save');
+            Route::post('/view', [PurchaseVoucherController::class, 'view'])->name('purchase-voucher.view');
+            Route::post('/delete', [PurchaseVoucherController::class, 'delete'])->name('purchase-voucher.delete');
+        });
+
+        Route::group(['prefix' => 'purchase-return'], function () {
+            Route::get('/', [PurchaseReturnController::class, 'index'])->name('purchase-return');
+            Route::post('/list', [PurchaseReturnController::class, 'list'])->name('purchase-return.list');
+            Route::any('/form', [PurchaseReturnController::class, 'form'])->name('purchase-return.form');
+            Route::post('/save', [PurchaseReturnController::class, 'save'])->name('purchase-return.save');
+            Route::post('/view', [PurchaseReturnController::class, 'view'])->name('purchase-return.view');
+            Route::post('/delete', [PurchaseReturnController::class, 'delete'])->name('purchase-return.delete');
+            Route::get('/vendor-vouchers', [PurchaseReturnController::class, 'vendorVouchers'])->name('purchase-return.vendor-vouchers');
+            Route::get('/voucher-items', [PurchaseReturnController::class, 'voucherItems'])->name('purchase-return.voucher-items');
+            Route::post('/status', [PurchaseReturnController::class, 'updateStatus'])->name('purchase-return.status');
         });
 
 
