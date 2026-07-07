@@ -23,7 +23,7 @@ class Item extends Model
             ->where('iv.id', $post['variationid'])
             ->where('i.status', 'Y');
 
-        // ✅ Favourite logic (optional join)
+        //  Favourite logic (optional join)
         if (!empty($post['userid'])) {
             $result->leftJoin('favourites as f', function ($join) use ($post) {
                 $join->on('f.variationid', '=', 'iv.id')
@@ -44,7 +44,7 @@ class Item extends Model
         }
         $result->is_favourite = (bool) $result->is_favourite;
 
-        // ✅ Get images safely
+        //  Get images safely
         $images = DB::table('item_images')
             ->where('item_id', $result->productid)
             ->pluck('image');

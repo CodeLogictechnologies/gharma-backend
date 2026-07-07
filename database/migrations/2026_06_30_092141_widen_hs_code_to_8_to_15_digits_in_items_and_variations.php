@@ -20,6 +20,10 @@ return new class extends Migration
             $table->string('hs_code', 15)->nullable()->change();
         });
 
+        // Clear any existing values that don't fit the new 8–15 digit rule
+        DB::table('items')->whereRaw("hs_code IS NOT NULL AND hs_code !~ '^[0-9]{8,15}$'")->update(['hs_code' => null]);
+        DB::table('itemvariations')->whereRaw("hs_code IS NOT NULL AND hs_code !~ '^[0-9]{8,15}$'")->update(['hs_code' => null]);
+
         DB::statement("ALTER TABLE items ADD CONSTRAINT items_hs_code_digits CHECK (hs_code IS NULL OR hs_code ~ '^[0-9]{8,15}$')");
         DB::statement("ALTER TABLE itemvariations ADD CONSTRAINT itemvariations_hs_code_digits CHECK (hs_code IS NULL OR hs_code ~ '^[0-9]{8,15}$')");
     }

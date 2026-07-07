@@ -134,7 +134,7 @@ class Organization extends Model
                 $user = DB::table('userorganizations')->insert($userOrgArray);
             }
 
-            DB::commit();
+            // DB::commit();
             return true;
         } catch (Exception $e) {
             DB::rollBack();

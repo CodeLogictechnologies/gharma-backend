@@ -60,6 +60,10 @@ class ApiAuthController extends Controller
     {
         $post = $request->all();
 
+        // Normalize gender casing 
+        if (!empty($post['gender'])) {
+            $post['gender'] = ucfirst(strtolower(trim($post['gender'])));
+        }
         $validator = Validator::make($post, [
             'username'    => 'required|string|max:255|unique:users,name',
             'email'       => 'required|string|email|max:255|unique:users',
@@ -67,7 +71,7 @@ class ApiAuthController extends Controller
             'first_name'  => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'last_name'   => 'required|string|max:255',
-            'gender'      => 'required',
+            'gender'      => 'required|in:Male,Female,Other',
             'address'     => 'required',
             'phone'       => 'required',
             'image'       => 'required',
@@ -99,14 +103,20 @@ class ApiAuthController extends Controller
 
     public function wholesalerRegister(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $post = $request->all();
+
+        // Normalize gender casing
+        if (!empty($post['gender'])) {
+            $post['gender'] = ucfirst(strtolower(trim($post['gender'])));
+        }
+        $validator = Validator::make($post, [ 
             'username'            => 'required|string|max:255',
             'email'               => 'required|string|email|max:255|unique:users',
             'password'            => 'required|string|min:6|confirmed',
             'first_name'          => 'required|string|max:255',
             'middle_name'         => 'nullable|string|max:255',
             'last_name'           => 'required|string|max:255',
-            'gender'              => 'required',
+            'gender'              => 'required|in:Male,Female,Other',
             'address'             => 'required',
             'phone'               => 'required',
             'image'               => 'required',
@@ -123,7 +133,7 @@ class ApiAuthController extends Controller
         }
 
         try {
-            $post         = $request->all();
+            // $post         = $request->all();
             $post['type'] = 'wholesaler';
             User::saveData($post);
 

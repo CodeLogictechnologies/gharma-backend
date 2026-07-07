@@ -257,17 +257,18 @@
 
         $('#confirmSave').on('click', function() {
             var orgId = $('#orgSelect').val();
-            var permNames = [];
+            var permIds = [];
 
             $('.perm-check:checked').each(function() {
-                var key = $(this).data('key');
-                var action = $(this).data('action');
-                permNames.push(action + '.' + key);
+                var permId = $(this).data('perm-id');
+                if (permId) {
+                    permIds.push(permId);
+                }
             });
 
             $.post('{{ route("organization.access.save-permissions") }}', {
                 id: orgId,
-                perm_names: permNames,
+                permissions: permIds,
                 _token: '{{ csrf_token() }}'
             }, function(res) {
                 var result = typeof res === 'string' ? JSON.parse(res) : res;

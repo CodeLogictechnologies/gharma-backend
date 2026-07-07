@@ -182,8 +182,8 @@
                 key: 'notification'
             },
         ];
-
-        var allPermissions = @json($permissions); // full permission list from controller
+        
+        var allPermissions = Object.values(@json($permissions)); // All permissions from backend
         var rolePermissions = []; // IDs assigned to selected role
 
         // ── View button ─────────────────────────────────────────────────
@@ -196,13 +196,20 @@
             }
 
             $.post('{{ route("role.getPermissions") }}', {
-                id: roleId
-            }, function(res) {
-                var result = typeof res === 'string' ? JSON.parse(res) : res;
-                rolePermissions = result.permissions || [];
-                buildMatrix();
-                $('#permissionTableWrap').show();
-                $('#noRoleMsg').hide();
+    id: roleId
+}, function(res) {
+    var result = typeof res === 'string' ? JSON.parse(res) : res;
+    rolePermissions = result.permissions || [];
+
+    console.log('rolePermissions:', rolePermissions);
+    console.log('rolePermissions[0] type:', typeof rolePermissions[0]);
+    console.log('allPermissions[0]:', allPermissions[0]);
+    console.log('allPermissions[0].id type:', typeof allPermissions[0].id);
+
+    buildMatrix();
+    $('#permissionTableWrap').show();
+    $('#noRoleMsg').hide();
+});('#noRoleMsg').hide();
             });
         });
 
