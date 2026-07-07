@@ -16,7 +16,7 @@
     @endphp
 
     <div class="modal-header">
-        <h5 class="modal-title">View Purchase Return (Debit Note)</h5>
+        <h5 class="modal-title">View Sales Return (Credit Note)</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
 
@@ -27,12 +27,12 @@
                 <div>{{ \Carbon\Carbon::parse($voucherDetail->return_date)->format('Y-m-d') }}</div>
             </div>
             <div class="col-md-3">
-                <div class="text-muted small">Debit Note No.</div>
-                <div>{{ $voucherDetail->debit_note_no }}</div>
+                <div class="text-muted small">Credit Note No.</div>
+                <div>{{ $voucherDetail->credit_note_no }}</div>
             </div>
             <div class="col-md-3">
-                <div class="text-muted small">Vendor</div>
-                <div>{{ $voucherDetail->vendor_name }}</div>
+                <div class="text-muted small">Customer</div>
+                <div>{{ $voucherDetail->customer_name }}</div>
             </div>
             <div class="col-md-3">
                 <div class="text-muted small">Against Voucher</div>
@@ -63,7 +63,6 @@
                         <th>Rate</th>
                         <th>Amount</th>
                         <th>VAT Amt</th>
-                        <th>Excise Amt</th>
                         <th>Net Amt</th>
                     </tr>
                 </thead>
@@ -77,7 +76,6 @@
                             <td>{{ number_format($line->unit_rate, 2) }}</td>
                             <td>{{ number_format($line->amount, 2) }}</td>
                             <td>{{ number_format($line->vat_amount, 2) }}</td>
-                            <td>{{ number_format($line->excise_amount, 2) }}</td>
                             <td>{{ number_format($line->net_amount, 2) }}</td>
                         </tr>
                     @endforeach
@@ -96,10 +94,6 @@
                         <tr>
                             <th>Bill Discount ({{ $voucherDetail->bill_discount_percent }}%)</th>
                             <td class="text-end">{{ number_format($voucherDetail->bill_discount_amount, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <th>Excise Amount</th>
-                            <td class="text-end">{{ number_format($voucherDetail->excise_amount, 2) }}</td>
                         </tr>
                         <tr>
                             <th>Taxable Amount</th>
@@ -123,4 +117,3 @@
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     </div>
 @endif
-
