@@ -24,7 +24,7 @@ class SubCategory extends Model
 
             $imageName = null;
 
-            // ✅ Handle Image Upload
+            //  Handle Image Upload
             if (!empty($post['image'])) {
                 $file = $post['image'];
 
@@ -40,7 +40,7 @@ class SubCategory extends Model
                 'slug' => Str::slug($post['title']) . '-' . time(),
                 'status' => 'Y',
                 'orgid' => $post['orgid'],
-                'category_id' => $post['category'] ?? null,
+                'category_id' => $post['category_id'] ?? null,
             ];
 
             // Save image if exists
@@ -50,7 +50,7 @@ class SubCategory extends Model
 
             if (!empty($post['id'])) {
 
-                // ✅ Update case
+                //  Update case
                 $oldData = SubCategory::find($post['id']);
 
                 // Delete old image if new uploaded

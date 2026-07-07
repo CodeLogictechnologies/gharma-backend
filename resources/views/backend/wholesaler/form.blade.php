@@ -133,6 +133,7 @@
                                     <input type="number" name="wholesaleDet[{{ $i }}][max_qty]"
                                         class="form-control" placeholder="0" min="0" step="1"
                                         value="{{ $v['max_qty'] ?? '' }}">
+                                    <div class="field-error qty-error">Max Qty must be greater than Min Qty.</div>
                                 </div>
 
                                 <div class="col-md-2">
@@ -235,7 +236,8 @@
         ───────────────────────────────────────────── */
         var rowIdx = $('#wholesaleDetContainer .variation-row').length;
 
-        function newPriceRow(idx) {
+        function newPriceRow(idx, prefillMin) {
+            var minVal = prefillMin !== undefined && prefillMin !== null ? prefillMin : '';
             return `
             <div class="variation-row" data-index="${idx}">
                 <button type="button" class="remove-variation">✕</button>
@@ -244,12 +246,13 @@
                     <div class="col-md-2">
                         <label class="form-label mb-1">Min Qty</label>
                         <input type="number" name="wholesaleDet[${idx}][min_qty]"
-                               class="form-control" placeholder="0" min="0" step="1">
+                               class="form-control" placeholder="0" min="0" step="1" value="${minVal}">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label mb-1">Max Qty</label>
                         <input type="number" name="wholesaleDet[${idx}][max_qty]"
                                class="form-control" placeholder="0" min="0" step="1">
+                        <div class="field-error qty-error">Max Qty must be greater than Min Qty.</div>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label mb-1">Price</label>
@@ -261,7 +264,14 @@
         }
 
         $('#addPriceRow').on('click', function () {
-            $('#wholesaleDetContainer').append(newPriceRow(rowIdx++));
+            // Grab the last row's Max Qty and use +1 as the new row's Min Qty
+            var $lastRow   = $('#wholesaleDetContainer .variation-row').last();
+            var lastMax    = $lastRow.find('input[name*="[max_qty]"]').val();
+            var prefillMin = (lastMax !== undefined && lastMax !== '' && !isNaN(lastMax))
+                ? (parseInt(lastMax, 10) + 1)
+                : '';
+
+            $('#wholesaleDetContainer').append(newPriceRow(rowIdx++, prefillMin));
         });
 
         $(document).on('click', '.remove-variation', function () {
@@ -270,6 +280,33 @@
                 return;
             }
             $(this).closest('.variation-row').remove();
+        });
+
+        /* ─────────────────────────────────────────────
+           PER-ROW: Max Qty must be > Min Qty (live check)
+        ───────────────────────────────────────────── */
+        function validateRowQty($row) {
+            var $min = $row.find('input[name*="[min_qty]"]');
+            var $max = $row.find('input[name*="[max_qty]"]');
+            var $err = $row.find('.qty-error');
+
+            var min = parseInt($min.val(), 10);
+            var max = parseInt($max.val(), 10);
+
+            // Only flag once both fields actually have a value
+            if (!isNaN(min) && !isNaN(max) && max <= min) {
+                $max.addClass('is-invalid-select');
+                $err.addClass('show');
+                return false;
+            }
+
+            $max.removeClass('is-invalid-select');
+            $err.removeClass('show');
+            return true;
+        }
+
+        $(document).on('input change', '.variation-row input[name*="[min_qty]"], .variation-row input[name*="[max_qty]"]', function () {
+            validateRowQty($(this).closest('.variation-row'));
         });
 
         /* ─────────────────────────────────────────────
@@ -290,6 +327,44 @@
                 $('#variationError').addClass('show');
                 valid = false;
             }
+
+            // ── Ensure each row's own Max Qty > Min Qty ──
+            $('#wholesaleDetContainer .variation-row').each(function () {
+                if (!validateRowQty($(this))) {
+                    valid = false;
+                }
+            });
+
+            // ── Ensure each row's min_qty is greater than the previous row's max_qty ──
+            var prevMax   = null;
+            var rowError  = false;
+
+            $('#wholesaleDetContainer .variation-row').each(function () {
+                var $row = $(this);
+                var min  = parseInt($row.find('input[name*="[min_qty]"]').val(), 10);
+                var max  = parseInt($row.find('input[name*="[max_qty]"]').val(), 10);
+
+                // skip fully empty rows (they're skipped server-side too)
+                if (isNaN(min) && isNaN(max)) return;
+
+                if (prevMax !== null && !isNaN(min) && min <= prevMax) {
+                    $row.find('input[name*="[min_qty]"]').addClass('is-invalid-select');
+                    rowError = true;
+                }
+
+                if (!isNaN(max)) prevMax = max;
+            });
+
+            if (rowError) {
+                showNotification('Each price row\'s Min Qty must be greater than the previous row\'s Max Qty.', 'error');
+                valid = false;
+            }
+
+            if (!valid && !rowError) {
+                // covers the case where only the same-row Max>Min check failed
+                showNotification('Please fix the highlighted Qty fields before saving.', 'error');
+            }
+
             return valid;
         }
 
@@ -326,7 +401,7 @@
 
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
-                        if (typeof itemTable !== 'undefined') itemTable.fnDraw();  // ✅ old-style API
+                        if (typeof itemTable !== 'undefined') itemTable.fnDraw();  
                         bootstrap.Modal.getInstance(document.getElementById('itemModel')).hide();
                     } else {
                         showNotification(result.message || 'Something went wrong.', 'error');

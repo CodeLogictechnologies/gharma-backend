@@ -172,7 +172,7 @@ class RoleController extends Controller
         try {
             $roleId = $request->id;
 
-            $role = \Spatie\Permission\Models\Role::findOrFail($roleId);
+            $role = \App\Models\BackPanel\Role::findOrFail($roleId);
 
             // Get the IDs of permissions currently assigned to this role
             $permissionIds = $role->permissions()->pluck('id')->toArray();
@@ -197,19 +197,24 @@ class RoleController extends Controller
             if (empty($request->id)) {
                 throw new Exception('Role ID is required.', 1);
             }
-            $role = \Spatie\Permission\Models\Role::findOrFail($request->id);
+            $role = \App\Models\BackPanel\Role::findOrFail($request->id);
 
             $permNames = [];
             foreach ($request->perm_names ?? [] as $name) {
-                $perm = \Spatie\Permission\Models\Permission::firstOrCreate([
+                $perm = \App\Models\BackPanel\Permission::firstOrNew([
                     'name'       => $name,
                     'guard_name' => 'web',
                 ]);
+
+                if (!$perm->exists) {
+                    $perm->id = (string) \Illuminate\Support\Str::uuid();
+                    $perm->save();
+                }
+
                 $permNames[] = $perm->name;
             }
 
             $role->syncPermissions($permNames);
-
             return response()->json([
                 'type'    => 'success',
                 'message' => 'Permissions saved successfully.',

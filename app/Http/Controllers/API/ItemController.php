@@ -577,23 +577,81 @@ class ItemController extends Controller
         ]);
     }
 
+    // public function getByProductCode(Request $request, $product_code)
+    // {
+    //     try {
+    //         $item = DB::table('items as i')
+    //             ->leftJoin('brands as b', 'b.id', '=', 'i.brand_id')
+    //             ->leftJoin(DB::raw("(
+    //                 SELECT item_id, string_agg(image, ',' ORDER BY order_number ASC) as images
+    //                 FROM item_images
+    //                 GROUP BY item_id
+    //                 ) as img"), 'img.item_id', '=', 'i.id')
+    //             ->where('i.status', 'Y')
+    //             ->where(function ($q) use ($product_code) {
+    //                 $q->where('i.product_code', $product_code)
+    //                  ->orWhere('i.company_product_code', $product_code);
+    //                 })
+    //             ->select(
+    //                 'i.id as productid',
+    //                 'i.title',
+    //                 'i.product_code',
+    //                 'i.company_product_code',
+    //                 'i.description',
+    //                 'i.type',
+    //                 'b.name as brand',
+    //                 'img.images'
+    //             )
+    //             ->first();
+
+    //         if (!$item) {
+    //             return response()->json([
+    //                 'type'    => 'error',
+    //                 'message' => 'Product not found.',
+    //                 'result'  => null,
+    //             ], 404);
+    //         }
+
+    //         $item->images = $item->images
+    //             ? array_map(
+    //                 fn($img) => url('storage/items/' . trim($img)),
+    //                 explode(',', $item->images)
+    //             )
+    //             : [];
+
+    //         return response()->json([
+    //             'type'    => 'success',
+    //             'message' => 'Product fetched successfully.',
+    //             'result'  => $item,
+    //         ], 200);
+    //     } catch (QueryException $e) {
+    //         return response()->json(['type' => 'error', 'message' => 'Database error.'], 500);
+    //     } catch (Exception $e) {
+    //         return response()->json(['type' => 'error', 'message' => $e->getMessage()], 400);
+    //     }
+    // }
+
     public function getByProductCode(Request $request, $product_code)
     {
         try {
+            // 1. Try matching at the item level first
             $item = DB::table('items as i')
                 ->leftJoin('brands as b', 'b.id', '=', 'i.brand_id')
                 ->leftJoin(DB::raw("(
-        SELECT item_id, string_agg(image, ',' ORDER BY order_number ASC) as images
-        FROM item_images
-        GROUP BY item_id
-        ) as img"), 'img.item_id', '=', 'i.id')
-                ->where('i.product_code', $product_code)
+                SELECT item_id, string_agg(image, ',' ORDER BY order_number ASC) as images
+                FROM item_images
+                GROUP BY item_id
+            ) as img"), 'img.item_id', '=', 'i.id')
                 ->where('i.status', 'Y')
+                ->where(function ($q) use ($product_code) {
+                    $q->where('i.product_code', $product_code)
+                        ->orWhere('i.company_product_code', $product_code);
+                })
                 ->select(
                     'i.id as productid',
                     'i.title',
                     'i.product_code',
-                    // 'i.company_product_code',
+                    'i.company_product_code',
                     'i.description',
                     'i.type',
                     'b.name as brand',
@@ -601,7 +659,41 @@ class ItemController extends Controller
                 )
                 ->first();
 
+            // 2. If no item-level match, try matching at the variation level
+            $variationMatch = null;
             if (!$item) {
+                $variationMatch = DB::table('itemvariations as iv')
+                    ->join('items as i', 'i.id', '=', 'iv.item_id')
+                    ->leftJoin('brands as b', 'b.id', '=', 'i.brand_id')
+                    ->leftJoin(DB::raw("(
+                    SELECT item_id, string_agg(image, ',' ORDER BY order_number ASC) as images
+                    FROM item_images
+                    GROUP BY item_id
+                ) as img"), 'img.item_id', '=', 'i.id')
+                    ->where('i.status', 'Y')
+                    ->where('iv.status', 'Y')
+                    ->where(function ($q) use ($product_code) {
+                        $q->where('iv.product_code', $product_code)
+                            ->orWhere('iv.company_product_code', $product_code);
+                    })
+                    ->select(
+                        'i.id as productid',
+                        'i.title',
+                        'iv.id as variationid',
+                        'iv.value as variation_value',
+                        'iv.product_code',
+                        'iv.company_product_code',
+                        'i.description',
+                        'i.type',
+                        'b.name as brand',
+                        'img.images'
+                    )
+                    ->first();
+            }
+
+            $result = $item ?? $variationMatch;
+
+            if (!$result) {
                 return response()->json([
                     'type'    => 'error',
                     'message' => 'Product not found.',
@@ -609,25 +701,25 @@ class ItemController extends Controller
                 ], 404);
             }
 
-            $item->images = $item->images
+            $result->images = $result->images
                 ? array_map(
                     fn($img) => url('storage/items/' . trim($img)),
-                    explode(',', $item->images)
+                    explode(',', $result->images)
                 )
                 : [];
 
             return response()->json([
                 'type'    => 'success',
                 'message' => 'Product fetched successfully.',
-                'result'  => $item,
+                'result'  => $result,
             ], 200);
         } catch (QueryException $e) {
+            \Log::error('getByProductCode error: ' . $e->getMessage());
             return response()->json(['type' => 'error', 'message' => 'Database error.'], 500);
         } catch (Exception $e) {
             return response()->json(['type' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
-
 
     /* =============================================================
  | PRIVATE HELPERS
@@ -893,9 +985,9 @@ class ItemController extends Controller
         }
         // ── GroupBy ──
         if ($isWholesaler) {
-            $query->groupBy('i.id', 'iv.id', 'i.title','i.brand_id', 'im.images', 'wp.id', 'iv.created_at');
+            $query->groupBy('i.id', 'iv.id', 'i.title', 'i.brand_id', 'im.images', 'wp.id', 'iv.created_at');
         } else {
-            $query->groupBy('i.id', 'p.price', 'iv.id', 'i.title', 'i.brand_id','im.images', 'iv.created_at');
+            $query->groupBy('i.id', 'p.price', 'iv.id', 'i.title', 'i.brand_id', 'im.images', 'iv.created_at');
         }
 
         $query->orderBy('iv.created_at', 'desc');
@@ -1008,11 +1100,11 @@ class ItemController extends Controller
 
             // ── Items ──────────────────────────────────────────────
             $items = DB::table('items as it')
-                ->join('itemvariations as iv', 'iv.id', '=', 'iv.item_id')
+                ->join('itemvariations as iv', 'iv.item_id', '=', 'it.id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
                 // ->where('it.orgid', $profile['orgid'])
                 ->where(function ($q) use ($search) {
-                    $q->where('it.title', 'LIKE', "%{$search}%")
+                    $q->whereRaw("CONCAT(it.title, ' ', iv.value) ILIKE ?", ["%{$search}%"])
                         ->orWhere('it.description', 'LIKE', "%{$search}%");
                 })
                 ->select(
@@ -1038,9 +1130,12 @@ class ItemController extends Controller
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
                 // ->where('iv.orgid', $profile['orgid'])
                 ->where(function ($q) use ($search) {
-                    $q->where('iv.attribute', 'LIKE', "%{$search}%")
-                        ->orWhere('iv.value', 'LIKE', "%{$search}%")
-                        ->orWhere('it.title', 'LIKE', "%{$search}%");
+                    // $q->where('iv.attribute', 'LIKE', "%{$search}%")
+                    //     ->orWhere('iv.value', 'LIKE', "%{$search}%")
+                    //     ->orWhere('it.title', 'LIKE', "%{$search}%");
+                    //    (change)
+                    $q->whereRaw("CONCAT(it.title, ' ', iv.value) ILIKE ?", ["%{$search}%"])
+                        ->orWhere('iv.attribute', 'ILIKE', "%{$search}%");
                 })
                 ->select(
                     'iv.id as variationid',

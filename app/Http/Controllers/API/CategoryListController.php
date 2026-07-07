@@ -63,6 +63,61 @@ class CategoryListController extends Controller
         ]);
     }
 
+    // public function getSubCategoryList(Request $request)
+    // {
+    //     try {
+    //         $categoryId = $request->input('category_id');
+
+    //         $query = DB::table('sub_categories as s')
+    //             ->select(
+    //                 's.id',
+    //                 's.title',
+    //                 's.slug',
+    //                 's.status',
+    //                 's.parent_id',
+    //                  's.category_id',
+    //                 DB::raw("CONCAT('" . url('storage/subcategories') . "/', s.image) as image")
+    //             )
+    //             ->where('s.status', 'Y')
+    //             ->whereNotNull('s.parent_id');
+
+    //         if (!empty($categoryId)) {
+    //             $query->join('sub_category_items as sci', 'sci.subcategoryid', '=', 's.id')
+    //                 ->join('items as i', 'i.id', '=', 'sci.itemid')
+    //                 ->join('category_items as ci', 'ci.itemid', '=', 'i.id')
+    //                 ->where('ci.categoryid', $categoryId)
+    //                 ->groupBy('s.id', 's.title', 's.slug', 's.status', 's.parent_id','s.image', 's.created_at');
+    //         }
+
+    //         $data = $query->orderBy('s.created_at', 'asc')->get();
+    //         if ($data->isEmpty()) {
+    //             return response()->json([
+    //                 'type'    => 'error',
+    //                 'message' => 'No subcategories found.',
+    //                 'result'  => []
+    //             ]);
+    //         }
+
+    //         return response()->json([
+    //             'type'    => 'success',
+    //             'message' => 'Subcategories fetched successfully.',
+    //             'result'  => $data
+    //         ]);
+    //     } catch (QueryException $e) {
+    //         return response()->json([
+    //             'type'    => 'error',
+    //             'message' => 'Something went wrong.',
+    //             'result'  => []
+    //         ], 400);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'type'    => 'error',
+    //             'message' => $e->getMessage(),
+    //             'result'  => []
+    //         ], 400);
+    //     }
+    // }
+
     public function getSubCategoryList(Request $request)
     {
         try {
@@ -74,21 +129,17 @@ class CategoryListController extends Controller
                     's.title',
                     's.slug',
                     's.status',
-                    's.parent_id',
+                    's.category_id',
                     DB::raw("CONCAT('" . url('storage/subcategories') . "/', s.image) as image")
                 )
-                ->where('s.status', 'Y')
-                ->whereNotNull('s.parent_id');
-                 
+                ->where('s.status', 'Y');
+
             if (!empty($categoryId)) {
-                $query->join('sub_category_items as sci', 'sci.subcategoryid', '=', 's.id')
-                    ->join('items as i', 'i.id', '=', 'sci.itemid')
-                    ->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-                    ->where('ci.categoryid', $categoryId)
-                    ->groupBy('s.id', 's.title', 's.slug', 's.status', 's.image', 's.created_at');
+                $query->where('s.category_id', $categoryId);
             }
 
             $data = $query->orderBy('s.created_at', 'asc')->get();
+
             if ($data->isEmpty()) {
                 return response()->json([
                     'type'    => 'error',
@@ -103,6 +154,7 @@ class CategoryListController extends Controller
                 'result'  => $data
             ]);
         } catch (QueryException $e) {
+            \Log::error('SubCategory list error: ' . $e->getMessage());
             return response()->json([
                 'type'    => 'error',
                 'message' => 'Something went wrong.',
