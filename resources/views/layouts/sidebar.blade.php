@@ -173,12 +173,29 @@
         </li>
 
 
-        <!-- Inventory -->
-        <li class="menu-item {{ request()->routeIs('inventory') ? 'active' : '' }}">
-            <a href="{{ route('inventory') }}" class="menu-link">
+        <!-- Inventory Management -->
+        <li
+            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-store"></i>
-                <div>Inventory</div>
+                <div>Inventory Management</div>
             </a>
+
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('inventory') ? 'active' : '' }}">
+                    <a href="{{ route('inventory') }}" class="menu-link">
+                        <i class="bx bx-building-house me-2"></i>
+                        <div>Stock</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') ? 'active' : '' }}">
+                    <a href="{{ route('purchase-voucher') }}" class="menu-link">
+                        <i class="bx bx-file me-2"></i>
+                        <div>Purchase</div>
+                    </a>
+                </li>
+            </ul>
         </li>
 
         <!-- Vendor -->

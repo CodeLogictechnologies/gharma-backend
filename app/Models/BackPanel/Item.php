@@ -665,7 +665,15 @@ WHERE id IN ($idsList)
     {
         try {
             $query = DB::table('items')
-                ->select('id as itemid', 'title as itemname')
+                ->select(
+                    'id as itemid',
+                    'title as itemname',
+                    'vat_status',
+                    'excise_status',
+                    'excise_type',
+                    'excise_percentage',
+                    'excise_value'
+                )
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y');
 
