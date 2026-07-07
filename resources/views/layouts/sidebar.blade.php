@@ -175,7 +175,7 @@
 
         <!-- Inventory Management -->
         <li
-            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') ? 'active open' : '' }}">
+            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') || request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-store"></i>
                 <div>Inventory Management</div>
@@ -193,6 +193,13 @@
                     <a href="{{ route('purchase-voucher') }}" class="menu-link">
                         <i class="bx bx-file me-2"></i>
                         <div>Purchase</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active' : '' }}">
+                    <a href="{{ route('purchase-return') }}" class="menu-link">
+                        <i class="bx bx-transfer-alt me-2"></i>
+                        <div>Purchase Return (Dr. Note)</div>
                     </a>
                 </li>
             </ul>

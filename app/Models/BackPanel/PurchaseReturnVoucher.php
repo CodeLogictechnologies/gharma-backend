@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
-class PurchaseVoucher extends Model
+class PurchaseReturnVoucher extends Model
 {
     public $incrementing = false;
     protected $keyType = 'string';
@@ -21,9 +21,9 @@ class PurchaseVoucher extends Model
         $limit  = (int) ($post['iDisplayLength'] ?? 15);
         $offset = (int) ($post['iDisplayStart']  ?? 0);
 
-        $itemAgg = DB::table('purchase_voucher_items')
+        $itemAgg = DB::table('purchase_return_voucher_items')
             ->select(
-                'purchase_voucher_id',
+                'purchase_return_voucher_id',
                 DB::raw('SUM(qty) as total_qty'),
                 DB::raw('COUNT(*) as item_count'),
                 DB::raw('MAX(unit_rate) as single_rate'),
@@ -31,41 +31,44 @@ class PurchaseVoucher extends Model
                 DB::raw('MAX(excise_percentage) as single_excise_percentage'),
                 DB::raw('MAX(excise_value) as single_excise_value')
             )
-            ->groupBy('purchase_voucher_id');
+            ->groupBy('purchase_return_voucher_id');
 
-        $query = DB::table('purchase_vouchers as pv')
-            ->join('vendors as v', 'v.id', '=', 'pv.vendor_id')
-            ->leftJoinSub($itemAgg, 'pvi', 'pvi.purchase_voucher_id', '=', 'pv.id')
+        $query = DB::table('purchase_return_vouchers as prv')
+            ->join('vendors as v', 'v.id', '=', 'prv.vendor_id')
+            ->leftJoin('purchase_vouchers as pv', 'pv.id', '=', 'prv.against_voucher_id')
+            ->leftJoinSub($itemAgg, 'prvi', 'prvi.purchase_return_voucher_id', '=', 'prv.id')
             ->select(
-                'pv.id',
-                'pv.voucher_no',
-                'pv.voucher_date',
-                'pv.purchase_type',
-                'pv.vat_amount',
-                'pv.total_amount',
+                'prv.id',
+                'prv.debit_note_no',
+                'prv.return_date',
+                'prv.vat_amount',
+                'prv.excise_amount',
+                'prv.total_amount',
+                'prv.return_status',
                 'v.name as vendor_name',
                 'v.tax_number as vendor_pan',
-                'pvi.total_qty',
-                'pvi.item_count',
-                'pvi.single_rate',
-                'pvi.single_excise_type',
-                'pvi.single_excise_percentage',
-                'pvi.single_excise_value'
+                'pv.voucher_no as against_voucher_no',
+                'prvi.total_qty',
+                'prvi.item_count',
+                'prvi.single_rate',
+                'prvi.single_excise_type',
+                'prvi.single_excise_percentage',
+                'prvi.single_excise_value'
             )
-            ->where('pv.orgid', $orgid)
-            ->where('pv.status', 'Y');
+            ->where('prv.orgid', $orgid)
+            ->where('prv.status', 'Y');
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(pv.voucher_no) LIKE ?', ["%{$search}%"])
+                $q->whereRaw('LOWER(prv.debit_note_no) LIKE ?', ["%{$search}%"])
                     ->orWhereRaw('LOWER(v.name) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        $totalrecs = DB::table('purchase_vouchers')->where('orgid', $orgid)->where('status', 'Y')->count();
+        $totalrecs = DB::table('purchase_return_vouchers')->where('orgid', $orgid)->where('status', 'Y')->count();
         $filteredCount = (clone $query)->count();
 
-        $query->orderBy('pv.voucher_date', 'desc')->orderBy('pv.created_at', 'desc');
+        $query->orderBy('prv.return_date', 'desc')->orderBy('prv.created_at', 'desc');
 
         if ($limit > -1) {
             $query->offset($offset)->limit($limit);
@@ -171,20 +174,19 @@ class PurchaseVoucher extends Model
             }
 
             $header = [
-                'voucher_date'           => $post['voucher_date'],
-                'voucher_no'             => $post['voucher_no'],
-                'purchase_type'          => $post['purchase_type'],
-                'vendor_id'              => $post['vendor_id'],
-                'pan'                    => $vendor->tax_number,
-                'remarks'                => $post['remarks'] ?? null,
-                'subtotal'               => round($subtotal, 2),
-                'bill_discount_percent'  => $billDiscountPercent,
-                'bill_discount_amount'   => $billDiscountAmount,
-                'taxable_amount'         => round($taxableAmount, 2),
-                'vat_amount'             => round($totalVatAmount, 2),
-                'excise_amount'          => round($totalExciseAmount, 2),
-                'total_amount'           => $totalAmount,
-                'orgid'                  => $post['orgid'],
+                'return_date'           => $post['return_date'],
+                'debit_note_no'         => $post['debit_note_no'],
+                'vendor_id'             => $post['vendor_id'],
+                'against_voucher_id'    => $post['against_voucher_id'] ?? null,
+                'remarks'               => $post['remarks'] ?? null,
+                'subtotal'              => round($subtotal, 2),
+                'bill_discount_percent' => $billDiscountPercent,
+                'bill_discount_amount'  => $billDiscountAmount,
+                'taxable_amount'        => round($taxableAmount, 2),
+                'vat_amount'            => round($totalVatAmount, 2),
+                'excise_amount'         => round($totalExciseAmount, 2),
+                'total_amount'          => $totalAmount,
+                'orgid'                 => $post['orgid'],
             ];
 
             if (!empty($post['id'])) {
@@ -193,44 +195,45 @@ class PurchaseVoucher extends Model
                 $header['updatedby']  = $post['userid'];
                 $header['updated_at'] = Carbon::now();
 
-                DB::table('purchase_vouchers')->where('id', $voucherId)->update($header);
-                DB::table('purchase_voucher_items')->where('purchase_voucher_id', $voucherId)->delete();
+                DB::table('purchase_return_vouchers')->where('id', $voucherId)->update($header);
+                DB::table('purchase_return_voucher_items')->where('purchase_return_voucher_id', $voucherId)->delete();
             } else {
                 $voucherId = (string) Str::uuid();
 
-                $header['id']         = $voucherId;
-                $header['postedby']   = $post['userid'];
-                $header['created_at'] = Carbon::now();
-                $header['updated_at'] = Carbon::now();
+                $header['id']            = $voucherId;
+                $header['return_status']  = 'Pending';
+                $header['postedby']      = $post['userid'];
+                $header['created_at']    = Carbon::now();
+                $header['updated_at']    = Carbon::now();
 
-                DB::table('purchase_vouchers')->insert($header);
+                DB::table('purchase_return_vouchers')->insert($header);
             }
 
             $itemRows = [];
             foreach ($lineData as $line) {
                 $itemRows[] = [
-                    'id'                   => (string) Str::uuid(),
-                    'orgid'                => $post['orgid'],
-                    'purchase_voucher_id'  => $voucherId,
-                    'item_id'              => $line['item_id'],
-                    'variation_id'         => $line['variation_id'],
-                    'unit'                 => $line['unit'],
-                    'qty'                  => $line['qty'],
-                    'unit_rate'            => $line['unit_rate'],
-                    'amount'               => $line['amount'],
-                    'vat_percent'          => $line['vat_percent'],
-                    'vat_amount'           => $line['vat_amount'],
-                    'excise_type'          => $line['excise_type'],
-                    'excise_percentage'    => $line['excise_percentage'],
-                    'excise_value'         => $line['excise_value'],
-                    'excise_amount'        => $line['excise_amount'],
-                    'mrp'                  => $line['mrp'],
-                    'net_amount'           => $line['net_amount'],
-                    'created_at'           => Carbon::now(),
-                    'updated_at'           => Carbon::now(),
+                    'id'                         => (string) Str::uuid(),
+                    'orgid'                      => $post['orgid'],
+                    'purchase_return_voucher_id' => $voucherId,
+                    'item_id'                    => $line['item_id'],
+                    'variation_id'               => $line['variation_id'],
+                    'unit'                       => $line['unit'],
+                    'qty'                        => $line['qty'],
+                    'unit_rate'                  => $line['unit_rate'],
+                    'amount'                     => $line['amount'],
+                    'vat_percent'                => $line['vat_percent'],
+                    'vat_amount'                 => $line['vat_amount'],
+                    'excise_type'                => $line['excise_type'],
+                    'excise_percentage'          => $line['excise_percentage'],
+                    'excise_value'               => $line['excise_value'],
+                    'excise_amount'              => $line['excise_amount'],
+                    'mrp'                        => $line['mrp'],
+                    'net_amount'                 => $line['net_amount'],
+                    'created_at'                 => Carbon::now(),
+                    'updated_at'                 => Carbon::now(),
                 ];
             }
-            DB::table('purchase_voucher_items')->insert($itemRows);
+            DB::table('purchase_return_voucher_items')->insert($itemRows);
 
             DB::commit();
             return true;
@@ -244,31 +247,32 @@ class PurchaseVoucher extends Model
     {
         $id = $post['id'] ?? null;
         if (empty($id)) {
-            throw new Exception('Purchase voucher ID is required.');
+            throw new Exception('Purchase return voucher ID is required.');
         }
 
-        $voucher = DB::table('purchase_vouchers as pv')
-            ->join('vendors as v', 'v.id', '=', 'pv.vendor_id')
-            ->select('pv.*', 'v.name as vendor_name')
-            ->where('pv.id', $id)
-            ->where('pv.orgid', $post['orgid'])
+        $voucher = DB::table('purchase_return_vouchers as prv')
+            ->join('vendors as v', 'v.id', '=', 'prv.vendor_id')
+            ->leftJoin('purchase_vouchers as pv', 'pv.id', '=', 'prv.against_voucher_id')
+            ->select('prv.*', 'v.name as vendor_name', 'pv.voucher_no as against_voucher_no')
+            ->where('prv.id', $id)
+            ->where('prv.orgid', $post['orgid'])
             ->first();
 
         if (!$voucher) {
-            throw new Exception('Purchase voucher not found.');
+            throw new Exception('Purchase return voucher not found.');
         }
 
-        $voucher->items = DB::table('purchase_voucher_items as pvi')
-            ->join('items as i', 'i.id', '=', 'pvi.item_id')
-            ->leftJoin('itemvariations as iv', 'iv.id', '=', 'pvi.variation_id')
+        $voucher->items = DB::table('purchase_return_voucher_items as prvi')
+            ->join('items as i', 'i.id', '=', 'prvi.item_id')
+            ->leftJoin('itemvariations as iv', 'iv.id', '=', 'prvi.variation_id')
             ->select(
-                'pvi.*',
+                'prvi.*',
                 'i.title as item_title',
                 'iv.attribute as variation_attribute',
                 'iv.value as variation_value'
             )
-            ->where('pvi.purchase_voucher_id', $id)
-            ->orderBy('pvi.created_at')
+            ->where('prvi.purchase_return_voucher_id', $id)
+            ->orderBy('prvi.created_at')
             ->get();
 
         return $voucher;
@@ -277,13 +281,26 @@ class PurchaseVoucher extends Model
     public static function deleteDate($post)
     {
         try {
-            $updated = DB::table('purchase_vouchers')
+            $voucher = DB::table('purchase_return_vouchers')
+                ->where('id', $post['id'])
+                ->where('orgid', $post['orgid'])
+                ->first();
+
+            if (!$voucher) {
+                throw new Exception("Couldn't delete record. Please try again", 1);
+            }
+
+            $updated = DB::table('purchase_return_vouchers')
                 ->where('id', $post['id'])
                 ->where('orgid', $post['orgid'])
                 ->update([
-                    'status'     => 'N',
-                    'updatedby'  => $post['userid'],
-                    'updated_at' => Carbon::now(),
+                    'status'        => 'N',
+                    // Free up the debit_note_no for reuse: the (orgid, debit_note_no)
+                    // unique index applies to all rows regardless of status, so a
+                    // soft-deleted row would otherwise permanently block that number.
+                    'debit_note_no' => $voucher->debit_note_no . '-DEL-' . substr($post['id'], 0, 8),
+                    'updatedby'     => $post['userid'],
+                    'updated_at'    => Carbon::now(),
                 ]);
 
             if (!$updated) {
@@ -296,25 +313,24 @@ class PurchaseVoucher extends Model
         }
     }
 
-    public static function getVendorVouchers($post)
+    public static function updateStatus($post)
     {
         try {
-            return DB::table('purchase_vouchers as pv')
-                ->select('pv.id', 'pv.voucher_no', 'pv.voucher_date')
-                ->where('pv.orgid', $post['orgid'])
-                ->where('pv.vendor_id', $post['vendor_id'])
-                ->where('pv.status', 'Y')
-                ->whereNotExists(function ($query) use ($post) {
-                    $query->select(DB::raw(1))
-                        ->from('purchase_return_vouchers as prv')
-                        ->whereColumn('prv.against_voucher_id', 'pv.id')
-                        ->where('prv.status', 'Y')
-                        ->when(!empty($post['exclude_return_id']), function ($q) use ($post) {
-                            $q->where('prv.id', '!=', $post['exclude_return_id']);
-                        });
-                })
-                ->orderBy('pv.voucher_date', 'desc')
-                ->get();
+            $updated = DB::table('purchase_return_vouchers')
+                ->where('id', $post['id'])
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->update([
+                    'return_status' => $post['return_status'],
+                    'updatedby'     => $post['userid'],
+                    'updated_at'    => Carbon::now(),
+                ]);
+
+            if (!$updated) {
+                throw new Exception("Couldn't update status. Please try again", 1);
+            }
+
+            return true;
         } catch (Exception $e) {
             throw $e;
         }

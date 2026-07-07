@@ -1,27 +1,28 @@
 @extends('layouts.main')
-@section('title', 'Purchase Voucher')
+@section('title', 'Purchase Return (Dr. Note)')
 @section('content')
 
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="card">
             <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-                <h5 class="mb-0">Purchase Vouchers</h5>
-                <button type="button" id="addPurchaseVoucher" class="btn btn-primary">
-                    <i class="bx bx-plus me-1"></i> Add Purchase Voucher
+                <h5 class="mb-0">Purchase Return (Debit Note)</h5>
+                <button type="button" id="addPurchaseReturn" class="btn btn-primary">
+                    <i class="bx bx-plus me-1"></i> Add Debit Note
                 </button>
             </div>
 
             <div class="table-responsive text-nowrap mx-4 mb-4">
-                <table class="table" id="purchaseVoucherTable">
+                <table class="table" id="purchaseReturnTable">
                     <thead class="table-light">
                         <tr class="align-middle">
                             <th>S.N</th>
-                            <th>Voucher No.</th>
+                            <th>Debit Note No.</th>
                             <th>Date</th>
                             <th>Vendor</th>
-                            <th>Type</th>
+                            <th>Against Voucher</th>
                             <th>Qty</th>
                             <th>Total (Rs.)</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -32,9 +33,9 @@
     </div>
 
     {{-- Add/Edit/View Modal --}}
-    <div class="modal fade" id="pvModal" tabindex="-1" role="dialog" aria-modal="true">
-        <div class="modal-dialog modal-xl" role="document" style="max-width: 1380px;">
-            <div class="modal-content" id="pvModalContent"></div>
+    <div class="modal fade" id="prModal" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-xl" role="document" style="max-width: 1200px;">
+            <div class="modal-content" id="prModalContent"></div>
         </div>
     </div>
 
@@ -43,7 +44,7 @@
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Delete Purchase Voucher</h5>
+                    <h5 class="modal-title">Delete Purchase Return</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">Are you sure? You won't be able to revert this.</div>
@@ -59,7 +60,7 @@
 
 @section('main-scripts')
     <script>
-        var purchaseVoucherTable;
+        var purchaseReturnTable;
 
         $(document).ready(function() {
 
@@ -68,7 +69,7 @@
             });
 
             /* ── DataTable ───────────────────────────────────────── */
-            purchaseVoucherTable = $('#purchaseVoucherTable').dataTable({
+            purchaseReturnTable = $('#purchaseReturnTable').dataTable({
                 sPaginationType: 'full_numbers',
                 bSearchable: false,
                 language: {
@@ -86,21 +87,22 @@
                 aaSorting:      [[0, 'desc']],
                 bProcessing:    true,
                 bServerSide:    true,
-                sAjaxSource:    '{{ route('purchase-voucher.list') }}',
+                sAjaxSource:    '{{ route('purchase-return.list') }}',
                 sServerMethod:  'POST',
                 oLanguage:      { sEmptyTable: "<p class='no_data_message'>No data available.</p>" },
                 aoColumnDefs: [
-                    { bSortable: false, aTargets: [0, 7] }
+                    { bSortable: false, aTargets: [0, 8] }
                 ],
                 aoColumns: [
-                    { data: 'sno'          },
-                    { data: 'voucher_no'   },
-                    { data: 'voucher_date' },
-                    { data: 'vendor'       },
-                    { data: 'type'         },
-                    { data: 'qty'          },
-                    { data: 'total'        },
-                    { data: 'action'       },
+                    { data: 'sno'            },
+                    { data: 'debit_note_no'  },
+                    { data: 'return_date'    },
+                    { data: 'vendor'         },
+                    { data: 'against_voucher'},
+                    { data: 'qty'            },
+                    { data: 'total'          },
+                    { data: 'status'         },
+                    { data: 'action'         },
                 ],
                 initComplete: function() {
                     this.api().columns([1, 3]).every(function() {
@@ -114,11 +116,11 @@
             });
 
             /* ── Helper: open modal via AJAX ─────────────────────── */
-            function openPvModal(url, data, method) {
+            function openPrModal(url, data, method) {
                 var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
                 req.done(function(response) {
-                    $('#pvModalContent').html(response);
-                    var modalEl  = document.getElementById('pvModal');
+                    $('#prModalContent').html(response);
+                    var modalEl  = document.getElementById('prModal');
                     var existing = bootstrap.Modal.getInstance(modalEl);
                     if (existing) existing.dispose();
                     new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false }).show();
@@ -128,25 +130,25 @@
             }
 
             /* ── Add ─────────────────────────────────────────────── */
-            $('#addPurchaseVoucher').on('click', function() {
-                openPvModal('{{ route('purchase-voucher.form') }}', {}, 'GET');
+            $('#addPurchaseReturn').on('click', function() {
+                openPrModal('{{ route('purchase-return.form') }}', {}, 'GET');
             });
 
             /* ── Edit ────────────────────────────────────────────── */
-            $(document).on('click', '.editPurchaseVoucher', function(e) {
+            $(document).on('click', '.editPurchaseReturn', function(e) {
                 e.preventDefault();
-                openPvModal(
-                    '{{ route('purchase-voucher.form') }}',
+                openPrModal(
+                    '{{ route('purchase-return.form') }}',
                     { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
                     'POST'
                 );
             });
 
             /* ── View ────────────────────────────────────────────── */
-            $(document).on('click', '.viewPurchaseVoucher', function(e) {
+            $(document).on('click', '.viewPurchaseReturn', function(e) {
                 e.preventDefault();
-                openPvModal(
-                    '{{ route('purchase-voucher.view') }}',
+                openPrModal(
+                    '{{ route('purchase-return.view') }}',
                     { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
                     'POST'
                 );
@@ -155,7 +157,7 @@
             /* ── Delete ──────────────────────────────────────────── */
             var deleteId = null;
 
-            $(document).on('click', '.deletePurchaseVoucher', function(e) {
+            $(document).on('click', '.deletePurchaseReturn', function(e) {
                 e.preventDefault();
                 deleteId = $(this).data('id');
                 new bootstrap.Modal(document.getElementById('deleteModal')).show();
@@ -163,12 +165,12 @@
 
             $('#confirmDelete').on('click', function() {
                 if (!deleteId) return;
-                $.post('{{ route('purchase-voucher.delete') }}', { id: deleteId, _token: '{{ csrf_token() }}' })
+                $.post('{{ route('purchase-return.delete') }}', { id: deleteId, _token: '{{ csrf_token() }}' })
                     .done(function(response) {
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
-                            purchaseVoucherTable.fnDraw();
+                            purchaseReturnTable.fnDraw();
                         } else {
                             showNotification(result.message, 'error');
                         }
@@ -182,17 +184,44 @@
                     });
             });
 
+            /* ── Approve / Reject ─────────────────────────────────── */
+            function updatePurchaseReturnStatus(id, status) {
+                $.post('{{ route('purchase-return.status') }}', { id: id, return_status: status, _token: '{{ csrf_token() }}' })
+                    .done(function(response) {
+                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            purchaseReturnTable.fnDraw();
+                        } else {
+                            showNotification(result.message, 'error');
+                        }
+                    })
+                    .fail(function() {
+                        showNotification('Failed to update status. Please try again.', 'error');
+                    });
+            }
+
+            $(document).on('click', '.approvePurchaseReturn', function(e) {
+                e.preventDefault();
+                updatePurchaseReturnStatus($(this).data('id'), 'Approved');
+            });
+
+            $(document).on('click', '.rejectPurchaseReturn', function(e) {
+                e.preventDefault();
+                updatePurchaseReturnStatus($(this).data('id'), 'Rejected');
+            });
+
             /* ── Clear modal on close ────────────────────────────── */
-            document.getElementById('pvModal').addEventListener('hidden.bs.modal', function() {
-                $('#pvModalContent').html('');
+            document.getElementById('prModal').addEventListener('hidden.bs.modal', function() {
+                $('#prModalContent').html('');
             });
 
             /* ── Add/Edit form submit ─────────────────────────────── */
-            $(document).on('submit', '#purchaseVoucherForm', function(e) {
+            $(document).on('submit', '#purchaseReturnForm', function(e) {
                 e.preventDefault();
 
                 var $form = $(this);
-                if (!window.pvValidateForm($form)) return;
+                if (!window.prValidateForm($form)) return;
 
                 var isEdit = $form.find('[name="id"]').val() !== '';
                 var $btn = $form.find('[type=submit]');
@@ -208,8 +237,8 @@
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
-                            purchaseVoucherTable.fnDraw();
-                            bootstrap.Modal.getInstance(document.getElementById('pvModal')).hide();
+                            purchaseReturnTable.fnDraw();
+                            bootstrap.Modal.getInstance(document.getElementById('prModal')).hide();
                         } else {
                             showNotification(result.message, 'error');
                             $btn.prop('disabled', false).html(
