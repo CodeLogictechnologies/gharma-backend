@@ -20,7 +20,6 @@
                             <th>Date</th>
                             <th>Vendor</th>
                             <th>Against Voucher</th>
-                            <th>Qty</th>
                             <th>Total (Rs.)</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -91,7 +90,7 @@
                 sServerMethod:  'POST',
                 oLanguage:      { sEmptyTable: "<p class='no_data_message'>No data available.</p>" },
                 aoColumnDefs: [
-                    { bSortable: false, aTargets: [0, 8] }
+                    { bSortable: false, aTargets: [0, 7] }
                 ],
                 aoColumns: [
                     { data: 'sno'            },
@@ -99,7 +98,6 @@
                     { data: 'return_date'    },
                     { data: 'vendor'         },
                     { data: 'against_voucher'},
-                    { data: 'qty'            },
                     { data: 'total'          },
                     { data: 'status'         },
                     { data: 'action'         },
