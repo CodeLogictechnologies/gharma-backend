@@ -17,11 +17,10 @@
                         <tr class="align-middle">
                             <th>ID</th>
                             <th>Product</th>
-                            <th>Value</th>
+                            <th>Variation</th>
                             <th>Stock</th>
                             <th>Sold Qty</th>
                             <th>Remaining</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -123,7 +122,7 @@
                 },
                 aoColumnDefs: [{
                     bSortable: false,
-                    aTargets: [0, 6]
+                    aTargets: [0, 4]
                 }],
                 aoColumns: [{
                         data: 'sno'
@@ -138,20 +137,16 @@
                         data: 'title'
                     },
                     {
-                        data: 'variation_value'
+                        data: 'attribute'
                     },
                     {
                         data: 'stock'
                     },
                     {
-                        data: 'soldqty'
-                    },
-                    {
                         data: 'remainingqty'
                     },
                     {
-                        data: 'action',
-                        bSortable: false
+                        data: 'soldqty'
                     },
                 ],
 

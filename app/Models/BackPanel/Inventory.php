@@ -50,85 +50,78 @@ class Inventory extends Model
             throw $e;
         }
     }
+
+
     public static function list($post)
     {
         try {
-            $orgid   = $post['orgid'] ?? '';
-            $columns = $post['columns'] ?? [];
-            $cond    = "inv.orgid = ?";
+            $orgid    = $post['orgid'] ?? '';
+            $columns  = $post['columns'] ?? [];
+            $cond     = "i.orgid = ?";
             $bindings = [$orgid];
 
             if (!empty($columns[1]['search']['value'])) {
-                $val      = strtolower(trim($columns[1]['search']['value']));
-                $cond    .= " and lower(i.title) like ?";
+                $val        = strtolower(trim($columns[1]['search']['value']));
+                $cond      .= " and lower(i.title) like ?";
                 $bindings[] = "%{$val}%";
             }
 
             if (!empty($columns[2]['search']['value'])) {
-                $val      = strtolower(trim($columns[2]['search']['value']));
-                $cond    .= " and lower(iv.value) like ?";
+                $val        = strtolower(trim($columns[2]['search']['value']));
+                $cond      .= " and lower(iv.value) like ?";
                 $bindings[] = "%{$val}%";
             }
 
             if (!empty($columns[3]['search']['value'])) {
-                $val      = strtolower(trim($columns[3]['search']['value']));
-                $cond    .= " and inv.quantity_available like ?";
+                $val        = strtolower(trim($columns[3]['search']['value']));
+                $cond      .= " and pvi.qty::text like ?";
                 $bindings[] = "%{$val}%";
             }
 
             $limit  = isset($post['length']) ? (int) $post['length'] : 15;
             $offset = isset($post['start'])  ? (int) $post['start']  : 0;
 
-            // Total count (unfiltered)
-            $totalrecs = DB::table('inventories as inv')
-                ->join('items as i',           'i.id',  '=', 'inv.item_id')
-                ->join('itemvariations as iv',  'iv.id', '=', 'inv.variation_id')
-                ->where('inv.orgid', $orgid)
+            $baseQuery = DB::table('items as i')
+                ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+                ->join('purchase_voucher_items as pvi', 'pvi.variation_id', '=', 'iv.id')
+                ->leftJoin('order_details as o', 'o.variation_id', '=', 'iv.id')
+                ->where('i.orgid', $orgid);
+
+            // Total count (unfiltered) — count distinct variation rows, not summed/grouped rows
+            $totalrecs = (clone $baseQuery)
+                ->select('iv.id')
+                ->groupBy('iv.id')
+                ->get()
                 ->count();
 
-            // Filtered count
-            $filteredCount = DB::table('inventories as inv')
-                ->join('items as i',           'i.id',  '=', 'inv.item_id')
-                ->join('itemvariations as iv',  'iv.id', '=', 'inv.variation_id')
-                ->whereRaw($cond, $bindings)
-                ->count();
-
-            $query = DB::table('inventories as inv')
-                ->join('items as i',            'i.id',  '=', 'inv.item_id')
-                ->join('itemvariations as iv',   'iv.id', '=', 'inv.variation_id')
-                ->leftJoin('order_details as o', 'o.variation_id', '=', 'inv.variation_id')
+            $query = (clone $baseQuery)
                 ->selectRaw("
-                inv.id,
-                inv.quantity_available              as stock,
-                inv.quantity_available - COALESCE(SUM(o.quantity), 0) AS remainingqty,
-                inv.selling_price                   as price,
-                inv.unit_cost,
-                inv.reorder_level,
-                inv.created_at,
-                COALESCE(SUM(o.quantity), 0)        as soldqty,
-                i.title,
-                iv.attribute,
-                iv.value                            as variation_value
-            ")
+                    i.id,
+                    pvi.qty as stock,
+                    pvi.qty - COALESCE(SUM(o.quantity), 0) AS remainingqty,
+                    COALESCE(SUM(o.quantity), 0) as soldqty,
+                    i.title,
+                    iv.attribute,
+                    iv.value as variation_value
+                ")
                 ->whereRaw($cond, $bindings)
                 ->groupBy(
-                    'inv.id',
-                    'inv.quantity_available',
-                    'inv.selling_price',
-                    'inv.unit_cost',
-                    'inv.reorder_level',
-                    'inv.created_at',
+                    'i.id',
+                    'pvi.qty',
                     'i.title',
                     'iv.attribute',
                     'iv.value'
                 )
-                ->orderBy('inv.created_at', 'desc');
+                ->orderBy('i.id', 'desc');
 
-            if ($limit > -1) {
-                $result = $query->offset($offset)->limit($limit)->get();
-            } else {
-                $result = $query->get();
-            }
+            // Filtered count — wrap the grouped query in a subquery
+            $filteredCount = DB::query()
+                ->fromSub($query->clone(), 'grouped')
+                ->count();
+
+            $result = $limit > -1
+                ? $query->offset($offset)->limit($limit)->get()
+                : $query->get();
 
             $ndata                      = $result;
             $ndata['totalrecs']         = $totalrecs;
