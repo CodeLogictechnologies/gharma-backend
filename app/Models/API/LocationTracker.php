@@ -45,8 +45,13 @@ class LocationTracker extends Model
     {
         try {
 
+            $getMaster = DB::table('order_details')
+                ->where('id', $post['order_id'])
+                ->select('ordermasterid')
+                ->first();
+
             $data = DB::table('location_trackers')
-                ->where('orderid', $post['order_id'])
+                ->where('orderid', $getMaster->ordermasterid)
                 ->select('longitude', 'latitude')
                 ->latest()
                 ->first();
@@ -60,12 +65,17 @@ class LocationTracker extends Model
     {
         try {
 
+            $getMaster = DB::table('order_details')
+                ->where('id', $post['order_id'])
+                ->select('ordermasterid')
+                ->first();
+
             $data = DB::table('order_masters as om')
                 ->join('user_addresses as ua', function ($join) {
                     $join->on('ua.userid', '=', 'om.userid')
                         ->on('ua.id', '=', 'om.addressid');
                 })
-                ->where('om.id', $post['order_id'])
+                ->where('om.id', $getMaster->ordermasterid)
                 ->select(
                     'ua.longitude',
                     'ua.latitude',

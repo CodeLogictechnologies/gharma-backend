@@ -32,7 +32,7 @@ class SalesReturnVoucher extends Model
 
         $query = DB::table('sales_return_vouchers as srv')
             ->join('users as u', 'u.id', '=', 'srv.customer_id')
-            ->leftJoin('sales_vouchers as sv', 'sv.id', '=', 'srv.against_voucher_id')
+            ->leftJoin('order_masters as sv', 'sv.id', '=', 'srv.against_voucher_id')
             ->leftJoinSub($itemAgg, 'srvi', 'srvi.sales_return_voucher_id', '=', 'srv.id')
             ->select(
                 'srv.id',
@@ -42,7 +42,7 @@ class SalesReturnVoucher extends Model
                 'srv.total_amount',
                 'srv.return_status',
                 'u.name as customer_name',
-                'sv.voucher_no as against_voucher_no',
+                'sv.voucher_number as against_voucher_no',
                 'srvi.total_qty',
                 'srvi.item_count',
                 'srvi.single_rate'
@@ -191,9 +191,9 @@ class SalesReturnVoucher extends Model
                     'qty'                      => $line['qty'],
                     'unit_rate'                => $line['unit_rate'],
                     'amount'                   => $line['amount'],
-                    'vat_percent'              => $line['vat_percent'],
-                    'vat_amount'               => $line['vat_amount'],
-                    'net_amount'               => $line['net_amount'],
+                    'vat_percent'              => $line['vat_percent'] ?? null,
+                    'vat_amount'               => $line['vat_amount'] ?? null,
+                    'net_amount'               => $line['net_amount'] ?? null,
                     'created_at'               => Carbon::now(),
                     'updated_at'               => Carbon::now(),
                 ];
@@ -217,8 +217,8 @@ class SalesReturnVoucher extends Model
 
         $voucher = DB::table('sales_return_vouchers as srv')
             ->join('users as u', 'u.id', '=', 'srv.customer_id')
-            ->leftJoin('sales_vouchers as sv', 'sv.id', '=', 'srv.against_voucher_id')
-            ->select('srv.*', 'u.name as customer_name', 'sv.voucher_no as against_voucher_no')
+            ->leftJoin('order_masters as sv', 'sv.id', '=', 'srv.against_voucher_id')
+            ->select('srv.*', 'u.name as customer_name', 'sv.voucher_number as against_voucher_no')
             ->where('srv.id', $id)
             ->where('srv.orgid', $post['orgid'])
             ->first();

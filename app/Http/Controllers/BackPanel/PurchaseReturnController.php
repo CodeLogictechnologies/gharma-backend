@@ -228,7 +228,7 @@ class PurchaseReturnController extends Controller
 
     public function save(Request $request)
     {
-        try {
+        // try {
             $rules = [
                 'return_date'       => 'required|date',
                 'debit_note_no'     => 'required|string|max:255',
@@ -283,11 +283,11 @@ class PurchaseReturnController extends Controller
                 'type'    => 'success',
                 'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
             ]);
-        } catch (QueryException $e) {
-            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
-        } catch (Exception $e) {
-            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
-        }
+        // } catch (QueryException $e) {
+        //     return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+        // } catch (Exception $e) {
+        //     return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+        // }
     }
 
     public function view(Request $request)

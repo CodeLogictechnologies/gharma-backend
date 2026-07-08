@@ -200,8 +200,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save',           [BackPanelCategoryController::class, 'save'])->name('category.save');
             Route::post('/delete',         [BackPanelCategoryController::class, 'delete'])->name('category.delete');
             Route::get('/parent-options',  [BackPanelCategoryController::class, 'getParentOptions'])->name('category.parent-options');
-            });
-            
+        });
+
         Route::group(['prefix' => 'hometab'], function () {
             Route::get('/',        [HomeTabController::class, 'index'])->name('hometab');
             Route::get('/list',    [HomeTabController::class, 'list'])->name('hometab.list');
@@ -299,6 +299,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/customer-vouchers', [SalesReturnController::class, 'customerVouchers'])->name('sales-return.customer-vouchers');
             Route::get('/voucher-items', [SalesReturnController::class, 'voucherItems'])->name('sales-return.voucher-items');
             Route::post('/status', [SalesReturnController::class, 'updateStatus'])->name('sales-return.status');
+            Route::get('/voucher-customer', [SalesReturnController::class, 'voucherCustomer'])->name('sales-return.voucher-customer');
         });
 
 
