@@ -196,4 +196,15 @@ class Order extends Model
             return null;
         }
     }
+
+
+    public static function getVoucher($post)
+    {
+        try {
+            $data = DB::table('order_masters')->select('voucher_number', 'id')->where('status', 'Y')->where('orgid', $post['orgid'])->get();
+            return $data;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }

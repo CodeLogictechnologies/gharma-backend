@@ -4,6 +4,7 @@ namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
 use App\Models\BackPanel\Item;
+use App\Models\BackPanel\Order;
 use App\Models\BackPanel\SalesReturnVoucher;
 use App\Models\BackPanel\SalesVoucher;
 use App\Models\User;
@@ -91,8 +92,11 @@ class SalesReturnController extends Controller
             $items     = Item::getItem($post);
             $customers = User::getUserData($post);
 
+            $getVoucher = Order::getVoucher($post);
+
             $data = [
-                'items'     => $items,
+                'items'   => $items,
+                'getVoucher'   => $getVoucher,
                 'customers' => $customers,
             ];
 
@@ -109,6 +113,7 @@ class SalesReturnController extends Controller
                 $data['against_voucher_id']    = $result->against_voucher_id;
                 $data['remarks']               = $result->remarks;
                 $data['bill_discount_percent'] = $result->bill_discount_percent;
+                $data['customer_name']         = $result->customer_name;
                 $data['lineItems']             = $result->items;
                 $data['customerVouchers']  = !empty($result->customer_id)
                     ? SalesVoucher::getCustomerVouchers([
@@ -142,43 +147,35 @@ class SalesReturnController extends Controller
 
     public function voucherItems(Request $request)
     {
-        $orgid = session('orgid');
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
 
-        if (empty($request->voucher_id)) {
-            return response()->json(['bill_discount_percent' => 0, 'items' => []]);
-        }
-
-        $voucher = DB::table('sales_vouchers')
-            ->select('bill_discount_percent')
-            ->where('id', $request->voucher_id)
-            ->where('orgid', $orgid)
+        $voucher = DB::table('order_masters')
+            ->where('id', $post['voucher_id'])
+            ->where('orgid', $post['orgid'])
             ->first();
 
         if (!$voucher) {
-            return response()->json(['bill_discount_percent' => 0, 'items' => []]);
+            return response()->json(['items' => [], 'bill_discount_percent' => 0], 404);
         }
 
-        $items = DB::table('sales_voucher_items as svi')
-            ->join('sales_vouchers as sv', 'sv.id', '=', 'svi.sales_voucher_id')
-            ->join('items as i', 'i.id', '=', 'svi.item_id')
-            ->leftJoin('itemvariations as iv', 'iv.id', '=', 'svi.variation_id')
+        $items = DB::table('order_details as od')
+            ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
+            ->join('items as i', 'i.id', '=', 'v.item_id')
+            ->where('od.ordermasterid', $post['voucher_id'])
             ->select(
-                'svi.item_id',
-                'i.title as item_title',
-                'svi.variation_id',
-                'iv.attribute as variation_attribute',
-                'iv.value as variation_value',
-                'svi.unit',
-                'svi.qty',
-                'svi.unit_rate'
+                'i.id as item_id',
+                'i.title',
+                'v.id as variation_id',
+                'v.value',
+                'od.price as unit_rate',
+                'od.quantity as qty',
+                'od.order_detail_total_price'
             )
-            ->where('svi.sales_voucher_id', $request->voucher_id)
-            ->where('sv.orgid', $orgid)
-            ->orderBy('svi.created_at')
             ->get();
 
         return response()->json([
-            'bill_discount_percent' => $voucher->bill_discount_percent,
+            'bill_discount_percent' => $voucher->bill_discount_percent ?? 0,
             'items'                 => $items,
         ]);
     }
@@ -326,5 +323,30 @@ class SalesReturnController extends Controller
         }
 
         return json_encode(['type' => $type, 'message' => $message]);
+    }
+
+
+    public function voucherCustomer(Request $request)
+    {
+        // try {
+        // dd($request->all());
+        $voucher = DB::table('order_masters')
+            ->join('users', 'users.id', '=', 'order_masters.userid')
+            ->where('order_masters.id', $request->voucher_id)
+            ->select('users.id as customer_id', 'users.name as customer_name')
+            ->first();
+
+        if (!$voucher) {
+            return response()->json(['customer_id' => null]);
+        }
+
+
+        return response()->json([
+            'customer_id'   => $voucher->customer_id,
+            'customer_name' => $voucher->customer_name,
+        ]);
+        // } catch (\Exception $e) {
+        //     return response()->json(['customer_id' => null], 500);
+        // }
     }
 }
