@@ -15,59 +15,60 @@ class SalesVoucher extends Model
 
     public static function list($post)
     {
-        $orgid  = $post['orgid'] ?? '';
-        $search = trim(strtolower($post['sSearch'] ?? ($post['search']['value'] ?? '')));
+        try {
+            $cond     = "1=1";
+            $bindings = [];
 
-        $limit  = (int) ($post['iDisplayLength'] ?? 15);
-        $offset = (int) ($post['iDisplayStart']  ?? 0);
+            if (!empty($post['sSearch_1'])) {
+                $val        = strtolower(trim($post['sSearch_1']));
+                $cond      .= " and lower(i.title) like ?";
+                $bindings[] = "%{$val}%";
+            }
 
-        $itemAgg = DB::table('sales_voucher_items')
-            ->select(
-                'sales_voucher_id',
-                DB::raw('SUM(qty) as total_qty'),
-                DB::raw('COUNT(*) as item_count'),
-                DB::raw('MAX(unit_rate) as single_rate')
-            )
-            ->groupBy('sales_voucher_id');
+            if (!empty($post['sSearch_2'])) {
+                $val        = strtolower(trim($post['sSearch_2']));
+                $cond      .= " and (lower(v.attribute) like ? or lower(v.value) like ?)";
+                $bindings[] = "%{$val}%";
+                $bindings[] = "%{$val}%";
+            }
 
-        $query = DB::table('sales_vouchers as sv')
-            ->join('users as u', 'u.id', '=', 'sv.customer_id')
-            ->leftJoinSub($itemAgg, 'svi', 'svi.sales_voucher_id', '=', 'sv.id')
-            ->select(
-                'sv.id',
-                'sv.voucher_no',
-                'sv.voucher_date',
-                'sv.vat_amount',
-                'sv.total_amount',
-                'u.name as customer_name',
-                'svi.total_qty',
-                'svi.item_count',
-                'svi.single_rate'
-            )
-            ->where('sv.orgid', $orgid)
-            ->where('sv.status', 'Y');
+            $limit  = isset($post['iDisplayLength']) ? (int) $post['iDisplayLength'] : 15;
+            $offset = isset($post['iDisplayStart'])  ? (int) $post['iDisplayStart']  : 0;
 
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(sv.voucher_no) LIKE ?', ["%{$search}%"])
-                    ->orWhereRaw('LOWER(u.name) LIKE ?', ["%{$search}%"]);
-            });
+            $baseQuery = DB::table('order_details as od')
+                ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
+                ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
+                ->join('items as i', 'i.id', '=', 'v.item_id')
+                ->where('om.orgid', $post['orgid']);
+
+            $totalrecs = (clone $baseQuery)
+                ->select('i.id')
+                ->groupBy('i.id')
+                ->get()
+                ->count();
+
+            $query = (clone $baseQuery)
+                ->selectRaw("i.id, i.title, v.value, v.attribute, SUM(od.quantity) as quantity, SUM(od.price) as price")
+                ->whereRaw($cond, $bindings)
+                ->groupBy('i.id', 'i.title', 'v.attribute', 'v.value')
+                ->orderBy('i.id');
+
+            $filteredCount = DB::query()
+                ->fromSub($query->clone(), 'grouped')
+                ->count();
+
+            $result = $limit > -1
+                ? $query->offset($offset)->limit($limit)->get()
+                : $query->get();
+
+            return [
+                'data'              => $result,
+                'totalrecs'         => $totalrecs,
+                'totalfilteredrecs' => $filteredCount,
+            ];
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        $totalrecs = DB::table('sales_vouchers')->where('orgid', $orgid)->where('status', 'Y')->count();
-        $filteredCount = (clone $query)->count();
-
-        $query->orderBy('sv.voucher_date', 'desc')->orderBy('sv.created_at', 'desc');
-
-        if ($limit > -1) {
-            $query->offset($offset)->limit($limit);
-        }
-
-        $result = $query->get();
-        $result['totalrecs']         = $totalrecs;
-        $result['totalfilteredrecs'] = $filteredCount;
-
-        return $result;
     }
 
     public static function saveData($post)

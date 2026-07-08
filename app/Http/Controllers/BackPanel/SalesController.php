@@ -35,37 +35,28 @@ class SalesController extends Controller
             unset($data["totalfilteredrecs"]);
             unset($data["totalrecs"]);
 
-            foreach ($data as $row) {
-                $array[$i]["sno"]          = $i + 1;
-                $array[$i]["voucher_no"]   = $row->voucher_no;
-                $array[$i]["voucher_date"] = $row->voucher_date;
-                $array[$i]["customer"]     = $row->customer_name;
-                $array[$i]["qty"]          = $row->total_qty !== null ? rtrim(rtrim(number_format($row->total_qty, 2), '0'), '.') : '-';
-                $array[$i]["rate"]         = ((int) $row->item_count === 1 && $row->single_rate !== null) ? number_format($row->single_rate, 2) : '-';
-                $array[$i]["vat"]          = $row->vat_amount > 0 ? 'VAT 13%' : 'VAT 0%';
-                $array[$i]["total"]        = number_format($row->total_amount, 2);
-
-                $action  = '<a href="javascript:;" title="View Data" class="tooltipdiv viewSalesVoucher" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editSalesVoucher" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteSalesVoucher px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
-
-                $array[$i]["action"] = $action;
+            foreach ($data['data'] as $row) {
+                $array[$i]["sno"]       = $i + 1;
+                $array[$i]["title"]     = $row->title;
+                $array[$i]["attribute"] = ($row->attribute ?? '-') . ': ' . ($row->value ?? '-');
+                $array[$i]["quantity"]  = $row->quantity;
+                $array[$i]["price"]     = $row->price;
                 $i++;
             }
 
             if (!$filtereddata) $filtereddata = 0;
             if (!$totalrecs)    $totalrecs    = 0;
-        } catch (QueryException $e) {
-            $array = [];
-            $totalrecs = 0;
-            $filtereddata = 0;
-        } catch (Exception $e) {
-            $array = [];
-            $totalrecs = 0;
-            $filtereddata = 0;
-        }
 
-        return json_encode(["recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array]);
+            return response()->json([
+                'recordsFiltered' => $filtereddata,
+                'recordsTotal'    => $totalrecs,
+                'data'            => $array,
+            ]);
+        } catch (QueryException $e) {
+            return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
+        } catch (Exception $e) {
+            return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
+        }
     }
 
     public function form(Request $request)

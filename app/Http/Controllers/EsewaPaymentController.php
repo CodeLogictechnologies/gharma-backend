@@ -33,7 +33,7 @@ class EsewaPaymentController extends Controller
             'callback_url'     => route('esewa.callback'),
             'redirect_url'     => config('services.esewa.redirect_url'),
             'properties'       => [
-                'customer_id' => $validated['customer_id'] ?? 'GUEST',
+                'customer_id' => $validated['customer_id'] ?? 'GUESTTT',
                 'remarks'     => $validated['remarks'] ?? 'Payment',
             ],
         ]);
@@ -53,7 +53,7 @@ class EsewaPaymentController extends Controller
         return response()->json([
             'success'         => true,
             'booking_id'      => $result['data']['booking_id'],
-            // 'deeplink'        => $result['data']['deeplink'],
+            'deeplink'        => $result['data']['deeplink'],
             'correlation_id'  => $result['data']['correlation_id'],
             'transaction_uuid' => $transactionUuid,
         ]);

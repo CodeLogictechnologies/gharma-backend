@@ -181,7 +181,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('get/customer/orderstatus/{ordermasterid}', [GetCustomerOrderStatus::class, 'getstatus']);
 });
 
-Route::prefix('esewa')->name('esewa.')->group(function () {
+Route::prefix('payments/esewa')->name('esewa.')->group(function () {
 
     // Public — eSewa server POSTs to this (no auth token)
     Route::post('/callback', [EsewaPaymentController::class, 'callback'])
