@@ -21,37 +21,42 @@ class SalesVoucher extends Model
 
             if (!empty($post['sSearch_1'])) {
                 $val        = strtolower(trim($post['sSearch_1']));
-                $cond      .= " and lower(i.title) like ?";
+                $cond      .= " and lower(om.voucher_number) like ?";
                 $bindings[] = "%{$val}%";
             }
 
-            if (!empty($post['sSearch_2'])) {
-                $val        = strtolower(trim($post['sSearch_2']));
-                $cond      .= " and (lower(v.attribute) like ? or lower(v.value) like ?)";
-                $bindings[] = "%{$val}%";
+            if (!empty($post['sSearch_3'])) {
+                $val        = strtolower(trim($post['sSearch_3']));
+                $cond      .= " and lower(u.name) like ?";
                 $bindings[] = "%{$val}%";
             }
 
             $limit  = isset($post['iDisplayLength']) ? (int) $post['iDisplayLength'] : 15;
             $offset = isset($post['iDisplayStart'])  ? (int) $post['iDisplayStart']  : 0;
 
-            $baseQuery = DB::table('order_details as od')
-                ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
-                ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
-                ->join('items as i', 'i.id', '=', 'v.item_id')
+            $baseQuery = DB::table('order_masters as om')
+                ->join('order_details as od', 'od.ordermasterid', '=', 'om.id')
+                ->join('users as u', 'u.id', '=', 'om.userid')
                 ->where('om.orgid', $post['orgid']);
 
             $totalrecs = (clone $baseQuery)
-                ->select('i.id')
-                ->groupBy('i.id')
+                ->select('om.id')
+                ->groupBy('om.id')
                 ->get()
                 ->count();
 
             $query = (clone $baseQuery)
-                ->selectRaw("i.id, i.title, v.value, v.attribute, SUM(od.quantity) as quantity, SUM(od.price) as price")
+                ->select(
+                    'om.id',
+                    'u.name',
+                    'om.created_at',
+                    'om.voucher_number',
+                    'u.email',
+                    'u.phone'
+                )
                 ->whereRaw($cond, $bindings)
-                ->groupBy('i.id', 'i.title', 'v.attribute', 'v.value')
-                ->orderBy('i.id');
+                ->groupBy('om.id', 'u.name', 'om.created_at', 'om.voucher_number', 'u.email', 'u.phone')
+                ->orderBy('om.created_at', 'desc');
 
             $filteredCount = DB::query()
                 ->fromSub($query->clone(), 'grouped')
@@ -209,34 +214,40 @@ class SalesVoucher extends Model
     {
         $id = $post['id'] ?? null;
         if (empty($id)) {
-            throw new Exception('Sales voucher ID is required.');
+            throw new Exception('Order ID is required.');
         }
-
-        $voucher = DB::table('sales_vouchers as sv')
-            ->join('users as u', 'u.id', '=', 'sv.customer_id')
-            ->select('sv.*', 'u.name as customer_name')
-            ->where('sv.id', $id)
-            ->where('sv.orgid', $post['orgid'])
-            ->first();
-
-        if (!$voucher) {
-            throw new Exception('Sales voucher not found.');
-        }
-
-        $voucher->items = DB::table('sales_voucher_items as svi')
-            ->join('items as i', 'i.id', '=', 'svi.item_id')
-            ->leftJoin('itemvariations as iv', 'iv.id', '=', 'svi.variation_id')
-            ->select(
-                'svi.*',
-                'i.title as item_title',
-                'iv.attribute as variation_attribute',
-                'iv.value as variation_value'
-            )
-            ->where('svi.sales_voucher_id', $id)
-            ->orderBy('svi.created_at')
+        $result = DB::table('order_details as od')
+            ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
+            ->join('users as u', 'u.id', '=', 'om.userid')
+            ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
+            ->join('items as i', 'i.id', '=', 'v.item_id')
+            ->where('od.ordermasterid', $post['id'])
+            ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price', 'u.name', 'od.excise_type', 'od.excise_percent', 'od.excise_amount', 'od.vat_amount', 'vat_percent')
             ->get();
 
-        return $voucher;
+        // dd($result);
+
+        return $result;
+    }
+
+
+    public static function getVoucherData($post)
+    {
+        $id = $post['id'] ?? null;
+        if (empty($id)) {
+            throw new Exception('Order ID is required.');
+        }
+
+
+        $result = DB::table('order_masters as om')
+            ->join('users as u', 'u.id', '=', 'om.userid')
+            ->where('om.id', $post['id'])
+            ->select('om.id as ordermasterid', 'om.voucher_number', 'om.created_at', 'u.name')
+            ->first();
+
+        // dd($result);
+
+        return $result;
     }
 
     public static function deleteDate($post)

@@ -15,11 +15,13 @@
                 <table class="table" id="salesVoucherTable">
                     <thead class="table-light">
                         <tr class="align-middle">
-                            <th>S.N</th>
-                            <th>Title.</th>
-                            <th>Variation</th>
-                            <th>Quantity Sold</th>
-                            <th>Total Price(Rs.)</th>
+                            <th style="width: 5%">S.N</th>
+                            <th style="width: 10%">Voucher Number</th>
+                            <th style="width: 10%">Order Date</th>
+                            <th style="width: 40%">Customer Name</th>
+                            <th style="width: 5%">Email</th>
+                            <th style="width: 5%">Phone Number</th>
+                            <th style="width: 5%">Action</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -103,20 +105,26 @@
                         data: 'sno'
                     },
                     {
-                        data: 'title'
+                        data: 'voucher_number'
                     },
                     {
-                        data: 'attribute'
+                        data: 'created_at'
                     },
                     {
-                        data: 'quantity'
+                        data: 'name'
                     },
                     {
-                        data: 'price'
+                        data: 'email'
+                    },
+                    {
+                        data: 'phone'
+                    },
+                    {
+                        data: 'action'
                     },
                 ],
                 initComplete: function() {
-                    this.api().columns([1, 2]).every(function() {
+                    this.api().columns([1, 3]).every(function() {
                         var column = this;
                         var header = $(column.header()).text().trim();
                         $('<input type="text" class="form-control" placeholder="' + header +
