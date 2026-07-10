@@ -540,7 +540,9 @@
                     'name' => 'Size',
                     'value' => '',
                     'threshold' => '',
-                    'discount' => '',
+                    'discount_type' => '',
+                    'discount_percentage' => '',
+                    'discount_amount' => '',
                     'price' => '',
                     'stock' => '',
                     'product_code' => '',
@@ -598,17 +600,46 @@
                                     class="form-control" placeholder="0" min="0" step="1"
                                     value="{{ $v['threshold'] ?? '' }}">
                             </div>
-                            <div class="col-md-1">
-                                <label class="form-label mb-1">Discount</label>
-                                <input type="number" name="variations[{{ $i }}][discount]"
-                                    class="form-control" placeholder="2%" min="0" max="100" step="0.01"
-                                    value="{{ $v['discount'] ?? '' }}">
-                            </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <label class="form-label mb-1">Price</label>
                                 <input type="number" name="variations[{{ $i }}][price]"
                                     class="form-control" placeholder="0.00" min="0" step="0.01"
                                     value="{{ $v['price'] ?? '' }}">
+                            </div>
+                        </div>
+                        <div class="row g-2 align-items-end mt-1">
+                            <div class="col-md-3">
+                                <label class="form-label mb-1">Discount Type</label>
+                                <select name="variations[{{ $i }}][discount_type]" class="form-select discount-type-select">
+                                    <option value="">-- None --</option>
+                                    <option value="percentage" {{ ($v['discount_type'] ?? '') === 'percentage' ? 'selected' : '' }}>Percentage (%)</option>
+                                    <option value="fixed"      {{ ($v['discount_type'] ?? '') === 'fixed'      ? 'selected' : '' }}>Fixed Amount</option>
+                                </select>
+                            </div>
+                            {{-- Percentage field: shown when discount type = percentage --}}
+                            <div class="col-md-3 discount-percentage-col"
+                                style="display: {{ ($v['discount_type'] ?? '') === 'percentage' ? 'block' : 'none' }};">
+                                <label class="form-label mb-1">Percentage (%)</label>
+                                <div class="input-group">
+                                    <input type="number" name="variations[{{ $i }}][discount_percentage]"
+                                        class="form-control discount-percentage-input" placeholder="e.g. 2"
+                                        min="0" max="100" step="0.01"
+                                        value="{{ $v['discount_percentage'] ?? '' }}">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            {{-- Fixed amount field: shown when discount type = fixed --}}
+                            <div class="col-md-3 discount-amount-col"
+                                style="display: {{ ($v['discount_type'] ?? '') === 'fixed' ? 'block' : 'none' }};">
+                                <label class="form-label mb-1">Fixed Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rs</span>
+                                    <input type="number" name="variations[{{ $i }}][discount_amount]"
+                                        class="form-control discount-amount-input" placeholder="e.g. 50"
+                                        min="0" step="0.01"
+                                        value="{{ $v['discount_amount'] ?? '' }}">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -919,15 +950,36 @@ $(function () {
                     <input type="number" name="variations[${idx}][threshold]"
                            class="form-control" placeholder="0" min="0" step="1">
                 </div>
-                <div class="col-md-1">
-                    <label class="form-label mb-1">Discount</label>
-                    <input type="number" name="variations[${idx}][discount]"
-                           class="form-control" placeholder="2%" min="0" max="100" step="0.01">
-                </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <label class="form-label mb-1">Price</label>
                     <input type="number" name="variations[${idx}][price]"
                            class="form-control" placeholder="0.00" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="row g-2 align-items-end mt-1">
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Discount Type</label>
+                    <select name="variations[${idx}][discount_type]" class="form-select discount-type-select">
+                        <option value="">-- None --</option>
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="fixed">Fixed Amount</option>
+                    </select>
+                </div>
+                <div class="col-md-3 discount-percentage-col" style="display: none;">
+                    <label class="form-label mb-1">Percentage (%)</label>
+                    <div class="input-group">
+                        <input type="number" name="variations[${idx}][discount_percentage]"
+                               class="form-control discount-percentage-input" placeholder="e.g. 2" min="0" max="100" step="0.01">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <div class="col-md-3 discount-amount-col" style="display: none;">
+                    <label class="form-label mb-1">Fixed Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs</span>
+                        <input type="number" name="variations[${idx}][discount_amount]"
+                               class="form-control discount-amount-input" placeholder="e.g. 50" min="0" step="0.01">
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -943,6 +995,27 @@ $(function () {
             return;
         }
         $(this).closest('.variation-row').remove();
+    });
+
+    // Discount type → show the matching Percentage/Amount column only (mirrors excise type/value behavior)
+    function applyDiscountTypeUI($row) {
+        const type = $row.find('.discount-type-select').val();
+        const $percentageCol = $row.find('.discount-percentage-col');
+        const $amountCol     = $row.find('.discount-amount-col');
+
+        $percentageCol.toggle(type === 'percentage');
+        $amountCol.toggle(type === 'fixed');
+
+        if (type !== 'percentage') $percentageCol.find('.discount-percentage-input').val('');
+        if (type !== 'fixed')      $amountCol.find('.discount-amount-input').val('');
+    }
+
+    $(document).on('change', '.discount-type-select', function () {
+        applyDiscountTypeUI($(this).closest('.variation-row'));
+    });
+
+    $('.variation-row').each(function () {
+        applyDiscountTypeUI($(this));
     });
 
     /* ─────────────────────────────────────────────

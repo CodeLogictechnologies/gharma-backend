@@ -259,7 +259,9 @@ class Item extends Model
                     $companyProductCodeCases = [];
                     $hsCodeCases             = [];
                     $thresholdCases          = [];
+                    $discountTypeCases       = [];
                     $discountCases           = [];
+                    $discountAmountCases     = [];
                     $priceCases              = [];
                     $existingVariationPrices = [];
 
@@ -275,13 +277,17 @@ class Item extends Model
                         $status = (($variation['status'] ?? 'active') === 'active') ? 'Y' : 'N';
 
                         if (!empty($variation['variationid'])) {
-                            $id        = $variation['variationid'];
-                            $ids[]     = $id;
-                            $attrId    = $variation['attribute_id'] ?? null;
-                            $attrName  = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
-                            $threshold = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
-                            $discount  = is_numeric($variation['discount'] ?? null) ? (float) $variation['discount'] : null;
-                            $price     = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
+                            $id             = $variation['variationid'];
+                            $ids[]          = $id;
+                            $attrId         = $variation['attribute_id'] ?? null;
+                            $attrName       = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $threshold      = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
+                            $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
+                            $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
+                                                ? (float) $variation['discount_percentage'] : null;
+                            $discountAmount = ($discountType === 'fixed' && is_numeric($variation['discount_amount'] ?? null))
+                                                ? (float) $variation['discount_amount'] : null;
+                            $price          = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
 
                             $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($attrName) . "'";
                             $varAttrIdCases[]          = !empty($attrId) ? "WHEN '$id' THEN '$attrId'::uuid" : "WHEN '$id' THEN NULL::uuid";
@@ -290,17 +296,23 @@ class Item extends Model
                             $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
                             $hsCodeCases[]             = "WHEN '$id' THEN " . (!empty($variation['hs_code']) ? "'" . addslashes($variation['hs_code']) . "'" : 'NULL');
                             $thresholdCases[]          = "WHEN '$id' THEN $threshold";
-                            $discountCases[]           = "WHEN '$id' THEN " . ($discount !== null ? $discount : 'NULL');
+                            $discountTypeCases[]       = "WHEN '$id' THEN " . ($discountType !== null ? "'$discountType'" : 'NULL::varchar');
+                            $discountCases[]           = "WHEN '$id' THEN " . ($discount !== null ? $discount : 'NULL::numeric');
+                            $discountAmountCases[]     = "WHEN '$id' THEN " . ($discountAmount !== null ? $discountAmount : 'NULL::numeric');
                             $priceCases[]              = "WHEN '$id' THEN $price";
 
                             $existingVariationPrices[$id] = $price;
                         } else {
-                            $attrId    = $variation['attribute_id'] ?? null;
-                            $attrName  = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
-                            $threshold = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
-                            $discount  = is_numeric($variation['discount'] ?? null) ? (float) $variation['discount'] : null;
-                            $price     = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
-                            $varId     = (string) Str::uuid();
+                            $attrId         = $variation['attribute_id'] ?? null;
+                            $attrName       = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $threshold      = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
+                            $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
+                            $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
+                                                ? (float) $variation['discount_percentage'] : null;
+                            $discountAmount = ($discountType === 'fixed' && is_numeric($variation['discount_amount'] ?? null))
+                                                ? (float) $variation['discount_amount'] : null;
+                            $price          = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
+                            $varId          = (string) Str::uuid();
 
                             DB::table('itemvariations')->insert([
                                 'id'                     => $varId,
@@ -309,7 +321,9 @@ class Item extends Model
                                 'variation_attribute_id' => $attrId ?: null,
                                 'value'                  => $variation['value'],
                                 'threshold'              => $threshold,
+                                'discount_type'          => $discountType,
                                 'discount'               => $discount,
+                                'discount_amount'        => $discountAmount,
                                 'price'                  => $price,
                                 'product_code'           => $variation['product_code']         ?? null,
                                 'company_product_code'   => $variation['company_product_code'] ?? null,
@@ -358,7 +372,9 @@ UPDATE itemvariations SET
     company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
     hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
     threshold              = CASE id " . implode(' ', $thresholdCases)          . " END,
+    discount_type          = CASE id " . implode(' ', $discountTypeCases)       . " END,
     discount               = CASE id " . implode(' ', $discountCases)           . " END,
+    discount_amount        = CASE id " . implode(' ', $discountAmountCases)     . " END,
     price                  = CASE id " . implode(' ', $priceCases)              . " END,
     updated_at             = NOW(),
     updatedby              = ?
@@ -536,11 +552,16 @@ WHERE id IN ($idsList)
                     foreach ($post['variations'] as $variation) {
                         if (empty($variation['value'])) continue;
 
-                        $status   = (($variation['status'] ?? 'active') === 'active') ? 'Y' : 'N';
-                        $attrId   = $variation['attribute_id'] ?? null;
-                        $attrName = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
-                        $varId    = (string) Str::uuid();
-                        $price    = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
+                        $status         = (($variation['status'] ?? 'active') === 'active') ? 'Y' : 'N';
+                        $attrId         = $variation['attribute_id'] ?? null;
+                        $attrName       = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                        $varId          = (string) Str::uuid();
+                        $price          = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
+                        $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
+                        $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
+                                            ? (float) $variation['discount_percentage'] : null;
+                        $discountAmount = ($discountType === 'fixed' && is_numeric($variation['discount_amount'] ?? null))
+                                            ? (float) $variation['discount_amount'] : null;
 
                         $variationRows[] = [
                             'id'                     => $varId,
@@ -549,7 +570,9 @@ WHERE id IN ($idsList)
                             'variation_attribute_id' => $attrId ?: null,
                             'value'                  => $variation['value'],
                             'threshold'              => $variation['threshold']          ?? 0,
-                            'discount'               => is_numeric($variation['discount'] ?? null) ? (float) $variation['discount'] : null,
+                            'discount_type'          => $discountType,
+                            'discount'               => $discount,
+                            'discount_amount'        => $discountAmount,
                             'price'                  => $price,
                             'product_code'           => $variation['product_code']         ?? null,
                             'company_product_code'   => $variation['company_product_code'] ?? null,

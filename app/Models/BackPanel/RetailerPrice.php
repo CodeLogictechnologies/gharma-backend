@@ -47,12 +47,23 @@ class RetailerPrice extends Model
                 }
             }
 
-            if (array_key_exists('discount', $post)) {
+            if (array_key_exists('discount_type', $post)) {
+                $discountType = in_array($post['discount_type'] ?? null, ['percentage', 'fixed'], true)
+                    ? $post['discount_type'] : null;
+
+                $discountPercentage = ($discountType === 'percentage' && is_numeric($post['discount_percentage'] ?? null))
+                    ? $post['discount_percentage'] : null;
+
+                $discountAmount = ($discountType === 'fixed' && is_numeric($post['discount_amount'] ?? null))
+                    ? $post['discount_amount'] : null;
+
                 DB::table('itemvariations')
                     ->where('id', $post['variationid'])
                     ->update([
-                        'discount'   => is_numeric($post['discount']) ? $post['discount'] : null,
-                        'updated_at' => Carbon::now(),
+                        'discount_type'   => $discountType,
+                        'discount'        => $discountPercentage,
+                        'discount_amount' => $discountAmount,
+                        'updated_at'      => Carbon::now(),
                     ]);
             }
 
@@ -101,7 +112,9 @@ class RetailerPrice extends Model
                 i.title,
                 iv.id as variationid,
                 iv.value,
-                iv.discount
+                iv.discount_type,
+                iv.discount,
+                iv.discount_amount
             ")
                 ->whereRaw($cond);
 

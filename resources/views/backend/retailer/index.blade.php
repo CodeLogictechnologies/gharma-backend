@@ -70,10 +70,35 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Discount</label>
-                                <input type="number" class="form-control" name="discount" id="discount"
-                                    placeholder="2%" min="0" max="100" step="0.01" />
-                                <div class="invalid-feedback">Discount must be between 0 and 100.</div>
+                                <label class="form-label">Discount Type</label>
+                                <select name="discount_type" id="discountType" class="form-select">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                </select>
+                            </div>
+
+                            {{-- Percentage field: shown when discount type = percentage --}}
+                            <div class="mb-3" id="discountPercentageField" style="display: none;">
+                                <label class="form-label">Percentage (%)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="discount_percentage"
+                                        id="discountPercentage" placeholder="e.g. 2" min="0" max="100"
+                                        step="0.01" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <div class="invalid-feedback">Discount percentage must be between 0 and 100.</div>
+                            </div>
+
+                            {{-- Fixed amount field: shown when discount type = fixed --}}
+                            <div class="mb-3" id="discountAmountField" style="display: none;">
+                                <label class="form-label">Fixed Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rs</span>
+                                    <input type="number" class="form-control" name="discount_amount"
+                                        id="discountAmount" placeholder="e.g. 50" min="0" step="0.01" />
+                                </div>
+                                <div class="invalid-feedback">Discount amount is required.</div>
                             </div>
 
                             <button type="button" class="btn btn-primary saveRetailer">
@@ -144,9 +169,12 @@
                     required: true,
                     min: 0
                 },
-                discount: {
+                discount_percentage: {
                     min: 0,
                     max: 100
+                },
+                discount_amount: {
+                    min: 0
                 },
             },
             messages: {
@@ -160,9 +188,12 @@
                     required: 'Price is required.',
                     min: 'Price must be 0 or greater.'
                 },
-                discount: {
+                discount_percentage: {
                     min: 'Discount must be 0 or greater.',
                     max: 'Discount cannot exceed 100.'
+                },
+                discount_amount: {
+                    min: 'Discount amount must be 0 or greater.'
                 },
             },
             highlight: function(element) {
@@ -259,6 +290,18 @@
             }
         });
 
+        // ── DISCOUNT TYPE → show/hide percentage & amount fields ──────────────
+        function applyDiscountTypeUI(type) {
+            $('#discountPercentageField').toggle(type === 'percentage');
+            $('#discountAmountField').toggle(type === 'fixed');
+            if (type !== 'percentage') $('#discountPercentage').val('');
+            if (type !== 'fixed') $('#discountAmount').val('');
+        }
+
+        $('#discountType').on('change', function() {
+            applyDiscountTypeUI($(this).val());
+        });
+
         // ── Save / Update ─────────────────────────────────────────────────────
         $(document).on('click', '.saveRetailer', function() {
             if (!$('#retailerForm').valid()) return;
@@ -296,12 +339,17 @@
             var itemId = $(this).data('itemid');
             var variationId = $(this).data('variationid');
             var price = $(this).data('price');
-            var discount = $(this).data('discount');
+            var discountType = $(this).data('discounttype');
+            var discountPercentage = $(this).data('discountpercentage');
+            var discountAmount = $(this).data('discountamount');
 
             // Populate hidden id, price and discount
             $('#id').val(id);
             $('#price').val(price);
-            $('#discount').val(discount);
+            $('#discountType').val(discountType || '');
+            $('#discountPercentage').val(discountPercentage || '');
+            $('#discountAmount').val(discountAmount || '');
+            applyDiscountTypeUI(discountType || '');
 
             // Set the product dropdown, then load variations
             $('#itemSelect').val(itemId).trigger('change', [variationId]);
@@ -405,6 +453,7 @@
             $('#retailerForm .is-valid').removeClass('is-valid');
             $('#variationSelect').html('<option value="">-- Select Variation --</option>').prop('disabled',
                 false);
+            applyDiscountTypeUI('');
             $('#formTitle').text('Add Price For Retailer');
             $('.saveRetailer').html('<i class="fa fa-save"></i> Save');
             $('#cancelEdit').addClass('d-none');
