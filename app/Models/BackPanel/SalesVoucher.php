@@ -222,7 +222,7 @@ class SalesVoucher extends Model
             ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
             ->join('items as i', 'i.id', '=', 'v.item_id')
             ->where('od.ordermasterid', $post['id'])
-            ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price', 'u.name', 'od.excise_type', 'od.excise_percent', 'od.excise_amount', 'od.vat_amount', 'vat_percent')
+            ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price', 'u.name', 'od.excise_type', 'od.excise_percent', 'od.excise_amount', 'od.vat_amount', 'i.vat_percent')
             ->get();
 
         // dd($result);

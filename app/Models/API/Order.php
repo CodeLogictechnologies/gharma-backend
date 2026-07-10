@@ -78,7 +78,7 @@ class Order extends Model
                 $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
                 // VAT (applied on price + excise)
                 $vatAmount = 0.0;
-                $vatRate   = (float) ($variation->vat_percent ?? config('vat.default'));
+                $vatRate   = (float) ($variation->vat_percent ?? 0);
                 if ($variation->vat_status === 'Y') {
                     $vatAmount = round($amountAfterExcise * ($vatRate / 100), 2);
                 }
@@ -109,11 +109,13 @@ class Order extends Model
                 $grandTotal    += $lineTotal;
             }
 
+            $voucherNumber = 'VCH-' . strtoupper(Str::random(8));
+
             $insertOrderMaster = [
                 'id'                        => $orderMasterId,
                 'orgid'                     => $post['orgid'],
                 'payment_method' => $post['paymentmethod'] ?? 'COD',
-
+                'voucher_number'            => $voucherNumber,
                 'userid'                    => $post['userid'],
                 'addressid'                 => $post['addressid'],
                 'order_master_subtotal'     => round($grandSubtotal, 2),
