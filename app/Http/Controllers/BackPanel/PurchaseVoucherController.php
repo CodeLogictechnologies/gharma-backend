@@ -59,7 +59,7 @@ class PurchaseVoucherController extends Controller
                 } else {
                     $array[$i]["excise_duty"] = 'N/A';
                 }
-                $array[$i]["vat"]          = $row->vat_amount > 0 ? 'VAT 13%' : 'VAT 0%';
+                $array[$i]["vat"]          = $row->vat_amount > 0 ? 'Taxable' : 'Non-Taxable';
                 $array[$i]["total"]        = number_format($row->total_amount, 2);
 
                 $action  = '<a href="javascript:;" title="View Data" class="tooltipdiv viewPurchaseVoucher" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';

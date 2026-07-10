@@ -30,6 +30,7 @@ class Item extends Model
         'hs_code',
         'is_wholesale',
         'vat_status',
+        'vat_percent',
         'excise_status',
         'excise_type',
         'excise_percentage',
@@ -75,6 +76,20 @@ class Item extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'Y');
+    }
+
+    public static function resolveVatPercent(array $post): float
+    {
+        if (empty($post['vat_status'])) {
+            return 0;
+        }
+
+        $requested     = (float) ($post['vat_percent'] ?? config('vat.default'));
+        $taxableRates  = array_map('floatval', config('vat.taxable'));
+
+        return in_array($requested, $taxableRates, true)
+            ? $requested
+            : (float) config('vat.default');
     }
 
     public static function list(array $post)
@@ -193,6 +208,7 @@ class Item extends Model
                 'hs_code'              => !empty($post['hs_code']) ? $post['hs_code'] : null,
                 'is_wholesale'         => !empty($post['is_wholesale']) ? 'Y' : 'N',
                 'vat_status'           => !empty($post['vat_status']) ? 'Y' : 'N',
+                'vat_percent'          => self::resolveVatPercent($post),
                 'excise_status'        => !empty($post['excise_status']) ? 'Y' : 'N',
                 'excise_type'          => !empty($post['excise_status']) ? ($post['excise_type'] ?? null) : null,
                 'excise_percentage'    => (!empty($post['excise_status']) && ($post['excise_type'] ?? '') === 'percentage')
@@ -692,6 +708,7 @@ class Item extends Model
                     'id as itemid',
                     'title as itemname',
                     'vat_status',
+                    'vat_percent',
                     'excise_status',
                     'excise_type',
                     'excise_percentage',

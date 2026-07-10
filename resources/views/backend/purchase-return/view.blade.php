@@ -62,9 +62,8 @@
                         <th>Qty</th>
                         <th>Rate</th>
                         <th>Amount</th>
-                        <th>VAT Amt</th>
+                        <th>VAT</th>
                         <th>Excise Amt</th>
-                        <th>Net Amt</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,9 +75,8 @@
                             <td>{{ $line->qty }}</td>
                             <td>{{ number_format($line->unit_rate, 2) }}</td>
                             <td>{{ number_format($line->amount, 2) }}</td>
-                            <td>{{ number_format($line->vat_amount, 2) }}</td>
+                            <td>{{ rtrim(rtrim(number_format($line->vat_percent, 2), '0'), '.') }}%</td>
                             <td>{{ number_format($line->excise_amount, 2) }}</td>
-                            <td>{{ number_format($line->net_amount, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

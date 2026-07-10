@@ -85,7 +85,8 @@ class RetailerPrice extends Model
                 }
 
                 if (array_key_exists('vat_status', $post)) {
-                    $itemUpdate['vat_status'] = !empty($post['vat_status']) ? 'Y' : 'N';
+                    $itemUpdate['vat_status']  = !empty($post['vat_status']) ? 'Y' : 'N';
+                    $itemUpdate['vat_percent'] = Item::resolveVatPercent($post);
                 }
 
                 DB::table('items')
@@ -142,6 +143,7 @@ class RetailerPrice extends Model
                 iv.discount,
                 iv.discount_amount,
                 i.vat_status,
+                i.vat_percent,
                 i.excise_status,
                 i.excise_type,
                 i.excise_percentage,

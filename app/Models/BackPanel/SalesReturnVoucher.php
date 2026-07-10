@@ -100,7 +100,7 @@ class SalesReturnVoucher extends Model
                 $unitRate = (float) $row['unit_rate'];
                 $amount   = round($qty * $unitRate, 2);
 
-                $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) config('vat.taxable') : (float) config('vat.non-taxable');
+                $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
 
                 $lineData[] = [
                     'item_id'      => $row['item_id'],

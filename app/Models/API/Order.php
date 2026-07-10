@@ -33,7 +33,6 @@ class Order extends Model
             // ── Build Order Details + Compute Real Prices ──────
             $insertOrderDetails = [];
             $variationIds       = [];
-            $vatRate            = (float) config('vat.taxable');
 
             $grandSubtotal = 0;
             $grandExcise   = 0;
@@ -53,7 +52,8 @@ class Order extends Model
                         'i.excise_type',
                         'i.excise_percentage',
                         'i.excise_value',
-                        'i.vat_status'
+                        'i.vat_status',
+                        'i.vat_percent'
                     )
                     ->first();
 
@@ -78,6 +78,7 @@ class Order extends Model
                 $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
                 // VAT (applied on price + excise)
                 $vatAmount = 0.0;
+                $vatRate   = (float) ($variation->vat_percent ?? config('vat.default'));
                 if ($variation->vat_status === 'Y') {
                     $vatAmount = round($amountAfterExcise * ($vatRate / 100), 2);
                 }

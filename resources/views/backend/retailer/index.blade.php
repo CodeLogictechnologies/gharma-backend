@@ -42,6 +42,7 @@
                                     @foreach ($items as $item)
                                         <option value="{{ $item->itemid }}"
                                             data-vat-status="{{ $item->vat_status }}"
+                                            data-vat-percent="{{ $item->vat_percent }}"
                                             data-excise-status="{{ $item->excise_status }}"
                                             data-excise-type="{{ $item->excise_type }}"
                                             data-excise-percentage="{{ $item->excise_percentage }}"
@@ -119,6 +120,15 @@
                                         id="vatStatus" name="vat_status" value="1">
                                     <label class="form-check-label" for="vatStatus">VAT Status</label>
                                 </div>
+                            </div>
+
+                            <div class="mb-3" id="vatPercentField" style="display: none;">
+                                <label class="form-label" for="vatPercent">VAT Rate</label>
+                                <select name="vat_percent" id="vatPercent" class="form-select">
+                                    @foreach (config('vat.taxable') as $rate)
+                                        <option value="{{ $rate }}">{{ $rate }}%</option>
+                                    @endforeach
+                                </select>
                             </div>
 
                             <div class="mb-3" id="exciseTypeField" style="display: none;">
@@ -376,6 +386,14 @@
             applyDiscountTypeUI($(this).val());
         });
 
+        // ── VAT STATUS → show/hide rate field ───────────────────────────────────
+        function toggleVatFields() {
+            var enabled = $('#vatStatus').is(':checked');
+            $('#vatPercentField').toggle(enabled);
+        }
+
+        $('#vatStatus').on('change', toggleVatFields);
+
         // ── EXCISE DUTY → show/hide type & value fields ────────────────────────
         function applyExciseTypeUI(type) {
             $('#excisePercentageField').toggle(type === 'percentage');
@@ -407,13 +425,21 @@
             var percentage = $option.data('excise-percentage');
             var value = $option.data('excise-value');
             var vatStatus = $option.data('vat-status') === 'Y';
+            var vatPercent = $option.data('vat-percent');
 
             $('#exciseStatus').prop('checked', status);
             $('#exciseType').val(status ? type : '');
             $('#excisePercentage').val(type === 'percentage' ? percentage : '');
             $('#exciseValue').val(type === 'fixed' ? value : '');
             $('#vatStatus').prop('checked', vatStatus);
+            if (vatPercent !== undefined && vatPercent !== null && vatPercent !== '') {
+                var vatPercentValue = parseFloat(vatPercent);
+                $('#vatPercent option').each(function() {
+                    $(this).prop('selected', parseFloat($(this).val()) === vatPercentValue);
+                });
+            }
             toggleExciseFields();
+            toggleVatFields();
         }
 
         // ── Save / Update ─────────────────────────────────────────────────────

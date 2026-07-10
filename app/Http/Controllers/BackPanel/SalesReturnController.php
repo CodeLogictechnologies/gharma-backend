@@ -45,7 +45,7 @@ class SalesReturnController extends Controller
                 $array[$i]["against_voucher"] = $row->against_voucher_no ?? '-';
                 $array[$i]["qty"]            = $row->total_qty !== null ? rtrim(rtrim(number_format($row->total_qty, 2), '0'), '.') : '-';
                 $array[$i]["rate"]           = ((int) $row->item_count === 1 && $row->single_rate !== null) ? number_format($row->single_rate, 2) : '-';
-                $array[$i]["vat"]            = $row->vat_amount > 0 ? 'VAT 13%' : 'VAT 0%';
+                $array[$i]["vat"]            = $row->vat_amount > 0 ? 'Taxable' : 'Non-Taxable';
                 $array[$i]["total"]          = number_format($row->total_amount, 2);
 
                 $statusBadges = [
