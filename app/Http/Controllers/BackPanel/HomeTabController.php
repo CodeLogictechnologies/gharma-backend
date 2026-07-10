@@ -97,8 +97,8 @@ class HomeTabController extends Controller
             $array[$i]['sno']            = $request->input('start', 0) + $i + 1;
             $array[$i]['tab_name']       = $row->tab_name       ?? '—';
             $array[$i]['category_names'] = $row->category_names
-    ? implode('<br>', array_map('trim', explode(',', $row->category_names)))
-    : '—';
+                        ? implode('<br>', array_map('trim', explode(',', $row->category_names)))
+                        : '—';
             $array[$i]['icon_name']      = $row->icon_name      ?? '—';
             $array[$i]['bg_color']       = $row->bg_color
                 ? '<span style="display:inline-block;width:20px;height:20px;background:' . e($row->bg_color) . ';border-radius:4px;border:1px solid #ccc;" title="' . e($row->bg_color) . '"></span> ' . e($row->bg_color)

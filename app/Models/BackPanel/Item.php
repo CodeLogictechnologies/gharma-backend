@@ -196,9 +196,9 @@ class Item extends Model
                 'excise_status'        => !empty($post['excise_status']) ? 'Y' : 'N',
                 'excise_type'          => !empty($post['excise_status']) ? ($post['excise_type'] ?? null) : null,
                 'excise_percentage'    => (!empty($post['excise_status']) && ($post['excise_type'] ?? '') === 'percentage')
-                                            ? ($post['excise_percentage'] ?? null) : null,
+                    ? ($post['excise_percentage'] ?? null) : null,
                 'excise_value'         => (!empty($post['excise_status']) && ($post['excise_type'] ?? '') === 'fixed')
-                                            ? ($post['excise_value'] ?? null) : null,
+                    ? ($post['excise_value'] ?? null) : null,
                 'postedby'             => $post['userid'],
                 'orgid'                => $post['orgid']                ?? null,
             ];
@@ -290,7 +290,7 @@ class Item extends Model
                             $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
                             $hsCodeCases[]             = "WHEN '$id' THEN " . (!empty($variation['hs_code']) ? "'" . addslashes($variation['hs_code']) . "'" : 'NULL');
                             $thresholdCases[]          = "WHEN '$id' THEN $threshold";
-                            $discountCases[]           = "WHEN '$id' THEN " . ($discount !== null ? $discount : 'NULL');
+                            $discountCases[]           = "WHEN '$id' THEN " . ($discount !== null ? $discount : 'NULL::numeric(5,2)');
                             $priceCases[]              = "WHEN '$id' THEN $price";
 
                             $existingVariationPrices[$id] = $price;
@@ -350,20 +350,20 @@ class Item extends Model
                     if (!empty($ids)) {
                         $idsList = "'" . implode("','", $ids) . "'";
                         DB::statement("
-UPDATE itemvariations SET
-    attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
-    variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
-    value                  = CASE id " . implode(' ', $valueCases)              . " END,
-    product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
-    company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
-    hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
-    threshold              = CASE id " . implode(' ', $thresholdCases)          . " END,
-    discount               = CASE id " . implode(' ', $discountCases)           . " END,
-    price                  = CASE id " . implode(' ', $priceCases)              . " END,
-    updated_at             = NOW(),
-    updatedby              = ?
-WHERE id IN ($idsList)
-", [$post['userid']]);
+                UPDATE itemvariations SET
+                    attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
+                    variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
+                    value                  = CASE id " . implode(' ', $valueCases)              . " END,
+                    product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
+                    company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
+                    hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
+                    threshold              = CASE id " . implode(' ', $thresholdCases)          . " END,
+                    discount               = CASE id " . implode(' ', $discountCases)           . " END,
+                    price                  = CASE id " . implode(' ', $priceCases)              . " END,
+                    updated_at             = NOW(),
+                    updatedby              = ?
+                WHERE id IN ($idsList)
+                ", [$post['userid']]);
 
                         foreach ($existingVariationPrices as $varId => $price) {
                             if ($price <= 0) continue;

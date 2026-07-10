@@ -22,7 +22,7 @@ class SalesController extends Controller
 
     public function list(Request $request)
     {
-        try {
+        // try {
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -37,10 +37,14 @@ class SalesController extends Controller
 
             foreach ($data['data'] as $row) {
                 $array[$i]["sno"]       = $i + 1;
-                $array[$i]["title"]     = $row->title;
-                $array[$i]["attribute"] = ($row->attribute ?? '-') . ': ' . ($row->value ?? '-');
-                $array[$i]["quantity"]  = $row->quantity;
-                $array[$i]["price"]     = $row->price;
+                $array[$i]["name"]     = $row->name;
+                $array[$i]["phone"]  = $row->phone;
+                $array[$i]["email"]     = $row->email;
+                $array[$i]["voucher_number"]     = $row->voucher_number;
+                $array[$i]["created_at"]     = $row->created_at;
+                $action  = '';
+                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewSalesVoucher   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                $array[$i]["action"] = $action;
                 $i++;
             }
 
@@ -52,11 +56,11 @@ class SalesController extends Controller
                 'recordsTotal'    => $totalrecs,
                 'data'            => $array,
             ]);
-        } catch (QueryException $e) {
-            return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
-        } catch (Exception $e) {
-            return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
-        }
+        // } catch (QueryException $e) {
+        //     return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
+        // } catch (Exception $e) {
+        //     return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
+        // }
     }
 
     public function form(Request $request)
@@ -201,22 +205,25 @@ class SalesController extends Controller
 
     public function view(Request $request)
     {
-        try {
-            $post = $request->all();
-            $post['orgid'] = session('orgid');
+        // try {
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
 
-            $voucherDetail = SalesVoucher::getData($post);
+        $orderDetail = SalesVoucher::getData($post);
 
-            $data['voucherDetail'] = $voucherDetail;
-            $data['type']    = 'success';
-            $data['message'] = 'Successfully fetched sales voucher.';
-        } catch (QueryException $e) {
-            $data['type'] = 'error';
-            $data['message'] = $this->queryMessage;
-        } catch (Exception $e) {
-            $data['type'] = 'error';
-            $data['message'] = $e->getMessage();
-        }
+        $voucherDetail = SalesVoucher::getVoucherData($post);
+
+        $data['orderDetail'] = $orderDetail;
+        $data['voucherDetail'] = $voucherDetail;
+        $data['type']    = 'success';
+        $data['message'] = 'Successfully fetched sales voucher.';
+        // } catch (QueryException $e) {
+        //     $data['type'] = 'error';
+        //     $data['message'] = $this->queryMessage;
+        // } catch (Exception $e) {
+        //     $data['type'] = 'error';
+        //     $data['message'] = $e->getMessage();
+        // }
 
         return view('backend.sales.view', $data);
     }

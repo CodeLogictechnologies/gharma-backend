@@ -16,20 +16,20 @@
         <div class="row g-3 mb-3">
             <div class="col-md-3">
                 <div class="text-muted small">Date</div>
-                <div>{{ \Carbon\Carbon::parse($voucherDetail->voucher_date)->format('Y-m-d') }}</div>
+                <div>{{ \Carbon\Carbon::parse($voucherDetail->created_at)->format('Y-m-d') }}</div>
             </div>
             <div class="col-md-3">
                 <div class="text-muted small">Bill / Voucher No.</div>
-                <div>{{ $voucherDetail->voucher_no }}</div>
+                <div>{{ $voucherDetail->voucher_number }}</div>
             </div>
             <div class="col-md-3">
                 <div class="text-muted small">Customer</div>
-                <div>{{ $voucherDetail->customer_name }}</div>
+                <div>{{ $voucherDetail->name }}</div>
             </div>
-            <div class="col-md-9">
+            {{-- <div class="col-md-9">
                 <div class="text-muted small">Remarks</div>
                 <div>{{ $voucherDetail->remarks ?? '-' }}</div>
-            </div>
+            </div> --}}
         </div>
 
         <div class="table-responsive">
@@ -42,55 +42,50 @@
                         <th>Qty</th>
                         <th>Rate</th>
                         <th>Amount</th>
+                        <th>Excise</th>
                         <th>VAT Amt</th>
                         <th>Net Amt</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($voucherDetail->items as $i => $line)
+                    @foreach ($orderDetail as $i => $line)
+                        @php
+                            $amount = $line->price * $line->quantity;
+                            $exciseLabel =
+                                $line->excise_type === 'percentage'
+                                    ? number_format($line->excise_percent, 2) . '%'
+                                    : number_format($line->excise_amount, 2);
+                        @endphp
                         <tr>
                             <td>{{ $i + 1 }}</td>
-                            <td>{{ $line->item_title }}</td>
-                            <td>{{ $line->variation_value ? ($line->variation_attribute . ': ' . $line->variation_value) : '-' }}</td>
-                            <td>{{ $line->qty }}</td>
-                            <td>{{ number_format($line->unit_rate, 2) }}</td>
-                            <td>{{ number_format($line->amount, 2) }}</td>
+                            <td>{{ $line->title }}</td>
+                            <td>{{ $line->value ?? '-' }}</td>
+                            <td>{{ $line->quantity }}</td>
+                            <td>{{ number_format($line->price, 2) }}</td>
+                            <td>{{ number_format($amount, 2) }}</td>
+                            <td>{{ $exciseLabel }}</td>
                             <td>{{ number_format($line->vat_amount, 2) }}</td>
-                            <td>{{ number_format($line->net_amount, 2) }}</td>
+                            <td>{{ number_format($line->order_detail_total_price, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
+                <tfoot>
+                    @php
+                        $totalAmount = $orderDetail->sum(fn($line) => $line->price * $line->quantity);
+                        $totalVat = $orderDetail->sum('vat_amount');
+                        $totalNet = $orderDetail->sum('order_detail_total_price');
+                    @endphp
+                    <tr class="fw-bold table-light">
+                        <td colspan="5" class="text-end">Total</td>
+                        <td>{{ number_format($totalAmount, 2) }}</td>
+                        <td></td>
+                        <td>{{ number_format($totalVat, 2) }}</td>
+                        <td>{{ number_format($totalNet, 2) }}</td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
 
-        <div class="row justify-content-end">
-            <div class="col-md-5">
-                <table class="table table-bordered mb-0">
-                    <tbody>
-                        <tr>
-                            <th>Subtotal</th>
-                            <td class="text-end">{{ number_format($voucherDetail->subtotal, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <th>Bill Discount ({{ $voucherDetail->bill_discount_percent }}%)</th>
-                            <td class="text-end">{{ number_format($voucherDetail->bill_discount_amount, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <th>Taxable Amount</th>
-                            <td class="text-end">{{ number_format($voucherDetail->taxable_amount, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <th>VAT Amount</th>
-                            <td class="text-end">{{ number_format($voucherDetail->vat_amount, 2) }}</td>
-                        </tr>
-                        <tr class="fw-bold">
-                            <th>Total</th>
-                            <td class="text-end">{{ number_format($voucherDetail->total_amount, 2) }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 
     <div class="modal-footer">
