@@ -43,10 +43,12 @@ class RetailerPriceController extends Controller
         try {
 
             $rules = [
-                'itemid'     => 'required|uuid',
-                'variationid' => 'required|uuid',
-                'price'      => 'required|numeric|min:0',
-                'discount'   => 'nullable|numeric|min:0|max:100',
+                'itemid'               => 'required|uuid',
+                'variationid'          => 'required|uuid',
+                'price'                => 'required|numeric|min:0',
+                'discount_type'        => 'nullable|in:percentage,fixed',
+                'discount_percentage'  => 'required_if:discount_type,percentage|nullable|numeric|min:0|max:100',
+                'discount_amount'      => 'required_if:discount_type,fixed|nullable|numeric|min:0',
             ];
 
             $messages = [
@@ -59,8 +61,9 @@ class RetailerPriceController extends Controller
                 'price.required'       => 'Price is required.',
                 'price.numeric'        => 'Price must be a number.',
 
-                'discount.numeric'     => 'Discount must be a number.',
-                'discount.max'         => 'Discount cannot exceed 100%.',
+                'discount_percentage.max'     => 'Discount percentage cannot exceed 100%.',
+                'discount_percentage.numeric' => 'Discount percentage must be a number.',
+                'discount_amount.numeric'     => 'Discount amount must be a number.',
             ];
 
             $validation = Validator::make($request->all(), $rules, $messages);
@@ -120,15 +123,28 @@ class RetailerPriceController extends Controller
         unset($data["totalfilteredrecs"]);
         unset($data["totalrecs"]);
         foreach ($data as $row) {
-            $price    = (float) $row->price;
-            $discount = (float) ($row->discount ?? 0);
+            $price              = (float) $row->price;
+            $discountType       = $row->discount_type ?? null;
+            $discountPercentage = (float) ($row->discount ?? 0);
+            $discountAmount     = (float) ($row->discount_amount ?? 0);
+
+            if ($discountType === 'fixed') {
+                $discountLabel = $discountAmount > 0 ? 'Rs ' . number_format($discountAmount, 2) : '—';
+                $sellingPrice  = max($price - $discountAmount, 0);
+            } elseif ($discountType === 'percentage') {
+                $discountLabel = $discountPercentage > 0 ? $discountPercentage . '%' : '—';
+                $sellingPrice  = $price - ($price * $discountPercentage / 100);
+            } else {
+                $discountLabel = '—';
+                $sellingPrice  = $price;
+            }
 
             $array[$i]["sno"]           = $i + 1;
             $array[$i]["title"]         = $row->title;
             $array[$i]["value"]         = $row->value;
             $array[$i]["price"]         = number_format($price, 2);
-            $array[$i]["discount"]      = $discount > 0 ? $discount . '%' : '—';
-            $array[$i]["selling_price"] = number_format($price - ($price * $discount / 100), 2);
+            $array[$i]["discount"]      = $discountLabel;
+            $array[$i]["selling_price"] = number_format($sellingPrice, 2);
 
             $action = '';
             $action .= '<a href="javascript:;"
@@ -136,7 +152,9 @@ class RetailerPriceController extends Controller
                     data-id="' . $row->id . '"
                     data-itemid="' . $row->itemid . '"
                     data-price="' . $row->price . '"
-                    data-discount="' . $row->discount . '"
+                    data-discounttype="' . ($row->discount_type ?? '') . '"
+                    data-discountpercentage="' . $row->discount . '"
+                    data-discountamount="' . $row->discount_amount . '"
                     data-variationid="' . $row->variationid . '">
                     <i class="fa-solid fa-pen-to-square text-primary"></i>
                 </a>';
