@@ -440,7 +440,7 @@
             <div class="col-md-6" id="subCategoriesWrapper">
                 <label class="form-label fw-semibold"
                     style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">
-                    Sub Category <span class="text-danger">*</span>
+                    Sub Category
                 </label>
                 <select name="sub_categories[]" id="subCategorySelect" multiple style="display:none;">
                     @foreach ($subCategories as $sub)
@@ -469,61 +469,7 @@
             </div>
         </div>
 
-        {{-- ── Row 4: Description ── --}}
-        <div class="row g-3 mb-3">
-            <div class="col-md-12">
-                <label class="form-label" for="description">Description</label>
-                <textarea name="description" id="description" class="form-control"
-                    rows="5">{!! $data['description'] ?? '' !!}</textarea>
-            </div>
-        </div>
-
-        {{-- ── Row 5: Images ── --}}
-        <div class="row g-3 mb-3">
-            <div class="col-md-12">
-                <p class="section-label">Product Images</p>
-
-                <div class="image-drop-zone" id="imageDropZone">
-                    <input type="file" id="productImages" name="images[]" accept="image/*" multiple>
-                    <div style="font-size:2rem">🖼️</div>
-                    <p class="drop-text">
-                        <strong>Click to upload</strong> or drag &amp; drop<br>
-                        JPG, JPEG, PNG — multiple allowed
-                    </p>
-                </div>
-
-                <input type="hidden" name="primary_image_index" id="primaryImageIndex" value="0">
-
-                <div id="imagePreviewGrid">
-                    @if (!empty($data['images']))
-                    @foreach ($data['images'] as $i => $img)
-                    <div class="img-preview-card {{ $i === 0 ? 'is-primary' : '' }}"
-                        data-index="{{ $i }}"
-                        data-type="existing"
-                        data-db-id="{{ $img['id'] }}">
-                        <span class="primary-badge">Primary</span>
-                        <img src="{{ asset('storage/items/' . $img['filename']) }}" alt="product image">
-                        <div class="img-actions">
-                            <button type="button" class="btn-primary-img">★ Primary</button>
-                            <button type="button" class="btn-remove-img">✕</button>
-                        </div>
-                        <input type="hidden" class="kept-path" name="kept_images[]"
-                            value="{{ $img['filename'] }}">
-                        <input type="hidden" class="kept-id" name="kept_image_ids[]"
-                            value="{{ $img['id'] }}">
-                    </div>
-                    @endforeach
-                    @endif
-                </div>
-
-                <small class="text-muted d-block mt-1">
-                    Click <strong>★ Primary</strong> to set the main photo.
-                    <strong>Drag</strong> to reorder. First image is primary by default.
-                </small>
-            </div>
-        </div>
-
-        {{-- ── Row 6: Variations ── --}}
+        {{-- ── Row 4: Variations ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -647,6 +593,60 @@
                 </div>
 
                 <small class="text-muted">Leave Value empty to skip a row.</small>
+            </div>
+        </div>
+
+        {{-- ── Row 5: Images ── --}}
+        <div class="row g-3 mb-3">
+            <div class="col-md-12">
+                <p class="section-label">Product Images</p>
+
+                <div class="image-drop-zone" id="imageDropZone">
+                    <input type="file" id="productImages" name="images[]" accept="image/*" multiple>
+                    <div style="font-size:2rem">🖼️</div>
+                    <p class="drop-text">
+                        <strong>Click to upload</strong> or drag &amp; drop<br>
+                        JPG, JPEG, PNG — multiple allowed
+                    </p>
+                </div>
+
+                <input type="hidden" name="primary_image_index" id="primaryImageIndex" value="0">
+
+                <div id="imagePreviewGrid">
+                    @if (!empty($data['images']))
+                    @foreach ($data['images'] as $i => $img)
+                    <div class="img-preview-card {{ $i === 0 ? 'is-primary' : '' }}"
+                        data-index="{{ $i }}"
+                        data-type="existing"
+                        data-db-id="{{ $img['id'] }}">
+                        <span class="primary-badge">Primary</span>
+                        <img src="{{ asset('storage/items/' . $img['filename']) }}" alt="product image">
+                        <div class="img-actions">
+                            <button type="button" class="btn-primary-img">★ Primary</button>
+                            <button type="button" class="btn-remove-img">✕</button>
+                        </div>
+                        <input type="hidden" class="kept-path" name="kept_images[]"
+                            value="{{ $img['filename'] }}">
+                        <input type="hidden" class="kept-id" name="kept_image_ids[]"
+                            value="{{ $img['id'] }}">
+                    </div>
+                    @endforeach
+                    @endif
+                </div>
+
+                <small class="text-muted d-block mt-1">
+                    Click <strong>★ Primary</strong> to set the main photo.
+                    <strong>Drag</strong> to reorder. First image is primary by default.
+                </small>
+            </div>
+        </div>
+
+        {{-- ── Row 6: Description ── --}}
+        <div class="row g-3 mb-3">
+            <div class="col-md-12">
+                <label class="form-label" for="description">Description</label>
+                <textarea name="description" id="description" class="form-control"
+                    rows="5">{!! $data['description'] ?? '' !!}</textarea>
             </div>
         </div>
 
@@ -1059,13 +1059,6 @@ $(function () {
         if (!cats || cats.length === 0) {
             $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
             $('#categoriesError').addClass('show');
-            valid = false;
-        }
-
-        const subs = $('#subCategorySelect').val();
-        if (!subs || subs.length === 0) {
-            $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-            $('#subCategoriesError').addClass('show');
             valid = false;
         }
 
