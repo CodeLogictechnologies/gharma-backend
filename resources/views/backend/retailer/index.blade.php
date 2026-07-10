@@ -41,6 +41,11 @@
                                     <option value="">-- Select Product --</option>
                                     @foreach ($items as $item)
                                         <option value="{{ $item->itemid }}"
+                                            data-vat-status="{{ $item->vat_status }}"
+                                            data-excise-status="{{ $item->excise_status }}"
+                                            data-excise-type="{{ $item->excise_type }}"
+                                            data-excise-percentage="{{ $item->excise_percentage }}"
+                                            data-excise-value="{{ $item->excise_value }}"
                                             {{ ($itemid ?? '') == $item->itemid ? 'selected' : '' }}>
                                             {{ $item->itemname }}
                                         </option>
@@ -101,6 +106,53 @@
                                 <div class="invalid-feedback">Discount amount is required.</div>
                             </div>
 
+                            <div class="mb-3 d-flex gap-4">
+                                <div class="form-check">
+                                    <input type="hidden" name="excise_status" value="0">
+                                    <input class="form-check-input" type="checkbox"
+                                        id="exciseStatus" name="excise_status" value="1">
+                                    <label class="form-check-label" for="exciseStatus">Excise Duty</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="hidden" name="vat_status" value="0">
+                                    <input class="form-check-input" type="checkbox"
+                                        id="vatStatus" name="vat_status" value="1">
+                                    <label class="form-check-label" for="vatStatus">VAT Status</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3" id="exciseTypeField" style="display: none;">
+                                <label class="form-label" for="exciseType">Excise Type</label>
+                                <select name="excise_type" id="exciseType" class="form-select">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                </select>
+                            </div>
+
+                            {{-- Percentage field: shown when excise type = percentage --}}
+                            <div class="mb-3" id="excisePercentageField" style="display: none;">
+                                <label class="form-label" for="excisePercentage">Percentage (%)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="excise_percentage"
+                                        id="excisePercentage" placeholder="e.g. 10" min="0" max="100"
+                                        step="0.01" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <div class="invalid-feedback">Excise percentage must be between 0 and 100.</div>
+                            </div>
+
+                            {{-- Fixed amount field: shown when excise type = fixed --}}
+                            <div class="mb-3" id="exciseValueField" style="display: none;">
+                                <label class="form-label" for="exciseValue">Fixed Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rs</span>
+                                    <input type="number" class="form-control" name="excise_value"
+                                        id="exciseValue" placeholder="e.g. 50" min="0" step="0.01" />
+                                </div>
+                                <div class="invalid-feedback">Excise amount is required.</div>
+                            </div>
+
                             <button type="button" class="btn btn-primary saveRetailer">
                                 <i class="fa fa-save"></i> Save
                             </button>
@@ -122,6 +174,8 @@
                                             <th>Variation</th>
                                             <th>Price</th>
                                             <th>Discount</th>
+                                            <th>VAT Status</th>
+                                            <th>Excise Duty</th>
                                             <th>Selling Price</th>
                                             <th>Actions</th>
                                         </tr>
@@ -176,6 +230,13 @@
                 discount_amount: {
                     min: 0
                 },
+                excise_percentage: {
+                    min: 0,
+                    max: 100
+                },
+                excise_value: {
+                    min: 0
+                },
             },
             messages: {
                 itemid: {
@@ -194,6 +255,13 @@
                 },
                 discount_amount: {
                     min: 'Discount amount must be 0 or greater.'
+                },
+                excise_percentage: {
+                    min: 'Excise percentage must be 0 or greater.',
+                    max: 'Excise percentage cannot exceed 100.'
+                },
+                excise_value: {
+                    min: 'Excise amount must be 0 or greater.'
                 },
             },
             highlight: function(element) {
@@ -247,7 +315,7 @@
             },
             aoColumnDefs: [{
                 bSortable: false,
-                aTargets: [2, 3, 4, 5]
+                aTargets: [2, 3, 4, 5, 6, 7]
             }],
             aoColumns: [{
                     data: 'sno'
@@ -263,6 +331,12 @@
                 },
                 {
                     data: 'discount'
+                },
+                {
+                    data: 'vat_status'
+                },
+                {
+                    data: 'excise_duty'
                 },
                 {
                     data: 'selling_price'
@@ -301,6 +375,46 @@
         $('#discountType').on('change', function() {
             applyDiscountTypeUI($(this).val());
         });
+
+        // ── EXCISE DUTY → show/hide type & value fields ────────────────────────
+        function applyExciseTypeUI(type) {
+            $('#excisePercentageField').toggle(type === 'percentage');
+            $('#exciseValueField').toggle(type === 'fixed');
+            if (type !== 'percentage') $('#excisePercentage').val('');
+            if (type !== 'fixed') $('#exciseValue').val('');
+        }
+
+        function toggleExciseFields() {
+            var enabled = $('#exciseStatus').is(':checked');
+            $('#exciseTypeField').toggle(enabled);
+            if (!enabled) {
+                $('#exciseType').val('');
+                applyExciseTypeUI('');
+            } else {
+                applyExciseTypeUI($('#exciseType').val());
+            }
+        }
+
+        $('#exciseStatus').on('change', toggleExciseFields);
+        $('#exciseType').on('change', function() {
+            applyExciseTypeUI($(this).val());
+        });
+
+        // Populate the VAT/excise section from the selected product's own tax settings
+        function applyExciseFromItem($option) {
+            var status = $option.data('excise-status') === 'Y';
+            var type = $option.data('excise-type') || '';
+            var percentage = $option.data('excise-percentage');
+            var value = $option.data('excise-value');
+            var vatStatus = $option.data('vat-status') === 'Y';
+
+            $('#exciseStatus').prop('checked', status);
+            $('#exciseType').val(status ? type : '');
+            $('#excisePercentage').val(type === 'percentage' ? percentage : '');
+            $('#exciseValue').val(type === 'fixed' ? value : '');
+            $('#vatStatus').prop('checked', vatStatus);
+            toggleExciseFields();
+        }
 
         // ── Save / Update ─────────────────────────────────────────────────────
         $(document).on('click', '.saveRetailer', function() {
@@ -413,8 +527,11 @@
             if (!itemId) {
                 $varSelect.html('<option value="">-- Select Variation --</option>').prop('disabled',
                     false);
+                applyExciseFromItem($(this).find(':selected'));
                 return;
             }
+
+            applyExciseFromItem($(this).find(':selected'));
 
             $.get('{{ route('inventory.variations') }}', {
                     item_id: itemId,
@@ -454,6 +571,7 @@
             $('#variationSelect').html('<option value="">-- Select Variation --</option>').prop('disabled',
                 false);
             applyDiscountTypeUI('');
+            applyExciseFromItem($());
             $('#formTitle').text('Add Price For Retailer');
             $('.saveRetailer').html('<i class="fa fa-save"></i> Save');
             $('#cancelEdit').addClass('d-none');
