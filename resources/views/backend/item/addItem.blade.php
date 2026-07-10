@@ -1069,11 +1069,11 @@ $(function () {
             valid = false;
         }
 
-        // HS Code validation: 6-digit if provided
+        // HS Code validation: 6-15 digits if provided
         let hsValid = true;
         $('input[name="hs_code"], input[name^="variations"][name$="[hs_code]"]').each(function () {
             const val = $(this).val().trim();
-            if (val && !/^\d{15}$/.test(val)) {
+            if (val && !/^\d{6,15}$/.test(val)) {
                 $(this).addClass('is-invalid-select');
                 hsValid = false;
             } else {
@@ -1081,7 +1081,7 @@ $(function () {
             }
         });
         if (!hsValid) {
-            showNotification('HS Code must be exactly 6 digits.', 'error');
+            showNotification('HS Code must be 6 to 15 digits.', 'error');
             valid = false;
         }
 
