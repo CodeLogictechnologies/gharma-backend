@@ -169,29 +169,94 @@
         border-color: #dc3545 !important;
     }
 
-    .multi-select-box {
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        max-height: 160px;
-        overflow-y: auto;
-        background: #fff;
-        padding: 4px 0;
+    /* ── Dropdown multi-select ── */
+    .multi-select-wrapper {
+        position: relative;
     }
 
-    .multi-select-box:focus-within {
+    .multi-select-trigger {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        padding: 8px 34px 8px 12px;
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        cursor: text;
+        position: relative;
+    }
+
+    .multi-select-trigger:hover {
+        border-color: #adb5bd;
+    }
+
+    .multi-select-wrapper.open .multi-select-trigger {
         border-color: #0d6efd;
         box-shadow: 0 0 0 3px rgba(13, 110, 253, .15);
     }
 
+    .multi-select-trigger::after {
+        content: '';
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid #6c757d;
+        border-bottom: 2px solid #6c757d;
+        transform: translateY(-70%) rotate(45deg);
+        transition: transform .15s;
+        pointer-events: none;
+    }
+
+    .multi-select-wrapper.open .multi-select-trigger::after {
+        transform: translateY(-30%) rotate(-135deg);
+    }
+
+    /* Blinking text-caret shown in the trigger, like a real input */
+    .ms-caret {
+        display: inline-block;
+        width: 1px;
+        height: 18px;
+        background: #212529;
+        animation: ms-blink 1s step-start infinite;
+        margin-left: 2px;
+    }
+
+    @keyframes ms-blink {
+        50% { opacity: 0; }
+    }
+
+    .multi-select-box {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 50;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        max-height: 240px;
+        overflow-y: auto;
+        background: #fff;
+        padding: 4px 0;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+    }
+
+    .multi-select-wrapper.open .multi-select-box {
+        display: block;
+    }
+
+    /* Plain text rows — no checkboxes. Selected row gets a solid blue fill. */
     .multi-select-box .ms-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 12px;
+        display: block;
+        padding: 10px 14px;
         cursor: pointer;
-        font-size: .875rem;
+        font-size: .95rem;
         color: #212529;
-        transition: background .15s;
+        transition: background .12s, color .12s;
         user-select: none;
     }
 
@@ -200,45 +265,45 @@
     }
 
     .multi-select-box .ms-option.selected {
-        background: #e8f0fe;
-        color: #0d6efd;
+        background: #0d6efd;
+        color: #fff;
         font-weight: 500;
     }
 
-    .multi-select-box .ms-option input[type="checkbox"] {
-        accent-color: #0d6efd;
-        width: 15px;
-        height: 15px;
-        flex-shrink: 0;
-        cursor: pointer;
+    .multi-select-box .ms-option.selected:hover {
+        background: #0d6efd;
     }
 
     .ms-tags {
         display: flex;
         flex-wrap: wrap;
         gap: 5px;
-        margin-top: 8px;
-        min-height: 24px;
+        align-items: center;
+    }
+
+    .ms-placeholder {
+        color: #adb5bd;
+        font-size: .875rem;
     }
 
     .ms-tag {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        background: #e8f0fe;
-        color: #0d6efd;
-        font-size: .75rem;
+        background: #f1f3f5;
+        color: #212529;
+        font-size: .8rem;
         font-weight: 500;
-        padding: 3px 8px 3px 10px;
-        border-radius: 20px;
-        border: 1px solid #b8d0fb;
+        padding: 4px 8px 4px 10px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
     }
 
     .ms-tag .ms-tag-remove {
         background: none;
         border: none;
-        color: #0d6efd;
-        font-size: .85rem;
+        color: #6c757d;
+        font-size: .9rem;
         line-height: 1;
         cursor: pointer;
         padding: 0;
@@ -248,6 +313,7 @@
 
     .ms-tag .ms-tag-remove:hover {
         opacity: 1;
+        color: #dc3545;
     }
 
     .ms-empty {
@@ -257,8 +323,8 @@
         font-style: italic;
     }
 
-    .ms-invalid .multi-select-box {
-        border-color: #dc3545;
+    .multi-select-wrapper.ms-invalid .multi-select-trigger {
+        border-color: #dc3545 !important;
     }
 </style>
 
@@ -420,13 +486,14 @@
             </div>
         </div>
 
-        {{-- ── Row 3: Category / Sub Category ── --}}
+        {{-- ── Row 3: Category / Sub Category (dropdown multi-select) ── --}}
         <div class="row g-3 mb-3">
             <div class="col-md-6" id="categoriesWrapper">
                 <label class="form-label fw-semibold"
                     style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">
                     Category <span class="text-danger">*</span>
                 </label>
+
                 <select name="categories[]" id="categorySelect" multiple style="display:none;">
                     @foreach ($categories as $cat)
                     <option value="{{ $cat->id }}"
@@ -435,20 +502,25 @@
                     </option>
                     @endforeach
                 </select>
-                <div class="multi-select-box" id="categoryCheckList">
-                    @forelse ($categories as $cat)
-                    <label class="ms-option {{ in_array($cat->id, $data['categories'] ?? []) ? 'selected' : '' }}"
-                        data-id="{{ $cat->id }}" data-label="{{ $cat->title }}"
-                        data-target="categorySelect">
-                        <input type="checkbox"
-                            {{ in_array($cat->id, $data['categories'] ?? []) ? 'checked' : '' }}>
-                        {{ $cat->title }}
-                    </label>
-                    @empty
-                    <div class="ms-empty">No categories found.</div>
-                    @endforelse
+
+                <div class="multi-select-wrapper" id="categoryMultiSelect">
+                    <div class="multi-select-trigger" id="categoryTrigger" tabindex="0">
+                        <div class="ms-tags" id="categoryTags">
+                            <span class="ms-placeholder">-- Select Category --</span>
+                        </div>
+                    </div>
+                    <div class="multi-select-box" id="categoryCheckList">
+                        @forelse ($categories as $cat)
+                        <div class="ms-option {{ in_array($cat->id, $data['categories'] ?? []) ? 'selected' : '' }}"
+                            data-id="{{ $cat->id }}" data-label="{{ $cat->title }}"
+                            data-target="categorySelect">
+                            {{ $cat->title }}
+                        </div>
+                        @empty
+                        <div class="ms-empty">No categories found.</div>
+                        @endforelse
+                    </div>
                 </div>
-                <div class="ms-tags" id="categoryTags"></div>
                 <div class="field-error" id="categoriesError">Please select at least one category.</div>
             </div>
 
@@ -457,6 +529,7 @@
                     style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">
                     Sub Category
                 </label>
+
                 <select name="sub_categories[]" id="subCategorySelect" multiple style="display:none;">
                     @foreach ($subCategories as $sub)
                     <option value="{{ $sub->id }}"
@@ -465,21 +538,26 @@
                     </option>
                     @endforeach
                 </select>
-                <div class="multi-select-box" id="subCategoryCheckList">
-                    @forelse ($subCategories as $sub)
-                    <label
-                        class="ms-option {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'selected' : '' }}"
-                        data-id="{{ $sub->id }}" data-label="{{ $sub->title }}"
-                        data-target="subCategorySelect">
-                        <input type="checkbox"
-                            {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'checked' : '' }}>
-                        {{ $sub->title }}
-                    </label>
-                    @empty
-                    <div class="ms-empty">No sub categories found.</div>
-                    @endforelse
+
+                <div class="multi-select-wrapper" id="subCategoryMultiSelect">
+                    <div class="multi-select-trigger" id="subCategoryTrigger" tabindex="0">
+                        <div class="ms-tags" id="subCategoryTags">
+                            <span class="ms-placeholder">-- Select Sub Category --</span>
+                        </div>
+                    </div>
+                    <div class="multi-select-box" id="subCategoryCheckList">
+                        @forelse ($subCategories as $sub)
+                        <div
+                            class="ms-option {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'selected' : '' }}"
+                            data-id="{{ $sub->id }}" data-label="{{ $sub->title }}"
+                            data-target="subCategorySelect">
+                            {{ $sub->title }}
+                        </div>
+                        @empty
+                        <div class="ms-empty">No sub categories found.</div>
+                        @endforelse
+                    </div>
                 </div>
-                <div class="ms-tags" id="subCategoryTags"></div>
                 <div class="field-error" id="subCategoriesError">Please select at least one sub category.</div>
             </div>
         </div>
@@ -841,25 +919,33 @@ $(function () {
     }
 
     /* ─────────────────────────────────────────────
-       CUSTOM MULTI-SELECT
+       CUSTOM DROPDOWN MULTI-SELECT (no checkboxes)
     ───────────────────────────────────────────── */
-    function initMultiSelect(checkListId, hiddenSelectId, tagsId, errorId) {
-        const $list   = $('#' + checkListId);
-        const $select = $('#' + hiddenSelectId);
-        const $tags   = $('#' + tagsId);
-        const $error  = $('#' + errorId);
+    function initMultiSelect(wrapperId, checkListId, hiddenSelectId, tagsId, errorId, placeholder) {
+        const $wrapper = $('#' + wrapperId);
+        const $trigger = $wrapper.find('.multi-select-trigger');
+        const $list    = $('#' + checkListId);
+        const $select  = $('#' + hiddenSelectId);
+        const $tags    = $('#' + tagsId);
+        const $error   = $('#' + errorId);
 
         function rebuildTags() {
             $tags.empty();
-            $list.find('.ms-option.selected').each(function () {
-                const id    = $(this).data('id');
-                const label = $(this).data('label');
-                $tags.append(`
-                <span class="ms-tag" data-id="${id}">
-                    ${label}
-                    <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
-                </span>`);
-            });
+            const $selected = $list.find('.ms-option.selected');
+            if (!$selected.length) {
+                $tags.append(`<span class="ms-placeholder">${placeholder}</span>`);
+            } else {
+                $selected.each(function () {
+                    const id    = $(this).data('id');
+                    const label = $(this).data('label');
+                    $tags.append(`
+                    <span class="ms-tag" data-id="${id}">
+                        ${label}
+                        <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
+                    </span>`);
+                });
+            }
+            $tags.append('<span class="ms-caret"></span>');
         }
 
         function syncSelect() {
@@ -872,37 +958,63 @@ $(function () {
         function clearError() {
             if ($select.val() && $select.val().length > 0) {
                 $error.removeClass('show');
-                $list.closest('.col-md-6').removeClass('ms-invalid');
+                $wrapper.removeClass('ms-invalid');
             }
         }
 
-        $list.on('click', '.ms-option', function (e) {
-            if (e.target.tagName === 'INPUT') return;
-            const $opt       = $(this);
+        function toggleOption($opt) {
             const nowSelected = !$opt.hasClass('selected');
             $opt.toggleClass('selected', nowSelected);
-            $opt.find('input[type="checkbox"]').prop('checked', nowSelected);
             syncSelect(); rebuildTags(); clearError();
+        }
+
+        function openDropdown() {
+            $('.multi-select-wrapper.open').not($wrapper).removeClass('open');
+            $wrapper.addClass('open');
+        }
+
+        function closeDropdown() {
+            $wrapper.removeClass('open');
+        }
+
+        $trigger.on('click', function (e) {
+            e.stopPropagation();
+            $wrapper.hasClass('open') ? closeDropdown() : openDropdown();
         });
 
-        $list.on('change', 'input[type="checkbox"]', function () {
-            $(this).closest('.ms-option').toggleClass('selected', this.checked);
-            syncSelect(); rebuildTags(); clearError();
+        $trigger.on('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                $wrapper.hasClass('open') ? closeDropdown() : openDropdown();
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+            }
         });
 
-        $tags.on('click', '.ms-tag-remove', function () {
+        // keep dropdown open while picking multiple options
+        $list.on('click', function (e) { e.stopPropagation(); });
+
+        $list.on('click', '.ms-option', function () {
+            toggleOption($(this));
+        });
+
+        $tags.on('click', '.ms-tag-remove', function (e) {
+            e.stopPropagation();
             const id = $(this).data('id');
-            $list.find(`.ms-option[data-id="${id}"]`)
-                .removeClass('selected')
-                .find('input[type="checkbox"]').prop('checked', false);
+            $list.find(`.ms-option[data-id="${id}"]`).removeClass('selected');
             syncSelect(); rebuildTags();
+        });
+
+        // close when clicking outside
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest($wrapper).length) closeDropdown();
         });
 
         syncSelect(); rebuildTags();
     }
 
-    initMultiSelect('categoryCheckList',    'categorySelect',    'categoryTags',    'categoriesError');
-    initMultiSelect('subCategoryCheckList', 'subCategorySelect', 'subCategoryTags', 'subCategoriesError');
+    initMultiSelect('categoryMultiSelect', 'categoryCheckList', 'categorySelect', 'categoryTags', 'categoriesError', '-- Select Category --');
+    initMultiSelect('subCategoryMultiSelect', 'subCategoryCheckList', 'subCategorySelect', 'subCategoryTags', 'subCategoriesError', '-- Select Sub Category --');
 
     /* ─────────────────────────────────────────────
        CLEAR ERRORS ON CHANGE
@@ -1051,7 +1163,7 @@ $(function () {
 
         $('.field-error').removeClass('show');
         $('.is-invalid-select').removeClass('is-invalid-select');
-        $('.ms-invalid').removeClass('ms-invalid');
+        $('.multi-select-wrapper').removeClass('ms-invalid');
 
         if (!$('[name="title"]').val().trim()) {
             $('[name="title"]').addClass('is-invalid-select');
@@ -1082,7 +1194,7 @@ $(function () {
 
         const cats = $('#categorySelect').val();
         if (!cats || cats.length === 0) {
-            $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+            $('#categoryMultiSelect').addClass('ms-invalid');
             $('#categoriesError').addClass('show');
             valid = false;
         }
@@ -1184,11 +1296,11 @@ $(function () {
 
                         switch (cleanField) {
                             case 'categories':
-                                $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                $('#categoryMultiSelect').addClass('ms-invalid');
                                 $('#categoriesError').text(messages[0]).addClass('show');
                                 break;
                             case 'sub_categories':
-                                $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
+                                $('#subCategoryMultiSelect').addClass('ms-invalid');
                                 $('#subCategoriesError').text(messages[0]).addClass('show');
                                 break;
                             case 'title':
