@@ -105,14 +105,21 @@ class SalesVoucher extends Model
 
                 $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
 
+                $exciseType       = $item->excise_status === 'Y' ? $item->excise_type : null;
+                $excisePercentage = $exciseType === 'percentage' ? (float) $item->excise_percentage : null;
+                $exciseValue      = $exciseType === 'fixed' ? (float) $item->excise_value : null;
+
                 $lineData[] = [
-                    'item_id'      => $row['item_id'],
-                    'variation_id' => $row['variation_id'] ?? null,
-                    'unit'         => $row['unit'] ?? null,
-                    'qty'          => $qty,
-                    'unit_rate'    => $unitRate,
-                    'amount'       => $amount,
-                    'vat_percent'  => $vatPercent,
+                    'item_id'           => $row['item_id'],
+                    'variation_id'      => $row['variation_id'] ?? null,
+                    'unit'              => $row['unit'] ?? null,
+                    'qty'               => $qty,
+                    'unit_rate'         => $unitRate,
+                    'amount'            => $amount,
+                    'vat_percent'       => $vatPercent,
+                    'excise_type'       => $exciseType,
+                    'excise_percentage' => $excisePercentage,
+                    'excise_value'      => $exciseValue,
                 ];
 
                 $subtotal += $amount;
@@ -126,20 +133,32 @@ class SalesVoucher extends Model
             $billDiscountAmount  = round($subtotal * $billDiscountPercent / 100, 2);
             $preVatBase          = $subtotal - $billDiscountAmount;
 
-            $totalVatAmount = 0;
+            $totalVatAmount    = 0;
+            $totalExciseAmount = 0;
 
             foreach ($lineData as &$line) {
                 $lineShare = $subtotal > 0 ? ($line['amount'] / $subtotal) * $preVatBase : 0;
-                $lineVatAmount = round($lineShare * $line['vat_percent'] / 100, 2);
 
-                $line['vat_amount'] = $lineVatAmount;
-                $line['net_amount'] = round($lineShare + $lineVatAmount, 2);
+                $lineExciseAmount = 0;
+                if ($line['excise_type'] === 'percentage') {
+                    $lineExciseAmount = round($lineShare * $line['excise_percentage'] / 100, 2);
+                } elseif ($line['excise_type'] === 'fixed') {
+                    $lineExciseAmount = round($line['excise_value'] * $line['qty'], 2);
+                }
 
-                $totalVatAmount += $lineVatAmount;
+                $lineTaxableForVat = $lineShare + $lineExciseAmount;
+                $lineVatAmount     = round($lineTaxableForVat * $line['vat_percent'] / 100, 2);
+
+                $line['vat_amount']    = $lineVatAmount;
+                $line['excise_amount'] = $lineExciseAmount;
+                $line['net_amount']    = round($lineTaxableForVat + $lineVatAmount, 2);
+
+                $totalVatAmount    += $lineVatAmount;
+                $totalExciseAmount += $lineExciseAmount;
             }
             unset($line);
 
-            $taxableAmount = round($preVatBase, 2);
+            $taxableAmount = round($preVatBase + $totalExciseAmount, 2);
             $totalAmount   = round($taxableAmount + $totalVatAmount, 2);
 
             $customer = DB::table('users')->where('id', $post['customer_id'])->first();
@@ -158,6 +177,7 @@ class SalesVoucher extends Model
                 'bill_discount_amount'  => $billDiscountAmount,
                 'taxable_amount'        => $taxableAmount,
                 'vat_amount'            => round($totalVatAmount, 2),
+                'excise_amount'         => round($totalExciseAmount, 2),
                 'total_amount'          => $totalAmount,
                 'orgid'                 => $post['orgid'],
             ];
@@ -195,6 +215,10 @@ class SalesVoucher extends Model
                     'amount'           => $line['amount'],
                     'vat_percent'      => $line['vat_percent'],
                     'vat_amount'       => $line['vat_amount'],
+                    'excise_type'       => $line['excise_type'],
+                    'excise_percentage' => $line['excise_percentage'],
+                    'excise_value'      => $line['excise_value'],
+                    'excise_amount'     => $line['excise_amount'],
                     'net_amount'       => $line['net_amount'],
                     'created_at'       => Carbon::now(),
                     'updated_at'       => Carbon::now(),
