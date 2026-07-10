@@ -440,7 +440,7 @@
             <div class="col-md-6" id="subCategoriesWrapper">
                 <label class="form-label fw-semibold"
                     style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">
-                    Sub Category <span class="text-danger">*</span>
+                    Sub Category
                 </label>
                 <select name="sub_categories[]" id="subCategorySelect" multiple style="display:none;">
                     @foreach ($subCategories as $sub)
@@ -1059,13 +1059,6 @@ $(function () {
         if (!cats || cats.length === 0) {
             $('#categoryCheckList').closest('.col-md-6').addClass('ms-invalid');
             $('#categoriesError').addClass('show');
-            valid = false;
-        }
-
-        const subs = $('#subCategorySelect').val();
-        if (!subs || subs.length === 0) {
-            $('#subCategoryCheckList').closest('.col-md-6').addClass('ms-invalid');
-            $('#subCategoriesError').addClass('show');
             valid = false;
         }
 

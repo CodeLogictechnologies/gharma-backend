@@ -171,7 +171,7 @@ class ItemController extends Controller
                 'type'                 => 'required|in:Regular,Special,Featured',
                 'description'          => 'nullable|string',
                 'categories'           => 'required|exists:categories,id',
-                'sub_categories'       => 'required|exists:sub_categories,id',
+                'sub_categories'       => 'nullable|exists:sub_categories,id',
                 'product_code'         => 'nullable|string|max:255',
                 'company_product_code' => 'nullable|string|max:255',
                 'hs_code'              => 'nullable|digits_between:6,15',
