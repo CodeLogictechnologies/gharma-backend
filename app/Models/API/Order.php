@@ -27,88 +27,144 @@ class Order extends Model
     {
         try {
             // ── Order Master ───────────────────────────────────
-            $insertOrderMaster = [
-                'id'         => (string) Str::uuid(),
-                'orgid'      => $post['orgid'],
-                'userid'     => $post['userid'],
-                'addressid'     => $post['addressid'],
-                'order_master_total_price'      => $post['total'],
-                'created_at' => Carbon::now(),
-            ];
 
+            $orderMasterId = (string) Str::uuid();
+
+            // ── Build Order Details + Compute Real Prices ──────
+            $insertOrderDetails = [];
+            $variationIds       = [];
+            $vatRate            = (float) config('vat.taxable');
+
+            $grandSubtotal = 0;
+            $grandExcise   = 0;
+            $grandVat      = 0;
+            $grandTotal    = 0;
+
+            foreach ($post['items'] as $item) {
+
+                $variation = DB::table('itemvariations as iv')
+                    ->join('items as i', 'i.id', '=', 'iv.item_id')
+                    ->where('iv.id', $item['variation_id'])
+                    ->where('iv.orgid', $post['orgid'])
+                    ->select(
+                        'iv.id as variation_id',
+                        'iv.price',
+                        'i.excise_status',
+                        'i.excise_type',
+                        'i.excise_percentage',
+                        'i.excise_value',
+                        'i.vat_status'
+                    )
+                    ->first();
+
+                if (!$variation) {
+                    throw new \Exception("Invalid item variation.");
+                }
+
+                $qty       = (float) $item['quantity'];
+                $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+
+                $baseAmount = round($unitPrice * $qty, 2);
+                // Excise duty
+                $exciseAmount = 0.0;
+                if ($variation->excise_status === 'Y') {
+                    if ($variation->excise_type === 'percentage') {
+                        $exciseAmount = round($baseAmount * ((float) $variation->excise_percentage / 100), 2);
+                    } elseif ($variation->excise_type === 'fixed') {
+                        $exciseAmount = round((float) $variation->excise_value * $qty, 2);
+                    }
+                }
+                $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
+                $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
+                // VAT (applied on price + excise)
+                $vatAmount = 0.0;
+                if ($variation->vat_status === 'Y') {
+                    $vatAmount = round($amountAfterExcise * ($vatRate / 100), 2);
+                }
+
+                $lineTotal = round($amountAfterExcise + $vatAmount, 2);
+
+                $insertOrderDetails[] = [
+                    'id'                        => (string) Str::uuid(),
+                    'ordermasterid'             => $orderMasterId,
+                    'variation_id'              => $variation->variation_id,
+                    'quantity'                  => $qty,
+                    'userid'                    => $post['userid'],
+                    'price'                     => $unitPrice,
+                    'excise_type'               => $variation->excise_status === 'Y' ? $variation->excise_type : null,
+                    'excise_percent'            => $variation->excise_type === 'percentage' ? $variation->excise_percentage : null,
+                    'excise_amount'             => $exciseAmount,
+                    'vat_percent'               => $variation->vat_status === 'Y' ? $vatRate : 0,
+                    'vat_amount'                => $vatAmount,
+                    'order_detail_total_price'  => $lineTotal,
+                    'created_at'                => Carbon::now(),
+                ];
+
+                $variationIds[] = $variation->variation_id;
+
+                $grandSubtotal += $baseAmount;
+                $grandExcise   += $exciseAmount;
+                $grandVat      += $vatAmount;
+                $grandTotal    += $lineTotal;
+            }
+
+            $insertOrderMaster = [
+                'id'                        => $orderMasterId,
+                'orgid'                     => $post['orgid'],
+                'payment_method' => $post['paymentmethod'] ?? 'COD',
+
+                'userid'                    => $post['userid'],
+                'addressid'                 => $post['addressid'],
+                'order_master_subtotal'     => round($grandSubtotal, 2),
+                'order_master_excise_total' => round($grandExcise, 2),
+                'order_master_vat_total'    => round($grandVat, 2),
+                'order_master_total_price'  => round($grandTotal, 2),
+                'created_at'                => Carbon::now(),
+            ];
             if (!OrderMaster::insert($insertOrderMaster)) {
                 throw new \Exception("Couldn't save order.");
             }
 
-            $insertOrderStatusArray = [
-                'id'         => (string) Str::uuid(),
-                'orgid'      => $post['orgid'],
-                // 'payment_method'      => $post['payment_method'] ?? 'COD',
-                'customerid'     => $post['userid'],
-                'ordermasterid' => $insertOrderMaster['id'],
-                'created_at' => Carbon::now(),
-                'postedby'     => $post['userid'],
-            ];
+            // $insertOrderStatusArray = [
+            //     'id'             => (string) Str::uuid(),
+            //     'orgid'          => $post['orgid'],
+            //     'payment_method' => $post['paymentmethod'] ?? 'COD',
+            //     'customerid'     => $post['userid'],
+            //     'ordermasterid'  => $orderMasterId,
+            //     'created_at'     => Carbon::now(),
+            //     'postedby'       => $post['userid'],
+            // ];
 
-            if (!OrderStatus::insert($insertOrderStatusArray)) {
-                throw new \Exception("Couldn't save order.");
-            }
-            // ── Build Order Details Array ──────────────────────
-            $insertOrderDetails = [];
-            $variationIds       = [];
-
-            foreach ($post['items'] as $item) {
-                $insertOrderDetails[] = [
-                    'id'            => (string) Str::uuid(),
-                    'ordermasterid' => $insertOrderMaster['id'],
-                    'variation_id'  => $item['variation_id'],
-                    'quantity'      => $item['quantity'],
-                    'userid'     => $post['userid'],
-                    'price'         => $item['price'],
-                    'order_detail_total_price'         => $item['quantity'] * $item['price'],
-                    'created_at'    => Carbon::now(),
-                ];
-
-                $variationIds[] = $item['variation_id'];
-            }
+            // if (!OrderStatus::insert($insertOrderStatusArray)) {
+            //     throw new \Exception("Couldn't save order.");
+            // }
 
             if (!OrderDetail::insert($insertOrderDetails)) {
                 throw new \Exception("Couldn't save order details.");
             }
-
-            $cartArray = [
-                'status' => 'N',
-                'updated_at'    => Carbon::now(),
-            ];
 
             APICart::where('orgid', $post['orgid'])
                 ->where('userid', $post['userid'])
                 ->whereIn('variation_id', $variationIds)
                 ->where('status', 'Y')
                 ->delete();
-            // ->update($cartArray);
 
             $setup = DB::table('loyalty_setups')
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
-                ->where('minprice', '<=', $post['total'])
-                ->where('maxprice', '>=', $post['total'])
+                ->where('minprice', '<=', $grandTotal)
+                ->where('maxprice', '>=', $grandTotal)
                 ->first();
 
             if ($setup) {
+                $earnedPoint = ($grandTotal * $setup->percentage) / 100;
 
-                // Calculate points
-                $earnedPoint = ($post['total'] * $setup->percentage) / 100;
-
-                // Check existing loyalty
                 $existingLoyalty = DB::table('loyalties')
                     ->where('userid', $post['userid'])
                     ->where('orgid', $post['orgid'])
                     ->first();
 
                 if ($existingLoyalty) {
-
-                    // Update existing point
                     DB::table('loyalties')
                         ->where('id', $existingLoyalty->id)
                         ->update([
@@ -117,8 +173,6 @@ class Order extends Model
                             'updatedby'    => $post['userid'],
                         ]);
                 } else {
-
-                    // Insert new loyalty
                     DB::table('loyalties')->insert([
                         'id'              => (string) Str::uuid(),
                         'userid'          => $post['userid'],
@@ -133,76 +187,45 @@ class Order extends Model
             }
 
             // ── Generate Invoice PDF ────────────────────────────
-            $invoiceData = [
-                'orgid'  => $post['orgid'],
-                'userid' => $post['userid'],
-                'id'     => $insertOrderMaster['id'],
-            ];
+            // $invoiceData = [
+            //     'orgid'  => $post['orgid'],
+            //     'userid' => $post['userid'],
+            //     'id'     => $orderMasterId,
+            // ];
 
-            $orderDetail = BackPanelOrder::getDataInvoice($invoiceData);
+            // $orderDetail = BackPanelOrder::getDataInvoice($invoiceData);
 
-            // $invoiceNumber = 'INV-' . date('Y') . '-' . strtoupper(Str::random(6));
-            // $storagePath   = 'pdf/invoice-' . $invoiceNumber . '.pdf';
+            // $adminUserId = DB::table('userorganizations as uo')
+            //     ->join('model_has_roles as mr', 'mr.model_id', '=', 'uo.userid')
+            //     ->where('mr.role_id', '550e8400-e29b-41d4-a716-446655440001')
+            //     ->where('uo.orgid', $post['orgid'])
+            //     ->where('uo.status', 'Y')
+            //     ->value('uo.userid');
 
-            // if (Storage::disk('public')->exists($storagePath)) {
-            //     $pdfContent = Storage::disk('public')->get($storagePath);
-            // } else {
-            //     $pdf = Pdf::loadView('backend.invoice.download', [
-            //         'order'         => $orderDetail,
-            //         'invoiceNumber' => $invoiceNumber,
-            //     ])->setPaper('a4', 'portrait');
+            // if ($adminUserId) {
+            //     $token = DB::table('userdevicetokens')
+            //         ->where('userid', $adminUserId)
+            //         ->value('devicetoken');
 
-            //     $pdfContent = $pdf->output();
-            //     Storage::disk('public')->put($storagePath, $pdfContent);
+            //     if (!empty($token)) {
+            //         try {
+            //             app(\App\Services\FirebaseService::class)->sendNotification(
+            //                 $token,
+            //                 'New Order Received',
+            //                 'A new order has been placed. Please check the admin panel for the order details.'
+            //             );
+            //         } catch (\Exception $e) {
+            //             \Log::error('Failed to send order notification.', [
+            //                 'user_id'  => $adminUserId,
+            //                 'order_id' => $orderMasterId,
+            //                 'message'  => $e->getMessage(),
+            //             ]);
+            //         }
+            //     }
             // }
 
-            // $invoiceId = (string) Str::uuid();
-
-            $adminUserId = DB::table('userorganizations as uo')
-                ->join('model_has_roles as mr', 'mr.model_id', '=', 'uo.userid')
-                ->where('mr.role_id', '550e8400-e29b-41d4-a716-446655440001')
-                ->where('uo.orgid', $post['orgid'])
-                ->where('uo.status', 'Y')
-                ->value('uo.userid');
-
-            if ($adminUserId) {
-                $token = DB::table('userdevicetokens')
-                    ->where('userid', $adminUserId)
-                    ->value('devicetoken');
-                    
-                if (!empty($token)) {
-                    try {
-                        app(\App\Services\FirebaseService::class)->sendNotification(
-                            $token,
-                            'New Order Received',
-                            'A new order has been placed. Please check the admin panel for the order details.'
-                        );
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to send order notification.', [
-                            'user_id' => $adminUserId,
-                            'order_id' => $insertOrderMaster['id'],
-                            'message' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
-
-            // DB::table('invoices')->insert([
-            //     'id'            => $invoiceId,
-            //     'ordermasterid' => $insertOrderMaster['id'],
-            //     'orgid'         => $post['orgid'],
-            //     'invoicenumber' => $invoiceNumber,
-            //     'storagepath'   => $storagePath,
-            //     'postedby'      => $post['userid'],
-            //     'created_at'    => Carbon::now(),
-            //     'updated_at'    => Carbon::now(),
-            // ]);
-
             return [
-                'ordermasterid' => $insertOrderMaster['id'],
-                // 'invoicenumber' => $invoiceNumber,
-                // 'storagepath'   => $storagePath,
-                // 'storage_url'   => url('storage/' . $storagePath),
+                'ordermasterid' => $orderMasterId,
             ];
         } catch (\Exception $e) {
             throw $e;
