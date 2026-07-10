@@ -47,6 +47,11 @@ class RetailerPrice extends Model
                 }
             }
 
+            $variationUpdate = [
+                'price'      => $post['price'],
+                'updated_at' => Carbon::now(),
+            ];
+
             if (array_key_exists('discount_type', $post)) {
                 $discountType = in_array($post['discount_type'] ?? null, ['percentage', 'fixed'], true)
                     ? $post['discount_type'] : null;
@@ -57,14 +62,35 @@ class RetailerPrice extends Model
                 $discountAmount = ($discountType === 'fixed' && is_numeric($post['discount_amount'] ?? null))
                     ? $post['discount_amount'] : null;
 
-                DB::table('itemvariations')
-                    ->where('id', $post['variationid'])
-                    ->update([
-                        'discount_type'   => $discountType,
-                        'discount'        => $discountPercentage,
-                        'discount_amount' => $discountAmount,
-                        'updated_at'      => Carbon::now(),
-                    ]);
+                $variationUpdate['discount_type']   = $discountType;
+                $variationUpdate['discount']        = $discountPercentage;
+                $variationUpdate['discount_amount'] = $discountAmount;
+            }
+
+            DB::table('itemvariations')
+                ->where('id', $post['variationid'])
+                ->update($variationUpdate);
+
+            if (array_key_exists('excise_status', $post) || array_key_exists('vat_status', $post)) {
+                $itemUpdate = ['updated_at' => Carbon::now()];
+
+                if (array_key_exists('excise_status', $post)) {
+                    $exciseStatus = !empty($post['excise_status']) ? 'Y' : 'N';
+                    $exciseType   = $exciseStatus === 'Y' ? ($post['excise_type'] ?? null) : null;
+
+                    $itemUpdate['excise_status']     = $exciseStatus;
+                    $itemUpdate['excise_type']       = $exciseType;
+                    $itemUpdate['excise_percentage'] = $exciseType === 'percentage' ? ($post['excise_percentage'] ?? null) : null;
+                    $itemUpdate['excise_value']      = $exciseType === 'fixed' ? ($post['excise_value'] ?? null) : null;
+                }
+
+                if (array_key_exists('vat_status', $post)) {
+                    $itemUpdate['vat_status'] = !empty($post['vat_status']) ? 'Y' : 'N';
+                }
+
+                DB::table('items')
+                    ->where('id', $post['itemid'])
+                    ->update($itemUpdate);
             }
 
             return true;
@@ -114,7 +140,12 @@ class RetailerPrice extends Model
                 iv.value,
                 iv.discount_type,
                 iv.discount,
-                iv.discount_amount
+                iv.discount_amount,
+                i.vat_status,
+                i.excise_status,
+                i.excise_type,
+                i.excise_percentage,
+                i.excise_value
             ")
                 ->whereRaw($cond);
 

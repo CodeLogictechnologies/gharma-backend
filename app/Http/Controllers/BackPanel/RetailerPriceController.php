@@ -49,6 +49,9 @@ class RetailerPriceController extends Controller
                 'discount_type'        => 'nullable|in:percentage,fixed',
                 'discount_percentage'  => 'required_if:discount_type,percentage|nullable|numeric|min:0|max:100',
                 'discount_amount'      => 'required_if:discount_type,fixed|nullable|numeric|min:0',
+                'excise_type'          => 'nullable|in:percentage,fixed',
+                'excise_percentage'    => 'required_if:excise_type,percentage|nullable|numeric|min:0|max:100',
+                'excise_value'         => 'required_if:excise_type,fixed|nullable|numeric|min:0',
             ];
 
             $messages = [
@@ -64,6 +67,10 @@ class RetailerPriceController extends Controller
                 'discount_percentage.max'     => 'Discount percentage cannot exceed 100%.',
                 'discount_percentage.numeric' => 'Discount percentage must be a number.',
                 'discount_amount.numeric'     => 'Discount amount must be a number.',
+
+                'excise_percentage.max'       => 'Excise percentage cannot exceed 100%.',
+                'excise_percentage.numeric'   => 'Excise percentage must be a number.',
+                'excise_value.numeric'        => 'Excise amount must be a number.',
             ];
 
             $validation = Validator::make($request->all(), $rules, $messages);
@@ -130,20 +137,44 @@ class RetailerPriceController extends Controller
 
             if ($discountType === 'fixed') {
                 $discountLabel = $discountAmount > 0 ? 'Rs ' . number_format($discountAmount, 2) : '—';
-                $sellingPrice  = max($price - $discountAmount, 0);
+                $afterDiscount = max($price - $discountAmount, 0);
             } elseif ($discountType === 'percentage') {
                 $discountLabel = $discountPercentage > 0 ? $discountPercentage . '%' : '—';
-                $sellingPrice  = $price - ($price * $discountPercentage / 100);
+                $afterDiscount = $price - ($price * $discountPercentage / 100);
             } else {
                 $discountLabel = '—';
-                $sellingPrice  = $price;
+                $afterDiscount = $price;
             }
+
+            $vatStatus = ($row->vat_status ?? 'N') === 'Y';
+            $vatLabel  = $vatStatus ? 'Taxable' : 'Non-Taxable';
+
+            $exciseStatus     = ($row->excise_status ?? 'N') === 'Y';
+            $excisePercentage = (float) ($row->excise_percentage ?? 0);
+            $exciseValue      = (float) ($row->excise_value ?? 0);
+
+            if ($exciseStatus && $row->excise_type === 'percentage') {
+                $exciseLabel  = $excisePercentage . '%';
+                $exciseAmount = $afterDiscount * $excisePercentage / 100;
+            } elseif ($exciseStatus && $row->excise_type === 'fixed') {
+                $exciseLabel  = 'Rs ' . number_format($exciseValue, 2);
+                $exciseAmount = $exciseValue;
+            } else {
+                $exciseLabel  = '—';
+                $exciseAmount = 0;
+            }
+
+            $beforeVat    = $afterDiscount + $exciseAmount;
+            $vatAmount    = $vatStatus ? $beforeVat * 0.13 : 0;
+            $sellingPrice = $beforeVat + $vatAmount;
 
             $array[$i]["sno"]           = $i + 1;
             $array[$i]["title"]         = $row->title;
             $array[$i]["value"]         = $row->value;
             $array[$i]["price"]         = number_format($price, 2);
             $array[$i]["discount"]      = $discountLabel;
+            $array[$i]["vat_status"]    = $vatLabel;
+            $array[$i]["excise_duty"]   = $exciseLabel;
             $array[$i]["selling_price"] = number_format($sellingPrice, 2);
 
             $action = '';
