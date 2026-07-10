@@ -88,7 +88,6 @@
                     <col style="width:160px;">
                     <col style="width:100px;">
                     <col style="width:140px;">
-                    <col style="width:140px;">
                     <col style="width:60px;">
                 </colgroup>
                 <thead class="table-light">
@@ -101,7 +100,6 @@
                         <th>Amount</th>
                         <th>VAT</th>
                         <th>Excise Duty</th>
-                        <th>MRP</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -169,6 +167,7 @@
     @foreach ($items as $item)
         itemsMeta['{{ $item->itemid }}'] = {
             vat_status: '{{ $item->vat_status }}',
+            vat_percent: @json((float) ($item->vat_percent ?? config('vat.default'))),
             excise_status: '{{ $item->excise_status }}',
             excise_type: @json($item->excise_type),
             excise_percentage: @json($item->excise_percentage),
@@ -181,7 +180,6 @@
         itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
     @endforeach
 
-    var VAT_RATE = {{ (float) config('vat.taxable') }};
     var rowIndex = 0;
 
     function round2(n) {
@@ -201,7 +199,6 @@
                 '<td><input type="text" class="form-control amount-display" readonly value="0.00"></td>' +
                 '<td class="text-center vat-col">-</td>' +
                 '<td class="text-center excise-col">-</td>' +
-                '<td><input type="number" name="items[' + idx + '][mrp]" class="form-control mrp-input" min="0" step="0.01"></td>' +
                 '<td>' +
                     '<div class="d-flex align-items-center justify-content-center">' +
                         '<button type="button" class="btn btn-icon btn-danger remove-item-row" title="Remove item">' +
@@ -217,7 +214,7 @@
         var vatText = '-';
         var exciseText = '-';
         if (meta) {
-            vatText = meta.vat_status === 'Y' ? VAT_RATE + '%' : '0%';
+            vatText = meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%';
             if (meta.excise_status === 'Y') {
                 if (meta.excise_type === 'percentage') {
                     exciseText = meta.excise_percentage + '%';
@@ -266,7 +263,6 @@
         }
         if (prefill.qty)        $tr.find('.qty-input').val(prefill.qty);
         if (prefill.unit_rate)  $tr.find('.rate-input').val(prefill.unit_rate);
-        if (prefill.mrp)        $tr.find('.mrp-input').val(prefill.mrp);
 
         recalcAll();
     }
@@ -312,7 +308,7 @@
             }
 
             var taxableForVat = share + exciseAmt;
-            var vatPercent = meta && meta.vat_status === 'Y' ? VAT_RATE : 0;
+            var vatPercent = meta && meta.vat_status === 'Y' ? meta.vat_percent : 0;
             var vatAmt = round2(taxableForVat * vatPercent / 100);
 
             totalVat += vatAmt;
@@ -371,8 +367,7 @@
                 variation_id: li.variation_id,
                 unit: li.unit,
                 qty: li.qty,
-                unit_rate: li.unit_rate,
-                mrp: li.mrp
+                unit_rate: li.unit_rate
             });
         });
     } else {

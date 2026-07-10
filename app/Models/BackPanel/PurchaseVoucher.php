@@ -105,7 +105,7 @@ class PurchaseVoucher extends Model
                 $unitRate = (float) $row['unit_rate'];
                 $amount   = round($qty * $unitRate, 2);
 
-                $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) config('vat.taxable') : (float) config('vat.non-taxable');
+                $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
 
                 $exciseType       = $item->excise_status === 'Y' ? $item->excise_type : null;
                 $excisePercentage = $exciseType === 'percentage' ? (float) $item->excise_percentage : null;
@@ -122,7 +122,6 @@ class PurchaseVoucher extends Model
                     'excise_type'       => $exciseType,
                     'excise_percentage' => $excisePercentage,
                     'excise_value'      => $exciseValue,
-                    'mrp'               => isset($row['mrp']) && $row['mrp'] !== '' ? (float) $row['mrp'] : null,
                 ];
 
                 $subtotal += $amount;
@@ -224,7 +223,6 @@ class PurchaseVoucher extends Model
                     'excise_percentage'    => $line['excise_percentage'],
                     'excise_value'         => $line['excise_value'],
                     'excise_amount'        => $line['excise_amount'],
-                    'mrp'                  => $line['mrp'],
                     'net_amount'           => $line['net_amount'],
                     'created_at'           => Carbon::now(),
                     'updated_at'           => Carbon::now(),

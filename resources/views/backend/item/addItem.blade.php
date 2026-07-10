@@ -428,6 +428,21 @@
                 </div>
             </div>
 
+            {{-- VAT rate field: shown when VAT status is enabled --}}
+            <div class="col" id="vatPercentField" style="min-width: 130px;
+                display: {{ !empty($data['vat_status']) ? 'block' : 'none' }};">
+                <label class="form-label" for="vatPercent">VAT Rate <span class="text-danger">*</span></label>
+                <select name="vat_percent" id="vatPercent" class="form-select">
+                    @foreach (config('vat.taxable') as $rate)
+                    <option value="{{ $rate }}"
+                        {{ (float) ($data['vat_percent'] ?? config('vat.default')) === (float) $rate ? 'selected' : '' }}>
+                        {{ $rate }}%
+                    </option>
+                    @endforeach
+                </select>
+                <div class="field-error" id="vatPercentError">VAT rate is required.</div>
+            </div>
+
             {{-- Excise type + value fields side by side --}}
             <div class="col" id="exciseTypeField"
                 style="display: {{ !empty($data['excise_status']) ? 'block' : 'none' }};">
@@ -744,6 +759,16 @@
 
 <script>
 $(function () {
+
+    /* ─────────────────────────────────────────────
+    // VAT STATUS → show/hide VAT rate field
+    ───────────────────────────────────────────── */
+    function toggleVatFields() {
+        const enabled = $('#vatStatus').is(':checked');
+        $('#vatPercentField').toggle(enabled);
+    }
+    $('#vatStatus').on('change', toggleVatFields);
+    toggleVatFields();
 
     /* ─────────────────────────────────────────────
     // EXCISE DUTY → show/hide type & value fields

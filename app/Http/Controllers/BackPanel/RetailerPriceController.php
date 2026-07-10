@@ -52,6 +52,7 @@ class RetailerPriceController extends Controller
                 'excise_type'          => 'nullable|in:percentage,fixed',
                 'excise_percentage'    => 'required_if:excise_type,percentage|nullable|numeric|min:0|max:100',
                 'excise_value'         => 'required_if:excise_type,fixed|nullable|numeric|min:0',
+                'vat_percent'          => 'required_if:vat_status,1|nullable|numeric|in:' . implode(',', config('vat.taxable')),
             ];
 
             $messages = [
@@ -146,8 +147,9 @@ class RetailerPriceController extends Controller
                 $afterDiscount = $price;
             }
 
-            $vatStatus = ($row->vat_status ?? 'N') === 'Y';
-            $vatLabel  = $vatStatus ? 'Taxable' : 'Non-Taxable';
+            $vatStatus  = ($row->vat_status ?? 'N') === 'Y';
+            $vatPercent = (float) ($row->vat_percent ?? config('vat.default'));
+            $vatLabel   = $vatStatus ? 'Taxable (' . rtrim(rtrim(number_format($vatPercent, 2), '0'), '.') . '%)' : 'Non-Taxable';
 
             $exciseStatus     = ($row->excise_status ?? 'N') === 'Y';
             $excisePercentage = (float) ($row->excise_percentage ?? 0);
@@ -165,7 +167,7 @@ class RetailerPriceController extends Controller
             }
 
             $beforeVat    = $afterDiscount + $exciseAmount;
-            $vatAmount    = $vatStatus ? $beforeVat * 0.13 : 0;
+            $vatAmount    = $vatStatus ? $beforeVat * $vatPercent / 100 : 0;
             $sellingPrice = $beforeVat + $vatAmount;
 
             $array[$i]["sno"]           = $i + 1;

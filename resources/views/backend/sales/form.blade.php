@@ -156,7 +156,8 @@
     var itemsMeta = {};
     @foreach ($items as $item)
         itemsMeta['{{ $item->itemid }}'] = {
-            vat_status: '{{ $item->vat_status }}'
+            vat_status: '{{ $item->vat_status }}',
+            vat_percent: @json((float) ($item->vat_percent ?? config('vat.default')))
         };
     @endforeach
 
@@ -165,7 +166,6 @@
         itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
     @endforeach
 
-    var VAT_RATE = {{ (float) config('vat.taxable') }};
     var rowIndex = 0;
 
     function round2(n) {
@@ -200,7 +200,7 @@
 
     function applyItemTaxInfo($tr, itemId) {
         var meta = itemsMeta[itemId];
-        var vatText = meta ? (meta.vat_status === 'Y' ? VAT_RATE + '%' : '0%') : '-';
+        var vatText = meta ? (meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%') : '-';
         $tr.find('.vat-col').text(vatText);
     }
 
@@ -275,7 +275,7 @@
         rows.forEach(function(r) {
             var meta = itemsMeta[r.itemId];
             var share = subtotal > 0 ? (r.amount / subtotal) * preVatBase : 0;
-            var vatPercent = meta && meta.vat_status === 'Y' ? VAT_RATE : 0;
+            var vatPercent = meta && meta.vat_status === 'Y' ? meta.vat_percent : 0;
             var vatAmt = round2(share * vatPercent / 100);
             totalVat += vatAmt;
         });

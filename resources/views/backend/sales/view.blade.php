@@ -43,8 +43,7 @@
                         <th>Rate</th>
                         <th>Amount</th>
                         <th>Excise</th>
-                        <th>VAT Amt</th>
-                        <th>Net Amt</th>
+                        <th>VAT</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -64,23 +63,19 @@
                             <td>{{ number_format($line->price, 2) }}</td>
                             <td>{{ number_format($amount, 2) }}</td>
                             <td>{{ $exciseLabel }}</td>
-                            <td>{{ number_format($line->vat_amount, 2) }}</td>
-                            <td>{{ number_format($line->order_detail_total_price, 2) }}</td>
+                            <td>{{ rtrim(rtrim(number_format($line->vat_percent, 2), '0'), '.') }}%</td>
                         </tr>
                     @endforeach
                 </tbody>
                 <tfoot>
                     @php
                         $totalAmount = $orderDetail->sum(fn($line) => $line->price * $line->quantity);
-                        $totalVat = $orderDetail->sum('vat_amount');
-                        $totalNet = $orderDetail->sum('order_detail_total_price');
                     @endphp
                     <tr class="fw-bold table-light">
                         <td colspan="5" class="text-end">Total</td>
                         <td>{{ number_format($totalAmount, 2) }}</td>
                         <td></td>
-                        <td>{{ number_format($totalVat, 2) }}</td>
-                        <td>{{ number_format($totalNet, 2) }}</td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>

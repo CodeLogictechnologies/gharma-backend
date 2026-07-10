@@ -54,7 +54,7 @@ class PurchaseReturnController extends Controller
                 } else {
                     $array[$i]["excise_duty"] = 'N/A';
                 }
-                $array[$i]["vat"]           = $row->vat_amount > 0 ? 'VAT 13%' : 'VAT 0%';
+                $array[$i]["vat"]           = $row->vat_amount > 0 ? 'Taxable' : 'Non-Taxable';
                 $array[$i]["total"]         = number_format($row->total_amount, 2);
 
                 $statusBadges = [
