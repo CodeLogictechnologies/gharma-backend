@@ -40,8 +40,7 @@
                                 <select name="itemid" id="itemSelect" class="form-select">
                                     <option value="">-- Select Product --</option>
                                     @foreach ($items as $item)
-                                        <option value="{{ $item->itemid }}"
-                                            data-vat-status="{{ $item->vat_status }}"
+                                        <option value="{{ $item->itemid }}" data-vat-status="{{ $item->vat_status }}"
                                             data-vat-percent="{{ $item->vat_percent }}"
                                             data-excise-status="{{ $item->excise_status }}"
                                             data-excise-type="{{ $item->excise_type }}"
@@ -110,14 +109,14 @@
                             <div class="mb-3 d-flex gap-4">
                                 <div class="form-check">
                                     <input type="hidden" name="excise_status" value="0">
-                                    <input class="form-check-input" type="checkbox"
-                                        id="exciseStatus" name="excise_status" value="1">
+                                    <input class="form-check-input" type="checkbox" id="exciseStatus"
+                                        name="excise_status" value="1">
                                     <label class="form-check-label" for="exciseStatus">Excise Duty</label>
                                 </div>
                                 <div class="form-check">
                                     <input type="hidden" name="vat_status" value="0">
-                                    <input class="form-check-input" type="checkbox"
-                                        id="vatStatus" name="vat_status" value="1">
+                                    <input class="form-check-input" type="checkbox" id="vatStatus" name="vat_status"
+                                        value="1">
                                     <label class="form-check-label" for="vatStatus">VAT Status</label>
                                 </div>
                             </div>
@@ -157,8 +156,8 @@
                                 <label class="form-label" for="exciseValue">Fixed Amount</label>
                                 <div class="input-group">
                                     <span class="input-group-text">Rs</span>
-                                    <input type="number" class="form-control" name="excise_value"
-                                        id="exciseValue" placeholder="e.g. 50" min="0" step="0.01" />
+                                    <input type="number" class="form-control" name="excise_value" id="exciseValue"
+                                        placeholder="e.g. 50" min="0" step="0.01" />
                                 </div>
                                 <div class="invalid-feedback">Excise amount is required.</div>
                             </div>
@@ -186,7 +185,8 @@
                                             <th>Discount</th>
                                             <th>VAT Status</th>
                                             <th>Excise Duty</th>
-                                            <th>Selling Price</th>
+                                            <th>SP After Discount</th>
+                                            <th>SP After Before</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -349,7 +349,10 @@
                     data: 'excise_duty'
                 },
                 {
-                    data: 'selling_price'
+                    data: 'price_after_discount'
+                },
+                {
+                    data: 'price_before_discount'
                 },
                 {
                     data: 'action'
@@ -472,6 +475,7 @@
         });
 
         // ── Edit ──────────────────────────────────────────────────────────────
+        // ── Edit ──────────────────────────────────────────────────────────────
         $(document).on('click', '.editRetailer', function(e) {
             e.preventDefault();
 
@@ -479,23 +483,82 @@
             var itemId = $(this).data('itemid');
             var variationId = $(this).data('variationid');
             var price = $(this).data('price');
+
+            // Discount
             var discountType = $(this).data('discounttype');
             var discountPercentage = $(this).data('discountpercentage');
             var discountAmount = $(this).data('discountamount');
 
-            // Populate hidden id, price and discount
-            $('#id').val(id);
-            $('#price').val(price);
-            $('#discountType').val(discountType || '');
-            $('#discountPercentage').val(discountPercentage || '');
-            $('#discountAmount').val(discountAmount || '');
-            applyDiscountTypeUI(discountType || '');
+            // VAT
+            var vatStatus = $(this).data('vatstatus');
+            var vatPercent = $(this).data('vatpercent');
 
-            // Set the product dropdown, then load variations
-            $('#itemSelect').val(itemId).trigger('change', [variationId]);
-            // Update UI
+            // Excise
+            var exciseStatus = $(this).data('excisestatus');
+            var exciseType = $(this).data('excisetype');
+            var excisePercentage = $(this).data('excisepercentage');
+            var exciseValue = $(this).data('excisevalue');
+
+            // Hidden ID
+            $('#id').val(id);
+
+            // Product
+            $('#itemSelect').val(itemId).trigger('change', [variationId, true]);
+            // Load variations first
+            $.get('{{ route('inventory.variations') }}', {
+                item_id: itemId,
+                _token: '{{ csrf_token() }}'
+            }, function(response) {
+
+                var options = '<option value="">-- Select Variation --</option>';
+
+                $.each(response, function(i, v) {
+                    options += '<option value="' + v.id + '">' +
+                        v.attribute + ': ' + v.value +
+                        '</option>';
+                });
+
+                $('#variationSelect').html(options);
+                $('#variationSelect').val(variationId);
+            });
+
+            // Price
+            $('#price').val(price);
+
+            // ---------------- Discount ----------------
+            $('#discountType').val(discountType);
+
+            applyDiscountTypeUI(discountType);
+
+            $('#discountPercentage').val(discountPercentage);
+            $('#discountAmount').val(discountAmount);
+
+            // ---------------- VAT ----------------
+            $('#vatStatus').prop('checked', vatStatus == 'Y');
+
+            var vatPercentValue = parseFloat(vatPercent);
+            $('#vatPercent option').each(function() {
+                $(this).prop('selected', parseFloat($(this).val()) === vatPercentValue);
+            });
+
+            toggleVatFields();
+            // ---------------- Excise ----------------
+            $('#exciseStatus').prop('checked', exciseStatus == 'Y');
+
+            $('#exciseType').val(exciseType);
+
+            applyExciseTypeUI(exciseType);
+
+            $('#excisePercentage').val(excisePercentage);
+
+            $('#exciseValue').val(exciseValue);
+
+            toggleExciseFields();
+
             $('#formTitle').text('Edit Price For Retailer');
+
             $('.saveRetailer').html('<i class="fas fa-save"></i> Update');
+
             $('#cancelEdit').removeClass('d-none');
 
             $('html, body').animate({
@@ -544,7 +607,7 @@
 
         // ── Load Variations on product change ────────────────────────────────
         // The custom event `.loadVariations` carries the pre-selected variationId (for edit).
-        $(document).on('change', '#itemSelect', function(e, preSelectedVariationId) {
+        $(document).on('change', '#itemSelect', function(e, preSelectedVariationId, isEdit) {
             var itemId = $(this).val();
             var $varSelect = $('#variationSelect');
 

@@ -20,14 +20,54 @@ class RetailerPrice extends Model
     public static function saveData($post)
     {
         try {
+            $price = (float) $post['price'];
+
+            // Discount
+            $discount = 0;
+            if ($post['discount_type'] == 'percentage') {
+                $discount = ($price * (float)$post['discount_percentage']) / 100;
+            } else {
+                $discount = (float)($post['discount_amount'] ?? 0);
+            }
+
+            // Excise
+            $excise = 0;
+            if ($post['excise_status'] == 1) {
+                if ($post['excise_type'] == 'percentage') {
+                    $excise = ($price * (float)$post['excise_percentage']) / 100;
+                } else {
+                    $excise = (float)($post['excise_value'] ?? 0);
+                }
+            }
+
+            // Before Discount
+            $subTotalBefore = $price + $excise;
+            $vatBefore = 0;
+
+            if ($post['vat_status'] == 1) {
+                $vatBefore = ($subTotalBefore * (float)$post['vat_percent']) / 100;
+            }
+
+            $priceBeforeDiscount = $subTotalBefore + $vatBefore;
+
+            // After Discount
+            $subTotalAfter = ($price - $discount) + $excise;
+            $vatAfter = 0;
+
+            if ($post['vat_status'] == 1) {
+                $vatAfter = ($subTotalAfter * (float)$post['vat_percent']) / 100;
+            }
+
+            $priceAfterDiscount = $subTotalAfter + $vatAfter;
 
             $dataArray = [
-                'itemid' => $post['itemid'],
-                'price' => $post['price'],
-                'variation_id' => $post['variationid'],
-                'orgid' => $post['orgid']
+                'itemid'                => $post['itemid'],
+                'variation_id'          => $post['variationid'],
+                'price'                 => $price,
+                'price_before_discount' => round($priceBeforeDiscount, 2),
+                'price_after_discount'  => round($priceAfterDiscount, 2),
+                'orgid'                 => $post['orgid'],
             ];
-
 
             if (!empty($post['id'])) {
                 $dataArray['updatedby'] = $post['userid'];
@@ -139,6 +179,8 @@ class RetailerPrice extends Model
                 i.title,
                 iv.id as variationid,
                 iv.value,
+                rp.price_after_discount,
+                rp.price_before_discount,
                 iv.discount_type,
                 iv.discount,
                 iv.discount_amount,
