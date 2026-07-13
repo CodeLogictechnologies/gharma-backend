@@ -72,13 +72,13 @@
         </style>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="svItemsTable"
-                style="min-width:1040px; table-layout:fixed;">
+                style="min-width:1090px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
                     <col style="width:190px;">
                     <col style="width:170px;">
                     <col style="width:110px;">
-                    <col style="width:160px;">
+                    <col style="width:210px;">
                     <col style="width:100px;">
                     <col style="width:120px;">
                     <col style="width:80px;">
@@ -91,7 +91,7 @@
                         <th>Item <span class="text-danger">*</span></th>
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
-                        <th>Rate <span class="text-danger">*</span></th>
+                        <th>Rate with Discount <span class="text-danger">*</span></th>
                         <th>Discount</th>
                         <th>Amount</th>
                         <th>VAT</th>
@@ -178,16 +178,7 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-    (function($) {
-
-        /* ── Searchable customer dropdown ─────────────────────────── */
-        $('#customerSelect').select2({
-            theme: 'bootstrap-5',
-            placeholder: '-- Select Customer --',
-            width: '100%',
-            dropdownParent: $('#svModal'),
-            minimumResultsForSearch: 0,
-        });
+(function($) {
 
         var itemsMeta = {};
         @foreach ($items as $item)
@@ -519,20 +510,32 @@
             newItemRow();
         });
 
-        /* ── Hydrate initial rows ─────────────────────────────────── */
-        var initialLineItems = @json($lineItems ?? []);
-        if (initialLineItems.length > 0) {
-            initialLineItems.forEach(function(li) {
-                newItemRow({
-                    item_id: li.item_id,
-                    variation_id: li.variation_id,
-                    qty: li.qty,
-                    unit_rate: li.unit_rate
-                });
+    /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
+    /* select2 and row insertion both need a laid-out (non display:none) container to size correctly */
+    $(document).off('shown.bs.modal.salesVoucher', '#svModal')
+        .on('shown.bs.modal.salesVoucher', '#svModal', function() {
+            $('#customerSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Select Customer --',
+                width: '100%',
+                dropdownParent: $('#svModal'),
+                minimumResultsForSearch: 0,
             });
-        } else {
-            newItemRow();
-        }
+
+            var initialLineItems = @json($lineItems ?? []);
+            if (initialLineItems.length > 0) {
+                initialLineItems.forEach(function(li) {
+                    newItemRow({
+                        item_id: li.item_id,
+                        variation_id: li.variation_id,
+                        qty: li.qty,
+                        unit_rate: li.unit_rate
+                    });
+                });
+            } else {
+                newItemRow();
+            }
+        });
 
         /* ── Client-side validation ───────────────────────────────── */
         window.svValidateForm = function($form) {
