@@ -158,15 +158,6 @@
 <script>
 (function($) {
 
-    /* ── Searchable customer dropdown ─────────────────────────── */
-    $('#customerSelect').select2({
-        theme: 'bootstrap-5',
-        placeholder: '-- Select Customer --',
-        width: '100%',
-        dropdownParent: $('#svModal'),
-        minimumResultsForSearch: 0,
-    });
-
     var itemsMeta = {};
     @foreach ($items as $item)
         itemsMeta['{{ $item->itemid }}'] = {
@@ -459,20 +450,32 @@
         newItemRow();
     });
 
-    /* ── Hydrate initial rows ─────────────────────────────────── */
-    var initialLineItems = @json($lineItems ?? []);
-    if (initialLineItems.length > 0) {
-        initialLineItems.forEach(function(li) {
-            newItemRow({
-                item_id: li.item_id,
-                variation_id: li.variation_id,
-                qty: li.qty,
-                unit_rate: li.unit_rate
+    /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
+    /* select2 and row insertion both need a laid-out (non display:none) container to size correctly */
+    $(document).off('shown.bs.modal.salesVoucher', '#svModal')
+        .on('shown.bs.modal.salesVoucher', '#svModal', function() {
+            $('#customerSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Select Customer --',
+                width: '100%',
+                dropdownParent: $('#svModal'),
+                minimumResultsForSearch: 0,
             });
+
+            var initialLineItems = @json($lineItems ?? []);
+            if (initialLineItems.length > 0) {
+                initialLineItems.forEach(function(li) {
+                    newItemRow({
+                        item_id: li.item_id,
+                        variation_id: li.variation_id,
+                        qty: li.qty,
+                        unit_rate: li.unit_rate
+                    });
+                });
+            } else {
+                newItemRow();
+            }
         });
-    } else {
-        newItemRow();
-    }
 
     /* ── Client-side validation ───────────────────────────────── */
     window.svValidateForm = function($form) {
