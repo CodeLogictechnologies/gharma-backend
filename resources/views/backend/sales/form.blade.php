@@ -1,5 +1,6 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+    rel="stylesheet" />
 
 <div class="modal-header">
     <h5 class="modal-title">
@@ -64,12 +65,14 @@
                 -webkit-appearance: none;
                 margin: 0;
             }
+
             #svItemsTable input[type=number] {
                 -moz-appearance: textfield;
             }
         </style>
         <div class="table-responsive">
-            <table class="table table-bordered align-middle" id="svItemsTable" style="min-width:1040px; table-layout:fixed;">
+            <table class="table table-bordered align-middle" id="svItemsTable"
+                style="min-width:1040px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
                     <col style="width:190px;">
@@ -110,32 +113,51 @@
                     <tbody>
                         <tr>
                             <th>Subtotal</th>
-                            <td class="text-end" id="subtotalDisplay">0.00</td>
+                            <td class="text-end">
+                                <span id="subtotalDisplay">0.00</span>
+                                <input type="hidden" name="subtotal" id="subtotalInput" value="0">
+                            </td>
                         </tr>
                         <tr>
                             <th>
                                 Bill Discount
                                 <input type="number" name="bill_discount_percent" id="billDiscountPercent"
                                     class="form-control form-control-sm d-inline-block ms-2" style="width:80px;"
-                                    min="0" max="100" step="0.01" value="{{ $bill_discount_percent ?? 0 }}"> %
+                                    min="0" max="100" step="0.01"
+                                    value="{{ $bill_discount_percent ?? 0 }}"> %
                             </th>
-                            <td class="text-end" id="discountAmountDisplay">0.00</td>
+                            <td class="text-end">
+                                <span id="discountAmountDisplay">0.00</span>
+                                <input type="hidden" name="discount_amount" id="discountAmountInput" value="0">
+                            </td>
                         </tr>
                         <tr>
                             <th>Excise Amount</th>
-                            <td class="text-end" id="exciseAmountDisplay">0.00</td>
+                            <td class="text-end">
+                                <span id="exciseAmountDisplay">0.00</span>
+                                <input type="hidden" name="excise_amount" id="exciseAmountInput" value="0">
+                            </td>
                         </tr>
                         <tr>
                             <th>Taxable Amount</th>
-                            <td class="text-end" id="taxableAmountDisplay">0.00</td>
+                            <td class="text-end">
+                                <span id="taxableAmountDisplay">0.00</span>
+                                <input type="hidden" name="taxable_amount" id="taxableAmountInput" value="0">
+                            </td>
                         </tr>
                         <tr>
                             <th>VAT Amount</th>
-                            <td class="text-end" id="vatAmountDisplay">0.00</td>
+                            <td class="text-end">
+                                <span id="vatAmountDisplay">0.00</span>
+                                <input type="hidden" name="vat_amount" id="vatAmountInput" value="0">
+                            </td>
                         </tr>
                         <tr class="fw-bold">
                             <th>Total</th>
-                            <td class="text-end" id="totalDisplay">0.00</td>
+                            <td class="text-end">
+                                <span id="totalDisplay">0.00</span>
+                                <input type="hidden" name="total_amount" id="totalInput" value="0">
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -158,297 +180,335 @@
 <script>
 (function($) {
 
-    var itemsMeta = {};
-    @foreach ($items as $item)
-        itemsMeta['{{ $item->itemid }}'] = {
-            vat_status: '{{ $item->vat_status }}',
-            vat_percent: @json((float) ($item->vat_percent ?? config('vat.default'))),
-            excise_status: '{{ $item->excise_status }}',
-            excise_type: @json($item->excise_type),
-            excise_percentage: @json($item->excise_percentage),
-            excise_value: @json($item->excise_value)
-        };
-    @endforeach
+        var itemsMeta = {};
+        @foreach ($items as $item)
+            itemsMeta['{{ $item->itemid }}'] = {
+                vat_status: '{{ $item->vat_status }}',
+                vat_percent: @json((float) ($item->vat_percent ?? config('vat.default'))),
+                excise_status: '{{ $item->excise_status }}',
+                excise_type: @json($item->excise_type),
+                excise_percentage: @json($item->excise_percentage),
+                excise_value: @json($item->excise_value)
+            };
+        @endforeach
 
-    var itemOptionsHtml = '<option value="">-- Item --</option>';
-    @foreach ($items as $item)
-        itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
-    @endforeach
+        var itemOptionsHtml = '<option value="">-- Item --</option>';
+        @foreach ($items as $item)
+            itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
+        @endforeach
 
-    var rowIndex = 0;
+        var rowIndex = 0;
 
-    function round2(n) {
-        return Math.round((n + Number.EPSILON) * 100) / 100;
-    }
+        function round2(n) {
+            return Math.round((n + Number.EPSILON) * 100) / 100;
+        }
 
-    function rowTemplate(idx) {
-        return '' +
-            '<tr class="item-row align-middle" data-index="' + idx + '">' +
+        function rowTemplate(idx) {
+            return '' +
+                '<tr class="item-row align-middle" data-index="' + idx + '">' +
                 '<td class="row-no">' + (idx + 1) + '</td>' +
                 '<td>' +
-                    '<select name="items[' + idx + '][item_id]" class="form-select item-select" data-required>' + itemOptionsHtml + '</select>' +
+                '<select name="items[' + idx + '][item_id]" class="form-select item-select" data-required>' +
+                itemOptionsHtml + '</select>' +
                 '</td>' +
-                '<td><select name="items[' + idx + '][variation_id]" class="form-select variation-select"><option value="">-- None --</option></select></td>' +
-                '<td><input type="number" name="items[' + idx + '][qty]" class="form-control qty-input" min="0.01" step="0.01" data-required></td>' +
-                '<td><input type="number" name="items[' + idx + '][unit_rate]" class="form-control rate-input" min="0" step="0.01" data-required></td>' +
+                '<td><select name="items[' + idx +
+                '][variation_id]" class="form-select variation-select"><option value="">-- None --</option></select></td>' +
+                '<td><input type="number" name="items[' + idx +
+                '][qty]" class="form-control qty-input" min="0.01" step="0.01" data-required></td>' +
+                '<td><input type="number" name="items[' + idx +
+                '][unit_rate]" class="form-control rate-input" min="0" step="0.01" data-required></td>' +
                 '<td class="text-center discount-col">-</td>' +
                 '<td><input type="text" class="form-control amount-display" readonly value="0.00"></td>' +
                 '<td class="text-center vat-col">-</td>' +
                 '<td class="text-center excise-col">-</td>' +
                 '<td>' +
-                    '<div class="d-flex align-items-center justify-content-center">' +
-                        '<button type="button" class="btn btn-icon btn-danger remove-item-row" title="Remove item">' +
-                            '<i class="bx bx-trash"></i>' +
-                        '</button>' +
-                    '</div>' +
+                '<div class="d-flex align-items-center justify-content-center">' +
+                '<button type="button" class="btn btn-icon btn-danger remove-item-row" title="Remove item">' +
+                '<i class="bx bx-trash"></i>' +
+                '</button>' +
+                '</div>' +
                 '</td>' +
-            '</tr>';
-    }
+                '</tr>';
+        }
 
-    function applyItemTaxInfo($tr, itemId) {
-        var meta = itemsMeta[itemId];
-        var vatText = meta ? (meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%') : '-';
-        var exciseText = '-';
-        if (meta) {
-            if (meta.excise_status === 'Y') {
-                if (meta.excise_type === 'percentage') {
-                    exciseText = meta.excise_percentage + '%';
-                } else if (meta.excise_type === 'fixed') {
-                    exciseText = 'Rs ' + meta.excise_value + '/unit';
+        function applyItemTaxInfo($tr, itemId) {
+            var meta = itemsMeta[itemId];
+            var vatText = meta ? (meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%') : '-';
+            var exciseText = '-';
+            if (meta) {
+                if (meta.excise_status === 'Y') {
+                    if (meta.excise_type === 'percentage') {
+                        exciseText = meta.excise_percentage + '%';
+                    } else if (meta.excise_type === 'fixed') {
+                        exciseText = 'Rs ' + meta.excise_value + '/unit';
+                    }
+                } else {
+                    exciseText = 'N/A';
                 }
-            } else {
-                exciseText = 'N/A';
             }
+            $tr.find('.vat-col').text(vatText);
+            $tr.find('.excise-col').text(exciseText);
         }
-        $tr.find('.vat-col').text(vatText);
-        $tr.find('.excise-col').text(exciseText);
-    }
 
-    function loadVariationsForRow($tr, itemId, selectedVariationId) {
-        var $varSelect = $tr.find('.variation-select');
-        if (!itemId) {
-            $varSelect.html('<option value="">-- None --</option>').prop('disabled', false);
-            return;
-        }
-        $varSelect.html('<option value="">Loading...</option>').prop('disabled', true);
-        $.get('{{ route('inventory.variations') }}', { item_id: itemId, _token: '{{ csrf_token() }}' })
-            .done(function(resp) {
-                var html = '<option value="">-- None --</option>';
-                $.each(resp, function(i, v) {
-                    var sel = (selectedVariationId && String(selectedVariationId) === String(v.id)) ? 'selected' : '';
-                    html += '<option value="' + v.id + '" ' + sel + '>' + (v.attribute ? v.attribute + ': ' : '') + v.value + '</option>';
+        function loadVariationsForRow($tr, itemId, selectedVariationId) {
+            var $varSelect = $tr.find('.variation-select');
+            if (!itemId) {
+                $varSelect.html('<option value="">-- None --</option>').prop('disabled', false);
+                return;
+            }
+            $varSelect.html('<option value="">Loading...</option>').prop('disabled', true);
+            $.get('{{ route('inventory.variations') }}', {
+                    item_id: itemId,
+                    _token: '{{ csrf_token() }}'
+                })
+                .done(function(resp) {
+                    var html = '<option value="">-- None --</option>';
+                    $.each(resp, function(i, v) {
+                        var sel = (selectedVariationId && String(selectedVariationId) === String(v
+                            .id)) ? 'selected' : '';
+                        html += '<option value="' + v.id + '" ' + sel + '>' + (v.attribute ? v
+                            .attribute + ': ' : '') + v.value + '</option>';
+                    });
+                    $varSelect.html(html).prop('disabled', false);
+                })
+                .fail(function() {
+                    $varSelect.html('<option value="">Failed to load</option>').prop('disabled', false);
                 });
-                $varSelect.html(html).prop('disabled', false);
-            })
-            .fail(function() {
-                $varSelect.html('<option value="">Failed to load</option>').prop('disabled', false);
-            });
-    }
-
-    /* ── Customer-type-aware item pricing (retailer flat/discounted, wholesaler qty-tiered) ── */
-    var priceCache = {};
-
-    function getCustomerType() {
-        var selected = $('#customerSelect option:selected');
-        return (selected.data('customerType') || '').toString().toLowerCase();
-    }
-
-    function fetchPricing(itemId, variationId, callback) {
-        var key = itemId + '|' + (variationId || '');
-        if (priceCache[key]) {
-            callback(priceCache[key]);
-            return;
         }
-        $.get('{{ route('sales.item-price') }}', { item_id: itemId, variation_id: variationId || '', _token: '{{ csrf_token() }}' })
-            .done(function(resp) {
-                priceCache[key] = resp;
-                callback(resp);
-            })
-            .fail(function() {
-                callback(null);
+
+        /* ── Customer-type-aware item pricing (retailer flat/discounted, wholesaler qty-tiered) ── */
+        var priceCache = {};
+
+        function getCustomerType() {
+            var selected = $('#customerSelect option:selected');
+            return (selected.data('customerType') || '').toString().toLowerCase();
+        }
+
+        function fetchPricing(itemId, variationId, callback) {
+            var key = itemId + '|' + (variationId || '');
+            if (priceCache[key]) {
+                callback(priceCache[key]);
+                return;
+            }
+            $.get('{{ route('sales.item-price') }}', {
+                    item_id: itemId,
+                    variation_id: variationId || '',
+                    _token: '{{ csrf_token() }}'
+                })
+                .done(function(resp) {
+                    priceCache[key] = resp;
+                    callback(resp);
+                })
+                .fail(function() {
+                    callback(null);
+                });
+        }
+
+        function applyWholesaleRateForGroup(itemId, variationId, tiers) {
+            var $rows = $('#itemRows tr.item-row').filter(function() {
+                return $(this).find('.item-select').val() === itemId &&
+                    $(this).find('.variation-select').val() === variationId;
             });
-    }
 
-    function applyWholesaleRateForGroup(itemId, variationId, tiers) {
-        var $rows = $('#itemRows tr.item-row').filter(function() {
-            return $(this).find('.item-select').val() === itemId &&
-                $(this).find('.variation-select').val() === variationId;
-        });
+            var totalQty = 0;
+            $rows.each(function() {
+                totalQty += parseFloat($(this).find('.qty-input').val()) || 0;
+            });
 
-        var totalQty = 0;
-        $rows.each(function() {
-            totalQty += parseFloat($(this).find('.qty-input').val()) || 0;
-        });
+            var tier = null;
+            for (var i = 0; i < tiers.length; i++) {
+                var min = parseFloat(tiers[i].min_qty);
+                var max = parseFloat(tiers[i].max_qty);
+                if (totalQty >= min && totalQty <= max) {
+                    tier = tiers[i];
+                    break;
+                }
+            }
 
-        var tier = null;
-        for (var i = 0; i < tiers.length; i++) {
-            var min = parseFloat(tiers[i].min_qty);
-            var max = parseFloat(tiers[i].max_qty);
-            if (totalQty >= min && totalQty <= max) {
-                tier = tiers[i];
-                break;
+            if (tier) {
+                $rows.each(function() {
+                    $(this).find('.rate-input').val(tier.price);
+                });
+                recalcAll();
             }
         }
 
-        if (tier) {
-            $rows.each(function() {
-                $(this).find('.rate-input').val(tier.price);
+        function formatDiscount(retailer) {
+            if (retailer.discount_type === 'percentage' && retailer.discount_percentage) {
+                return parseFloat(retailer.discount_percentage) + '%';
+            } else if (retailer.discount_type === 'fixed' && retailer.discount_amount) {
+                return 'Rs ' + retailer.discount_amount + '/unit';
+            }
+            return '-';
+        }
+
+        function applyAutoRate($tr) {
+            var itemId = $tr.find('.item-select').val();
+            var variationId = $tr.find('.variation-select').val();
+            var customerType = getCustomerType();
+
+            $tr.find('.discount-col').text('-');
+
+            if (!itemId || !variationId || !customerType) {
+                return;
+            }
+
+            fetchPricing(itemId, variationId, function(pricing) {
+                if (!pricing) return;
+
+                if (customerType === 'retailer' && pricing.retailer) {
+                    $tr.find('.rate-input').val(pricing.retailer.effective_price);
+                    $tr.find('.discount-col').text(formatDiscount(pricing.retailer));
+                    recalcAll();
+                } else if (customerType === 'wholesaler') {
+                    $tr.find('.discount-col').text('-');
+                    applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
+                }
             });
+        }
+
+        function newItemRow(prefill) {
+            prefill = prefill || {};
+            var idx = rowIndex++;
+            var $tr = $(rowTemplate(idx));
+            $('#itemRows').append($tr);
+
+            if (prefill.item_id) {
+                $tr.find('.item-select').val(prefill.item_id);
+                applyItemTaxInfo($tr, prefill.item_id);
+                loadVariationsForRow($tr, prefill.item_id, prefill.variation_id);
+            }
+            if (prefill.qty) $tr.find('.qty-input').val(prefill.qty);
+            if (prefill.unit_rate) $tr.find('.rate-input').val(prefill.unit_rate);
+
             recalcAll();
         }
-    }
 
-    function formatDiscount(retailer) {
-        if (retailer.discount_type === 'percentage' && retailer.discount_percentage) {
-            return parseFloat(retailer.discount_percentage) + '%';
-        } else if (retailer.discount_type === 'fixed' && retailer.discount_amount) {
-            return 'Rs ' + retailer.discount_amount + '/unit';
-        }
-        return '-';
-    }
-
-    function applyAutoRate($tr) {
-        var itemId = $tr.find('.item-select').val();
-        var variationId = $tr.find('.variation-select').val();
-        var customerType = getCustomerType();
-
-        $tr.find('.discount-col').text('-');
-
-        if (!itemId || !variationId || !customerType) {
-            return;
+        function renumberRows() {
+            $('#itemRows tr.item-row').each(function(i) {
+                $(this).find('.row-no').text(i + 1);
+            });
         }
 
-        fetchPricing(itemId, variationId, function(pricing) {
-            if (!pricing) return;
+        function recalcAll() {
+            var subtotal = 0;
+            var rows = [];
 
-            if (customerType === 'retailer' && pricing.retailer) {
-                $tr.find('.rate-input').val(pricing.retailer.effective_price);
-                $tr.find('.discount-col').text(formatDiscount(pricing.retailer));
-                recalcAll();
-            } else if (customerType === 'wholesaler') {
-                $tr.find('.discount-col').text('-');
-                applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
-            }
-        });
-    }
+            $('#itemRows tr.item-row').each(function() {
+                var $tr = $(this);
+                var qty = parseFloat($tr.find('.qty-input').val()) || 0;
+                var rate = parseFloat($tr.find('.rate-input').val()) || 0;
+                var amount = round2(qty * rate);
+                $tr.find('.amount-display').val(amount.toFixed(2));
+                subtotal += amount;
+                rows.push({
+                    $tr: $tr,
+                    amount: amount,
+                    qty: qty,
+                    itemId: $tr.find('.item-select').val()
+                });
+            });
 
-    function newItemRow(prefill) {
-        prefill = prefill || {};
-        var idx = rowIndex++;
-        var $tr = $(rowTemplate(idx));
-        $('#itemRows').append($tr);
 
-        if (prefill.item_id) {
-            $tr.find('.item-select').val(prefill.item_id);
-            applyItemTaxInfo($tr, prefill.item_id);
-            loadVariationsForRow($tr, prefill.item_id, prefill.variation_id);
-        }
-        if (prefill.qty)       $tr.find('.qty-input').val(prefill.qty);
-        if (prefill.unit_rate) $tr.find('.rate-input').val(prefill.unit_rate);
 
-        recalcAll();
-    }
+            var discountPercent = parseFloat($('#billDiscountPercent').val()) || 0;
+            var discountAmount = round2(subtotal * discountPercent / 100);
+            var preVatBase = round2(subtotal - discountAmount);
 
-    function renumberRows() {
-        $('#itemRows tr.item-row').each(function(i) {
-            $(this).find('.row-no').text(i + 1);
-        });
-    }
+            var totalVat = 0;
+            var totalExcise = 0;
 
-    function recalcAll() {
-        var subtotal = 0;
-        var rows = [];
+            rows.forEach(function(r) {
+                var meta = itemsMeta[r.itemId];
+                var share = subtotal > 0 ? (r.amount / subtotal) * preVatBase : 0;
 
-        $('#itemRows tr.item-row').each(function() {
-            var $tr = $(this);
-            var qty = parseFloat($tr.find('.qty-input').val()) || 0;
-            var rate = parseFloat($tr.find('.rate-input').val()) || 0;
-            var amount = round2(qty * rate);
-            $tr.find('.amount-display').val(amount.toFixed(2));
-            subtotal += amount;
-            rows.push({ $tr: $tr, amount: amount, qty: qty, itemId: $tr.find('.item-select').val() });
-        });
-
-        var discountPercent = parseFloat($('#billDiscountPercent').val()) || 0;
-        var discountAmount = round2(subtotal * discountPercent / 100);
-        var preVatBase = round2(subtotal - discountAmount);
-
-        var totalVat = 0;
-        var totalExcise = 0;
-
-        rows.forEach(function(r) {
-            var meta = itemsMeta[r.itemId];
-            var share = subtotal > 0 ? (r.amount / subtotal) * preVatBase : 0;
-
-            var exciseAmt = 0;
-            if (meta && meta.excise_status === 'Y') {
-                if (meta.excise_type === 'percentage') {
-                    exciseAmt = round2(share * (parseFloat(meta.excise_percentage) || 0) / 100);
-                } else if (meta.excise_type === 'fixed') {
-                    exciseAmt = round2((parseFloat(meta.excise_value) || 0) * r.qty);
+                var exciseAmt = 0;
+                if (meta && meta.excise_status === 'Y') {
+                    if (meta.excise_type === 'percentage') {
+                        exciseAmt = round2(share * (parseFloat(meta.excise_percentage) || 0) / 100);
+                    } else if (meta.excise_type === 'fixed') {
+                        exciseAmt = round2((parseFloat(meta.excise_value) || 0) * r.qty);
+                    }
                 }
-            }
 
-            var taxableForVat = share + exciseAmt;
-            var vatPercent = meta && meta.vat_status === 'Y' ? meta.vat_percent : 0;
-            var vatAmt = round2(taxableForVat * vatPercent / 100);
+                var taxableForVat = share + exciseAmt;
+                var vatPercent = meta && meta.vat_status === 'Y' ? meta.vat_percent : 0;
+                var vatAmt = round2(taxableForVat * vatPercent / 100);
 
-            totalVat += vatAmt;
-            totalExcise += exciseAmt;
-        });
+                totalVat += vatAmt;
+                totalExcise += exciseAmt;
+            });
 
-        var taxableAmount = round2(preVatBase + totalExcise);
-        var grandTotal = round2(taxableAmount + totalVat);
+            var taxableAmount = round2(preVatBase + totalExcise);
+            var grandTotal = round2(taxableAmount + totalVat);
 
-        $('#subtotalDisplay').text(subtotal.toFixed(2));
-        $('#discountAmountDisplay').text(discountAmount.toFixed(2));
-        $('#exciseAmountDisplay').text(totalExcise.toFixed(2));
-        $('#taxableAmountDisplay').text(taxableAmount.toFixed(2));
-        $('#vatAmountDisplay').text(totalVat.toFixed(2));
-        $('#totalDisplay').text(grandTotal.toFixed(2));
-    }
+            $('#subtotalDisplay').text(subtotal.toFixed(2));
+            $('#discountAmountDisplay').text(discountAmount.toFixed(2));
+            $('#exciseAmountDisplay').text(totalExcise.toFixed(2));
+            $('#taxableAmountDisplay').text(taxableAmount.toFixed(2));
+            $('#vatAmountDisplay').text(totalVat.toFixed(2));
+            $('#totalDisplay').text(grandTotal.toFixed(2));
 
-    /* ── Row events ───────────────────────────────────────────── */
-    $(document).on('change', '.item-select', function() {
-        var $tr = $(this).closest('tr');
-        var itemId = $(this).val();
-        applyItemTaxInfo($tr, itemId);
-        loadVariationsForRow($tr, itemId, null);
-        recalcAll();
-    });
+            $('#subtotalDisplay').text(subtotal.toFixed(2));
+            $('#subtotalInput').val(subtotal.toFixed(2));
 
-    $(document).on('change', '.variation-select', function() {
-        applyAutoRate($(this).closest('tr'));
-    });
+            $('#discountAmountDisplay').text(discountAmount.toFixed(2));
+            $('#discountAmountInput').val(discountAmount.toFixed(2));
 
-    $(document).on('input change', '.qty-input', function() {
-        applyAutoRate($(this).closest('tr'));
-        recalcAll();
-    });
+            $('#exciseAmountDisplay').text(totalExcise.toFixed(2));
+            $('#exciseAmountInput').val(totalExcise.toFixed(2));
 
-    $(document).on('input change', '.rate-input, #billDiscountPercent', function() {
-        recalcAll();
-    });
+            $('#taxableAmountDisplay').text(taxableAmount.toFixed(2));
+            $('#taxableAmountInput').val(taxableAmount.toFixed(2));
 
-    $('#customerSelect').on('change', function() {
-        $('#itemRows tr.item-row').each(function() {
-            applyAutoRate($(this));
-        });
-    });
+            $('#vatAmountDisplay').text(totalVat.toFixed(2));
+            $('#vatAmountInput').val(totalVat.toFixed(2));
 
-    $(document).on('click', '.remove-item-row', function() {
-        if ($('#itemRows tr.item-row').length <= 1) {
-            showNotification('At least one item row is required.', 'warning');
-            return;
+            $('#totalDisplay').text(grandTotal.toFixed(2));
+            $('#totalInput').val(grandTotal.toFixed(2));
         }
-        $(this).closest('tr').remove();
-        renumberRows();
-        recalcAll();
-    });
 
-    $('#addItemRowBtn').on('click', function() {
-        newItemRow();
-    });
+        /* ── Row events ───────────────────────────────────────────── */
+        $(document).on('change', '.item-select', function() {
+            var $tr = $(this).closest('tr');
+            var itemId = $(this).val();
+            applyItemTaxInfo($tr, itemId);
+            loadVariationsForRow($tr, itemId, null);
+            recalcAll();
+        });
+
+        $(document).on('change', '.variation-select', function() {
+            applyAutoRate($(this).closest('tr'));
+        });
+
+        $(document).on('input change', '.qty-input', function() {
+            applyAutoRate($(this).closest('tr'));
+            recalcAll();
+        });
+
+        $(document).on('input change', '.rate-input, #billDiscountPercent', function() {
+            recalcAll();
+        });
+
+        $('#customerSelect').on('change', function() {
+            $('#itemRows tr.item-row').each(function() {
+                applyAutoRate($(this));
+            });
+        });
+
+        $(document).on('click', '.remove-item-row', function() {
+            if ($('#itemRows tr.item-row').length <= 1) {
+                showNotification('At least one item row is required.', 'warning');
+                return;
+            }
+            $(this).closest('tr').remove();
+            renumberRows();
+            recalcAll();
+        });
+
+        $('#addItemRowBtn').on('click', function() {
+            newItemRow();
+        });
 
     /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
     /* select2 and row insertion both need a laid-out (non display:none) container to size correctly */
@@ -477,33 +537,34 @@
             }
         });
 
-    /* ── Client-side validation ───────────────────────────────── */
-    window.svValidateForm = function($form) {
-        var valid = true;
+        /* ── Client-side validation ───────────────────────────────── */
+        window.svValidateForm = function($form) {
+            var valid = true;
 
-        $form.find('.is-invalid').removeClass('is-invalid');
-        $form.find('.invalid-feedback').hide();
+            $form.find('.is-invalid').removeClass('is-invalid');
+            $form.find('.invalid-feedback').hide();
 
-        $form.find('[data-required]').each(function() {
-            if (!$(this).val() || !String($(this).val()).trim()) {
-                $(this).addClass('is-invalid');
-                $(this).siblings('.invalid-feedback').show();
+            $form.find('[data-required]').each(function() {
+                if (!$(this).val() || !String($(this).val()).trim()) {
+                    $(this).addClass('is-invalid');
+                    $(this).siblings('.invalid-feedback').show();
+                    valid = false;
+                }
+            });
+
+            if ($('#itemRows tr.item-row').length === 0) {
+                showNotification('At least one item is required.', 'error');
                 valid = false;
             }
-        });
 
-        if ($('#itemRows tr.item-row').length === 0) {
-            showNotification('At least one item is required.', 'error');
-            valid = false;
-        }
+            return valid;
+        };
 
-        return valid;
-    };
+        $(document).on('input change', '#salesVoucherForm .form-control, #salesVoucherForm .form-select',
+            function() {
+                $(this).removeClass('is-invalid');
+                $(this).siblings('.invalid-feedback').hide();
+            });
 
-    $(document).on('input change', '#salesVoucherForm .form-control, #salesVoucherForm .form-select', function() {
-        $(this).removeClass('is-invalid');
-        $(this).siblings('.invalid-feedback').hide();
-    });
-
-})(jQuery);
+    })(jQuery);
 </script>

@@ -2,6 +2,8 @@
 
 namespace App\Models\BackPanel;
 
+use App\Models\API\OrderDetail;
+use App\Models\API\OrderMaster;
 use Illuminate\Database\Eloquent\Model;
 use Exception;
 use Carbon\Carbon;
@@ -87,9 +89,9 @@ class SalesVoucher extends Model
                 ->where('voucher_no', $candidate)
                 ->exists()
                 || DB::table('order_masters')
-                    ->where('orgid', $orgid)
-                    ->where('voucher_number', $candidate)
-                    ->exists();
+                ->where('orgid', $orgid)
+                ->where('voucher_number', $candidate)
+                ->exists();
         } while ($exists);
 
         return $candidate;
@@ -158,159 +160,159 @@ class SalesVoucher extends Model
         try {
             DB::beginTransaction();
 
-            $items = $post['items'] ?? [];
-            if (empty($items)) {
-                throw new Exception('At least one item is required.');
-            }
+            $orderMasterId = (string) Str::uuid();
 
-            $subtotal = 0;
-            $lineData = [];
+            $insertOrderDetails = [];
+            $variationIds       = [];
 
-            foreach ($items as $row) {
-                if (empty($row['item_id']) || empty($row['qty']) || !isset($row['unit_rate']) || $row['unit_rate'] === '') {
-                    continue;
+            $grandSubtotal = 0;
+            $grandExcise   = 0;
+            $grandVat      = 0;
+            $grandTotal    = 0;
+
+            $customer_id = $post['customer_id'];
+
+            foreach ($post['items'] as $item) {
+
+
+                $variation = DB::table('itemvariations as iv')
+                    ->join('items as i', 'i.id', '=', 'iv.item_id')
+                    ->where('iv.id', $item['variation_id'])
+                    // ->where('iv.orgid', $post['orgid'])
+                    ->select(
+                        'iv.id as variation_id',
+                        'iv.price',
+                        'i.excise_status',
+                        'i.excise_type',
+                        'i.excise_percentage',
+                        'i.excise_value',
+                        'i.vat_status',
+                        'i.vat_percent'
+                    )
+                    ->first();
+
+
+
+
+                if (!$variation) {
+                    throw new \Exception("Item or variation not found for item_id: {$item['item_id']}");
+                }
+                $qty       = (float) $item['qty'];
+                $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+                $baseAmount = round($unitPrice * $qty, 2);
+
+                // Excise duty
+                $exciseAmount = 0.0;
+                if ($variation->excise_status === 'Y') {
+                    if ($variation->excise_type === 'percentage') {
+                        $exciseAmount = round($baseAmount * ((float) $variation->excise_percentage / 100), 2);
+                    } elseif ($variation->excise_type === 'fixed') {
+                        $exciseAmount = round((float) $variation->excise_value * $qty, 2);
+                    }
                 }
 
-                $item = DB::table('items')->where('id', $row['item_id'])->first();
-                if (!$item) {
-                    throw new Exception('Selected item was not found.');
+                $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
+
+                // VAT (applied on price + excise)
+                $vatAmount = 0.0;
+                $vatRate   = (float) ($variation->vat_percent ?? 0);
+                if ($variation->vat_status === 'Y') {
+                    $vatAmount = round($amountAfterExcise * ($vatRate / 100), 2);
                 }
 
-                $qty      = (float) $row['qty'];
-                $unitRate = (float) $row['unit_rate'];
-                $amount   = round($qty * $unitRate, 2);
-
-                $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
-
-                $exciseType       = $item->excise_status === 'Y' ? $item->excise_type : null;
-                $excisePercentage = $exciseType === 'percentage' ? (float) $item->excise_percentage : null;
-                $exciseValue      = $exciseType === 'fixed' ? (float) $item->excise_value : null;
-
-                $lineData[] = [
-                    'item_id'           => $row['item_id'],
-                    'variation_id'      => $row['variation_id'] ?? null,
-                    'unit'              => $row['unit'] ?? null,
-                    'qty'               => $qty,
-                    'unit_rate'         => $unitRate,
-                    'amount'            => $amount,
-                    'vat_percent'       => $vatPercent,
-                    'excise_type'       => $exciseType,
-                    'excise_percentage' => $excisePercentage,
-                    'excise_value'      => $exciseValue,
+                $lineTotal = round($amountAfterExcise + $vatAmount, 2);
+                $insertOrderDetails[] = [
+                    'id'                        => (string) Str::uuid(),
+                    'ordermasterid'             => $orderMasterId,
+                    'variation_id'              => $variation->variation_id,
+                    'quantity'                  => $qty,
+                    'userid'                    => $customer_id,
+                    'price'                     => $unitPrice,
+                    'excise_type'               => $variation->excise_status === 'Y' ? $variation->excise_type : null,
+                    'excise_percent'            => $variation->excise_type === 'percentage' ? $variation->excise_percentage : null,
+                    'excise_amount'             => $exciseAmount,
+                    'vat_percent'               => $variation->vat_status === 'Y' ? $vatRate : 0,
+                    'vat_amount'                => $vatAmount,
+                    'order_detail_total_price'  => $lineTotal,
+                    'created_at'                => Carbon::now(),
                 ];
 
-                $subtotal += $amount;
+                $variationIds[] = $variation->variation_id;
+
+                // Accumulate totals for loyalty calculation below
+                $grandSubtotal += $baseAmount;
+                $grandExcise   += $exciseAmount;
+                $grandVat      += $vatAmount;
+                $grandTotal    += $lineTotal;
             }
 
-            if (empty($lineData)) {
-                throw new Exception('At least one valid item is required.');
-            }
-
-            $billDiscountPercent = isset($post['bill_discount_percent']) ? (float) $post['bill_discount_percent'] : 0;
-            $billDiscountAmount  = round($subtotal * $billDiscountPercent / 100, 2);
-            $preVatBase          = $subtotal - $billDiscountAmount;
-
-            $totalVatAmount    = 0;
-            $totalExciseAmount = 0;
-
-            foreach ($lineData as &$line) {
-                $lineShare = $subtotal > 0 ? ($line['amount'] / $subtotal) * $preVatBase : 0;
-
-                $lineExciseAmount = 0;
-                if ($line['excise_type'] === 'percentage') {
-                    $lineExciseAmount = round($lineShare * $line['excise_percentage'] / 100, 2);
-                } elseif ($line['excise_type'] === 'fixed') {
-                    $lineExciseAmount = round($line['excise_value'] * $line['qty'], 2);
-                }
-
-                $lineTaxableForVat = $lineShare + $lineExciseAmount;
-                $lineVatAmount     = round($lineTaxableForVat * $line['vat_percent'] / 100, 2);
-
-                $line['vat_amount']    = $lineVatAmount;
-                $line['excise_amount'] = $lineExciseAmount;
-                $line['net_amount']    = round($lineTaxableForVat + $lineVatAmount, 2);
-
-                $totalVatAmount    += $lineVatAmount;
-                $totalExciseAmount += $lineExciseAmount;
-            }
-            unset($line);
-
-            $taxableAmount = round($preVatBase + $totalExciseAmount, 2);
-            $totalAmount   = round($taxableAmount + $totalVatAmount, 2);
-
-            $customer = DB::table('users')->where('id', $post['customer_id'])->first();
-            if (!$customer) {
-                throw new Exception('Selected customer was not found.');
-            }
-
-            $header = [
-                'voucher_date'          => $post['voucher_date'],
-                'voucher_no'            => $post['voucher_no'],
-                'customer_id'           => $post['customer_id'],
-                'order_id'              => $post['order_id'] ?? null,
-                'remarks'               => $post['remarks'] ?? null,
-                'subtotal'              => round($subtotal, 2),
-                'bill_discount_percent' => $billDiscountPercent,
-                'bill_discount_amount'  => $billDiscountAmount,
-                'taxable_amount'        => $taxableAmount,
-                'vat_amount'            => round($totalVatAmount, 2),
-                'excise_amount'         => round($totalExciseAmount, 2),
-                'total_amount'          => $totalAmount,
-                'orgid'                 => $post['orgid'],
+            $insertOrderMaster = [
+                'id'                        => $orderMasterId,
+                'orgid'                     => $post['orgid'],
+                'payment_method'            => $post['paymentmethod'] ?? 'COD',
+                'voucher_number'            => $post['voucher_no'],
+                'userid'                    => $post['customer_id'],
+                'addressid'                 => $post['addressid'] ?? null,
+                'order_master_subtotal'     => $post['subtotal'],
+                'order_master_excise_total' => $post['excise_amount'],
+                'order_master_vat_total'    => $post['vat_amount'],
+                'order_master_total_price'  => $post['total_amount'],
+                'discount_amount'           => $post['discount_amount'] ?? null,
+                'remarks'                   => $post['remarks'] ?? null,
+                'created_at'                => Carbon::now(),
             ];
-
-            if (!empty($post['id'])) {
-                $voucherId = $post['id'];
-
-                $header['updatedby']  = $post['userid'];
-                $header['updated_at'] = Carbon::now();
-
-                DB::table('sales_vouchers')->where('id', $voucherId)->update($header);
-                DB::table('sales_voucher_items')->where('sales_voucher_id', $voucherId)->delete();
-            } else {
-                $voucherId = (string) Str::uuid();
-
-                $header['id']         = $voucherId;
-                $header['postedby']   = $post['userid'];
-                $header['created_at'] = Carbon::now();
-                $header['updated_at'] = Carbon::now();
-
-                DB::table('sales_vouchers')->insert($header);
+            if (!OrderMaster::insert($insertOrderMaster)) {
+                throw new \Exception("Couldn't save order.");
             }
 
-            $itemRows = [];
-            foreach ($lineData as $line) {
-                $itemRows[] = [
-                    'id'               => (string) Str::uuid(),
-                    'orgid'            => $post['orgid'],
-                    'sales_voucher_id' => $voucherId,
-                    'item_id'          => $line['item_id'],
-                    'variation_id'     => $line['variation_id'],
-                    'unit'             => $line['unit'],
-                    'qty'              => $line['qty'],
-                    'unit_rate'        => $line['unit_rate'],
-                    'amount'           => $line['amount'],
-                    'vat_percent'      => $line['vat_percent'],
-                    'vat_amount'       => $line['vat_amount'],
-                    'excise_type'       => $line['excise_type'],
-                    'excise_percentage' => $line['excise_percentage'],
-                    'excise_value'      => $line['excise_value'],
-                    'excise_amount'     => $line['excise_amount'],
-                    'net_amount'       => $line['net_amount'],
-                    'created_at'       => Carbon::now(),
-                    'updated_at'       => Carbon::now(),
-                ];
+            if (!OrderDetail::insert($insertOrderDetails)) {
+                throw new \Exception("Couldn't save order details.");
             }
-            DB::table('sales_voucher_items')->insert($itemRows);
+
+            $setup = DB::table('loyalty_setups')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->where('minprice', '<=', $grandTotal)
+                ->where('maxprice', '>=', $grandTotal)
+                ->first();
+
+            if ($setup) {
+                $earnedPoint = ($grandTotal * $setup->percentage) / 100;
+
+                $existingLoyalty = DB::table('loyalties')
+                    ->where('userid', $post['userid'])
+                    ->where('orgid', $post['orgid'])
+                    ->first();
+
+                if ($existingLoyalty) {
+                    DB::table('loyalties')
+                        ->where('id', $existingLoyalty->id)
+                        ->update([
+                            'loyaltypoint' => $existingLoyalty->loyaltypoint + $earnedPoint,
+                            'updated_at'   => Carbon::now(),
+                            'updatedby'    => $post['userid'],
+                        ]);
+                } else {
+                    DB::table('loyalties')->insert([
+                        'id'              => (string) Str::uuid(),
+                        'userid'          => $post['userid'],
+                        'orgid'           => $post['orgid'],
+                        'order_detail_id' => $insertOrderDetails[0]['id'],
+                        'loyaltypoint'    => $earnedPoint,
+                        'status'          => 'Y',
+                        'postedby'        => $post['userid'],
+                        'created_at'      => Carbon::now(),
+                    ]);
+                }
+            }
 
             DB::commit();
-            return true;
-        } catch (Exception $e) {
+            return $orderMasterId;
+        } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
         }
     }
-
     public static function getData($post)
     {
         $id = $post['id'] ?? null;
