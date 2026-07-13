@@ -29,9 +29,38 @@ class WholesalerPrice extends Model
                 'orgid'        => $post['orgid'] ?? null,
             ];
 
-            // ════════════════════════════════════════
-            // UPDATE
-            // ════════════════════════════════════════
+            $getData = DB::table('items')
+                ->where('id', $post['itemid'])
+                ->select('vat_status', 'excise_status', 'excise_type', 'excise_percentage', 'excise_value', 'vat_percent')
+                ->first();
+
+            $exciseStatus     = $getData->excise_status ?? 'N';
+            $exciseType       = $getData->excise_type ?? null;
+            $excisePercentage = (float) ($getData->excise_percentage ?? 0);
+            $exciseValue      = (float) ($getData->excise_value ?? 0);
+
+            $vatStatus  = $getData->vat_status ?? 'N';
+            $vatPercent = (float) ($getData->vat_percent ?? 0);
+
+            $calcExciseVat = function (float $price) use ($exciseStatus, $exciseType, $excisePercentage, $exciseValue, $vatStatus, $vatPercent) {
+                $excise = 0;
+                if ($exciseStatus == 'Y') {
+                    $excise = ($exciseType === 'percentage')
+                        ? ($price * $excisePercentage) / 100
+                        : $exciseValue;
+                }
+
+                $subTotal = $price + $excise;
+                $vat = ($vatStatus == 'Y') ? ($subTotal * $vatPercent) / 100 : 0;
+
+                $priceAfterExciseVat = $subTotal + $vat;
+
+                return [
+                    'before' => round($price, 2),
+                    'after'  => round($priceAfterExciseVat, 2),
+                ];
+            };
+
             if (!empty($post['id'])) {
 
                 $masterId = $post['id'];
@@ -41,12 +70,10 @@ class WholesalerPrice extends Model
 
                 DB::table('wholesaler_prices')->where('id', $masterId)->update($dataArray);
 
-                // ── Update / Insert Price Details ─────────────────────────
                 if (!empty($post['wholesaleDet'])) {
 
                     foreach ($post['wholesaleDet'] as $detail) {
 
-                        // Skip completely empty rows
                         if (
                             empty($detail['min_qty']) &&
                             empty($detail['max_qty']) &&
@@ -55,22 +82,25 @@ class WholesalerPrice extends Model
                             continue;
                         }
 
+                        $tierPrice = (float) ($detail['price'] ?? 0);
+                        $calc      = $calcExciseVat($tierPrice);
+
                         $row = [
-                            'wholesalermasterid' => $masterId,
-                            'min_qty'            => $detail['min_qty']  ?? 0,
-                            'max_qty'            => $detail['max_qty']  ?? 0,
-                            'price'              => $detail['price']    ?? 0,
-                            'updated_at'         => Carbon::now(),
-                            'updatedby'          => Auth::id(),
+                            'wholesalermasterid'      => $masterId,
+                            'min_qty'                 => $detail['min_qty']  ?? 0,
+                            'max_qty'                 => $detail['max_qty']  ?? 0,
+                            'price'                   => $tierPrice,
+                            'price_before_excise_tax' => $calc['before'],
+                            'price_after_excise_tax'  => $calc['after'],
+                            'updated_at'              => Carbon::now(),
+                            'updatedby'               => Auth::id(),
                         ];
 
                         if (!empty($detail['wholesaler_price_details_id'])) {
-                            // Existing row — update
                             DB::table('wholesaler_price_details')
                                 ->where('id', $detail['wholesaler_price_details_id'])
                                 ->update($row);
                         } else {
-                            // New row added during edit — insert
                             $row['id']         = (string) Str::uuid();
                             $row['created_at'] = Carbon::now();
                             $row['postedby']   = Auth::id();
@@ -113,16 +143,21 @@ class WholesalerPrice extends Model
                             continue;
                         }
 
+                        $tierPrice = (float) ($detail['price'] ?? 0);
+                        $calc      = $calcExciseVat($tierPrice);
+
                         $detailRows[] = [
-                            'id'                 => (string) Str::uuid(),
-                            'wholesalermasterid' => $masterId,
-                            'min_qty'            => $detail['min_qty']  ?? 0,
-                            'max_qty'            => $detail['max_qty']  ?? 0,
-                            'price'              => $detail['price']    ?? 0,
-                            'orgid'              => $post['orgid']      ?? null,
-                            'postedby'           => Auth::id(),
-                            'created_at'         => Carbon::now(),
-                            'updated_at'         => Carbon::now(),
+                            'id'                      => (string) Str::uuid(),
+                            'wholesalermasterid'      => $masterId,
+                            'min_qty'                 => $detail['min_qty']  ?? 0,
+                            'max_qty'                 => $detail['max_qty']  ?? 0,
+                            'price'                   => $tierPrice,
+                            'orgid'                   => $post['orgid']      ?? null,
+                            'price_before_excise_tax' => $calc['before'],
+                            'price_after_excise_tax'  => $calc['after'],
+                            'postedby'                => Auth::id(),
+                            'created_at'              => Carbon::now(),
+                            'updated_at'              => Carbon::now(),
                         ];
                     }
 
@@ -230,6 +265,7 @@ class WholesalerPrice extends Model
     public static function getData($post)
     {
         try {
+
             $master = DB::table('wholesaler_prices as wp')
                 ->join('items as i',           'i.id',  '=', 'wp.itemid')
                 ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
@@ -237,6 +273,12 @@ class WholesalerPrice extends Model
                 ->select(
                     'wp.id',
                     'wp.status',
+                    'vat_status',
+                    'excise_status',
+                    'excise_type',
+                    'excise_percentage',
+                    'excise_value',
+                    'vat_percent',
                     'wp.created_at',
                     'i.title as itemname',
                     'iv.value as variationname',
@@ -251,7 +293,14 @@ class WholesalerPrice extends Model
 
             $details = DB::table('wholesaler_price_details')
                 ->where('wholesalermasterid', $master->id)
-                ->select('id as wholesaler_price_details_id', 'min_qty', 'max_qty', 'price')
+                ->select(
+                    'id as wholesaler_price_details_id',
+                    'min_qty',
+                    'max_qty',
+                    'price',
+                    'price_before_excise_tax',
+                    'price_after_excise_tax'
+                )
                 ->get()
                 ->map(fn($d) => (array) $d)
                 ->toArray();
@@ -264,12 +313,21 @@ class WholesalerPrice extends Model
                 'variationname'            => $master->variationname,
                 'status'                   => $master->status,
                 'created_at'               => $master->created_at,
+
+                'vat_status'               => $master->vat_status,
+                'vat_percent'              => $master->vat_percent,
+                'excise_status'            => $master->excise_status,
+                'excise_type'              => $master->excise_type,
+                'excise_percentage'        => $master->excise_percentage,
+                'excise_value'             => $master->excise_value,
+
                 'wholesaler_price_details' => $details,
             ];
         } catch (Exception $e) {
             throw $e;
         }
     }
+    
     public static function deleteData($id)
     {
         try {
