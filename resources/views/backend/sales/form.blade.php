@@ -1,3 +1,6 @@
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
 <div class="modal-header">
     <h5 class="modal-title">
         {{ isset($id) ? 'Edit Sales Voucher' : 'Add Sales Voucher' }}
@@ -34,8 +37,10 @@
                 <label class="form-label">Customer <span class="text-danger">*</span></label>
                 <select name="customer_id" id="customerSelect" class="form-select" data-required>
                     <option value="">-- Select Customer --</option>
+                    <option value="__add_customer__">+ Add Customer</option>
                     @foreach ($customers as $customer)
                         <option value="{{ $customer->id }}"
+                            data-customer-type="{{ strtolower($customer->customer_type ?? '') }}"
                             {{ ($customer_id ?? '') == $customer->id ? 'selected' : '' }}>
                             {{ $customer->username }}
                         </option>
@@ -64,13 +69,14 @@
             }
         </style>
         <div class="table-responsive">
-            <table class="table table-bordered align-middle" id="svItemsTable" style="min-width:1000px; table-layout:fixed;">
+            <table class="table table-bordered align-middle" id="svItemsTable" style="min-width:1040px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
                     <col style="width:190px;">
                     <col style="width:170px;">
                     <col style="width:110px;">
-                    <col style="width:120px;">
+                    <col style="width:160px;">
+                    <col style="width:100px;">
                     <col style="width:120px;">
                     <col style="width:80px;">
                     <col style="width:120px;">
@@ -83,6 +89,7 @@
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
                         <th>Rate <span class="text-danger">*</span></th>
+                        <th>Discount</th>
                         <th>Amount</th>
                         <th>VAT</th>
                         <th>Excise Duty</th>
@@ -146,8 +153,19 @@
     </div>
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 (function($) {
+
+    /* ── Searchable customer dropdown ─────────────────────────── */
+    $('#customerSelect').select2({
+        theme: 'bootstrap-5',
+        placeholder: '-- Select Customer --',
+        width: '100%',
+        dropdownParent: $('#svModal'),
+        minimumResultsForSearch: 0,
+    });
 
     var itemsMeta = {};
     @foreach ($items as $item)
@@ -182,6 +200,7 @@
                 '<td><select name="items[' + idx + '][variation_id]" class="form-select variation-select"><option value="">-- None --</option></select></td>' +
                 '<td><input type="number" name="items[' + idx + '][qty]" class="form-control qty-input" min="0.01" step="0.01" data-required></td>' +
                 '<td><input type="number" name="items[' + idx + '][unit_rate]" class="form-control rate-input" min="0" step="0.01" data-required></td>' +
+                '<td class="text-center discount-col">-</td>' +
                 '<td><input type="text" class="form-control amount-display" readonly value="0.00"></td>' +
                 '<td class="text-center vat-col">-</td>' +
                 '<td class="text-center excise-col">-</td>' +
@@ -233,6 +252,93 @@
             .fail(function() {
                 $varSelect.html('<option value="">Failed to load</option>').prop('disabled', false);
             });
+    }
+
+    /* ── Customer-type-aware item pricing (retailer flat/discounted, wholesaler qty-tiered) ── */
+    var priceCache = {};
+
+    function getCustomerType() {
+        var selected = $('#customerSelect option:selected');
+        return (selected.data('customerType') || '').toString().toLowerCase();
+    }
+
+    function fetchPricing(itemId, variationId, callback) {
+        var key = itemId + '|' + (variationId || '');
+        if (priceCache[key]) {
+            callback(priceCache[key]);
+            return;
+        }
+        $.get('{{ route('sales.item-price') }}', { item_id: itemId, variation_id: variationId || '', _token: '{{ csrf_token() }}' })
+            .done(function(resp) {
+                priceCache[key] = resp;
+                callback(resp);
+            })
+            .fail(function() {
+                callback(null);
+            });
+    }
+
+    function applyWholesaleRateForGroup(itemId, variationId, tiers) {
+        var $rows = $('#itemRows tr.item-row').filter(function() {
+            return $(this).find('.item-select').val() === itemId &&
+                $(this).find('.variation-select').val() === variationId;
+        });
+
+        var totalQty = 0;
+        $rows.each(function() {
+            totalQty += parseFloat($(this).find('.qty-input').val()) || 0;
+        });
+
+        var tier = null;
+        for (var i = 0; i < tiers.length; i++) {
+            var min = parseFloat(tiers[i].min_qty);
+            var max = parseFloat(tiers[i].max_qty);
+            if (totalQty >= min && totalQty <= max) {
+                tier = tiers[i];
+                break;
+            }
+        }
+
+        if (tier) {
+            $rows.each(function() {
+                $(this).find('.rate-input').val(tier.price);
+            });
+            recalcAll();
+        }
+    }
+
+    function formatDiscount(retailer) {
+        if (retailer.discount_type === 'percentage' && retailer.discount_percentage) {
+            return parseFloat(retailer.discount_percentage) + '%';
+        } else if (retailer.discount_type === 'fixed' && retailer.discount_amount) {
+            return 'Rs ' + retailer.discount_amount + '/unit';
+        }
+        return '-';
+    }
+
+    function applyAutoRate($tr) {
+        var itemId = $tr.find('.item-select').val();
+        var variationId = $tr.find('.variation-select').val();
+        var customerType = getCustomerType();
+
+        $tr.find('.discount-col').text('-');
+
+        if (!itemId || !variationId || !customerType) {
+            return;
+        }
+
+        fetchPricing(itemId, variationId, function(pricing) {
+            if (!pricing) return;
+
+            if (customerType === 'retailer' && pricing.retailer) {
+                $tr.find('.rate-input').val(pricing.retailer.effective_price);
+                $tr.find('.discount-col').text(formatDiscount(pricing.retailer));
+                recalcAll();
+            } else if (customerType === 'wholesaler') {
+                $tr.find('.discount-col').text('-');
+                applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
+            }
+        });
     }
 
     function newItemRow(prefill) {
@@ -320,8 +426,23 @@
         recalcAll();
     });
 
-    $(document).on('input change', '.qty-input, .rate-input, #billDiscountPercent', function() {
+    $(document).on('change', '.variation-select', function() {
+        applyAutoRate($(this).closest('tr'));
+    });
+
+    $(document).on('input change', '.qty-input', function() {
+        applyAutoRate($(this).closest('tr'));
         recalcAll();
+    });
+
+    $(document).on('input change', '.rate-input, #billDiscountPercent', function() {
+        recalcAll();
+    });
+
+    $('#customerSelect').on('change', function() {
+        $('#itemRows tr.item-row').each(function() {
+            applyAutoRate($(this));
+        });
     });
 
     $(document).on('click', '.remove-item-row', function() {
