@@ -289,6 +289,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/delete', [SalesController::class, 'delete'])->name('sales.delete');
             Route::get('/customer-orders', [SalesController::class, 'customerOrders'])->name('sales.customer-orders');
             Route::get('/order-items', [SalesController::class, 'orderItems'])->name('sales.order-items');
+            Route::get('/item-price', [SalesController::class, 'itemPrice'])->name('sales.item-price');
         });
 
         Route::group(['prefix' => 'sales-return'], function () {

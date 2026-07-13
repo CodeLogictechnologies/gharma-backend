@@ -95,6 +95,64 @@ class SalesVoucher extends Model
         return $candidate;
     }
 
+    /* Retailer (flat, discounted) and wholesaler (qty-tiered) pricing for a single item variation */
+    public static function getItemPricing($post)
+    {
+        $itemId      = $post['item_id'] ?? null;
+        $variationId = $post['variation_id'] ?? null;
+
+        $retailer      = null;
+        $wholesaleTiers = [];
+
+        if ($itemId && $variationId) {
+            $variation = DB::table('itemvariations')
+                ->where('id', $variationId)
+                ->where('item_id', $itemId)
+                ->where('status', 'Y')
+                ->select('price', 'discount_type', 'discount', 'discount_amount')
+                ->first();
+
+            if ($variation) {
+                $price    = (float) $variation->price;
+                $discount = 0;
+
+                if ($variation->discount_type === 'percentage' && $variation->discount !== null) {
+                    $discount = $price * (float) $variation->discount / 100;
+                } elseif ($variation->discount_type === 'fixed' && $variation->discount_amount !== null) {
+                    $discount = (float) $variation->discount_amount;
+                }
+
+                $retailer = [
+                    'price'               => round($price, 2),
+                    'effective_price'     => round(max($price - $discount, 0), 2),
+                    'discount_type'       => $variation->discount_type,
+                    'discount_percentage' => $variation->discount,
+                    'discount_amount'     => $variation->discount_amount,
+                ];
+            }
+
+            $wholesalerMasterId = DB::table('wholesaler_prices')
+                ->where('itemid', $itemId)
+                ->where('variation_id', $variationId)
+                ->where('status', 'Y')
+                ->value('id');
+
+            if ($wholesalerMasterId) {
+                $wholesaleTiers = DB::table('wholesaler_price_details')
+                    ->where('wholesalermasterid', $wholesalerMasterId)
+                    ->where('status', 'Y')
+                    ->orderBy('min_qty')
+                    ->select('min_qty', 'max_qty', 'price')
+                    ->get();
+            }
+        }
+
+        return [
+            'retailer'        => $retailer,
+            'wholesale_tiers' => $wholesaleTiers,
+        ];
+    }
+
     public static function saveData($post)
     {
         try {

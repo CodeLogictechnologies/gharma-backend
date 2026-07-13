@@ -585,6 +585,15 @@ class User extends Authenticatable implements JWTSubject
                 ->where('p.status', 'Y')
                 ->where('p.orgid', $post['orgid'])
                 ->select('u.id', DB::raw("CONCAT(p.first_name, ' ', p.middle_name, ' ', p.last_name) as username"))
+                ->addSelect(['customer_type' => DB::table('model_has_roles as mhr')
+                    ->join('roles as r', 'r.id', '=', 'mhr.role_id')
+                    ->whereColumn('mhr.model_id', 'u.id')
+                    ->where('mhr.model_type', User::class)
+                    ->whereIn('r.name', ['Retailer', 'Wholesaler'])
+                    ->orderBy('r.name')
+                    ->select('r.name')
+                    ->limit(1)
+                ])
                 ->get();
         } catch (Exception $e) {
             throw $e;

@@ -122,6 +122,16 @@ class SalesController extends Controller
         return response()->json($orders);
     }
 
+    public function itemPrice(Request $request)
+    {
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
+
+        $pricing = SalesVoucher::getItemPricing($post);
+
+        return response()->json($pricing);
+    }
+
     public function orderItems(Request $request)
     {
         $orgid = session('orgid');
