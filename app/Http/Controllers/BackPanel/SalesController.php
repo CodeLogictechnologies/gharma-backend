@@ -150,7 +150,7 @@ class SalesController extends Controller
 
     public function save(Request $request)
     {
-        try {
+        // try {
             $rules = [
                 'voucher_date'      => 'required|date',
                 'voucher_no'        => 'required|string|max:255',
@@ -185,23 +185,23 @@ class SalesController extends Controller
 
             $isEdit = !empty($post['id']);
 
-            $duplicate = DB::table('sales_vouchers')
-                ->where('orgid', $post['orgid'])
-                ->where('voucher_no', $post['voucher_no'])
-                ->where('status', 'Y')
-                ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-                ->exists()
-                || DB::table('order_masters')
-                    ->where('orgid', $post['orgid'])
-                    ->where('voucher_number', $post['voucher_no'])
-                    ->exists();
+            // $duplicate = DB::table('sales_vouchers')
+            //     ->where('orgid', $post['orgid'])
+            //     ->where('voucher_no', $post['voucher_no'])
+            //     ->where('status', 'Y')
+            //     ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+            //     ->exists()
+            //     || DB::table('order_masters')
+            //         ->where('orgid', $post['orgid'])
+            //         ->where('voucher_number', $post['voucher_no'])
+            //         ->exists();
 
-            if ($duplicate) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'This Bill / Voucher No. already exists.',
-                ]);
-            }
+            // if ($duplicate) {
+            //     return response()->json([
+            //         'type'    => 'error',
+            //         'message' => 'This Bill / Voucher No. already exists.',
+            //     ]);
+            // }
 
             SalesVoucher::saveData($post);
 
@@ -209,11 +209,11 @@ class SalesController extends Controller
                 'type'    => 'success',
                 'message' => $isEdit ? 'Sales voucher updated successfully.' : 'Sales voucher saved successfully.',
             ]);
-        } catch (QueryException $e) {
-            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
-        } catch (Exception $e) {
-            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
-        }
+        // } catch (QueryException $e) {
+        //     return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+        // } catch (Exception $e) {
+        //     return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+        // }
     }
 
     public function view(Request $request)
