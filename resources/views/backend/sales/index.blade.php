@@ -37,6 +37,13 @@
         </div>
     </div>
 
+    {{-- Add Customer Modal --}}
+    <div class="modal fade" id="addCustomerModal" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content" id="addCustomerModalContent"></div>
+        </div>
+    </div>
+
     {{-- Delete Confirm Modal --}}
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -219,6 +226,35 @@
             /* ── Clear modal on close ────────────────────────────── */
             document.getElementById('svModal').addEventListener('hidden.bs.modal', function() {
                 $('#svModalContent').html('');
+            });
+
+            document.getElementById('addCustomerModal').addEventListener('hidden.bs.modal', function() {
+                $('#addCustomerModalContent').html('');
+            });
+
+            /* ── "+ Add Customer" from the customer dropdown ─────── */
+            var customerSelectPrevValue = '';
+
+            $(document).on('focus', '#customerSelect', function() {
+                customerSelectPrevValue = $(this).val();
+            });
+
+            $(document).on('change', '#customerSelect', function() {
+                if ($(this).val() !== '__add_customer__') return;
+
+                $(this).val(customerSelectPrevValue);
+
+                $.get('{{ route('user.customer.form') }}')
+                    .done(function(response) {
+                        $('#addCustomerModalContent').html(response);
+                        var modalEl = document.getElementById('addCustomerModal');
+                        var existing = bootstrap.Modal.getInstance(modalEl);
+                        if (existing) existing.dispose();
+                        new bootstrap.Modal(modalEl).show();
+                    })
+                    .fail(function() {
+                        showNotification('Failed to load Add Customer form. Please try again.', 'error');
+                    });
             });
 
             /* ── Add/Edit form submit ─────────────────────────────── */

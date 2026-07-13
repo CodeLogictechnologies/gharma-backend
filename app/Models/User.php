@@ -325,7 +325,7 @@ class User extends Authenticatable implements JWTSubject
                 'password' => $plainPassword,
             ]);
 
-            return true;
+            return $newUuid;
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;

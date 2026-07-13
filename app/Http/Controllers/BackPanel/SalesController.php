@@ -99,6 +99,7 @@ class SalesController extends Controller
                     ])
                     : [];
             } else {
+                $data['voucher_no']     = SalesVoucher::generateUniqueVoucherNo($post['orgid']);
                 $data['customerOrders'] = [];
             }
         } catch (QueryException $e) {
@@ -179,7 +180,11 @@ class SalesController extends Controller
                 ->where('voucher_no', $post['voucher_no'])
                 ->where('status', 'Y')
                 ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-                ->exists();
+                ->exists()
+                || DB::table('order_masters')
+                    ->where('orgid', $post['orgid'])
+                    ->where('voucher_number', $post['voucher_no'])
+                    ->exists();
 
             if ($duplicate) {
                 return response()->json([

@@ -1,3 +1,6 @@
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
 <div class="modal-header">
     <h5 class="modal-title">
         {{ isset($id) ? 'Edit Sales Voucher' : 'Add Sales Voucher' }}
@@ -34,6 +37,7 @@
                 <label class="form-label">Customer <span class="text-danger">*</span></label>
                 <select name="customer_id" id="customerSelect" class="form-select" data-required>
                     <option value="">-- Select Customer --</option>
+                    <option value="__add_customer__">+ Add Customer</option>
                     @foreach ($customers as $customer)
                         <option value="{{ $customer->id }}"
                             {{ ($customer_id ?? '') == $customer->id ? 'selected' : '' }}>
@@ -146,8 +150,19 @@
     </div>
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 (function($) {
+
+    /* ── Searchable customer dropdown ─────────────────────────── */
+    $('#customerSelect').select2({
+        theme: 'bootstrap-5',
+        placeholder: '-- Select Customer --',
+        width: '100%',
+        dropdownParent: $('#svModal'),
+        minimumResultsForSearch: 0,
+    });
 
     var itemsMeta = {};
     @foreach ($items as $item)

@@ -165,6 +165,99 @@ class UserController extends Controller
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
+    public function customerForm(Request $request)
+    {
+        return view('backend.users.customer_form');
+    }
+
+    public function customerSave(Request $request)
+    {
+        try {
+            $isWholesaler = $request->role_type === 'Wholesaler';
+
+            $rules = [
+                'first_name' => 'required|min:3|max:255',
+                'last_name'  => 'required|max:255',
+                'phone'      => 'required|min:5|max:20',
+                'address'    => 'required',
+                'email'      => [
+                    'required',
+                    'email',
+                    function ($attribute, $value, $fail) {
+                        if (DB::table('users')->where('email', $value)->exists()) {
+                            $fail('The email has already been taken.');
+                        }
+                    },
+                ],
+                'username'  => 'required',
+                'gender'    => 'required',
+                'role_type' => 'required|in:Wholesaler,Retailer',
+                'image'     => 'nullable|mimes:jpg,jpeg,png|max:2048',
+            ];
+
+            $messages = [
+                'first_name.required' => 'Please enter first name',
+                'first_name.min'      => 'First name must be at least 3 characters',
+                'last_name.required'  => 'Please enter last name',
+                'phone.required'      => 'Phone number is required',
+                'address.required'    => 'Address is required',
+                'email.required'      => 'Email is required',
+                'email.email'         => 'Please enter a valid email',
+                'username.required'   => 'Username is required',
+                'gender.required'     => 'Gender is required',
+                'role_type.required'  => 'Please select Wholesaler or Retailer',
+                'role_type.in'        => 'Please select Wholesaler or Retailer',
+                'image.mimes'         => 'Profile image must be jpg, jpeg, or png',
+                'image.max'           => 'Profile image must not exceed 2MB',
+            ];
+
+            if ($isWholesaler) {
+                $rules['company_name'] = 'required|max:255';
+                $rules['pan_number']   = 'required|max:100';
+                $rules['pan_image']    = 'required|mimes:jpg,jpeg,png,pdf|max:2048';
+
+                $messages['company_name.required'] = 'Company name is required for Wholesaler';
+                $messages['pan_number.required']   = 'PAN number is required for Wholesaler';
+                $messages['pan_image.required']    = 'PAN image is required for Wholesaler';
+            }
+
+            $validate = Validator::make($request->all(), $rules, $messages);
+            if ($validate->fails()) throw new Exception($validate->errors()->first(), 1);
+
+            $roleId = DB::table('roles')->where('name', $request->role_type)->value('id');
+            if (!$roleId) throw new Exception('Selected role is not configured.', 1);
+
+            $post          = $request->all();
+            $post['orgid'] = session('orgid');
+            $post['type']  = 'user';
+            $post['roles'] = [$roleId];
+
+            if ($request->hasFile('image'))     $post['image']     = $request->file('image');
+            if ($request->hasFile('pan_image')) $post['pan_image'] = $request->file('pan_image');
+
+            $newUuid = User::saveData($post);
+            if (!$newUuid) throw new Exception('Could not save customer', 1);
+
+            $fullName = trim($post['first_name'] . ' ' . ($post['middle_name'] ?? '') . ' ' . $post['last_name']);
+            $fullName = preg_replace('/\s+/', ' ', $fullName);
+
+            $type    = 'success';
+            $message = 'Customer created successfully';
+            $customer = ['id' => $newUuid, 'username' => $fullName];
+        } catch (QueryException $e) {
+            $type    = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            $type    = 'error';
+            $message = $e->getMessage();
+        }
+
+        return json_encode(array_merge(
+            ['type' => $type, 'message' => $message],
+            isset($customer) ? ['customer' => $customer] : []
+        ));
+    }
+
     public function list(Request $request)
     {
         try {

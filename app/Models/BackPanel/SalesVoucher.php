@@ -76,6 +76,25 @@ class SalesVoucher extends Model
         }
     }
 
+    /* Generate a voucher number unique across sales_vouchers.voucher_no and order_masters.voucher_number for this org */
+    public static function generateUniqueVoucherNo($orgid)
+    {
+        do {
+            $candidate = 'VCH-' . strtoupper(Str::random(8));
+
+            $exists = DB::table('sales_vouchers')
+                ->where('orgid', $orgid)
+                ->where('voucher_no', $candidate)
+                ->exists()
+                || DB::table('order_masters')
+                    ->where('orgid', $orgid)
+                    ->where('voucher_number', $candidate)
+                    ->exists();
+        } while ($exists);
+
+        return $candidate;
+    }
+
     public static function saveData($post)
     {
         try {
