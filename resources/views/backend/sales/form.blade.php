@@ -72,13 +72,13 @@
         </style>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="svItemsTable"
-                style="min-width:1040px; table-layout:fixed;">
+                style="min-width:1090px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
                     <col style="width:190px;">
                     <col style="width:170px;">
                     <col style="width:110px;">
-                    <col style="width:160px;">
+                    <col style="width:210px;">
                     <col style="width:100px;">
                     <col style="width:120px;">
                     <col style="width:80px;">
@@ -91,7 +91,7 @@
                         <th>Item <span class="text-danger">*</span></th>
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
-                        <th>Rate <span class="text-danger">*</span></th>
+                        <th>Rate with Discount <span class="text-danger">*</span></th>
                         <th>Discount</th>
                         <th>Amount</th>
                         <th>VAT</th>
