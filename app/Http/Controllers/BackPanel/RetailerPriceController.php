@@ -177,7 +177,8 @@ class RetailerPriceController extends Controller
             $array[$i]["discount"]      = $discountLabel;
             $array[$i]["vat_status"]    = $vatLabel;
             $array[$i]["excise_duty"]   = $exciseLabel;
-            $array[$i]["selling_price"] = number_format($sellingPrice, 2);
+            $array[$i]["price_after_discount"] = $row->price_after_discount;
+            $array[$i]["price_before_discount"] = $row->price_before_discount;
 
             $action = '';
             $action .= '<a href="javascript:;"
@@ -188,6 +189,15 @@ class RetailerPriceController extends Controller
                     data-discounttype="' . ($row->discount_type ?? '') . '"
                     data-discountpercentage="' . $row->discount . '"
                     data-discountamount="' . $row->discount_amount . '"
+
+                    data-vatstatus="' . $row->vat_status . '"
+                    data-vatpercent="' . $row->vat_percent . '"
+
+                    data-excisestatus="' . $row->excise_status . '"
+                    data-excisetype="' . $row->excise_type . '"
+                    data-excisepercentage="' . $row->excise_percentage . '"
+                    data-excisevalue="' . $row->excise_value . '"
+
                     data-variationid="' . $row->variationid . '">
                     <i class="fa-solid fa-pen-to-square text-primary"></i>
                 </a>';

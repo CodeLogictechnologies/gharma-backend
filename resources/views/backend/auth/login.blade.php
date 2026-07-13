@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style customizer-hide" dir="ltr"
-    data-theme="theme-default"
-    data-assets-path="../assets/"
-    data-template="vertical-menu-template-free">
+<html lang="en" class="light-style customizer-hide" dir="ltr" data-theme="theme-default"
+    data-assets-path="../assets/" data-template="vertical-menu-template-free">
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
     <title>Login | WELCOME TO GHARMA</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -16,7 +15,9 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+        rel="stylesheet" />
 
     <!-- Icons -->
     <link rel="stylesheet" href="../assets/vendor/fonts/boxicons.css" />
@@ -48,12 +49,13 @@
         }
 
         .input-group-text {
-    cursor: pointer;
-    z-index: 5;
-}
-.input-group-text i {
-    pointer-events: none;
-}
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        .input-group-text i {
+            pointer-events: none;
+        }
     </style>
 </head>
 
@@ -82,8 +84,8 @@
                         @include('layouts.include.alertMessage')
 
                         {{-- ✅ type="submit" so Enter key works natively --}}
-                        <form id="login-form" class="mb-3" action="{{ route('loginuser') }}"
-                            method="POST" enctype="multipart/form-data" autocomplete="off">
+                        <form id="login-form" class="mb-3" action="{{ route('loginuser') }}" method="POST"
+                            enctype="multipart/form-data" autocomplete="off">
                             @csrf
 
                             <div class="mb-3">
@@ -91,7 +93,7 @@
                                 <input type="text" class="form-control" id="email" name="email"
                                     placeholder="Enter your email or username" autofocus />
                                 @error('email')
-                                <p class="text-danger small">Please input email or username.</p>
+                                    <p class="text-danger small">Please input email or username.</p>
                                 @enderror
                             </div>
 
@@ -101,16 +103,14 @@
                                     <a href="#"><small>Forgot Password?</small></a>
                                 </div>
                                 <div class="input-group input-group-merge">
-                                    <input type="password" id="password" class="form-control"
-                                        name="password"
-                                        placeholder="············"
-                                        aria-describedby="password" />
+                                    <input type="password" id="password" class="form-control" name="password"
+                                        placeholder="············" aria-describedby="password" />
                                     <span class="input-group-text cursor-pointer">
                                         <i class="bx bx-hide" id="togglePassword"></i>
                                     </span>
                                 </div>
                                 @error('password')
-                                <p class="text-danger small">Please input password.</p>
+                                    <p class="text-danger small">Please input password.</p>
                                 @enderror
                             </div>
 
@@ -155,11 +155,11 @@
 
             // ✅ Password toggle
             $('.input-group-text').on('click', function() {
-    var input = $('#password');
-    var isPassword = input.attr('type') === 'password';
-    input.attr('type', isPassword ? 'text' : 'password');
-    $(this).find('i').toggleClass('bx-hide bx-show');
-});
+                var input = $('#password');
+                var isPassword = input.attr('type') === 'password';
+                input.attr('type', isPassword ? 'text' : 'password');
+                $(this).find('i').toggleClass('bx-hide bx-show');
+            });
 
             // ✅ Validation rules
             $('#login-form').validate({
@@ -198,18 +198,23 @@
                         data: new FormData(form),
                         processData: false,
                         contentType: false,
-                        success: function(result) {
-                            var res = typeof result === 'string' ? JSON.parse(result) : result;
-                            if (res.type === 'success') {
+                        success: function(res) {
+
+                            if (res.type == 'success') {
                                 window.location.href = res.url;
                             } else {
                                 showNotification(res.message, 'error');
-                                $btn.prop('disabled', false).html('Sign in');
+                                $('#signin-btn').prop('disabled', false).html('Sign in');
                             }
                         },
                         error: function(xhr) {
-                            $btn.prop('disabled', false).html('Sign in');
-                            if (xhr.status === 422) {
+                            $('#signin-btn')
+                                .prop('disabled', false)
+                                .html('Sign in');
+
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                showNotification(xhr.responseJSON.message, 'error');
+                            } else if (xhr.status === 422 && xhr.responseJSON.errors) {
                                 $.each(xhr.responseJSON.errors, function(key, val) {
                                     showNotification(val[0], 'error');
                                 });
