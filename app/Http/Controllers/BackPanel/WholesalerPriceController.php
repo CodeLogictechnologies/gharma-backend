@@ -150,13 +150,24 @@ class WholesalerPriceController extends Controller
             $type    = 'success';
             $message = "Record deleted successfully";
 
-            $id = $request->id;
+            $id    = $request->id;
+            $orgid = session('orgid');
 
             if (empty($id)) {
                 throw new Exception('ID is required.');
             }
 
             DB::beginTransaction();
+
+            // Verify the record belongs to this org before touching it
+            $owned = DB::table('wholesaler_prices')
+                ->where('id', $id)
+                ->where('orgid', $orgid)
+                ->exists();
+
+            if (!$owned) {
+                throw new Exception('Record not found.');
+            }
 
             // 1. Delete child details first
             DB::table('wholesaler_price_details')
@@ -166,6 +177,7 @@ class WholesalerPriceController extends Controller
             // 2. Delete master record
             $deleted = DB::table('wholesaler_prices')
                 ->where('id', $id)
+                ->where('orgid', $orgid)
                 ->delete();
 
             if (!$deleted) {
@@ -189,6 +201,7 @@ class WholesalerPriceController extends Controller
     public function list(Request $request)
     {
         $post = $request->all();
+        $post['orgid'] = session('orgid');
         $data = BackPanelWholesalerPrice::list($post);
         $i            = 0;
         $array        = [];
@@ -237,6 +250,7 @@ class WholesalerPriceController extends Controller
             }
 
             $post   = $request->all();
+            $post['orgid'] = session('orgid');
             $result = BackPanelWholesalerPrice::getData($post);
 
             if (!$result) {

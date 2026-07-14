@@ -5,11 +5,11 @@ namespace App\Http\Controllers\BackPanel;
 use App\Http\Controllers\Controller;
 use App\Models\BackPanel\OrganizationAccess;
 use App\Models\BackPanel\Organization;
+use App\Models\BackPanel\Permission;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
-use Spatie\Permission\Models\Permission;
 
 class OrganizationAccessController extends Controller
 {
@@ -62,6 +62,7 @@ class OrganizationAccessController extends Controller
 public function savePermissions(Request $request)
 {
     try {
+        \Log::info('savePermissions payload', $request->all());
         if (empty($request->id)) {
             throw new Exception('Organization ID is required.', 1);
         }

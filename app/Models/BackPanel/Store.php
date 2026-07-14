@@ -132,8 +132,8 @@ class Store extends Model
                 }
             }
 
-            $cond     = "status = 'Y'";
-            $bindings = [];
+            $cond     = "status = 'Y' AND orgid = ?";
+            $bindings = [$post['orgid']];
 
             if (!empty($get['sSearch_1'])) {
                 $cond .= " AND lower(name) LIKE ?";
@@ -155,7 +155,7 @@ class Store extends Model
 
             // Total unfiltered count (no search conditions)
             $totalrecs = DB::table('stores')
-                ->whereRaw("status = 'Y'")
+                ->whereRaw("status = 'Y' AND orgid = ?", [$post['orgid']])
                 ->count();
 
             // Filtered count (with search conditions)
@@ -187,6 +187,7 @@ class Store extends Model
     {
         $result = DB::table('stores as o')
             ->where('o.id', $post['id'])
+            ->where('o.orgid', $post['orgid'])
             ->select(
                 'o.id',
                 'o.name',
@@ -207,23 +208,37 @@ class Store extends Model
 
 
     //function to delete store data
+    // public static function deleteData($post)
+    // {
+    //     try {
+    //         $store = Store::find($post['id']);
+
+    //         if (!$store) {
+    //             return false;
+    //         }
+
+    //         $storeupdate = [
+    //             'status' => 'N',
+    //             'updated_at' => now(),
+    //         ];
+
+    //         $result = DB::table('stores')->where('id', $post['id'])->update($storeupdate);
+
+    //         return true;
+    //     } catch (\Exception $e) {
+    //         throw $e;
+    //     }
+    // }
+
     public static function deleteData($post)
     {
         try {
-            $store = Store::find($post['id']);
+            $result = DB::table('stores')
+                ->where('id', $post['id'])
+                ->where('orgid', $post['orgid'])   // ADDED
+                ->update(['status' => 'N', 'updated_at' => now()]);
 
-            if (!$store) {
-                return false;
-            }
-
-            $storeupdate = [
-                'status' => 'N',
-                'updated_at' => now(),
-            ];
-
-            $result = DB::table('stores')->where('id', $post['id'])->update($storeupdate);
-
-            return true;
+            return $result > 0;
         } catch (\Exception $e) {
             throw $e;
         }

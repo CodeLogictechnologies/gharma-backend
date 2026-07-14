@@ -17,6 +17,7 @@ class HeatmapController extends Controller
         $query = DB::table('order_details as od')
             ->join('order_masters as om', 'od.ordermasterid', '=', 'om.id')
             ->join('user_addresses as ua', 'om.addressid', '=', 'ua.id')
+            ->where('om.orgid', session('orgid'))
             ->where('od.status', 'Y')
             ->where('om.status', 'Y')
             ->whereNull('od.deleted_at')
@@ -158,7 +159,7 @@ class HeatmapController extends Controller
         return response()->json([
             'points'          => $d['orderPoints'],
             'locality_stats'  => $d['localityStats'],
-            'status_breakdown'=> $statusList,
+            'status_breakdown' => $statusList,
             'type_breakdown'  => $d['typeBreakdown'],
             'total_orders'    => $d['totalOrders'],
             'total_revenue'   => $d['totalRevenue'],

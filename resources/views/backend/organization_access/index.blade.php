@@ -266,6 +266,8 @@
                 }
             });
 
+             console.log('orgId:', orgId, 'permIds:', permIds); 
+             
             $.post('{{ route("organization.access.save-permissions") }}', {
                 id: orgId,
                 permissions: permIds,

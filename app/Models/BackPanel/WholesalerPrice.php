@@ -234,6 +234,7 @@ class WholesalerPrice extends Model
                 ->join('items as i',           'i.id',  '=', 'wp.itemid')
                 ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
                 ->where('wp.id', $post['id'])
+                ->where('wp.orgid', $post['orgid'])
                 ->select(
                     'wp.id',
                     'wp.status',

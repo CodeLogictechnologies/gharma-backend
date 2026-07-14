@@ -44,8 +44,9 @@ class DiscountController extends Controller
         try {
             $get = $request->all();
 
-            $cond  = "status = 'Y' AND type != 'coupon'";
-            $binds = [];
+            $cond  = "status = 'Y' AND type != 'coupon' AND orgid = ?";
+
+            $binds = [session('orgid')];
 
             if (!empty($get['sSearch_1'])) {
                 $cond   .= " AND LOWER(title) LIKE ?";
@@ -154,6 +155,7 @@ class DiscountController extends Controller
 
             if (!empty($request->id)) {
                 $result = Discount::where('id', $request->id)
+                    ->where('orgid', session('orgid'))
                     ->where('type', '!=', 'coupon')
                     ->first();
 
@@ -196,6 +198,7 @@ class DiscountController extends Controller
             $type    = 'success';
             $message = 'Record deleted successfully';
             $post    = $request->all();
+            $post['orgid'] = session('orgid');
 
             DB::beginTransaction();
             $result = Discount::deleteDate($post);
@@ -221,6 +224,7 @@ class DiscountController extends Controller
         try {
             $discount = DB::table('discounts')
                 ->where('id', $request->id)
+                ->where('orgid', session('orgid'))
                 ->where('type', '!=', 'coupon')
                 ->first();
 

@@ -7,7 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Exception;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Permission;
+use App\Models\BackPanel\Permission;
 
 class OrganizationAccess extends Model
 {
@@ -51,32 +51,39 @@ class OrganizationAccess extends Model
     // }
 
     public static function saveData($post)
-{
-    $orgId = $post['id'] ?? null;
+    {
+        $orgId = $post['id'] ?? null;
 
-    if (empty($orgId)) {
-        throw new Exception('Organization ID is required.', 1);
+        if (empty($orgId)) {
+            throw new Exception('Organization ID is required.', 1);
+        }
+
+        $permissionIds = collect($post['permissions'] ?? [])
+            ->filter(fn($id) => \Illuminate\Support\Str::isUuid((string) $id))
+            ->unique()
+            ->values()
+            ->all();
+
+        \Log::info('permissionIds after filter', $permissionIds); // ← add this
+
+        self::syncByIds($orgId, $permissionIds);
+
+        return true;
     }
-
-    $permissionIds = collect($post['permissions'] ?? [])
-        ->filter(fn ($id) => \Illuminate\Support\Str::isUuid((string) $id))
-        ->unique()
-        ->values()
-        ->all();
-
-    self::syncByIds($orgId, $permissionIds);
-
-    return true;
-}
     //function to get permission IDs assigned to an organization
     public static function getPermissionIds($orgId)
-{
-    $org = Organization::find($orgId);
-    if (!$org) {
-        throw new Exception('Organization not found.', 1);
+    {
+        $org = Organization::find($orgId);
+        if (!$org) {
+            throw new Exception('Organization not found.', 1);
+        }
+
+        return DB::table('organization_permissions')
+            ->where('org_id', $orgId)
+            ->pluck('permission_id')
+            ->toArray();
     }
-    return $org->permissions()->pluck('id')->toArray();
-}
+
     //function to sync (replace) permissions for an organization by permission names
     public static function syncByNames($orgId, array $permissionNames)
     {

@@ -24,6 +24,8 @@ class InvoiceController extends Controller
     {
         $post = $request->all();
         $post['type'] = 'invoice';
+        $post['orgid'] = session('orgid');
+
         $offset        = (int) ($request->input('iDisplayStart', 0));
         $data = Invoice::list($post);
         $i = 0;

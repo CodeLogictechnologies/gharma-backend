@@ -58,8 +58,8 @@ class CouponController extends Controller
     {
         try {
             $get   = $request->all();
-            $cond  = "status = 'Y'";
-            $binds = [];
+            $cond  = "status = 'Y' AND orgid = ?";
+            $binds = [session('orgid')];
 
             if (!empty($get['sSearch_1'])) {
                 $cond   .= " AND LOWER(coupon_code) LIKE ?";
@@ -132,7 +132,10 @@ class CouponController extends Controller
             $data = [];
 
             if (!empty($request->id)) {
-                $result = DB::table('coupons')->where('id', $request->id)->first();
+                $result = DB::table('coupons')
+                    ->where('id', $request->id)
+                    ->where('orgid', session('orgid'))
+                    ->first();
 
                 if (!$result) {
                     throw new \Exception("Coupon not found.");
@@ -169,7 +172,8 @@ class CouponController extends Controller
         try {
             $type    = 'success';
             $message = 'Coupon deleted successfully.';
-
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
             DB::beginTransaction();
             $result = Coupon::deleteData($request->all());
             if (!$result) {
@@ -192,7 +196,10 @@ class CouponController extends Controller
     public function view(Request $request)
     {
         try {
-            $coupon = DB::table('coupons')->where('id', $request->id)->first();
+            $coupon = DB::table('coupons')
+                ->where('id', $request->id)
+                ->where('orgid', session('orgid'))
+                ->first();
 
             if (!$coupon) {
                 return view('backend.coupon.view', [

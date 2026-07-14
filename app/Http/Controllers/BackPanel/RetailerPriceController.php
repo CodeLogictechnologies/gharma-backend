@@ -122,6 +122,8 @@ class RetailerPriceController extends Controller
     {
         // try {
         $post = $request->all();
+        $post['orgid'] = session('orgid');
+
         $data = RetailerPrice::list($post);
         $i = 0;
         $array = [];
