@@ -165,6 +165,7 @@ class VendorController extends Controller
     {
         try {
             $post   = $request->all();
+            $post['orgid'] = session('orgid');
             $offset = (int) ($request->input('iDisplayStart', 0)); // ← add
             $data   = Vendor::list($post);
             $i      = 0;

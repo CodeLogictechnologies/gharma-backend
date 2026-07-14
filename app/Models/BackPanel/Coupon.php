@@ -57,7 +57,10 @@ class Coupon extends Model
                 $dataArray['updatedby']  = $post['userid'];
                 $dataArray['updated_at'] = Carbon::now();
 
-                DB::table('coupons')->where('id', $post['id'])->update($dataArray);
+                DB::table('coupons')
+                    ->where('id', $post['id'])
+                    ->where('orgid', $post['orgid'])
+                    ->update($dataArray);
             } else {
                 $dataArray['id']         = (string) Str::uuid();
                 $dataArray['status']     = 'Y';
@@ -84,6 +87,7 @@ class Coupon extends Model
         try {
             $updated = DB::table('coupons')
                 ->where('id', $post['id'])
+                ->where('orgid', $post['orgid'])
                 ->update([
                     'status'     => 'N',
                     'updated_at' => Carbon::now(),

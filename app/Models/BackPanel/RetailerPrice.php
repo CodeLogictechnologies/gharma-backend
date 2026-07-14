@@ -152,7 +152,7 @@ class RetailerPrice extends Model
                 $get['columns'][$key]['search']['value'] = trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
             }
 
-            $cond = " rp.status = 'Y' ";
+            $cond = " rp.status = 'Y' AND rp.orgid = '" . addslashes($post['orgid']) . "' ";
 
             if ($get['columns'][1]['search']['value'])
                 $cond .= " and lower(i.title) like '%" . $get['columns'][1]['search']['value'] . "%'";
@@ -222,7 +222,9 @@ class RetailerPrice extends Model
                 'updatedby' => $post['userid'],
                 'updated_at' => Carbon::now(),
             ];
-            if (!RetailerPrice::where(['id' => $post['id']])->update($updateArray)) {
+            if (!RetailerPrice::where(['id' => $post['id']])
+                ->where('orgid', $post['orgid'])
+                ->update($updateArray)) {
                 throw new Exception("Couldn't Delete Data. Please try again", 1);
             }
             return true;

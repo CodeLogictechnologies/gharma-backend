@@ -10,9 +10,9 @@
     <meta name="description" content="" />
 
     <!-- Favicon -->
-    <!-- Favicon -->
-    @php $favicon = \App\Models\BackPanel\Favicon::first(); @endphp
-    <link rel="shortcut icon" href="{{ !empty($favicon?->image) ? asset('storage/favicon/' . $favicon->image) : asset('erp.png') }}">
+<link rel="shortcut icon"
+    href="{{ $orgLogo ? asset('storage/organizations/' . $orgLogo) : asset('erp.png') }}">
+    
     <style>
         /* ── Loader ─────────────────────────────────────────────── */
         #global-loader {

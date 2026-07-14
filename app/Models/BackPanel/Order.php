@@ -74,8 +74,8 @@ class Order extends Model
     public static function list($post)
     {
         try {
-            $cond     = "1=1";
-            $bindings = [];
+            $cond     = "om.orgid = ?";
+            $bindings = [$post['orgid']];
 
             if (!empty($post['sSearch_1'])) {
                 $val        = strtolower(trim($post['sSearch_1']));
@@ -132,6 +132,7 @@ class Order extends Model
         $statuses = EnumType::orderStatuses();
 
         $counts = DB::table('order_masters')
+            ->where('orgid', $orgid)
             ->select('order_status', DB::raw('count(*) as total'))
             ->groupBy('order_status')
             ->pluck('total', 'order_status');
@@ -152,6 +153,7 @@ class Order extends Model
             ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
             ->join('items as i', 'i.id', '=', 'v.item_id')
             ->where('od.ordermasterid', $post['id'])
+            ->where('om.orgid', $post['orgid'])
             ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price')
             ->get();
         return  $result;
@@ -165,6 +167,8 @@ class Order extends Model
                 ->join('users as u', 'u.id', '=', 'om.userid')
                 ->leftJoin('user_addresses as ad', 'ad.id', '=', 'om.addressid')
                 ->where('om.id', $post['id'])
+                ->where('om.orgid', $post['orgid'])
+
                 ->select(
                     'om.*',
                     'u.name',

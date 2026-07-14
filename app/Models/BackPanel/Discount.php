@@ -70,6 +70,7 @@ class Discount extends Model
                 DB::table('discounts')
                     ->where('id', $post['id'])
                     ->where('type', '!=', 'coupon')
+                    ->where('orgid', $post['orgid'])
                     ->update($dataArray);
             } else {
                 // INSERT
@@ -102,7 +103,10 @@ class Discount extends Model
                 'status'     => 'N',
                 'updated_at' => Carbon::now(),
             ];
-            if (!Discount::where('id', $post['id'])->where('type', '!=', 'coupon')->update($updateArray)) {
+            if (!Discount::where('id', $post['id'])
+                ->where('type', '!=', 'coupon')
+                ->where('orgid', $post['orgid'])
+                ->update($updateArray)) {
                 throw new Exception("Couldn't delete discount. Please try again.", 1);
             }
             return true;

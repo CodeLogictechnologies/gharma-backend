@@ -86,7 +86,7 @@ class VariationAttribute extends Model
                 $get['columns'][$key]['search']['value'] = trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
             }
 
-            $cond = " status = 'Y' ";
+            $cond = " status = 'Y' AND orgid = '" . addslashes($post['orgid']) . "' ";
 
             if (!empty($get['columns'][1]['search']['value'])) {
                 $cond .= " and lower(name) like '%" . $get['columns'][1]['search']['value'] . "%'";
@@ -136,7 +136,9 @@ class VariationAttribute extends Model
                 'updated_at' => Carbon::now(),
             ];
 
-            if (!VariationAttribute::where(['id' => $post['id']])->update($updateArray)) {
+            if (!VariationAttribute::where('id', $post['id'])
+            ->where('orgid', $post['orgid'])
+            ->update($updateArray)) {
                 throw new Exception("Couldn't delete record. Please try again.");
             }
 

@@ -28,12 +28,12 @@
         </li>
 
         <!-- Favicon -->
-        <li class="menu-item {{ request()->routeIs('favicon') ? 'active' : '' }}">
+        <!-- <li class="menu-item {{ request()->routeIs('favicon') ? 'active' : '' }}">
             <a href="{{ route('favicon') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-image-alt"></i>
                 <div>Favicon</div>
             </a>
-        </li>
+        </li> -->
 
         <!-- Manager -->
         <li class="menu-header small text-uppercase">

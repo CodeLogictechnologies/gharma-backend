@@ -6,7 +6,6 @@ use App\Models\BackPanel\AboutUs;
 use App\Models\BackPanel\Service;
 use App\Models\BackPanel\SiteSetting;
 use App\Models\BackPanel\TeamCategory;
-use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -32,7 +31,9 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['*'], function ($view) {
             $view->with('userProfile', Auth::user());
 
-            // Add org logo for authenticated users
+            $orgLogo = null;
+            $orgName = null;
+
             if (Auth::check()) {
                 $userOrg = DB::table('userorganizations as uo')
                     ->join('organizations as o', 'o.id', '=', 'uo.orgid')
@@ -40,9 +41,12 @@ class AppServiceProvider extends ServiceProvider
                     ->select('o.logo', 'o.name')
                     ->first();
 
-                $view->with('orgLogo', $userOrg?->logo ?? null);
-                $view->with('orgName', $userOrg?->name ?? null);
+                $orgLogo = $userOrg->logo ?? null;
+                $orgName = $userOrg->name ?? null;
             }
+
+            $view->with('orgLogo', $orgLogo);
+            $view->with('orgName', $orgName);
         });
 
         \Illuminate\Pagination\Paginator::useBootstrap();

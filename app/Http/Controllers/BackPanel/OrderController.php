@@ -23,6 +23,8 @@ class OrderController extends Controller
     public function list(Request $request)
 {
     $post   = $request->all();
+        $post['orgid'] = session('orgid');
+
     $offset = (int) ($request->input('iDisplayStart', 0));
 
     $data         = Order::list($post);
@@ -70,7 +72,7 @@ class OrderController extends Controller
 
     public function statusCounts()
     {
-        return response()->json(Order::statusCounts());
+        return response()->json(Order::statusCounts(session('orgid')));
     }
 
     public function view(Request $request)
@@ -102,6 +104,7 @@ class OrderController extends Controller
 
         $updated = DB::table('order_masters')
             ->where('id', $request->id)
+            ->where('orgid', session('orgid'))
             ->update(['order_status' => $request->status]);
 
         // DB::table('loyalties')
@@ -110,6 +113,7 @@ class OrderController extends Controller
 
         $orderDetailIds = DB::table('order_details')
             ->where('ordermasterid', $request->id)
+            ->where('orgid', session('orgid'))
             ->pluck('id')
             ->toArray();
 
@@ -122,11 +126,13 @@ class OrderController extends Controller
         if ($updated) {
             $order = DB::table('order_masters')
                 ->where('id', $request->id)
+                ->where('orgid', session('orgid'))
                 ->first();
 
             try {
                 $token = DB::table('user_devices')
                     ->where('user_id', $order->userid)
+                    ->where('orgid', session('orgid'))
                     ->value('device_token');
 
                 if ($token) {

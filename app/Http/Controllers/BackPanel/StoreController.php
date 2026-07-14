@@ -61,6 +61,8 @@ class StoreController extends Controller
     {
         try {
             $post = $request->all();
+            $post['orgid'] = session('orgid');   // ADDED
+
             $data = Store::list($post);
             $offset = !empty($request->input('iDisplayStart')) ? (int) $request->input('iDisplayStart') : 0;
             $i = 0;
@@ -111,6 +113,7 @@ class StoreController extends Controller
             $data = [];
             if (!empty($request->id)) {
                 $post = $request->all();
+                $post['orgid'] = session('orgid');
                 $result = Store::getData($post);
                 if (!$result) {
                     throw new Exception("Store not found", 1);
@@ -144,7 +147,7 @@ class StoreController extends Controller
             $type = 'success';
             $message = "Store deleted successfully";
             $post = $request->all();
-
+            $post['orgid'] = session('orgid');
             DB::beginTransaction();
             $result = Store::deleteData($post);
             if (!$result) {
@@ -168,6 +171,7 @@ class StoreController extends Controller
     {
         try {
             $post = $request->all();
+            $post['orgid'] = session('orgid');
             $orgDetails = Store::getData($post);
 
             if (!$orgDetails) {

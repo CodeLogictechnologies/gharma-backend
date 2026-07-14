@@ -178,7 +178,7 @@ class CategoryController extends Controller
     {
         parent::__construct();
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // Index — single page, no tabs
     // ─────────────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ class CategoryController extends Controller
         $parentCategories = Category::getParentOptions(session('orgid'));
         return view('backend.categories.index', compact('parentCategories'));
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // Save (insert or update)
     // ─────────────────────────────────────────────────────────────────
@@ -201,30 +201,30 @@ class CategoryController extends Controller
             if (empty($request->id)) {
                 $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
             }
- 
+
             $validation = Validator::make($request->all(), $rules, [
                 'name.required' => 'Please enter category name.',
                 'image.required' => 'Please select an image.',
             ]);
- 
+
             if ($validation->fails()) {
                 throw new Exception($validation->errors()->first(), 1);
             }
- 
+
             $post              = $request->all();
             $post['image']     = $request->file('image');
             $post['orgid']     = session('orgid');
             $post['parent_id'] = $request->input('parent_id') ?: null;
- 
+
             $type    = 'success';
             $message = 'Category saved successfully.';
- 
+
             DB::beginTransaction();
             if (!Category::saveData($post)) {
                 throw new Exception('Could not save record.', 1);
             }
             DB::commit();
- 
+
             // After save, return updated parent dropdown HTML so the
             // frontend can refresh the dropdown without reloading the page
             $parentCategories = Category::getParentOptions(session('orgid'));
@@ -232,7 +232,7 @@ class CategoryController extends Controller
             foreach ($parentCategories as $cat) {
                 $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
             }
- 
+
             return json_encode([
                 'type'            => $type,
                 'message'         => $message,
@@ -246,7 +246,7 @@ class CategoryController extends Controller
             return json_encode(['type' => 'error', 'message' => $e->getMessage()]);
         }
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // DataTable list
     // ─────────────────────────────────────────────────────────────────
@@ -254,38 +254,39 @@ class CategoryController extends Controller
     {
         try {
             $post = $request->all();
+            $post['orgid'] = session('orgid');
             $data = Category::list($post);
- 
+
             $filtereddata = $data['totalfilteredrecs'] > 0 ? $data['totalfilteredrecs'] : $data['totalrecs'];
             $totalrecs    = $data['totalrecs'];
- 
+
             unset($data['totalfilteredrecs'], $data['totalrecs']);
- 
+
             $array = [];
             $i     = 0;
- 
+
             foreach ($data as $row) {
                 $array[$i]['sno'] = $i + 1;
- 
+
                 // Name cell
                 $array[$i]['title'] = '<span style="font-weight:600;color:#2d2d2d;">'
                     . htmlspecialchars($row->title) . '</span>';
- 
+
                 // Image cell
                 $imagePath = storage_path('app/public/categories/' . $row->image);
                 $imageUrl  = (!empty($row->image) && file_exists($imagePath))
                     ? asset('storage/categories/' . $row->image)
                     : asset('no-image.jpg');
- 
+
                 $array[$i]['image'] = '<img src="' . $imageUrl . '" height="38" width="38"
                     style="border-radius:7px;object-fit:cover;border:1.5px solid #e0e0ef;" alt="img">';
- 
+
                 // Parent category cell
                 $array[$i]['parent_name'] = $row->parent_name
                     ? '<span class="badge" style="background:#f0f0ff;color:#696cff;font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px;">'
-                        . htmlspecialchars($row->parent_name) . '</span>'
+                    . htmlspecialchars($row->parent_name) . '</span>'
                     : '<span style="color:#bbb;font-size:12px;">—</span>';
- 
+
                 // Actions
                 $array[$i]['action'] =
                     '<a href="javascript:;" class="editCategory me-2"
@@ -301,7 +302,7 @@ class CategoryController extends Controller
                         title="Delete">
                         <i class="fa-solid fa-trash" style="color:#ff4d4f;font-size:15px;"></i>
                     </a>';
- 
+
                 $i++;
             }
         } catch (QueryException | Exception $e) {
@@ -309,14 +310,14 @@ class CategoryController extends Controller
             $totalrecs    = 0;
             $filtereddata = 0;
         }
- 
+
         return json_encode([
             'recordsFiltered' => (int) $filtereddata,
             'recordsTotal'    => (int) $totalrecs,
             'data'            => $array,
         ]);
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // Delete (soft)
     // ─────────────────────────────────────────────────────────────────
@@ -325,7 +326,9 @@ class CategoryController extends Controller
         try {
             $type    = 'success';
             $message = 'Category deleted successfully.';
- 
+
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
             DB::beginTransaction();
             Category::deleteCategory($request->all());
             DB::commit();
@@ -338,10 +341,10 @@ class CategoryController extends Controller
             $type    = 'error';
             $message = $e->getMessage();
         }
- 
+
         return json_encode(['type' => $type, 'message' => $message]);
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // AJAX: get fresh parent dropdown options (called after save)
     // ─────────────────────────────────────────────────────────────────
@@ -349,12 +352,12 @@ class CategoryController extends Controller
     {
         $excludeId = $request->input('exclude');
         $cats      = Category::getParentOptions(session('orgid'), $excludeId);
- 
+
         $options = '<option value="">-- None (Top Level) --</option>';
         foreach ($cats as $cat) {
             $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
         }
- 
+
         return response()->json(['options' => $options]);
     }
 }
