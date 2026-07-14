@@ -20,7 +20,7 @@ class OrderController extends Controller
 {
     public function save(OrderPlaceRequest $request)
     {
-        // try {
+        try {
             $type = 'success';
             $message = 'Order place successfully';
 
@@ -39,19 +39,19 @@ class OrderController extends Controller
                 'message' => $message,
                 'invoice' => $invoiceInfo,
             ], 200);
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => 'Something went wrong'
-        //     ], 500);
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => $e->getMessage(),
-        //     ], 500);
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something went wrong'
+            ], 500);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function orderStatus(Request $request)

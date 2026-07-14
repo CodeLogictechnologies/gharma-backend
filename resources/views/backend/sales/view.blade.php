@@ -69,13 +69,87 @@
                 </tbody>
                 <tfoot>
                     @php
-                        $totalAmount = $orderDetail->sum(fn($line) => $line->price * $line->quantity);
+                        $beforeDiscountTotal = 0;
+                        $discountTotal = 0;
+                        $extraDiscountTotal = 0;
+                        $afterDiscountTotal = 0;
+                        $exciseTotal = 0;
+                        $vatTotal = 0;
+                        $grandTotal = 0;
+
+                        foreach ($orderDetail as $line) {
+                            $qty = (float) $line->quantity;
+                            $price = (float) $line->price;
+
+                            // Price before discount
+                            $beforeDiscount = $price * $qty;
+
+                            // Main Discount
+                            $discount = 0;
+
+                            if ($line->discount_type == 'percentage') {
+                                $discount = ($beforeDiscount * (float) ($line->discount_amount ?? 0)) / 100;
+                            } elseif ($line->discount_type == 'fixed') {
+                                $discount = (float) ($line->discount_amount ?? 0) * $qty;
+                            }
+
+                            // Extra Discount
+                            $extraDiscount = (float) ($line->extra_discount ?? 0);
+
+                            // Price after all discounts
+                            $afterDiscount = $beforeDiscount - $discount - $extraDiscount;
+
+                            // Stored values
+                            $excise = (float) $line->excise_amount;
+                            $vat = (float) $line->vat_amount;
+
+                            // Final Total
+                            $lineTotal = (float) $line->order_detail_total_price;
+
+                            // Sum
+                            $beforeDiscountTotal += $beforeDiscount;
+                            $discountTotal += $discount;
+                            $extraDiscountTotal += $extraDiscount;
+                            $afterDiscountTotal += $afterDiscount;
+                            $exciseTotal += $excise;
+                            $vatTotal += $vat;
+                            $grandTotal += $lineTotal;
+                        }
                     @endphp
-                    <tr class="fw-bold table-light">
-                        <td colspan="5" class="text-end">Total</td>
-                        <td>{{ number_format($totalAmount, 2) }}</td>
-                        <td></td>
-                        <td></td>
+
+                    <tr>
+                        <th colspan="7" class="text-end">Before Discount</th>
+                        <th>{{ number_format($beforeDiscountTotal, 2) }}</th>
+                    </tr>
+
+                    <tr>
+                        <th colspan="7" class="text-end">Discount</th>
+                        <th>- {{ number_format($discountTotal, 2) }}</th>
+                    </tr>
+
+                    <tr>
+                        <th colspan="7" class="text-end">Extra Discount</th>
+                        <th>- {{ number_format($extraDiscountTotal, 2) }}</th>
+                    </tr>
+
+                    <tr>
+                        <th colspan="7" class="text-end">After Discount</th>
+                        <th>{{ number_format($afterDiscountTotal, 2) }}</th>
+                    </tr>
+
+                    <tr>
+                        <th colspan="7" class="text-end">Excise</th>
+                        <th>{{ number_format($exciseTotal, 2) }}</th>
+                    </tr>
+
+                    <tr>
+                        <th colspan="7" class="text-end">VAT</th>
+                        <th>{{ number_format($vatTotal, 2) }}</th>
+                    </tr>
+
+                    <tr class="table-primary fw-bold">
+                        <th colspan="7" class="text-end">Grand Total</th>
+                        <th>{{ number_format($grandTotal, 2) }}</th>
                     </tr>
                 </tfoot>
             </table>
