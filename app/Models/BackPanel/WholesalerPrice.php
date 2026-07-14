@@ -29,6 +29,18 @@ class WholesalerPrice extends Model
                 'orgid'        => $post['orgid'] ?? null,
             ];
 
+            $duplicate = DB::table('wholesaler_prices')
+                ->where('itemid', $post['itemid'])
+                ->where('variation_id', $post['variationid']);
+
+            if (!empty($post['id'])) {
+                $duplicate->where('id', '!=', $post['id']);
+            }
+
+            if ($duplicate->exists()) {
+                throw new Exception('Price for the selected product and variation already exists.');
+            }
+
             $getData = DB::table('items')
                 ->where('id', $post['itemid'])
                 ->select('vat_status', 'excise_status', 'excise_type', 'excise_percentage', 'excise_value', 'vat_percent')
@@ -327,7 +339,7 @@ class WholesalerPrice extends Model
             throw $e;
         }
     }
-    
+
     public static function deleteData($id)
     {
         try {

@@ -160,6 +160,15 @@ class SalesVoucher extends Model
         try {
             DB::beginTransaction();
 
+            $duplicate = DB::table('order_masters')
+                ->where('orgid', $post['orgid'])
+                ->where('voucher_number', $post['voucher_no'])
+                ->exists();
+
+            if ($duplicate) {
+                throw new \Exception("This Bill / Voucher No. already exists ");
+            }
+
             $orderMasterId = (string) Str::uuid();
 
             $insertOrderDetails = [];
@@ -174,11 +183,10 @@ class SalesVoucher extends Model
 
             foreach ($post['items'] as $item) {
 
-
                 $variation = DB::table('itemvariations as iv')
                     ->join('items as i', 'i.id', '=', 'iv.item_id')
                     ->where('iv.id', $item['variation_id'])
-                    // ->where('iv.orgid', $post['orgid'])
+                    ->where('iv.orgid', $post['orgid'])
                     ->select(
                         'iv.id as variation_id',
                         'iv.price',
@@ -187,54 +195,96 @@ class SalesVoucher extends Model
                         'i.excise_percentage',
                         'i.excise_value',
                         'i.vat_status',
+                        'iv.discount_type',
+                        'iv.discount_amount',
                         'i.vat_percent'
                     )
                     ->first();
 
 
 
-
                 if (!$variation) {
                     throw new \Exception("Item or variation not found for item_id: {$item['item_id']}");
                 }
-                $qty       = (float) $item['qty'];
+                $qty = (float) $item['qty'];
                 $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+
+                // Base Amount
                 $baseAmount = round($unitPrice * $qty, 2);
 
-                // Excise duty
-                $exciseAmount = 0.0;
-                if ($variation->excise_status === 'Y') {
-                    if ($variation->excise_type === 'percentage') {
-                        $exciseAmount = round($baseAmount * ((float) $variation->excise_percentage / 100), 2);
-                    } elseif ($variation->excise_type === 'fixed') {
-                        $exciseAmount = round((float) $variation->excise_value * $qty, 2);
+                // Discount
+                $discountAmount = 0.00;
+
+                if (!empty($variation->discount_type)) {
+
+                    if ($variation->discount_type == 'percentage') {
+                        $discountAmount = round(
+                            $baseAmount * ((float) ($variation->discount_amount ?? 0) / 100),
+                            2
+                        );
+                    } elseif ($variation->discount_type == 'fixed') {
+                        $discountAmount = round(
+                            (float) ($variation->discount_amount ?? 0) * $qty,
+                            2
+                        );
                     }
                 }
 
-                $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
+                $amountAfterDiscount = round($baseAmount - $discountAmount, 2);
 
-                // VAT (applied on price + excise)
-                $vatAmount = 0.0;
-                $vatRate   = (float) ($variation->vat_percent ?? 0);
+                $exciseAmount = 0.00;
+
+                if ($variation->excise_status === 'Y') {
+
+                    if ($variation->excise_type === 'percentage') {
+                        $exciseAmount = round(
+                            $amountAfterDiscount * ((float) $variation->excise_percentage / 100),
+                            2
+                        );
+                    } elseif ($variation->excise_type === 'fixed') {
+                        $exciseAmount = round(
+                            (float) ($variation->excise_value ?? 0) * $qty,
+                            2
+                        );
+                    }
+                }
+
+                $amountAfterExcise = round($amountAfterDiscount + $exciseAmount, 2);
+
+                $vatAmount = 0.00;
+                $vatRate = (float) ($variation->vat_percent ?? 0);
+
                 if ($variation->vat_status === 'Y') {
-                    $vatAmount = round($amountAfterExcise * ($vatRate / 100), 2);
+                    $vatAmount = round(
+                        $amountAfterExcise * ($vatRate / 100),
+                        2
+                    );
                 }
 
                 $lineTotal = round($amountAfterExcise + $vatAmount, 2);
                 $insertOrderDetails[] = [
-                    'id'                        => (string) Str::uuid(),
-                    'ordermasterid'             => $orderMasterId,
-                    'variation_id'              => $variation->variation_id,
-                    'quantity'                  => $qty,
-                    'userid'                    => $customer_id,
-                    'price'                     => $unitPrice,
-                    'excise_type'               => $variation->excise_status === 'Y' ? $variation->excise_type : null,
-                    'excise_percent'            => $variation->excise_type === 'percentage' ? $variation->excise_percentage : null,
-                    'excise_amount'             => $exciseAmount,
-                    'vat_percent'               => $variation->vat_status === 'Y' ? $vatRate : 0,
-                    'vat_amount'                => $vatAmount,
-                    'order_detail_total_price'  => $lineTotal,
-                    'created_at'                => Carbon::now(),
+                    'id'                             => (string) Str::uuid(),
+                    'ordermasterid'                  => $orderMasterId,
+                    'variation_id'                   => $variation->variation_id,
+                    'quantity'                       => $qty,
+                    'userid'                         => $customer_id,
+                    'price'                          => $unitPrice,
+                    'discount_type'                  => $variation->discount_type,
+                    'discount_amount'                => $variation->discount_amount,
+                    'discount_amount_per_variation'  => $discountAmount,
+                    'excise_type'                    => $variation->excise_status === 'Y'
+                        ? $variation->excise_type
+                        : null,
+                    'excise_percent'                 => $variation->excise_type === 'percentage'
+                        ? $variation->excise_percentage
+                        : null,
+                    'excise_amount'                  => $exciseAmount,
+                    'vat_percent'                    => $variation->vat_status === 'Y'
+                        ? $vatRate
+                        : 0,
+                    'vat_amount'                     => $vatAmount,
+                    'order_detail_total_price'       => $lineTotal,
+                    'created_at'                     => Carbon::now(),
                 ];
 
                 $variationIds[] = $variation->variation_id;
@@ -325,10 +375,8 @@ class SalesVoucher extends Model
             ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
             ->join('items as i', 'i.id', '=', 'v.item_id')
             ->where('od.ordermasterid', $post['id'])
-            ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price', 'u.name', 'od.excise_type', 'od.excise_percent', 'od.excise_amount', 'od.vat_amount', 'i.vat_percent')
+            ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price', 'u.name', 'od.excise_type', 'od.excise_percent', 'od.excise_amount', 'od.vat_amount', 'i.vat_percent', 'v.discount_type', 'v.discount_amount', 'om.discount_amount as extra_discount')
             ->get();
-
-        // dd($result);
 
         return $result;
     }

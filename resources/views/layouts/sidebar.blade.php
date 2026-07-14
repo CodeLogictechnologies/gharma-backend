@@ -41,46 +41,46 @@
         </li>
 
         <!-- Organization -->
-        <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
             <a href="{{ route('organization') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-buildings"></i>
                 <div>Organization</div>
             </a>
-        </li>
+        </li> --}}
 
         <!-- Organization Access -->
-        <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
             <a href="{{ route('organization.access') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-lock-alt"></i>
                 <div>Organization Access</div>
             </a>
-        </li>
+        </li> --}}
 
 
         <!-- Organization Roles -->
-        <li class="menu-item {{ request()->routeIs('organization.role') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('organization.role') ? 'active' : '' }}">
             <a href="{{ route('organization.role') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-shield"></i>
                 <div>Organization Roles</div>
             </a>
-        </li>
+        </li> --}}
 
         {{-- Driver --}}
         <!-- Permission -->
-        <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
             <a href="{{ route('permission') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-lock-alt"></i>
                 <div>Permission</div>
             </a>
-        </li>
+        </li> --}}
 
         <!-- Role -->
-        <li class="menu-item {{ request()->routeIs('role') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('role') ? 'active' : '' }}">
             <a href="{{ route('role') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-shield"></i>
                 <div>Role</div>
             </a>
-        </li>
+        </li> --}}
 
         <!-- Home Tab -->
         <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
