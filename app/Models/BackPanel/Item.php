@@ -300,9 +300,9 @@ class Item extends Model
                             $threshold      = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
                             $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
                             $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
-                                                ? (float) $variation['discount_percentage'] : null;
+                                ? (float) $variation['discount_percentage'] : null;
                             $discountAmount = ($discountType === 'fixed' && is_numeric($variation['discount_amount'] ?? null))
-                                                ? (float) $variation['discount_amount'] : null;
+                                ? (float) $variation['discount_amount'] : null;
                             $price          = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
 
                             $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($attrName) . "'";
@@ -324,9 +324,9 @@ class Item extends Model
                             $threshold      = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
                             $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
                             $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
-                                                ? (float) $variation['discount_percentage'] : null;
+                                ? (float) $variation['discount_percentage'] : null;
                             $discountAmount = ($discountType === 'fixed' && is_numeric($variation['discount_amount'] ?? null))
-                                                ? (float) $variation['discount_amount'] : null;
+                                ? (float) $variation['discount_amount'] : null;
                             $price          = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
                             $varId          = (string) Str::uuid();
 
@@ -353,6 +353,48 @@ class Item extends Model
                             ]);
 
                             if ($price > 0) {
+
+                                $price = (float) $post['price'];
+
+                                // Discount
+                                $discount = 0;
+                                if ($post['discount_type'] == 'percentage') {
+                                    $discount = ($price * (float)$post['discount_percentage']) / 100;
+                                } else {
+                                    $discount = (float)($post['discount_amount'] ?? 0);
+                                }
+
+                                // Excise
+                                $excise = 0;
+                                if ($post['excise_status'] == 1) {
+                                    if ($post['excise_type'] == 'percentage') {
+                                        $excise = ($price * (float)$post['excise_percentage']) / 100;
+                                    } else {
+                                        $excise = (float)($post['excise_value'] ?? 0);
+                                    }
+                                }
+
+                                // Before Discount
+                                $subTotalBefore = $price + $excise;
+                                $vatBefore = 0;
+
+                                if ($post['vat_status'] == 1) {
+                                    $vatBefore = ($subTotalBefore * (float)$post['vat_percent']) / 100;
+                                }
+
+                                $priceBeforeDiscount = $subTotalBefore + $vatBefore;
+
+                                // After Discount
+                                $subTotalAfter = ($price - $discount) + $excise;
+                                $vatAfter = 0;
+
+                                if ($post['vat_status'] == 1) {
+                                    $vatAfter = ($subTotalAfter * (float)$post['vat_percent']) / 100;
+                                }
+
+                                $priceAfterDiscount = $subTotalAfter + $vatAfter;
+
+
                                 $rpExists = DB::table('retailer_prices')
                                     ->where('itemid', $itemId)
                                     ->where('variation_id', $varId)
@@ -366,6 +408,8 @@ class Item extends Model
                                         'itemid'       => $itemId,
                                         'variation_id' => $varId,
                                         'price'        => $price,
+                                        'price_before_discount' => round($priceBeforeDiscount, 2),
+                                        'price_after_discount'  => round($priceAfterDiscount, 2),
                                         'status'       => 'Y',
                                         'postedby'     => $post['userid'],
                                         'updatedby'    => $post['userid'],
@@ -378,27 +422,67 @@ class Item extends Model
                     }
 
                     if (!empty($ids)) {
+                        $rpVatStatus        = !empty($post['vat_status']) ? 'Y' : 'N';
+                        $rpVatPercent        = !empty($post['vat_status']) ? ($post['vat_percent'] ?? null) : null;
+                        $rpExciseStatus      = !empty($post['excise_status']) ? 'Y' : 'N';
+                        $rpExciseType        = !empty($post['excise_status']) ? ($post['excise_type'] ?? null) : null;
+                        $rpExcisePercentage  = (!empty($post['excise_status']) && ($post['excise_type'] ?? '') === 'percentage')
+                            ? ($post['excise_percentage'] ?? null) : null;
+                        $rpExciseValue       = (!empty($post['excise_status']) && ($post['excise_type'] ?? '') === 'fixed')
+                            ? ($post['excise_value'] ?? null) : null;
+
                         $idsList = "'" . implode("','", $ids) . "'";
                         DB::statement("
-                UPDATE itemvariations SET
-                    attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
-                    variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
-                    value                  = CASE id " . implode(' ', $valueCases)              . " END,
-                    product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
-                    company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
-                    hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
-                    threshold              = CASE id " . implode(' ', $thresholdCases)          . " END,
-                    discount_type          = CASE id " . implode(' ', $discountTypeCases)       . " END,
-                    discount               = CASE id " . implode(' ', $discountCases)           . " END,
-                    discount_amount        = CASE id " . implode(' ', $discountAmountCases)     . " END,
-                    price                  = CASE id " . implode(' ', $priceCases)              . " END,
-                    updated_at             = NOW(),
-                    updatedby              = ?
-                WHERE id IN ($idsList)
-                ", [$post['userid']]);
+                            UPDATE itemvariations SET
+                                attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
+                                variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
+                                value                  = CASE id " . implode(' ', $valueCases)              . " END,
+                                product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
+                                company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
+                                hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
+                                threshold              = CASE id " . implode(' ', $thresholdCases)          . " END,
+                                discount_type          = CASE id " . implode(' ', $discountTypeCases)       . " END,
+                                discount               = CASE id " . implode(' ', $discountCases)           . " END,
+                                discount_amount        = CASE id " . implode(' ', $discountAmountCases)     . " END,
+                                price                  = CASE id " . implode(' ', $priceCases)              . " END,
+                                updated_at             = NOW(),
+                                updatedby              = ?
+                            WHERE id IN ($idsList)
+                        ", [$post['userid']]);
 
                         foreach ($existingVariationPrices as $varId => $price) {
                             if ($price <= 0) continue;
+
+                            // Per-variation discount (falls back to item-level discount inputs if variation didn't send its own)
+                            $variation = collect($post['variations'])->firstWhere('variationid', $varId);
+
+                            $varDiscountType = $variation['discount_type'] ?? null;
+                            $varDiscount = 0;
+                            if ($varDiscountType === 'percentage') {
+                                $varDiscount = ($price * (float)($variation['discount_percentage'] ?? 0)) / 100;
+                            } elseif ($varDiscountType === 'fixed') {
+                                $varDiscount = (float)($variation['discount_amount'] ?? 0);
+                            }
+
+                            // Excise (item-level status/type, applied to this variation's price)
+                            $varExcise = 0;
+                            if ($rpExciseStatus === 'Y') {
+                                if ($rpExciseType === 'percentage') {
+                                    $varExcise = ($price * (float)$rpExcisePercentage) / 100;
+                                } else {
+                                    $varExcise = (float)$rpExciseValue;
+                                }
+                            }
+
+                            // Before discount
+                            $varSubTotalBefore = $price + $varExcise;
+                            $varVatBefore = ($rpVatStatus === 'Y') ? ($varSubTotalBefore * (float)$rpVatPercent) / 100 : 0;
+                            $varPriceBeforeDiscount = $varSubTotalBefore + $varVatBefore;
+
+                            // After discount
+                            $varSubTotalAfter = ($price - $varDiscount) + $varExcise;
+                            $varVatAfter = ($rpVatStatus === 'Y') ? ($varSubTotalAfter * (float)$rpVatPercent) / 100 : 0;
+                            $varPriceAfterDiscount = $varSubTotalAfter + $varVatAfter;
 
                             $existing = DB::table('retailer_prices')
                                 ->where('itemid', $itemId)
@@ -406,25 +490,31 @@ class Item extends Model
                                 ->where('status', 'Y')
                                 ->first();
 
+                            $payload = [
+                                'price'                 => $price,
+                                'price_before_discount' => round($varPriceBeforeDiscount, 2),
+                                'price_after_discount'  => round($varPriceAfterDiscount, 2),
+                                // 'vat_status'            => $rpVatStatus,
+                                // 'vat_percent'           => $rpVatPercent,
+                                // 'excise_status'         => $rpExciseStatus,
+                                // 'excise_type'           => $rpExciseType,
+                                // 'excise_percentage'     => $rpExcisePercentage,
+                                // 'excise_value'          => $rpExciseValue,
+                                'updatedby'             => $post['userid'],
+                                'updated_at'            => Carbon::now(),
+                            ];
+
                             if ($existing) {
-                                DB::table('retailer_prices')->where('id', $existing->id)->update([
-                                    'price'      => $price,
-                                    'updatedby'  => $post['userid'],
-                                    'updated_at' => Carbon::now(),
-                                ]);
+                                DB::table('retailer_prices')->where('id', $existing->id)->update($payload);
                             } else {
-                                DB::table('retailer_prices')->insert([
-                                    'id'           => (string) Str::uuid(),
-                                    'orgid'        => $post['orgid'] ?? null,
-                                    'itemid'       => $itemId,
-                                    'variation_id' => $varId,
-                                    'price'        => $price,
-                                    'status'       => 'Y',
-                                    'postedby'     => $post['userid'],
-                                    'updatedby'    => $post['userid'],
-                                    'created_at'   => Carbon::now(),
-                                    'updated_at'   => Carbon::now(),
-                                ]);
+                                $payload['id']           = (string) Str::uuid();
+                                $payload['orgid']        = $post['orgid'] ?? null;
+                                $payload['itemid']       = $itemId;
+                                $payload['variation_id'] = $varId;
+                                $payload['status']       = 'Y';
+                                $payload['postedby']     = $post['userid'];
+                                $payload['created_at']   = Carbon::now();
+                                DB::table('retailer_prices')->insert($payload);
                             }
                         }
                     }
@@ -575,9 +665,9 @@ class Item extends Model
                         $price          = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
                         $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
                         $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
-                                            ? (float) $variation['discount_percentage'] : null;
+                            ? (float) $variation['discount_percentage'] : null;
                         $discountAmount = ($discountType === 'fixed' && is_numeric($variation['discount_amount'] ?? null))
-                                            ? (float) $variation['discount_amount'] : null;
+                            ? (float) $variation['discount_amount'] : null;
 
                         $variationRows[] = [
                             'id'                     => $varId,

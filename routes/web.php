@@ -171,6 +171,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/inactiveuserlist', [UserController::class, 'inActivelist'])->name('inactive.user.list');
             Route::any('/form', [UserController::class, 'form'])->name('user.form');
             Route::post('/save', [UserController::class, 'save'])->name('user.save');
+            Route::any('/customer/form', [UserController::class, 'customerForm'])->name('user.customer.form');
+            Route::post('/customer/save', [UserController::class, 'customerSave'])->name('user.customer.save');
             Route::post('/edit', [UserController::class, 'edit'])->name('user.edit');
             Route::post('/delete', [UserController::class, 'delete'])->name('user.delete');
             Route::post('/view', [UserController::class, 'view'])->name('user.view');
@@ -287,6 +289,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/delete', [SalesController::class, 'delete'])->name('sales.delete');
             Route::get('/customer-orders', [SalesController::class, 'customerOrders'])->name('sales.customer-orders');
             Route::get('/order-items', [SalesController::class, 'orderItems'])->name('sales.order-items');
+            Route::get('/item-price', [SalesController::class, 'itemPrice'])->name('sales.item-price');
         });
 
         Route::group(['prefix' => 'sales-return'], function () {

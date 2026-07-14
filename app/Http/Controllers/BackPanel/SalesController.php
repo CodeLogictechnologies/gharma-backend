@@ -23,39 +23,39 @@ class SalesController extends Controller
     public function list(Request $request)
     {
         // try {
-            $post = $request->all();
-            $post['orgid'] = session('orgid');
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
 
-            $data = SalesVoucher::list($post);
-            $i = 0;
-            $array = [];
-            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-            $totalrecs    = $data["totalrecs"];
+        $data = SalesVoucher::list($post);
+        $i = 0;
+        $array = [];
+        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+        $totalrecs    = $data["totalrecs"];
 
-            unset($data["totalfilteredrecs"]);
-            unset($data["totalrecs"]);
+        unset($data["totalfilteredrecs"]);
+        unset($data["totalrecs"]);
 
-            foreach ($data['data'] as $row) {
-                $array[$i]["sno"]       = $i + 1;
-                $array[$i]["name"]     = $row->name;
-                $array[$i]["phone"]  = $row->phone;
-                $array[$i]["email"]     = $row->email;
-                $array[$i]["voucher_number"]     = $row->voucher_number;
-                $array[$i]["created_at"]     = $row->created_at;
-                $action  = '';
-                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewSalesVoucher   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
-                $array[$i]["action"] = $action;
-                $i++;
-            }
+        foreach ($data['data'] as $row) {
+            $array[$i]["sno"]       = $i + 1;
+            $array[$i]["name"]     = $row->name;
+            $array[$i]["phone"]  = $row->phone;
+            $array[$i]["email"]     = $row->email;
+            $array[$i]["voucher_number"]     = $row->voucher_number;
+            $array[$i]["created_at"]     = $row->created_at;
+            $action  = '';
+            $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewSalesVoucher   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+            $array[$i]["action"] = $action;
+            $i++;
+        }
 
-            if (!$filtereddata) $filtereddata = 0;
-            if (!$totalrecs)    $totalrecs    = 0;
+        if (!$filtereddata) $filtereddata = 0;
+        if (!$totalrecs)    $totalrecs    = 0;
 
-            return response()->json([
-                'recordsFiltered' => $filtereddata,
-                'recordsTotal'    => $totalrecs,
-                'data'            => $array,
-            ]);
+        return response()->json([
+            'recordsFiltered' => $filtereddata,
+            'recordsTotal'    => $totalrecs,
+            'data'            => $array,
+        ]);
         // } catch (QueryException $e) {
         //     return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
         // } catch (Exception $e) {
@@ -99,6 +99,7 @@ class SalesController extends Controller
                     ])
                     : [];
             } else {
+                $data['voucher_no']     = SalesVoucher::generateUniqueVoucherNo($post['orgid']);
                 $data['customerOrders'] = [];
             }
         } catch (QueryException $e) {
@@ -121,6 +122,16 @@ class SalesController extends Controller
         return response()->json($orders);
     }
 
+    public function itemPrice(Request $request)
+    {
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
+
+        $pricing = SalesVoucher::getItemPricing($post);
+
+        return response()->json($pricing);
+    }
+
     public function orderItems(Request $request)
     {
         $orgid = session('orgid');
@@ -140,29 +151,29 @@ class SalesController extends Controller
     public function save(Request $request)
     {
         try {
+
             $rules = [
-                'voucher_date'      => 'required|date',
-                'voucher_no'        => 'required|string|max:255',
-                'customer_id'       => 'required',
-                'order_id'          => 'required',
-                'items'             => 'required|array|min:1',
-                'items.*.item_id'   => 'required',
-                'items.*.qty'       => 'required|numeric|min:0.01',
-                'items.*.unit_rate' => 'required|numeric|min:0',
+                'voucher_date'       => 'required|date',
+                'voucher_no'         => 'required|string|max:255',
+                'customer_id'        => 'required',
+                'items'              => 'required|array|min:1',
+                'items.*.item_id'    => 'required',
+                'items.*.qty'        => 'required|numeric|min:0.01',
+                'items.*.unit_rate'  => 'required|numeric|min:0',
             ];
 
             $messages = [
-                'voucher_date.required'     => 'Date is required.',
-                'voucher_no.required'       => 'Bill / Voucher No. is required.',
-                'customer_id.required'      => 'Customer is required.',
-                'order_id.required'         => 'Order is required.',
-                'items.required'            => 'At least one item is required.',
-                'items.*.item_id.required'  => 'Item is required for each row.',
-                'items.*.qty.required'      => 'Quantity is required for each row.',
+                'voucher_date.required'      => 'Date is required.',
+                'voucher_no.required'        => 'Bill / Voucher No. is required.',
+                'customer_id.required'       => 'Customer is required.',
+                'items.required'             => 'At least one item is required.',
+                'items.*.item_id.required'   => 'Item is required for each row.',
+                'items.*.qty.required'       => 'Quantity is required for each row.',
                 'items.*.unit_rate.required' => 'Rate is required for each row.',
             ];
 
             $validation = Validator::make($request->all(), $rules, $messages);
+
             if ($validation->fails()) {
                 return response()->json([
                     'type'    => 'error',
@@ -170,60 +181,50 @@ class SalesController extends Controller
                 ]);
             }
 
-            $post           = $request->all();
-            $post['orgid']  = session('orgid');
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
             $post['userid'] = session('userid');
-
-            $isEdit = !empty($post['id']);
-
-            $duplicate = DB::table('sales_vouchers')
-                ->where('orgid', $post['orgid'])
-                ->where('voucher_no', $post['voucher_no'])
-                ->where('status', 'Y')
-                ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-                ->exists();
-
-            if ($duplicate) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'This Bill / Voucher No. already exists.',
-                ]);
-            }
 
             SalesVoucher::saveData($post);
 
             return response()->json([
                 'type'    => 'success',
-                'message' => $isEdit ? 'Sales voucher updated successfully.' : 'Sales voucher saved successfully.',
+                'message' => 'Sales voucher saved successfully.',
             ]);
         } catch (QueryException $e) {
-            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+            return response()->json([
+                'type'    => 'error',
+                'message' => $this->queryMessage,
+            ]);
         } catch (Exception $e) {
-            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ]);
         }
     }
-
+    
     public function view(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
+        try {
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
 
-        $orderDetail = SalesVoucher::getData($post);
+            $orderDetail = SalesVoucher::getData($post);
 
-        $voucherDetail = SalesVoucher::getVoucherData($post);
+            $voucherDetail = SalesVoucher::getVoucherData($post);
 
-        $data['orderDetail'] = $orderDetail;
-        $data['voucherDetail'] = $voucherDetail;
-        $data['type']    = 'success';
-        $data['message'] = 'Successfully fetched sales voucher.';
-        // } catch (QueryException $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['type'] = 'error';
-        //     $data['message'] = $e->getMessage();
-        // }
+            $data['orderDetail'] = $orderDetail;
+            $data['voucherDetail'] = $voucherDetail;
+            $data['type']    = 'success';
+            $data['message'] = 'Successfully fetched sales voucher.';
+        } catch (QueryException $e) {
+            $data['type'] = 'error';
+            $data['message'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['type'] = 'error';
+            $data['message'] = $e->getMessage();
+        }
 
         return view('backend.sales.view', $data);
     }

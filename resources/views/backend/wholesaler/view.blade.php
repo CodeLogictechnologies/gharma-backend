@@ -35,6 +35,30 @@
                     </td>
                 </tr>
                 <tr>
+                    <th>VAT</th>
+                    <td>
+                        @if(($data['vat_status'] ?? 'N') == 'Y')
+                            <span class="badge bg-success">Taxable ({{ rtrim(rtrim(number_format((float)($data['vat_percent'] ?? 0), 2), '0'), '.') }}%)</span>
+                        @else
+                            <span class="badge bg-secondary">Non-Taxable</span>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
+                    <th>Excise Duty</th>
+                    <td>
+                        @if(($data['excise_status'] ?? 'N') == 'Y')
+                            @if(($data['excise_type'] ?? '') === 'percentage')
+                                <span class="badge bg-warning text-dark">{{ rtrim(rtrim(number_format((float)($data['excise_percentage'] ?? 0), 2), '0'), '.') }}%</span>
+                            @else
+                                <span class="badge bg-warning text-dark">Rs {{ number_format((float)($data['excise_value'] ?? 0), 2) }}</span>
+                            @endif
+                        @else
+                            <span class="badge bg-secondary">—</span>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
                     <th>Created At</th>
                     <td>{{ $data['created_at'] ?? '-' }}</td>
                 </tr>
@@ -51,6 +75,8 @@
                         <th>Min Qty</th>
                         <th>Max Qty</th>
                         <th>Price</th>
+                        <th>Before Excise/Tax</th>
+                        <th>After Excise/Tax</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,7 +85,9 @@
                             <td>{{ $i + 1 }}</td>
                             <td>{{ $detail['min_qty'] ?? '-' }}</td>
                             <td>{{ $detail['max_qty'] ?? '-' }}</td>
-                            <td>{{ $detail['price']   ?? '-' }}</td>
+                            <td>{{ $detail['price'] ?? '-' }}</td>
+                            <td>{{ isset($detail['price_before_excise_tax']) ? number_format((float)$detail['price_before_excise_tax'], 2) : '-' }}</td>
+                            <td>{{ isset($detail['price_after_excise_tax']) ? number_format((float)$detail['price_after_excise_tax'], 2) : '-' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

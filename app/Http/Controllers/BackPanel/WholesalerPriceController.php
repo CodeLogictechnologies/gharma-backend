@@ -96,47 +96,46 @@ class WholesalerPriceController extends Controller
      * Save (create or update) an item.
      */
     public function save(Request $request)
-    {      // try {
-        $type = 'success';
-        $rules = [
-            'itemid'          => 'required',
-            'variationid'          => 'required',
-        ];
+    {
+        try {
+            $type = 'success';
+            $rules = [
+                'itemid'          => 'required',
+                'variationid'          => 'required',
+            ];
 
-        $message = [
-            'itemid.required' => 'Select Product.',
-            'itemid.required' => 'Select Variation.',
-        ];
+            $message = [
+                'itemid.required' => 'Select Product.',
+                'itemid.required' => 'Select Variation.',
+            ];
 
-        $validation = Validator::make($request->all(), $rules, $message);
+            $validation = Validator::make($request->all(), $rules, $message);
 
-        if ($validation->fails()) {
-            throw new Exception($validation->errors()->first(), 1);
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
+            }
+
+
+            $request->validate($rules);
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+            $post['userid'] = session('userid');
+            $message = 'Records saved successfully';
+            DB::beginTransaction();
+
+            if (!BackPanelWholesalerPrice::saveData($post)) {
+                throw new Exception('Could not save record', 1);
+            }
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
-
-
-        $request->validate($rules);
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $post['userid'] = session('userid');
-        $message = 'Records saved successfully';
-        DB::beginTransaction();
-
-        if (!BackPanelWholesalerPrice::saveData($post)) {
-            throw new Exception('Could not save record', 1);
-        }
-        DB::commit();
-
-
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 

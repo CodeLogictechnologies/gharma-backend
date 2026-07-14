@@ -217,7 +217,7 @@ class ApiAuthController extends Controller
         // ── Get Spatie roles ───────────────────────────────────────────
         $roles     = $user->getRoleNames();           // collection of role names
         $firstRole = $roles->first() ?? null;
-        $deviceToke = Userdevicetoken::saveDate($post);
+        // $deviceToke = Userdevicetoken::saveDate($post);
 
         $roleData = DB::table('roles')
             ->join('model_has_roles', 'roles.id', '=', 'model_has_roles.role_id')
