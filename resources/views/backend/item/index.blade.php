@@ -2,319 +2,345 @@
 @section('title', 'Item')
 @section('content')
 
-<div class="container-xxl flex-grow-1 container-p-y">
-    <div class="card">
-        <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-            <h5 class="mb-0">Item List</h5>
-            <button type="button" id="addItem" class="btn btn-primary">
-                <i class="bx bx-plus me-1"></i> Add Item
-            </button>
-        </div>
+    <style>
+        #itemTable {
+            width: 100% !important;
+            table-layout: fixed;
+        }
 
-        <div class="table-responsive text-nowrap mx-4 mb-4">
-            <table class="table" id="itemTable">
-                <thead class="table-light">
-                    <tr class="align-middle">
-                        <th>ID</th>
-                        <th>Item Name</th>
-                        <th>Category</th>
-                        <th>Sub Category</th>
-                        <th>Type</th>
-                        <th>Brand</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-</div>
+        #itemTable td,
+        #itemTable th {
+            white-space: normal !important;
+            word-break: break-word;
+            vertical-align: middle;
+        }
 
-{{-- item Add/Edit Modal --}}
-<div class="modal fade" id="itemModel" tabindex="-1" role="dialog" aria-modal="true">
-    <div class="modal-dialog modal-xl" role="document">
-        <div class="modal-content" id="itemModelContent"></div>
-    </div>
-</div>
-
-{{-- Delete Confirm Modal --}}
-<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Delete Item</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        #itemTable td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="card">
+            <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+                <h5 class="mb-0">Item List</h5>
+                <button type="button" id="addItem" class="btn btn-primary">
+                    <i class="bx bx-plus me-1"></i> Add Item
+                </button>
             </div>
-            <div class="modal-body">Are you sure? You won't be able to revert this.</div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
+
+            <div class="table-responsive mx-4 mb-4">
+                <table class="table" id="itemTable">
+                    <thead class="table-light">
+                        <tr class="align-middle">
+                            <th style="width:8%;">ID</th>
+                            <th style="width:27%;">Item Name</th>
+                            <th style="width:15%;">Category</th>
+                            <th style="width:18%;">Sub Category</th>
+                            <th style="width:10%;">Type</th>
+                            <th style="width:12%;">Brand</th>
+                            <th style="width:10%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
-</div>
+
+    {{-- item Add/Edit Modal --}}
+    <div class="modal fade" id="itemModel" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content" id="itemModelContent"></div>
+        </div>
+    </div>
+
+    {{-- Delete Confirm Modal --}}
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">Are you sure? You won't be able to revert this.</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 @endsection
 
 @section('main-scripts')
-<script>
-    var itemTable;
+    <script>
+        var itemTable;
 
-    $(document).ready(function() {
+        $(document).ready(function() {
 
-        // ── CSRF setup ────────────────────────────────────────────────
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
-
-        // ── DataTable ─────────────────────────────────────────────────
-        itemTable = $('#itemTable').dataTable({
-            sPaginationType: 'full_numbers',
-            bSearchable: false,
-            bSort: false,
-
-            language: {
-                paginate: {
-                    first: '<i class="bx bx-chevrons-left"></i>',
-                    previous: '<i class="bx bx-chevron-left"></i>',
-                    next: '<i class="bx bx-chevron-right"></i>',
-                    last: '<i class="bx bx-chevrons-right"></i>'
+            // ── CSRF setup ────────────────────────────────────────────────
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 }
-            },
-            lengthMenu: [
-                [10, 30, 50, 70, 90, -1],
-                [10, 30, 50, 70, 90, 'All']
-            ],
-            iDisplayLength: 10,
-            sDom: 'ltipr',
-            bAutoWidth: false,
-            aaSorting: [
-                [0, 'desc']
-            ],
-            bProcessing: true,
-            bServerSide: true,
-            sAjaxSource: '{{ route('item.list') }}',
-
-            // DELETE these lines from your DataTable config:
-            fnServerParams: function(aoData) {
-                aoData.push({
-                    name: 'iDisplayLength',
-                    value: this.fnSettings()._iDisplayLength
-                });
-                aoData.push({
-                    name: 'iDisplayStart',
-                    value: this.fnSettings()._iDisplayStart
-                });
-            },
-
-            oLanguage: {
-                sEmptyTable: "<p class='no_data_message'>No data available.</p>"
-            },
-            aoColumnDefs: [{
-                    bSortable: false,
-                    aTargets: [0, 5]
-                },
-                {
-                    sWidth: '10%',
-                    aTargets: [5]
-                }
-            ],
-            aoColumns: [{
-                    data: 'sno'
-                },
-                {
-                    data: 'name'
-                },
-                {
-                    data: 'category'
-                },
-                {
-                    data: 'subcategory'
-                },
-                {
-                    data: 'type'
-                },
-                {
-                    data: 'brand'
-                },
-                {
-                    data: 'action',
-                    bSortable: false
-                },
-            ],
-            initComplete: function() {
-                this.api().columns([1]).every(function() {
-                    var column = this;
-                    var header = $(column.header()).text().trim();
-                    $('<input type="text" class="form-control" placeholder="' + header + '..." style="width:100%;" />')
-                        .appendTo($(column.header()).empty())
-                        .on('keyup change', function() {
-                            column.search(this.value).draw();
-                        });
-                });
-            }
-        });
-
-        // ── Helper: open modal via AJAX ───────────────────────────────
-        function openItemModel(url, data, method) {
-            var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
-
-            req.done(function(response) {
-                $('#itemModelContent').html(response);
-
-                // Destroy previous instance if any, then show fresh
-                var modalEl = document.getElementById('itemModel');
-                var existing = bootstrap.Modal.getInstance(modalEl);
-                if (existing) existing.dispose();
-
-                new bootstrap.Modal(modalEl, {
-                    backdrop: 'static',
-                    keyboard: false
-                }).show();
-
-            }).fail(function() {
-                showNotification('Failed to load form. Please try again.', 'error');
             });
-        }
 
-        // ── Add ───────────────────────────────────────────────────────
-        $('#addItem').on('click', function() {
-            openItemModel('{{ route('item.form') }}', {}, 'GET');
-        });
+            // ── DataTable ─────────────────────────────────────────────────
+            itemTable = $('#itemTable').dataTable({
+                sPaginationType: 'full_numbers',
+                bSearchable: false,
+                bSort: false,
 
-        // ── Edit ──────────────────────────────────────────────────────
-        $(document).on('click', '.editItem', function(e) {
-            e.preventDefault();
-            openItemModel(
-                '{{ route('item.form') }}', {
-                    id: $(this).data('id'),
-                    _token: '{{ csrf_token() }}'
+                language: {
+                    paginate: {
+                        first: '<i class="bx bx-chevrons-left"></i>',
+                        previous: '<i class="bx bx-chevron-left"></i>',
+                        next: '<i class="bx bx-chevron-right"></i>',
+                        last: '<i class="bx bx-chevrons-right"></i>'
+                    }
                 },
-                'POST'
-            );
-        });
+                lengthMenu: [
+                    [10, 30, 50, 70, 90, -1],
+                    [10, 30, 50, 70, 90, 'All']
+                ],
+                iDisplayLength: 10,
+                sDom: 'ltipr',
+                bAutoWidth: false,
+                aaSorting: [
+                    [0, 'desc']
+                ],
+                bProcessing: true,
+                bServerSide: true,
+                sAjaxSource: '{{ route('item.list') }}',
 
-        // ── Delete ────────────────────────────────────────────────────
-        var deleteId = null;
+                // DELETE these lines from your DataTable config:
+                fnServerParams: function(aoData) {
+                    aoData.push({
+                        name: 'iDisplayLength',
+                        value: this.fnSettings()._iDisplayLength
+                    });
+                    aoData.push({
+                        name: 'iDisplayStart',
+                        value: this.fnSettings()._iDisplayStart
+                    });
+                },
 
-        $(document).on('click', '.deleteItem', function(e) {
-            e.preventDefault();
-            deleteId = $(this).data('id');
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        });
+                oLanguage: {
+                    sEmptyTable: "<p class='no_data_message'>No data available.</p>"
+                },
+                aoColumnDefs: [{
+                        bSortable: false,
+                        aTargets: [0, 5]
+                    },
+                    {
+                        sWidth: '10%',
+                        aTargets: [5]
+                    }
+                ],
+                aoColumns: [{
+                        data: 'sno',
+                        width: "5%"
+                    },
+                    {
+                        data: 'name',
+                        width: "25%"
+                    },
+                    {
+                        data: 'category',
+                        width: "15%"
+                    },
+                    {
+                        data: 'subcategory',
+                        width: "25%"
+                    },
+                    {
+                        data: 'type',
+                        width: "10%"
+                    },
+                    {
+                        data: 'brand',
+                        width: "10%"
+                    },
+                    {
+                        data: 'action',
+                        width: "10%",
+                        orderable: false
+                    }
+                ],
+                initComplete: function() {
+                    this.api().columns([1]).every(function() {
+                        var column = this;
+                        var header = $(column.header()).text().trim();
+                        $('<input type="text" class="form-control" placeholder="' + header +
+                                '..." style="width:100%;" />')
+                            .appendTo($(column.header()).empty())
+                            .on('keyup change', function() {
+                                column.search(this.value).draw();
+                            });
+                    });
+                }
+            });
 
-        $('#confirmDelete').on('click', function() {
-            if (!deleteId) return;
+            // ── Helper: open modal via AJAX ───────────────────────────────
+            function openItemModel(url, data, method) {
+                var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
 
-            $.post('{{ route('item.delete') }}', {
+                req.done(function(response) {
+                    $('#itemModelContent').html(response);
+
+                    // Destroy previous instance if any, then show fresh
+                    var modalEl = document.getElementById('itemModel');
+                    var existing = bootstrap.Modal.getInstance(modalEl);
+                    if (existing) existing.dispose();
+
+                    new bootstrap.Modal(modalEl, {
+                        backdrop: 'static',
+                        keyboard: false
+                    }).show();
+
+                }).fail(function() {
+                    showNotification('Failed to load form. Please try again.', 'error');
+                });
+            }
+
+            // ── Add ───────────────────────────────────────────────────────
+            $('#addItem').on('click', function() {
+                openItemModel('{{ route('item.form') }}', {}, 'GET');
+            });
+
+            // ── Edit ──────────────────────────────────────────────────────
+            $(document).on('click', '.editItem', function(e) {
+                e.preventDefault();
+                openItemModel(
+                    '{{ route('item.form') }}', {
+                        id: $(this).data('id'),
+                        _token: '{{ csrf_token() }}'
+                    },
+                    'POST'
+                );
+            });
+
+            // ── Delete ────────────────────────────────────────────────────
+            var deleteId = null;
+
+            $(document).on('click', '.deleteItem', function(e) {
+                e.preventDefault();
+                deleteId = $(this).data('id');
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            });
+
+            $('#confirmDelete').on('click', function() {
+                if (!deleteId) return;
+
+                $.post('{{ route('item.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })
-                .done(function(response) {
-                    var result = typeof response === 'string' ? JSON.parse(response) : response;
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        itemTable.fnDraw(); // ✅ old-style API
-                    } else {
-                        showNotification(result.message, 'error');
+                    .done(function(response) {
+                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            itemTable.fnDraw(); // ✅ old-style API
+                        } else {
+                            showNotification(result.message, 'error');
+                        }
+                    })
+                    .fail(function() {
+                        showNotification('Delete failed. Please try again.', 'error');
+                    })
+                    .always(function() {
+                        deleteId = null;
+                        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                    });
+            });
+
+            // ── Clear modal content on close ──────────────────────────────
+            document.getElementById('itemModel').addEventListener('hidden.bs.modal', function() {
+                $('#itemModelContent').html('');
+            });
+
+            // ── Image preview (delegated - works on AJAX loaded content) ──
+            $(document).on('change', '#image', function() {
+                var file = this.files[0];
+                if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
+            });
+
+            // ── Form submit (delegated - works on AJAX loaded content) ────
+            $(document).on('submit', '#itemForm', function(e) {
+                e.preventDefault();
+
+                // Basic required field check
+                var valid = true;
+                $(this).find('[data-required]').each(function() {
+                    $(this).removeClass('is-invalid');
+                    if (!$(this).val().trim()) {
+                        $(this).addClass('is-invalid');
+                        valid = false;
                     }
-                })
-                .fail(function() {
-                    showNotification('Delete failed. Please try again.', 'error');
-                })
-                .always(function() {
-                    deleteId = null;
-                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
                 });
-        });
+                if (!valid) return;
 
-        // ── Clear modal content on close ──────────────────────────────
-        document.getElementById('itemModel').addEventListener('hidden.bs.modal', function() {
-            $('#itemModelContent').html('');
-        });
+                var $btn = $(this).find('[type=submit]');
+                $btn.prop('disabled', true).text('Saving...');
+                showLoader();
 
-        // ── Image preview (delegated - works on AJAX loaded content) ──
-        $(document).on('change', '#image', function() {
-            var file = this.files[0];
-            if (file) $('#img_preview').attr('src', URL.createObjectURL(file));
-        });
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: new FormData(this),
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        hideLoader();
+                        var result = typeof response === 'string' ? JSON.parse(response) :
+                            response;
 
-        // ── Form submit (delegated - works on AJAX loaded content) ────
-        $(document).on('submit', '#itemForm', function(e) {
-            e.preventDefault();
+                        if (result.type === 'success') {
+                            showNotification(result.message, 'success');
+                            itemTable.fnDraw(); // ✅ old-style API
 
-            // Basic required field check
-            var valid = true;
-            $(this).find('[data-required]').each(function() {
-                $(this).removeClass('is-invalid');
-                if (!$(this).val().trim()) {
-                    $(this).addClass('is-invalid');
-                    valid = false;
-                }
-            });
-            if (!valid) return;
+                            // Close modal
+                            var modalEl = document.getElementById('itemModel');
+                            bootstrap.Modal.getInstance(modalEl).hide();
 
-            var $btn = $(this).find('[type=submit]');
-            $btn.prop('disabled', true).text('Saving...');
-            showLoader();
-
-            $.ajax({
-                url: $(this).attr('action'),
-                type: 'POST',
-                data: new FormData(this),
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    hideLoader();
-                    var result = typeof response === 'string' ? JSON.parse(response) :
-                        response;
-
-                    if (result.type === 'success') {
-                        showNotification(result.message, 'success');
-                        itemTable.fnDraw(); // ✅ old-style API
-
-                        // Close modal
-                        var modalEl = document.getElementById('itemModel');
-                        bootstrap.Modal.getInstance(modalEl).hide();
-
-                    } else {
-                        showNotification(result.message, 'error');
+                        } else {
+                            showNotification(result.message, 'error');
+                            $btn.prop('disabled', false).text('Save');
+                        }
+                    },
+                    error: function(xhr) {
+                        hideLoader();
                         $btn.prop('disabled', false).text('Save');
-                    }
-                },
-                error: function(xhr) {
-                    hideLoader();
-                    $btn.prop('disabled', false).text('Save');
 
-                    if (xhr.status === 422) {
-                        $.each(xhr.responseJSON.errors, function(field, messages) {
-                            $('[name="' + field + '"]').addClass('is-invalid');
-                            showNotification(messages[0], 'error');
-                        });
-                    } else {
-                        showNotification('Something went wrong!', 'error');
+                        if (xhr.status === 422) {
+                            $.each(xhr.responseJSON.errors, function(field, messages) {
+                                $('[name="' + field + '"]').addClass('is-invalid');
+                                showNotification(messages[0], 'error');
+                            });
+                        } else {
+                            showNotification('Something went wrong!', 'error');
+                        }
                     }
-                }
+                });
+            });
+
+            // ── Clear invalid state on input ──────────────────────────────
+            $(document).on('input change', '#itemForm .form-control', function() {
+                $(this).removeClass('is-invalid');
+            });
+            $(document).on('click', '.viewItem', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                openItemModel(
+                    '{{ route('item.view') }}', {
+                        id: id,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    'POST'
+                );
             });
         });
-
-        // ── Clear invalid state on input ──────────────────────────────
-        $(document).on('input change', '#itemForm .form-control', function() {
-            $(this).removeClass('is-invalid');
-        });
-        $(document).on('click', '.viewItem', function(e) {
-            e.preventDefault();
-            var id = $(this).data('id');
-            openItemModel(
-                '{{ route('item.view') }}', {
-                    id: id,
-                    _token: '{{ csrf_token() }}'
-                },
-                'POST'
-            );
-        });
-    });
-</script>
+    </script>
 @endsection

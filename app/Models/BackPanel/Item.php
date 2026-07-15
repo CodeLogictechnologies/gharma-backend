@@ -354,23 +354,30 @@ class Item extends Model
 
                             if ($price > 0) {
 
-                                $price = (float) $post['price'];
+                                if (!empty($post['price'])) {
+                                    $price = (float) $post['price'];
+                                }
 
                                 // Discount
                                 $discount = 0;
-                                if ($post['discount_type'] == 'percentage') {
-                                    $discount = ($price * (float)$post['discount_percentage']) / 100;
-                                } else {
-                                    $discount = (float)($post['discount_amount'] ?? 0);
+                                if (!empty($post['discount_type'])) {
+
+                                    if ($post['discount_type'] == 'percentage') {
+                                        $discount = ($price * (float)$post['discount_percentage']) / 100;
+                                    } else {
+                                        $discount = (float)($post['discount_amount'] ?? 0);
+                                    }
                                 }
 
                                 // Excise
                                 $excise = 0;
-                                if ($post['excise_status'] == 1) {
-                                    if ($post['excise_type'] == 'percentage') {
-                                        $excise = ($price * (float)$post['excise_percentage']) / 100;
-                                    } else {
-                                        $excise = (float)($post['excise_value'] ?? 0);
+                                if (!empty($post['excise_status'])) {
+                                    if ($post['excise_status'] == 1) {
+                                        if ($post['excise_type'] == 'percentage') {
+                                            $excise = ($price * (float)$post['excise_percentage']) / 100;
+                                        } else {
+                                            $excise = (float)($post['excise_value'] ?? 0);
+                                        }
                                     }
                                 }
 
@@ -378,8 +385,10 @@ class Item extends Model
                                 $subTotalBefore = $price + $excise;
                                 $vatBefore = 0;
 
-                                if ($post['vat_status'] == 1) {
-                                    $vatBefore = ($subTotalBefore * (float)$post['vat_percent']) / 100;
+                                if (!empty($post['vat_status'])) {
+                                    if ($post['vat_status'] == 1) {
+                                        $vatBefore = ($subTotalBefore * (float)$post['vat_percent']) / 100;
+                                    }
                                 }
 
                                 $priceBeforeDiscount = $subTotalBefore + $vatBefore;
@@ -388,8 +397,10 @@ class Item extends Model
                                 $subTotalAfter = ($price - $discount) + $excise;
                                 $vatAfter = 0;
 
-                                if ($post['vat_status'] == 1) {
-                                    $vatAfter = ($subTotalAfter * (float)$post['vat_percent']) / 100;
+                                if (!empty($post['vat_status'])) {
+                                    if ($post['vat_status'] == 1) {
+                                        $vatAfter = ($subTotalAfter * (float)$post['vat_percent']) / 100;
+                                    }
                                 }
 
                                 $priceAfterDiscount = $subTotalAfter + $vatAfter;

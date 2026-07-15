@@ -21,7 +21,7 @@ class InventoryReportController extends Controller
         $post['orgid'] = session('orgid');
 
         $rows = Inventory::getData($post);
-
+        dd($rows);
 
         $total        = $rows->count();
         $inStock      = $rows->filter(fn($r) => $r->available_qty > $r->threshold)->count();
