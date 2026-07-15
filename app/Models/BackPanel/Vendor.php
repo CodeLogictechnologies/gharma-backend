@@ -118,8 +118,8 @@ class Vendor extends Model
     public static function list($post)
     {
         try {
-            $cond     = " status = 'Y'";
-            $bindings = [];
+             $cond     = " status = 'Y' and orgid = ?";
+            $bindings = [$post['orgid']];
 
             // Old-style sSearch params (sAjaxSource sends these)
             if (!empty($post['sSearch_1'])) {

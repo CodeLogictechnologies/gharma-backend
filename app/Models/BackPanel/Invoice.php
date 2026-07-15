@@ -84,8 +84,9 @@ class Invoice extends Model
     public static function list($post)
     {
         try {
-            $cond     = "1=1";
-            $bindings = [];
+            $cond     = "om.orgid = ?";
+            $bindings = [$post['orgid']];
+            
 
             if (!empty($post['sSearch_1'])) {
                 $val        = strtolower(trim($post['sSearch_1']));

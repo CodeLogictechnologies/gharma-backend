@@ -219,7 +219,7 @@
                                     showNotification(val[0], 'error');
                                 });
                             } else {
-                                showNotification('Something went wrong!', 'error');
+                                showNotification('Invalid Email or Password!', 'error');
                             }
                         }
                     });

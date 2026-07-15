@@ -37,6 +37,7 @@ class Notification extends Model
 
                 $vendor = DB::table('notifications')
                     ->where('id', $post['id'])
+                    ->where('orgid', $post['orgid'])
                     ->update($dataArray);
 
                 if (!$vendor) {
@@ -67,7 +68,7 @@ class Notification extends Model
     public static function list($post)
     {
         try {
-            $get = $_GET;
+            $get = $post;
             $cond = "";
 
             foreach ($get as $key => $value) {

@@ -103,6 +103,7 @@ class VariationAttributeController extends Controller
     {
         try {
             $post = $request->all();
+            $post['orgid'] = session('orgid');
             $data = VariationAttribute::list($post);
 
             $i              = 0;
@@ -160,6 +161,8 @@ class VariationAttributeController extends Controller
             $message = 'Record deleted successfully';
 
             $post = $request->all();
+            $post['orgid'] = session('orgid');
+
 
             DB::beginTransaction();
             VariationAttribute::deleteRecord($post);

@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\File;
 
 //             $imageName = null;
 
-//             // ✅ Handle Image Upload
+//             //  Handle Image Upload
 //             if (!empty($post['image'])) {
 //                 $file = $post['image'];
 
@@ -48,10 +48,10 @@ use Illuminate\Support\Facades\File;
 
 //             if (!empty($post['id'])) {
 
-//                 // ✅ Update case
+//                 //  Update case
 //                 $oldData = Category::find($post['id']);
 
-//                 // ✅ Delete old image from storage
+//                 //  Delete old image from storage
 //                 if ($imageName && $oldData && $oldData->image) {
 //                     $oldPath = storage_path('app/public/categories/' . $oldData->image);
 //                     if (File::exists($oldPath)) {
@@ -162,11 +162,11 @@ use Illuminate\Support\Facades\File;
 class Category extends Model
 {
     use HasFactory;
- 
+
     public $incrementing = false;
     protected $keyType   = 'string';
     protected $table     = 'categories';
- 
+
     // ─────────────────────────────────────────────────────────────────
     // Save (insert or update)
     // ─────────────────────────────────────────────────────────────────
@@ -174,13 +174,13 @@ class Category extends Model
     {
         try {
             $imageName = null;
- 
+
             if (!empty($post['image'])) {
                 $file      = $post['image'];
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
                 $file->storeAs('categories', $imageName, 'public');
             }
- 
+
             $dataArray = [
                 'title'     => $post['name'],
                 'slug'      => Str::slug($post['name']) . '-' . time(),
@@ -188,20 +188,20 @@ class Category extends Model
                 'orgid'     => $post['orgid'],
                 'parent_id' => !empty($post['parent_id']) ? $post['parent_id'] : null,
             ];
- 
+
             if ($imageName) {
                 $dataArray['image'] = $imageName;
             }
- 
+
             if (!empty($post['id'])) {
                 // Update
                 $oldData = Category::find($post['id']);
- 
+
                 if ($imageName && $oldData && $oldData->image) {
                     $oldPath = storage_path('app/public/categories/' . $oldData->image);
                     if (File::exists($oldPath)) File::delete($oldPath);
                 }
- 
+
                 $dataArray['updated_at'] = Carbon::now();
                 if (!Category::where('id', $post['id'])->update($dataArray)) {
                     throw new \Exception("Couldn't update record.");
@@ -214,13 +214,13 @@ class Category extends Model
                     throw new \Exception("Couldn't save record.");
                 }
             }
- 
+
             return true;
         } catch (\Exception $e) {
             throw $e;
         }
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // List for DataTable (server-side)
     // ─────────────────────────────────────────────────────────────────
@@ -228,26 +228,26 @@ class Category extends Model
     {
         try {
             $get = $post;
- 
+
             foreach ($get['columns'] as $key => $value) {
                 $get['columns'][$key]['search']['value'] =
                     trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
             }
- 
-            $cond = "c.status = 'Y'";
- 
+
+            $cond = "c.status = 'Y' AND c.orgid = '" . addslashes($post['orgid']) . "'";
+
             // Search by category name (column index 1)
             if (!empty($get['columns'][1]['search']['value'])) {
                 $cond .= " AND LOWER(c.title) LIKE '%" . $get['columns'][1]['search']['value'] . "%'";
             }
- 
+
             $limit  = 10;
             $offset = 0;
             if (!empty($get['length'])) {
                 $limit  = (int) $get['length'];
                 $offset = (int) $get['start'];
             }
- 
+
             $query = Category::from('categories as c')
                 ->leftJoin('categories as p', 'p.id', '=', 'c.parent_id')
                 ->selectRaw("
@@ -259,31 +259,33 @@ class Category extends Model
                     p.title AS parent_name
                 ")
                 ->whereRaw($cond);
- 
+
             $result = ($limit > -1)
                 ? $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->offset($offset)->limit($limit)->get()
                 : $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->get();
- 
+
             $ndata                    = $result;
             $ndata['totalrecs']       = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
             $ndata['totalfilteredrecs'] = $ndata['totalrecs'];
- 
+
             return $ndata;
         } catch (Exception $e) {
             throw $e;
         }
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // Soft delete (status = N)
     // ─────────────────────────────────────────────────────────────────
     public static function deleteCategory($post)
     {
         try {
-            if (!Category::where('id', $post['id'])->update([
-                'status'     => 'N',
-                'updated_at' => Carbon::now(),
-            ])) {
+            if (!Category::where('id', $post['id'])
+                ->where('orgid', $post['orgid'])
+                ->update([
+                    'status'     => 'N',
+                    'updated_at' => Carbon::now(),
+                ])) {
                 throw new Exception("Couldn't delete record.");
             }
             return true;
@@ -291,7 +293,7 @@ class Category extends Model
             throw $e;
         }
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // Get all active categories for Parent dropdown
     // Excludes the category being edited (to prevent self-reference)
@@ -304,17 +306,17 @@ class Category extends Model
                 ->where('status', 'Y')
                 ->where('orgid', $orgid)
                 ->whereNull('parent_id'); // only top-level categories can be parents
- 
+
             if ($excludeId) {
                 $query->where('id', '!=', $excludeId);
             }
- 
+
             return $query->orderBy('title')->get();
         } catch (Exception $e) {
             throw $e;
         }
     }
- 
+
     // ─────────────────────────────────────────────────────────────────
     // Used by other controllers (SubCategory dropdown etc.)
     // ─────────────────────────────────────────────────────────────────

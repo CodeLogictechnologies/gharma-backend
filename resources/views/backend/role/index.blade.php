@@ -49,18 +49,10 @@
                                     <input type="checkbox" class="form-check-input" id="selectAll" title="Select All">
                                 </th>
                                 <th>Sidebar Name</th>
-                                <th class="text-center">
-                                    Add
-                                </th>
-                                <th class="text-center">
-                                    Edit
-                                </th>
-                                <th class="text-center">
-                                    View
-                                </th>
-                                <th class="text-center">
-                                    Delete
-                                </th>
+                                <th class="text-center">Add</th>
+                                <th class="text-center">Edit</th>
+                                <th class="text-center">View</th>
+                                <th class="text-center">Delete</th>
                             </tr>
                         </thead>
                         <tbody id="permissionBody">
@@ -97,92 +89,30 @@
         });
 
         // ── Module definitions ──────────────────────────────────────────
-        var modules = [{
-                label: 'Favicon',
-                key: 'favicon'
-            },
-            {
-                label: 'Role',
-                key: 'role'
-            },
-            {
-                label: 'Home Tab',
-                key: 'hometab'
-            },
-            {
-                label: 'Store',
-                key: 'store'
-            },
-            {
-                label: 'Category',
-                key: 'category'
-            },
-            {
-                label: 'Brand',
-                key: 'brand'
-            },
-            {
-                label: 'Item',
-                key: 'item'
-            },
-            {
-                label: 'Users',
-                key: 'user'
-            },
-            {
-                label: 'Driver List',
-                key: 'driverlist'
-            },
-            {
-                label: 'Inventory',
-                key: 'inventory'
-            },
-            {
-                label: 'Vendor',
-                key: 'vendor'
-            },
-            {
-                label: 'Retailer',
-                key: 'retailer'
-            },
-            {
-                label: 'Wholesaler',
-                key: 'wholesaler'
-            },
-            {
-                label: 'Discount',
-                key: 'discount'
-            },
-            {
-                label: 'Loyalty',
-                key: 'loyalty'
-            },
-            {
-                label: 'Order',
-                key: 'order'
-            },
-            {
-                label: 'Invoice',
-                key: 'invoice'
-            },
-            {
-                label: 'Refund',
-                key: 'refund'
-            },
-            {
-                label: 'Report',
-                key: 'report'
-            },
-            {
-                label: 'Heatmap',
-                key: 'heatmap'
-            },
-            {
-                label: 'Notification',
-                key: 'notification'
-            },
+        var modules = [
+            { label: 'Favicon', key: 'favicon' },
+            { label: 'Role', key: 'role' },
+            { label: 'Home Tab', key: 'hometab' },
+            { label: 'Store', key: 'store' },
+            { label: 'Category', key: 'category' },
+            { label: 'Brand', key: 'brand' },
+            { label: 'Item', key: 'item' },
+            { label: 'Users', key: 'user' },
+            { label: 'Driver List', key: 'driverlist' },
+            { label: 'Inventory', key: 'inventory' },
+            { label: 'Vendor', key: 'vendor' },
+            { label: 'Retailer', key: 'retailer' },
+            { label: 'Wholesaler', key: 'wholesaler' },
+            { label: 'Discount', key: 'discount' },
+            { label: 'Loyalty', key: 'loyalty' },
+            { label: 'Order', key: 'order' },
+            { label: 'Invoice', key: 'invoice' },
+            { label: 'Refund', key: 'refund' },
+            { label: 'Report', key: 'report' },
+            { label: 'Heatmap', key: 'heatmap' },
+            { label: 'Notification', key: 'notification' },
         ];
-        
+
         var allPermissions = Object.values(@json($permissions)); // All permissions from backend
         var rolePermissions = []; // IDs assigned to selected role
 
@@ -196,20 +126,14 @@
             }
 
             $.post('{{ route("role.getPermissions") }}', {
-    id: roleId
-}, function(res) {
-    var result = typeof res === 'string' ? JSON.parse(res) : res;
-    rolePermissions = result.permissions || [];
+                id: roleId
+            }, function(res) {
+                var result = typeof res === 'string' ? JSON.parse(res) : res;
+                rolePermissions = result.permissions || [];
 
-    console.log('rolePermissions:', rolePermissions);
-    console.log('rolePermissions[0] type:', typeof rolePermissions[0]);
-    console.log('allPermissions[0]:', allPermissions[0]);
-    console.log('allPermissions[0].id type:', typeof allPermissions[0].id);
-
-    buildMatrix();
-    $('#permissionTableWrap').show();
-    $('#noRoleMsg').hide();
-});('#noRoleMsg').hide();
+                buildMatrix();
+                $('#permissionTableWrap').show();
+                $('#noRoleMsg').hide();
             });
         });
 
@@ -218,17 +142,12 @@
             var $tbody = $('#permissionBody').empty();
 
             modules.forEach(function(mod) {
-                var paddingLeft = mod.indent === 1 ? '2rem' : (mod.indent === 2 ? '3.5rem' : '0');
-                var collapseBtn = mod.indent === 0 ?
-                    '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 collapse-row me-1" style="font-size:11px; line-height:1.4;">−</button>' :
-                    '';
+                var row = '<tr data-key="' + mod.key + '">';
+                row += '<td><input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
+                row += '<td>' + mod.label + '</td>';
 
-                var row = '<tr data-key="' + mod.key + '" data-indent="' + mod.indent + '">';
-                row += '<td>' + collapseBtn + '<input type="checkbox" class="form-check-input row-select" data-key="' + mod.key + '"></td>';
-                row += '<td style="padding-left:calc(' + paddingLeft + ' + 0.75rem);">' + mod.label + '</td>';
-                
                 ['add', 'edit', 'view', 'delete'].forEach(function(action) {
-                    var permName = mod.key + '.' + action;
+                    var permName = action + '.' + mod.key;
                     var perm = allPermissions.find(function(p) {
                         return p.name === permName;
                     });
@@ -250,13 +169,6 @@
             $('.row-select').prop('checked', checked);
         });
 
-        // ── Column header checkboxes (Add / Edit / View / Delete) ────────
-        $(document).on('change', '.col-check', function() {
-            var col = $(this).data('col');
-            var checked = $(this).is(':checked');
-            $('.perm-check[data-action="' + col + '"]').prop('checked', checked);
-        });
-
         // ── Row select checkbox (checks all 4 actions in that row) ───────
         $(document).on('change', '.row-select', function() {
             var key = $(this).data('key');
@@ -264,60 +176,33 @@
             $('.perm-check[data-key="' + key + '"]').prop('checked', checked);
         });
 
-        // ── Collapse/expand child rows ───────────────────────────────────
-        $(document).on('click', '.collapse-row', function() {
-            var $btn = $(this);
-            var $row = $btn.closest('tr');
-            var key = $row.data('key');
-            var isOpen = $btn.text() === '−';
-
-            // Find sibling rows that come after this parent (indent > 0) until next indent-0
-            var $siblings = $row.nextAll('tr');
-            var $children = $();
-            $siblings.each(function() {
-                if ($(this).data('indent') > 0) {
-                    $children = $children.add($(this));
-                } else {
-                    return false;
-                }
-            });
-
-            if (isOpen) {
-                $children.hide();
-                $btn.text('+');
-            } else {
-                $children.show();
-                $btn.text('−');
-            }
-        });
-
         // ── Save button → confirm modal ──────────────────────────────────
         $('#savePermissionsBtn').on('click', function() {
             new bootstrap.Modal(document.getElementById('saveModal')).show();
         });
 
-        $('#confirmSave').on('click', function () {
-    var roleId    = $('#roleSelect').val();
-    var permNames = [];
+        $('#confirmSave').on('click', function() {
+            var roleId = $('#roleSelect').val();
+            var permNames = [];
 
-    $('.perm-check:checked').each(function () {
-        var key    = $(this).data('key');
-        var action = $(this).data('action');
-        permNames.push(key + '.' + action);
-    });
+            $('.perm-check:checked').each(function() {
+                var key = $(this).data('key');
+                var action = $(this).data('action');
+                permNames.push(action + '.' + key);
+            });
 
-    $.post('{{ route("role.savePermissions") }}', {
-        id:         roleId,
-        perm_names: permNames,
-        _token:     '{{ csrf_token() }}'
-    }, function (res) {
-        var result = typeof res === 'string' ? JSON.parse(res) : res;
-        showNotification(result.message, result.type);
-        bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
-    }).fail(function () {
-        showNotification('Something went wrong!', 'error');
-    });
-});
+            $.post('{{ route("role.savePermissions") }}', {
+                id: roleId,
+                perm_names: permNames,
+                _token: '{{ csrf_token() }}'
+            }, function(res) {
+                var result = typeof res === 'string' ? JSON.parse(res) : res;
+                showNotification(result.message, result.type);
+                bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
+            }).fail(function() {
+                showNotification('Something went wrong!', 'error');
+            });
+        });
 
     });
 </script>
