@@ -18,7 +18,8 @@
                 @foreach ($statuses as $status)
                     <li class="nav-item">
                         <a class="nav-link" href="javascript:;" data-status="{{ $status }}">
-                            {{ $status }} <span class="badge bg-label-secondary rounded-pill ms-1" id="count-{{ $status }}">0</span>
+                            {{ $status }} <span class="badge bg-label-secondary rounded-pill ms-1"
+                                id="count-{{ $status }}">0</span>
                         </a>
                     </li>
                 @endforeach
@@ -116,6 +117,7 @@
                 orderTable.fnSettings()._iDisplayStart = 0;
                 orderTable.fnDraw();
             });
+
             function openOrgModal(url, data, method) {
                 var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
 
@@ -335,16 +337,16 @@
                     //     showNotification('Status update failed. Please try again.', 'error');
                     // })
                     .fail(function(xhr) {
-    if ($activeDropdown) {
-        $activeDropdown.val(previousStatus);
-    }
-    let msg = 'Status update failed. Please try again.';
-    try {
-        let res = xhr.responseJSON || JSON.parse(xhr.responseText);
-        if (res && res.message) msg = res.message;
-    } catch(e) {}
-    showNotification(msg, 'error');
-})
+                        if ($activeDropdown) {
+                            $activeDropdown.val(previousStatus);
+                        }
+                        let msg = 'Status update failed. Please try again.';
+                        try {
+                            let res = xhr.responseJSON || JSON.parse(xhr.responseText);
+                            if (res && res.message) msg = res.message;
+                        } catch (e) {}
+                        showNotification(msg, 'error');
+                    })
                     .always(function() {
                         var modalInstance = bootstrap.Modal.getInstance(document.getElementById(
                             'statusModal'));
@@ -439,6 +441,43 @@
                         } else {
                             showNotification('Something went wrong!', 'error');
                         }
+                    }
+                });
+            });
+
+            $(document).on('click', '.viewInvoice', function() {
+                var id = $(this).data('id');
+                var btn = $(this);
+
+                btn.find('i').removeClass('bx-receipt').addClass('bx-loader bx-spin');
+
+                $.ajax({
+                    url: "{{ route('order.invoice.generate') }}",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        order_id: id
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        btn.find('i').removeClass('bx-loader bx-spin').addClass('bx-receipt');
+
+                        if (response.type === 'success') {
+                            var pdfWindow = window.open(response.url, '_blank');
+                            if (pdfWindow) {
+                                pdfWindow.onload = function() {
+                                    pdfWindow.print();
+                                };
+                            }
+                        } else {
+                            swal('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        btn.find('i').removeClass('bx-loader bx-spin').addClass('bx-receipt');
+                        swal('Error!',
+                            'Something went wrong while generating the PDF. Please try again.',
+                            'error');
                     }
                 });
             });

@@ -324,16 +324,16 @@
         </li>
 
         {{-- Invoice --}}
-        <li class="menu-item {{ request()->routeIs('invoice') ? 'active' : '' }}">
+        {{-- <li class="menu-item {{ request()->routeIs('invoice') ? 'active' : '' }}">
             <a href="{{ route('invoice') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-receipt"></i>
                 <div>Invoice</div>
             </a>
-        </li>
+        </li> --}}
 
         <!-- Refund -->
-        <li class="menu-item {{ request()->routeIs('refund') ? 'active' : '' }}">
-            <a href="{{ route('refund') }}" class="menu-link">
+        <li class="menu-item {{ request()->routeIs('refunds.policy') ? 'active' : '' }}">
+            <a href="{{ route('refunds.policy') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-revision"></i>
                 <div>Refund</div>
             </a>

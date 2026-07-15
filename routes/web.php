@@ -247,6 +247,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/status-counts', [OrderController::class, 'statusCounts'])->name('order.status.counts');
             Route::post('/view', [OrderController::class, 'view'])->name('order.view');
             Route::post('/order-status-update', [OrderController::class, 'updateStatus'])->name('order.status.update');
+            Route::post('/order/invoice/generate', [OrderController::class, 'generateInvoice'])
+                ->name('order.invoice.generate');
         });
 
         Route::group(['prefix' => 'inventory'], function () {

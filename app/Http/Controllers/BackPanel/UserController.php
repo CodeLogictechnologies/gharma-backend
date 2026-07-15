@@ -42,7 +42,7 @@ class UserController extends Controller
                 'email'      => [
                     'required',
                     'email',
-                        'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/',
+                    'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/',
                     function ($attribute, $value, $fail) use ($request) {
                         $exists = DB::table('users')
                             ->where('email', $value)
@@ -264,6 +264,7 @@ class UserController extends Controller
             $post          = $request->all();
             $post['orgid'] = session('orgid');
             $data          = User::list($post);
+            // dd($data);
 
             $i            = 0;
             $array        = [];

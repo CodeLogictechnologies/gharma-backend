@@ -270,7 +270,7 @@ class SalesVoucher extends Model
                     'userid'                         => $customer_id,
                     'price'                          => $unitPrice,
                     'discount_type'                  => $variation->discount_type,
-                    'discount_amount'                => $variation->discount_amount,
+                    'discount_amount'                => $variation->discount_amount ?? null,
                     'discount_amount_per_variation'  => $discountAmount,
                     'excise_type'                    => $variation->excise_status === 'Y'
                         ? $variation->excise_type

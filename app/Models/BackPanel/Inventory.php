@@ -118,7 +118,6 @@ class Inventory extends Model
             $filteredCount = DB::query()
                 ->fromSub($query->clone(), 'grouped')
                 ->count();
-
             $result = $limit > -1
                 ? $query->offset($offset)->limit($limit)->get()
                 : $query->get();
