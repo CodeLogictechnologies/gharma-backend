@@ -16,10 +16,7 @@
                     <thead class="table-light">
                         <tr class="align-middle">
                             <th>ID</th>
-                            <th>Title</th>
-                            <th>Type</th>
                             <th>Apply to</th>
-                            <th>Minimun Requirement</th>
                             <th>Start At</th>
                             <th>End At</th>
                             <th>Action</th>
@@ -100,27 +97,18 @@
                 },
                 aoColumnDefs: [{
                         bSortable: false,
-                        aTargets: [0, 5, 6]
+                        aTargets: [0]
                     },
                     {
                         sWidth: '10%',
-                        aTargets: [5]
+                        aTargets: [3]
                     }
                 ],
                 aoColumns: [{
                         data: 'sno'
                     },
                     {
-                        data: 'title'
-                    },
-                    {
-                        data: 'type'
-                    },
-                    {
                         data: 'applies_to'
-                    },
-                    {
-                        data: 'min_requirement'
                     },
                     {
                         data: 'starts_at'
@@ -157,6 +145,15 @@
 
                 req.done(function(response) {
                     $('#discountModelContent').html(response);
+
+
+                    $('#start_date_np').nepaliDatePicker({
+                        container: '#discountModel'
+                    });
+
+                    $('#end_date_np').nepaliDatePicker({
+                        container: '#discountModel'
+                    });
 
                     // Destroy previous instance if any, then show fresh
                     var modalEl = document.getElementById('discountModel');
@@ -249,7 +246,7 @@
             $(document).on('input change', '#orgForm .form-control', function() {
                 $(this).removeClass('is-invalid');
             });
-            $(document).on('click', '.viewOrg', function(e) {
+            $(document).on('click', '.viewDiscount', function(e) {
                 e.preventDefault();
                 var id = $(this).data('id');
                 openOrgModal(

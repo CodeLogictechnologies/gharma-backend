@@ -5,6 +5,7 @@ namespace App\Http\Controllers\BackPanel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DiscountRequest;
 use App\Models\BackPanel\Discount;
+use App\Models\BackPanel\Item;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use Exception;
@@ -20,6 +21,7 @@ class DiscountController extends Controller
     public function save(DiscountRequest $request)
     {
         try {
+
             $post = $request->validated();
 
             $post['userid'] = session('userid');
@@ -28,87 +30,45 @@ class DiscountController extends Controller
             Discount::saveData($post);
 
             return response()->json([
+                'status'  => true,
                 'type'    => 'success',
-                'message' => !empty($post['id']) ? 'Discount updated successfully.' : 'Discount saved successfully.',
-            ]);
+                'message' => !empty($post['id'])
+                    ? 'Discount updated successfully.'
+                    : 'Discount saved successfully.',
+            ], 200);
         } catch (\Exception $e) {
+
             return response()->json([
+                'status'  => false,
                 'type'    => 'error',
-                'message' => $e->getMessage(),
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Something went wrong. Please try again.',
             ], 500);
         }
     }
-
     public function list(Request $request)
     {
         try {
             $get = $request->all();
 
-            $cond  = "status = 'Y' AND type != 'coupon' AND orgid = ?";
+            $cond  = "status = 'Y'  AND orgid = ?";
 
             $binds = [session('orgid')];
 
             if (!empty($get['sSearch_1'])) {
-                $cond   .= " AND LOWER(title) LIKE ?";
+                $cond   .= " AND LOWER(applies_to) LIKE ?";
                 $binds[] = '%' . strtolower(trim($get['sSearch_1'])) . '%';
             }
-            if (!empty($get['sSearch_2'])) {
-                $cond   .= " AND LOWER(type) LIKE ?";
-                $binds[] = '%' . strtolower(trim($get['sSearch_2'])) . '%';
-            }
-            if (!empty($get['sSearch_3'])) {
-                $cond   .= " AND LOWER(applies_to) LIKE ?";
-                $binds[] = '%' . strtolower(trim($get['sSearch_3'])) . '%';
-            }
 
-            // $limit  = (int) ($get['length'] ?? 15);
-            // $offset = (int) ($get['start']  ?? 0);
-            $limit  = (int) ($get['iDisplayLength'] ?? 15);
+            $limit  = (int) ($get['iDispllayLength'] ?? 15);
             $offset = (int) ($get['iDisplayStart']  ?? 0);
 
-            // $query = DB::table('discounts')
-            //     ->selectRaw("
-            //         (SELECT COUNT(*) FROM discounts WHERE {$cond}) AS totalrecs,
-            //         id, title, type, applies_to, min_requirement, starts_at, ends_at
-            //     ", $binds)
-            //     ->whereRaw($cond, $binds)
-            //     ->orderBy('created_at', 'desc');
 
-            // $result = ($limit > -1)
-            //     ? $query->offset($offset)->limit($limit)->get()
-            //     : $query->get();
+            $totalrecs = DB::table('discount_masters')->whereRaw($cond, $binds)->count();
 
-            // $totalrecs = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
-
-            // $rows = $result->map(function ($row, $i) use ($offset) {
-            //     $action  = '';
-            //     $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrg        px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
-            //     $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editDiscount   px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-            //     $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteDiscount px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
-
-            //     return [
-            //         'sno'             => $offset + $i + 1,
-            //         'title'           => $row->title ?? '-',
-            //         'type'            => ucfirst($row->type),
-            //         'applies_to'      => ucfirst($row->applies_to),
-            //         'min_requirement' => ucfirst($row->min_requirement),
-            //         'starts_at'       => $row->starts_at
-            //             ? \Carbon\Carbon::parse($row->starts_at)->format('d M Y') : '-',
-            //         'ends_at'         => $row->ends_at
-            //             ? \Carbon\Carbon::parse($row->ends_at)->format('d M Y') : '-',
-            //         'action'          => $action,
-            //     ];
-            // });
-
-            // return response()->json([
-            //     'iTotalRecords'        => $totalrecs,
-            //     'iTotalDisplayRecords' => $totalrecs,
-            //     'aaData'               => $rows,
-            // ]);
-            $totalrecs = DB::table('discounts')->whereRaw($cond, $binds)->count();
-
-            $query = DB::table('discounts')
-                ->selectRaw("id, title, type, applies_to, min_requirement, starts_at, ends_at")
+            $query = DB::table('discount_masters')
+                ->selectRaw("id, applies_to, start_date_bs as starts_at, end_date_bs as ends_at")
                 ->whereRaw($cond, $binds)
                 ->orderBy('created_at', 'desc');
 
@@ -120,16 +80,12 @@ class DiscountController extends Controller
 
             $rows = $result->map(function ($row, $i) use ($offset) {
                 $action  = '';
-                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrg        px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editDiscount   px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewDiscount px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
                 $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteDiscount px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
 
                 return [
                     'sno'             => $offset + $i + 1,
-                    'title'           => $row->title ?? '-',
-                    'type'            => ucfirst($row->type),
                     'applies_to'      => ucfirst($row->applies_to),
-                    'min_requirement' => ucfirst($row->min_requirement),
                     'starts_at'       => $row->starts_at
                         ? \Carbon\Carbon::parse($row->starts_at)->format('d M Y') : '-',
                     'ends_at'         => $row->ends_at
@@ -222,47 +178,86 @@ class DiscountController extends Controller
     public function view(Request $request)
     {
         try {
-            $discount = DB::table('discounts')
-                ->where('id', $request->id)
-                ->where('orgid', session('orgid'))
-                ->where('type', '!=', 'coupon')
-                ->first();
+            $discounts = DB::table('discount_details as dd')
+                ->join('itemvariations as iv', 'iv.id', '=', 'dd.variation_id')
+                ->join('items as i', 'i.id', '=', 'iv.item_id')
+                ->select(
+                    'iv.id as variation_id',
+                    'i.title',
+                    'iv.attribute',
+                    'iv.value',
+                    'dd.discount_type',
+                    'dd.discount_amount',
+                    'dd.total_amount'
+                )
+                ->where('dd.discount_master_id', $request->id)
+                ->where('dd.orgid', session('orgid'))
+                ->where('iv.orgid', session('orgid'))
+                ->where('i.orgid', session('orgid'))
+                ->get();
 
-            if (!$discount) {
+            if (!$discounts) {
                 return view('backend.discount.view', [
-                    'type'    => 'error',
-                    'message' => 'Discount not found.',
+                    'type' => 'error',
+                    'message' => 'Discount not found.'
                 ]);
             }
 
-            if (!empty($discount->item_id)) {
-                $item = DB::table('items')->where('id', $discount->item_id)->first();
-                $discount->item_title = $item->title ?? null;
-            }
-
-            if (!empty($discount->variation_id)) {
-                $variation = DB::table('itemvariations')->where('id', $discount->variation_id)->first();
-                $discount->variation_label = $variation
-                    ? ($variation->attribute . ' - ' . $variation->value)
-                    : null;
-            }
-
             return view('backend.discount.view', [
-                'type'     => 'success',
-                'discount' => $discount,
+                'type' => 'success',
+                'discounts' => $discounts
             ]);
         } catch (\Exception $e) {
             return view('backend.discount.view', [
-                'type'    => 'error',
-                'message' => $e->getMessage(),
+                'type' => 'error',
+                'message' => $e->getMessage()
             ]);
         }
     }
 
-    public function lists()
+    public function lists(Request $request)
     {
-        $items = DB::table('items')->select('id', 'title')->get();
-        return response()->json(['data' => $items]);
+        $query = DB::table('itemvariations as iv')
+            ->join('items as i', 'i.id', '=', 'iv.item_id')
+            ->select(
+                'iv.id',
+                'i.title',
+                'iv.attribute',
+                'iv.value'
+            );
+
+        if ($request->filled('category_id')) {
+            $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
+                ->where('ci.categoryid', $request->category_id);
+        }
+
+        if ($request->filled('sub_category_id')) {
+            $query->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
+                ->where('sci.subcategoryid', $request->sub_category_id);
+        }
+
+        if ($request->filled('sub_sub_category_id')) {
+            $query->join('sub_sub_category_items as ssci', 'ssci.itemid', '=', 'i.id')
+                ->where('ssci.subsubcategoryid', $request->sub_sub_category_id);
+        }
+
+        if ($request->filled('brand_id')) {
+            $query->where('i.brandid', $request->brand_id);
+        }
+
+        $data = $query->get()->map(function ($row) {
+            return [
+                'id'    => $row->id, // variation id
+                'title' => $row->title .
+                    (!empty($row->attribute)
+                        ? ' (' . $row->attribute . ': ' . $row->value . ')'
+                        : ''),
+            ];
+        });
+
+        return response()->json([
+            'data' => $data
+        ]);
     }
 
     public function variations($id)
@@ -272,5 +267,30 @@ class DiscountController extends Controller
             ->where('item_id', $id)
             ->get();
         return response()->json(['data' => $variations]);
+    } // GET /admin/discount/categories?level=1
+    public function categoriesByLevel(Request $request)
+    {
+        $items = DB::table('categories')
+            ->select('id', 'title')
+            ->where('level', $request->level)
+            ->where('orgid', session('orgid'))
+            ->where('status', 'Y')
+            ->orderBy('title')
+            ->get();
+
+        return response()->json(['data' => $items]);
+    }
+
+    // GET /admin/discount/brands
+    public function brandsList()
+    {
+        $items = DB::table('brands')
+            ->select('id', 'title')
+            ->where('orgid', session('orgid'))
+            ->where('status', 'Y')
+            ->orderBy('title')
+            ->get();
+
+        return response()->json(['data' => $items]);
     }
 }

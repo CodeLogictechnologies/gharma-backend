@@ -27,10 +27,10 @@ return new class extends Migration
                 ->restrictOnDelete();
 
             $table->uuid('against_voucher_id')->nullable();
-            $table->foreign('against_voucher_id')
-                ->references('id')
-                ->on('purchase_vouchers')
-                ->nullOnDelete();
+            // $table->foreign('against_voucher_id')
+            //     ->references('id')
+            //     ->on('purchase_vouchers')
+            //     ->nullOnDelete();
 
             $table->text('remarks')->nullable();
 
