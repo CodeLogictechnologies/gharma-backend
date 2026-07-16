@@ -394,6 +394,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::any('/form', [DiscountController::class, 'form'])->name('discount.form');
             Route::post('/view', [DiscountController::class, 'view'])->name('discount.view');
             Route::get('/items/list', [DiscountController::class, 'lists'])->name('api.items.list');
+            Route::get('/categories', [DiscountController::class, 'categoriesByLevel']);
+            Route::get('/brands', [DiscountController::class, 'brandsList']);
 
             // Get variations for a specific item
             Route::get('/items/{id}/variations', [DiscountController::class, 'variations']);

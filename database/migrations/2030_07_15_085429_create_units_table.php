@@ -17,12 +17,9 @@ return new class extends Migration
             $table->string('unit_name');
             $table->string('unit_short_name')->nullable();
             $table->enum('status', ['Y', 'N'])->default('Y');
-            $table->uuid('postedby')->nullable();
-            $table->uuid('updatedby')->nullable();
-            $table->uuid('updated_at')->nullable();
-            $table->uuid('created_at')->nullable();
+            $table->string('postedby')->nullable();
+            $table->string('updatedby')->nullable();
             $table->timestamps();
-
             $table->foreign('orgid')->references('id')->on('organizations')->onDelete('cascade');
             $table->unique(['orgid', 'unit_name']);
         });
