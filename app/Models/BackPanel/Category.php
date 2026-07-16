@@ -79,7 +79,7 @@ class Category extends Model
     //                 throw new \Exception('Cannot select a sub-category as its own parent.');
     //             }
     //         }
-            
+
 
     //         $dataArray = [
     //             'title'     => $post['name'],
@@ -119,99 +119,91 @@ class Category extends Model
     //     }
     // }
     // ─────────────────────────────────────────────────────────────────
-// Walk the parent_id chain all the way to the root and return the
-// 1-based level (1 = Category, 2 = Subcategory, 3 = Sub-subcategory)
-// ─────────────────────────────────────────────────────────────────
-// public static function levelOf($id)
-// {
-//     $level   = 1;
-//     $guard   = 0;
-//     $current = DB::table('categories')->select('parent_id')->where('id', $id)->first();
+    // Walk the parent_id chain all the way to the root and return the
+    // 1-based level (1 = Category, 2 = Subcategory, 3 = Sub-subcategory)
+    // ─────────────────────────────────────────────────────────────────
+    // public static function levelOf($id)
+    // {
+    //     $level   = 1;
+    //     $guard   = 0;
+    //     $current = DB::table('categories')->select('parent_id')->where('id', $id)->first();
 
-//     while ($current && $current->parent_id && $guard < 10) {
-//         $level++;
-//         $current = DB::table('categories')->select('parent_id')->where('id', $current->parent_id)->first();
-//         $guard++;
-//     }
+    //     while ($current && $current->parent_id && $guard < 10) {
+    //         $level++;
+    //         $current = DB::table('categories')->select('parent_id')->where('id', $current->parent_id)->first();
+    //         $guard++;
+    //     }
 
-//     return $level;
-// }
+    //     return $level;
+    // }
 
-public static function saveData($post)
-{
-    try {
-        $imageName = null;
+    public static function saveData($post)
+    {
+        try {
+            $imageName = null;
 
-        if (!empty($post['image'])) {
-            $file      = $post['image'];
-            $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-            $file->storeAs('categories', $imageName, 'public');
-        }
-
-        $parentId = !empty($post['parent_id']) ? $post['parent_id'] : null;
-        $level    = 1; // default: top-level Category
-
-        if ($parentId) {
-            $level = self::levelOf($parentId) + 1;
-
-            if ($level > 3) {
-                throw new \Exception('Cannot nest categories more than 3 levels deep.');
-            }
-            if (!empty($post['id']) && self::isDescendantOf($parentId, $post['id'])) {
-                throw new \Exception('Cannot select a sub-category as its own parent.');
-            }
-        }
-
-        // Base fields common to every level
-        $dataArray = [
-            'title'  => $post['name'],
-            'slug'   => Str::slug($post['name']) . '-' . time(),
-            'status' => 'Y',
-            'orgid'  => $post['orgid'],
-            'level'  => $level,
-        ];
-
-        // Level-specific conditions
-        if ($level == 1) {
-            // Category — top level, no parent
-            $dataArray['parent_id'] = null;
-        } elseif ($level == 2) {
-            // Subcategory — belongs to a Category
-            $dataArray['parent_id'] = $parentId;
-        } elseif ($level == 3) {
-            // Sub-subcategory — belongs to a Subcategory
-            $dataArray['parent_id'] = $parentId;
-        }
-
-        if ($imageName) {
-            $dataArray['image'] = $imageName;
-        }
-
-        if (!empty($post['id'])) {
-            $oldData = Category::find($post['id']);
-
-            if ($imageName && $oldData && $oldData->image) {
-                $oldPath = storage_path('app/public/categories/' . $oldData->image);
-                if (File::exists($oldPath)) File::delete($oldPath);
+            if (!empty($post['image'])) {
+                $file      = $post['image'];
+                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('categories', $imageName, 'public');
             }
 
-            $dataArray['updated_at'] = Carbon::now();
-            if (!Category::where('id', $post['id'])->update($dataArray)) {
-                throw new \Exception("Couldn't update record.");
-            }
-        } else {
-            $dataArray['id']         = (string) Str::uuid();
-            $dataArray['created_at'] = Carbon::now();
-            if (!Category::insert($dataArray)) {
-                throw new \Exception("Couldn't save record.");
-            }
-        }
+            $hasCategory    = !empty($post['category_id']);
+            $hasSubcategory = !empty($post['subcategory_id']);
 
-        return true;
-    } catch (\Exception $e) {
-        throw $e;
+            if (!$hasCategory && !$hasSubcategory) {
+                $level         = 1;
+                $parentId      = null;
+                $subcategoryId = null;
+            } elseif ($hasCategory && !$hasSubcategory) {
+                $level         = 2;
+                $parentId      = $post['category_id'];
+                $subcategoryId = null;
+            } else {
+                $level         = 3;
+                $parentId      = $post['category_id'];
+                $subcategoryId = $post['subcategory_id'];
+            }
+
+            $dataArray = [
+                'title'          => $post['name'],
+                'slug'           => Str::slug($post['name']) . '-' . time(),
+                'status'         => 'Y',
+                'orgid'          => $post['orgid'],
+                'level'          => $level,
+                'parent_id'      => $parentId,
+                'sub_category_id' => $subcategoryId,
+            ];
+
+            if ($imageName) {
+                $dataArray['image'] = $imageName;
+            }
+
+            if (!empty($post['id'])) {
+                $oldData = Category::find($post['id']);
+
+                if ($imageName && $oldData && $oldData->image) {
+                    $oldPath = storage_path('app/public/categories/' . $oldData->image);
+                    if (File::exists($oldPath)) File::delete($oldPath);
+                }
+
+                $dataArray['updated_at'] = Carbon::now();
+                if (!Category::where('id', $post['id'])->update($dataArray)) {
+                    throw new \Exception("Couldn't update record.");
+                }
+            } else {
+                $dataArray['id']         = (string) Str::uuid();
+                $dataArray['created_at'] = Carbon::now();
+                if (!Category::insert($dataArray)) {
+                    throw new \Exception("Couldn't save record.");
+                }
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
-}
 
     // ─────────────────────────────────────────────────────────────────
     // List — adds "level" plus "top_category_id" / "sub_category_id"
