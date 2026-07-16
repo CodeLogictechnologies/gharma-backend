@@ -40,44 +40,44 @@
 
         <!-- Organization -->
         {{-- <li class="menu-item {{ request()->routeIs('organization') ? 'active' : '' }}">
-            <a href="{{ route('organization') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-buildings"></i>
-                <div>Organization</div>
-            </a>
+        <a href="{{ route('organization') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-buildings"></i>
+            <div>Organization</div>
+        </a>
         </li> --}}
 
         <!-- Organization Access -->
         {{-- <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
-            <a href="{{ route('organization.access') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-lock-alt"></i>
-                <div>Organization Access</div>
-            </a>
+        <a href="{{ route('organization.access') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-lock-alt"></i>
+            <div>Organization Access</div>
+        </a>
         </li> --}}
 
 
         <!-- Organization Roles -->
         {{-- <li class="menu-item {{ request()->routeIs('organization.role') ? 'active' : '' }}">
-            <a href="{{ route('organization.role') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-shield"></i>
-                <div>Organization Roles</div>
-            </a>
+        <a href="{{ route('organization.role') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-shield"></i>
+            <div>Organization Roles</div>
+        </a>
         </li> --}}
 
         {{-- Driver --}}
         <!-- Permission -->
         {{-- <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
-            <a href="{{ route('permission') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-lock-alt"></i>
-                <div>Permission</div>
-            </a>
+        <a href="{{ route('permission') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-lock-alt"></i>
+            <div>Permission</div>
+        </a>
         </li> --}}
 
         <!-- Role -->
         {{-- <li class="menu-item {{ request()->routeIs('role') ? 'active' : '' }}">
-            <a href="{{ route('role') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-shield"></i>
-                <div>Role</div>
-            </a>
+        <a href="{{ route('role') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-shield"></i>
+            <div>Role</div>
+        </a>
         </li> --}}
 
         <!-- Home Tab -->
@@ -198,6 +198,13 @@
             </ul>
         </li>
 
+        <!-- Fiscal Year -->
+        <li class="menu-item {{ request()->routeIs('fiscalyear') ? 'active' : '' }}">
+            <a href="{{ route('fiscalyear') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-calendar"></i>
+                <div>Fiscal Year</div>
+            </a>
+        </li>
 
         <!-- Inventory Management -->
         <li
@@ -352,10 +359,10 @@
 
         {{-- Invoice --}}
         {{-- <li class="menu-item {{ request()->routeIs('invoice') ? 'active' : '' }}">
-            <a href="{{ route('invoice') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-receipt"></i>
-                <div>Invoice</div>
-            </a>
+        <a href="{{ route('invoice') }}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-receipt"></i>
+            <div>Invoice</div>
+        </a>
         </li> --}}
 
         <!-- Refund -->

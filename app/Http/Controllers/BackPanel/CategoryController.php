@@ -14,164 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
-
-// class CategoryController extends Controller
-// {
-//     // construct
-//     public function __construct()
-//     {
-//         parent::__construct();
-//     }
-
-//     //function to redirect to team category page
-//     public function index()
-//     {
-
-//         return view('backend.category.index');
-//     }
-
-//     //function to save team category 
-//     public function save(Request $request)
-//     {
-//         // try {
-
-//         $rules = [
-//             'name' => 'required|min:3|max:255',
-//         ];
-//         if (empty($request->id)) {
-//             $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
-//         }
-
-//         $message = [
-//             'name.required' => 'Please enter category title.',
-//         ];
-
-//         $validation = Validator::make($request->all(), $rules, $message);
-
-//         if ($validation->fails()) {
-//             throw new Exception($validation->errors()->first(), 1);
-//         }
-
-//         $post = $request->all();
-//         $post['orgid'] =  session('orgid');
-//         $type = 'success';
-//         $message = 'Records saved successfully';
-//         DB::beginTransaction();
-
-//         if (!Category::saveData($post)) {
-//             throw new Exception('Could not save record', 1);
-//         }
-//         DB::commit();
-//         // } catch (QueryException $e) {
-//         //     DB::rollBack();
-//         //     $type = 'error';
-//         //     $message = $this->queryMessage;
-//         // } catch (Exception $e) {
-//         //     DB::rollBack();
-//         //     $type = 'error';
-//         //     $message = $e->getMessage();
-//         // }
-//         return json_encode(['type' => $type, 'message' => $message]);
-//     }
-
-
-//     //function to list team category
-//     public function list(Request $request)
-//     {
-//         try {
-//             $post = $request->all();
-//             $data = Category::list($post);
-//             $i = 0;
-//             $array = [];
-//             $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-//             $totalrecs = $data["totalrecs"];
-
-//             unset($data["totalfilteredrecs"]);
-//             unset($data["totalrecs"]);
-//             foreach ($data as $row) {
-//                 $array[$i]["sno"] = $i + 1;
-//                 $array[$i]["title"]    = $row->title;
-//                 if (!empty($row->image)) {
-//                     $imagePath = storage_path('app/public/categories/' . $row->image);
-//                     if (file_exists($imagePath)) {
-//                         $imageUrl = asset('storage/categories/' . $row->image); // ✅ storage path
-//                     } else {
-//                         $imageUrl = asset('no-image.jpg');
-//                     }
-//                 } else {
-//                     $imageUrl = asset('no-image.jpg');
-//                 }
-//                 $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-//                 $action = '';
-//                 $action .= '<a href="javascript:;" 
-//                                 class="editCategory" 
-//                                 data-id="' . $row->id . '" 
-//                                 data-title="' . $row->title . '" 
-//                                 data-image="' . $row->image . '">
-//                                 <i class="fa-solid fa-pen-to-square text-primary"></i>
-//                             </a>';
-//                 $action .= '| <a href="javascript:;" class="deleteCategory" name="Delete Data" data-id="' . $row->id . '"><i class="fa fa-trash text-danger"></i></a>';
-
-//                 $array[$i]["action"]  = $action;
-//                 $i++;
-//             }
-//             // dd($data);
-//             if (!$filtereddata) $filtereddata = 0;
-//             if (!$totalrecs) $totalrecs = 0;
-//         } catch (QueryException $e) {
-//             $array = [];
-//             $totalrecs = 0;
-//             $filtereddata = 0;
-//         } catch (Exception $e) {
-//             $array = [];
-//             $totalrecs = 0;
-//             $filtereddata = 0;
-//         }
-//         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
-//     }
-
-
-//     //function to delete team category
-//     public function delete(Request $request)
-//     {
-//         try {
-//         $type = 'success';
-//         $message = "Record deleted successfully";
-
-//         $post = $request->all();
-
-//         DB::beginTransaction();
-//         $result = Category::deleteCategory($post);
-//         DB::commit();
-//         } catch (QueryException $e) {
-//             DB::rollBack();
-//             $type = 'error';
-//             $message = $this->queryMessage;
-//         } catch (Exception $e) {
-//             DB::rollBack();
-//             $type = 'error';
-//             $message = $e->getMessage();
-//         }
-//         return json_encode(['type' => $type, 'message' => $message]);
-//     }
-
-//     // CategoryController.php
-//     public function tabs(Request $request)
-//     {
-//         $tabid = $request->input('tabid');
-
-//         switch ($tabid) {
-//             case 'category':
-//                 return view('backend.category.category');
-//             case 'subcategory':
-//                 return view('backend.category.subcategory');
-//             default:
-//                 return '<div class="alert alert-warning">Invalid tab</div>';
-//         }
-//     }
-// }
-
-
 class CategoryController extends Controller
 {
     public function __construct()
@@ -180,17 +22,24 @@ class CategoryController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Index — single page, no tabs
+    // Index — single page, no tabs. Only top-level categories are
+    // rendered into the "Category" dropdown on page load; the
+    // "Sub Category" dropdown is populated client-side via AJAX.
     // ─────────────────────────────────────────────────────────────────
     public function index()
     {
-        // Load only top-level (no parent) active categories for the dropdown
-        $parentCategories = Category::getParentOptions(session('orgid'));
-        return view('backend.categories.index', compact('parentCategories'));
+        $categories = Category::getTopLevelCategories(session('orgid'));
+        return view('backend.categories.index', compact('categories'));
     }
 
     // ─────────────────────────────────────────────────────────────────
     // Save (insert or update)
+    // The form now submits two separate fields: category_id and
+    // subcategory_id. Whichever is the "deepest" selection becomes
+    // the actual parent_id:
+    //   - neither selected  -> parent_id = null      (top-level Category)
+    //   - category only     -> parent_id = category   (Subcategory)
+    //   - category + sub    -> parent_id = subcategory (Sub-subcategory)
     // ─────────────────────────────────────────────────────────────────
     public function save(Request $request)
     {
@@ -203,7 +52,7 @@ class CategoryController extends Controller
             }
 
             $validation = Validator::make($request->all(), $rules, [
-                'name.required' => 'Please enter category name.',
+                'name.required'  => 'Please enter category name.',
                 'image.required' => 'Please select an image.',
             ]);
 
@@ -211,10 +60,13 @@ class CategoryController extends Controller
                 throw new Exception($validation->errors()->first(), 1);
             }
 
+            $categoryId    = $request->input('category_id') ?: null;
+            $subcategoryId = $request->input('subcategory_id') ?: null;
+
             $post              = $request->all();
             $post['image']     = $request->file('image');
             $post['orgid']     = session('orgid');
-            $post['parent_id'] = $request->input('parent_id') ?: null;
+            $post['parent_id'] = $subcategoryId ?: $categoryId;
 
             $type    = 'success';
             $message = 'Category saved successfully.';
@@ -225,18 +77,18 @@ class CategoryController extends Controller
             }
             DB::commit();
 
-            // After save, return updated parent dropdown HTML so the
-            // frontend can refresh the dropdown without reloading the page
-            $parentCategories = Category::getParentOptions(session('orgid'));
+            // Refresh the top-level Category dropdown options (a brand new
+            // top-level category may have just been created)
+            $categories = Category::getTopLevelCategories(session('orgid'));
             $options = '<option value="">-- None (Top Level) --</option>';
-            foreach ($parentCategories as $cat) {
+            foreach ($categories as $cat) {
                 $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
             }
 
             return json_encode([
                 'type'            => $type,
                 'message'         => $message,
-                'parentOptions'   => $options,
+                'categoryOptions' => $options,
             ]);
         } catch (QueryException $e) {
             DB::rollBack();
@@ -265,43 +117,52 @@ class CategoryController extends Controller
             $array = [];
             $i     = 0;
 
+            $typeBadges = [
+                0 => ['label' => 'Category',       'bg' => '#eef2ff', 'color' => '#4338ca'],
+                1 => ['label' => 'Subcategory',     'bg' => '#f0f0ff', 'color' => '#696cff'],
+                2 => ['label' => 'Sub-subcategory', 'bg' => '#fff1f0', 'color' => '#ff4d4f'],
+            ];
+
             foreach ($data as $row) {
                 $array[$i]['sno'] = $i + 1;
 
-                // Name cell
                 $array[$i]['title'] = '<span style="font-weight:600;color:#2d2d2d;">'
                     . htmlspecialchars($row->title) . '</span>';
 
-                // Image cell
+                $level = (int) $row->level;
+                $badge = $typeBadges[$level] ?? $typeBadges[0];
+                $array[$i]['type'] = '<span class="badge" style="background:' . $badge['bg'] . ';color:' . $badge['color'] . ';font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;">'
+                    . $badge['label'] . '</span>';
+
                 $imagePath = storage_path('app/public/categories/' . $row->image);
                 $imageUrl  = (!empty($row->image) && file_exists($imagePath))
                     ? asset('storage/categories/' . $row->image)
                     : asset('no-image.jpg');
 
                 $array[$i]['image'] = '<img src="' . $imageUrl . '" height="38" width="38"
-                    style="border-radius:7px;object-fit:cover;border:1.5px solid #e0e0ef;" alt="img">';
+                style="border-radius:7px;object-fit:cover;border:1.5px solid #e0e0ef;" alt="img">';
 
-                // Parent category cell
                 $array[$i]['parent_name'] = $row->parent_name
                     ? '<span class="badge" style="background:#f0f0ff;color:#696cff;font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px;">'
                     . htmlspecialchars($row->parent_name) . '</span>'
                     : '<span style="color:#bbb;font-size:12px;">—</span>';
 
-                // Actions
                 $array[$i]['action'] =
                     '<a href="javascript:;" class="editCategory me-2"
-                        data-id="'          . $row->id                          . '"
-                        data-title="'       . htmlspecialchars($row->title)     . '"
-                        data-image="'       . $row->image                       . '"
-                        data-parent_id="'   . ($row->parent_id ?? '')           . '"
-                        title="Edit">
-                        <i class="fa-solid fa-pen-to-square" style="color:#696cff;font-size:15px;"></i>
-                    </a>
-                    <a href="javascript:;" class="deleteCategory"
-                        data-id="' . $row->id . '"
-                        title="Delete">
-                        <i class="fa-solid fa-trash" style="color:#ff4d4f;font-size:15px;"></i>
-                    </a>';
+                    data-id="'              . $row->id                              . '"
+                    data-title="'           . htmlspecialchars($row->title)         . '"
+                    data-image="'           . $row->image                           . '"
+                    data-parent_id="'       . ($row->parent_id ?? '')               . '"
+                    data-category_id="'     . ($row->top_category_id ?? '')         . '"
+                    data-subcategory_id="'  . ($row->sub_category_id ?? '')         . '"
+                    title="Edit">
+                    <i class="fa-solid fa-pen-to-square" style="color:#696cff;font-size:15px;"></i>
+                </a>
+                <a href="javascript:;" class="deleteCategory"
+                    data-id="' . $row->id . '"
+                    title="Delete">
+                    <i class="fa-solid fa-trash" style="color:#ff4d4f;font-size:15px;"></i>
+                </a>';
 
                 $i++;
             }
@@ -346,8 +207,42 @@ class CategoryController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // AJAX: get fresh parent dropdown options (called after save)
+    // NEW: AJAX — top-level Category options (used to refresh/reload
+    // the first dropdown on edit, excluding the item being edited)
     // ─────────────────────────────────────────────────────────────────
+    public function topLevel(Request $request)
+    {
+        $excludeId  = $request->input('exclude');
+        $categories = Category::getTopLevelCategories(session('orgid'), $excludeId);
+
+        $options = '<option value="">-- None (Top Level) --</option>';
+        foreach ($categories as $cat) {
+            $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
+        }
+
+        return response()->json(['options' => $options]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // NEW: AJAX — Sub Category options for a given Category (used
+    // whenever the "Category" dropdown changes, and to prefill on edit)
+    // ─────────────────────────────────────────────────────────────────
+    public function getSubcategories(Request $request)
+    {
+        $categoryId = $request->input('category_id');
+        $excludeId  = $request->input('exclude');
+
+        $subs = Category::getChildrenOf(session('orgid'), $categoryId, $excludeId);
+
+        $options = '<option value="">-- None (direct under Category) --</option>';
+        foreach ($subs as $sub) {
+            $options .= '<option value="' . $sub->id . '">' . htmlspecialchars($sub->title) . '</option>';
+        }
+
+        return response()->json(['options' => $options]);
+    }
+
+    // Kept for backward compatibility (no longer used by the new cascading UI)
     public function getParentOptions(Request $request)
     {
         $excludeId = $request->input('exclude');

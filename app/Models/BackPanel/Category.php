@@ -10,155 +10,6 @@ use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 
-// class Category extends Model
-// {
-//     use HasFactory;
-
-//     public $incrementing = false;
-//     protected $keyType = 'string';
-
-//     public static function saveData($post)
-//     {
-//         try {
-
-//             $imageName = null;
-
-//             //  Handle Image Upload
-//             if (!empty($post['image'])) {
-//                 $file = $post['image'];
-
-//                 // Create unique name
-//                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-//                 // Move image to public folder
-//                 $file->storeAs('categories', $imageName, 'public');
-//             }
-
-//             $dataArray = [
-//                 'title' => $post['name'],
-//                 'slug' => Str::slug($post['name']) . '-' . time(),
-//                 'status' => 'Y',
-//                 'orgid' => $post['orgid']
-//             ];
-
-//             // Save image if exists
-//             if ($imageName) {
-//                 $dataArray['image'] = $imageName;
-//             }
-
-//             if (!empty($post['id'])) {
-
-//                 //  Update case
-//                 $oldData = Category::find($post['id']);
-
-//                 //  Delete old image from storage
-//                 if ($imageName && $oldData && $oldData->image) {
-//                     $oldPath = storage_path('app/public/categories/' . $oldData->image);
-//                     if (File::exists($oldPath)) {
-//                         File::delete($oldPath);
-//                     }
-//                 }
-//                 $dataArray['updated_at'] = Carbon::now();
-
-//                 if (!Category::where('id', $post['id'])->update($dataArray)) {
-//                     throw new \Exception("Couldn't update Records");
-//                 }
-//             } else {
-
-//                 $dataArray['id'] = (string) Str::uuid();
-
-//                 $dataArray['created_at'] = Carbon::now();
-
-
-//                 if (!Category::insert($dataArray)) {
-//                     throw new \Exception("Couldn't Save Records");
-//                 }
-//             }
-
-//             return true;
-//         } catch (\Exception $e) {
-//             throw $e;
-//         }
-//     }
-
-//     //function to list team category
-//     public static function list($post)
-//     {
-//         try {
-//             $get = $post;
-
-//             $sorting = !empty($get['order'][0]['dir']) ? $get['order'][0]['dir'] : 'asc';
-
-
-//             foreach ($get['columns'] as $key => $value) {
-//                 $get['columns'][$key]['search']['value'] = trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
-//             }
-//             $cond = " status = 'Y' ";
-
-//             if (!empty($post['type']) && $post['type'] === "trashed") {
-//                 $cond = " status = 'R'";
-//             }
-
-//             if ($get['columns'][1]['search']['value'])
-//                 $cond .= " and lower(title) like '%" . $get['columns'][1]['search']['value'] . "%'";
-
-//             $limit = 15;
-//             $offset = 0;
-//             if (!empty($get["length"]) && $get["length"]) {
-//                 $limit = $get['length'];
-//                 $offset = $get["start"];
-//             }
-
-//             $query = Category::selectRaw("(SELECT count(*) FROM categories WHERE {$cond} ) AS totalrecs, title,image, id as id")
-//                 ->whereRaw($cond);
-
-//             if ($limit > -1) {
-//                 $result = $query->orderby('id', 'desc')->offset($offset)->limit($limit)->get();
-//             } else {
-//                 $result = $query->orderby('id', 'desc')->get();
-//             }
-//             if ($result) {
-//                 $ndata = $result;
-//                 $ndata['totalrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-//                 $ndata['totalfilteredrecs'] = @$result[0]->totalrecs ? $result[0]->totalrecs : 0;
-//             } else {
-//                 $ndata = array();
-//             }
-//             return $ndata;
-//         } catch (Exception $e) {
-//             throw $e;
-//         }
-//     }
-
-//     //restore 
-//     public static function deleteCategory($post)
-//     {
-//         try {
-//             $updateArray = [
-//                 'status' => 'N',
-//                 'updated_at' => Carbon::now(),
-//             ];
-//             if (!Category::where(['id' => $post['id']])->update($updateArray)) {
-//                 throw new Exception("Couldn't Delete Data. Please try again", 1);
-//             }
-//             return true;
-//         } catch (Exception $e) {
-//             throw $e;
-//         }
-//     }
-
-//     public static function getCategory($post)
-//     {
-//         try {
-//             $result = DB::table('categories')->select('id', 'title')->where('orgid', $post['orgid'])->where('status', 'Y')->get();
-
-//             return $result;
-//         } catch (Exception $e) {
-//             throw $e;
-//         }
-//     }
-// }
-
 class Category extends Model
 {
     use HasFactory;
@@ -167,115 +18,338 @@ class Category extends Model
     protected $keyType   = 'string';
     protected $table     = 'categories';
 
+    // 0 = Category, 1 = Subcategory, 2 = Sub-subcategory
+    const MAX_LEVEL = 2;
+
     // ─────────────────────────────────────────────────────────────────
-    // Save (insert or update)
+    // walk parent_id chain to compute depth (no schema change needed)
     // ─────────────────────────────────────────────────────────────────
-    public static function saveData($post)
+    public static function levelOf($id)
     {
-        try {
-            $imageName = null;
+        $level   = 0;
+        $guard   = 0;
+        $current = DB::table('categories')->select('parent_id')->where('id', $id)->first();
 
-            if (!empty($post['image'])) {
-                $file      = $post['image'];
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('categories', $imageName, 'public');
-            }
-
-            $dataArray = [
-                'title'     => $post['name'],
-                'slug'      => Str::slug($post['name']) . '-' . time(),
-                'status'    => 'Y',
-                'orgid'     => $post['orgid'],
-                'parent_id' => !empty($post['parent_id']) ? $post['parent_id'] : null,
-            ];
-
-            if ($imageName) {
-                $dataArray['image'] = $imageName;
-            }
-
-            if (!empty($post['id'])) {
-                // Update
-                $oldData = Category::find($post['id']);
-
-                if ($imageName && $oldData && $oldData->image) {
-                    $oldPath = storage_path('app/public/categories/' . $oldData->image);
-                    if (File::exists($oldPath)) File::delete($oldPath);
-                }
-
-                $dataArray['updated_at'] = Carbon::now();
-                if (!Category::where('id', $post['id'])->update($dataArray)) {
-                    throw new \Exception("Couldn't update record.");
-                }
-            } else {
-                // Insert
-                $dataArray['id']         = (string) Str::uuid();
-                $dataArray['created_at'] = Carbon::now();
-                if (!Category::insert($dataArray)) {
-                    throw new \Exception("Couldn't save record.");
-                }
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            throw $e;
+        while ($current && $current->parent_id && $guard < 10) {
+            $level++;
+            $current = DB::table('categories')->select('parent_id')->where('id', $current->parent_id)->first();
+            $guard++;
         }
+
+        return $level;
+    }
+
+    // prevent picking your own child/grandchild as your parent (would loop)
+    private static function isDescendantOf($candidateParentId, $id)
+    {
+        $current = $candidateParentId;
+        $guard   = 0;
+        while ($current && $guard < 10) {
+            if ($current == $id) return true;
+            $row     = DB::table('categories')->select('parent_id')->where('id', $current)->first();
+            $current = $row->parent_id ?? null;
+            $guard++;
+        }
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // List for DataTable (server-side)
+    // Save (insert or update) — unchanged except for the depth-limit check
     // ─────────────────────────────────────────────────────────────────
+    // public static function saveData($post)
+    // {
+    //     try {
+    //         $imageName = null;
+
+    //         if (!empty($post['image'])) {
+    //             $file      = $post['image'];
+    //             $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+    //             $file->storeAs('categories', $imageName, 'public');
+    //         }
+
+    //         $parentId = !empty($post['parent_id']) ? $post['parent_id'] : null;
+
+    //         // block going past Sub-subcategory, and block circular parenting
+    //         if ($parentId) {
+    //             $newLevel = self::levelOf($parentId) + 1;
+    //             if ($newLevel > self::MAX_LEVEL) {
+    //                 throw new \Exception('Cannot nest categories more than 3 levels deep.');
+    //             }
+    //             if (!empty($post['id']) && self::isDescendantOf($parentId, $post['id'])) {
+    //                 throw new \Exception('Cannot select a sub-category as its own parent.');
+    //             }
+    //         }
+            
+
+    //         $dataArray = [
+    //             'title'     => $post['name'],
+    //             'slug'      => Str::slug($post['name']) . '-' . time(),
+    //             'status'    => 'Y',
+    //             'orgid'     => $post['orgid'],
+    //             'parent_id' => $parentId,
+    //         ];
+
+    //         if ($imageName) {
+    //             $dataArray['image'] = $imageName;
+    //         }
+
+    //         if (!empty($post['id'])) {
+    //             $oldData = Category::find($post['id']);
+
+    //             if ($imageName && $oldData && $oldData->image) {
+    //                 $oldPath = storage_path('app/public/categories/' . $oldData->image);
+    //                 if (File::exists($oldPath)) File::delete($oldPath);
+    //             }
+
+    //             $dataArray['updated_at'] = Carbon::now();
+    //             if (!Category::where('id', $post['id'])->update($dataArray)) {
+    //                 throw new \Exception("Couldn't update record.");
+    //             }
+    //         } else {
+    //             $dataArray['id']         = (string) Str::uuid();
+    //             $dataArray['created_at'] = Carbon::now();
+    //             if (!Category::insert($dataArray)) {
+    //                 throw new \Exception("Couldn't save record.");
+    //             }
+    //         }
+
+    //         return true;
+    //     } catch (\Exception $e) {
+    //         throw $e;
+    //     }
+    // }
+    // ─────────────────────────────────────────────────────────────────
+// Walk the parent_id chain all the way to the root and return the
+// 1-based level (1 = Category, 2 = Subcategory, 3 = Sub-subcategory)
+// ─────────────────────────────────────────────────────────────────
+public static function levelOf($id)
+{
+    $level   = 1;
+    $guard   = 0;
+    $current = DB::table('categories')->select('parent_id')->where('id', $id)->first();
+
+    while ($current && $current->parent_id && $guard < 10) {
+        $level++;
+        $current = DB::table('categories')->select('parent_id')->where('id', $current->parent_id)->first();
+        $guard++;
+    }
+
+    return $level;
+}
+
+public static function saveData($post)
+{
+    try {
+        $imageName = null;
+
+        if (!empty($post['image'])) {
+            $file      = $post['image'];
+            $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('categories', $imageName, 'public');
+        }
+
+        $parentId = !empty($post['parent_id']) ? $post['parent_id'] : null;
+        $level    = 1; // default: top-level Category
+
+        if ($parentId) {
+            $level = self::levelOf($parentId) + 1;
+
+            if ($level > 3) {
+                throw new \Exception('Cannot nest categories more than 3 levels deep.');
+            }
+            if (!empty($post['id']) && self::isDescendantOf($parentId, $post['id'])) {
+                throw new \Exception('Cannot select a sub-category as its own parent.');
+            }
+        }
+
+        // Base fields common to every level
+        $dataArray = [
+            'title'  => $post['name'],
+            'slug'   => Str::slug($post['name']) . '-' . time(),
+            'status' => 'Y',
+            'orgid'  => $post['orgid'],
+            'level'  => $level,
+        ];
+
+        // Level-specific conditions
+        if ($level == 1) {
+            // Category — top level, no parent
+            $dataArray['parent_id'] = null;
+        } elseif ($level == 2) {
+            // Subcategory — belongs to a Category
+            $dataArray['parent_id'] = $parentId;
+        } elseif ($level == 3) {
+            // Sub-subcategory — belongs to a Subcategory
+            $dataArray['parent_id'] = $parentId;
+        }
+
+        if ($imageName) {
+            $dataArray['image'] = $imageName;
+        }
+
+        if (!empty($post['id'])) {
+            $oldData = Category::find($post['id']);
+
+            if ($imageName && $oldData && $oldData->image) {
+                $oldPath = storage_path('app/public/categories/' . $oldData->image);
+                if (File::exists($oldPath)) File::delete($oldPath);
+            }
+
+            $dataArray['updated_at'] = Carbon::now();
+            if (!Category::where('id', $post['id'])->update($dataArray)) {
+                throw new \Exception("Couldn't update record.");
+            }
+        } else {
+            $dataArray['id']         = (string) Str::uuid();
+            $dataArray['created_at'] = Carbon::now();
+            if (!Category::insert($dataArray)) {
+                throw new \Exception("Couldn't save record.");
+            }
+        }
+
+        return true;
+    } catch (\Exception $e) {
+        throw $e;
+    }
+}
+
+    // ─────────────────────────────────────────────────────────────────
+    // List — adds "level" plus "top_category_id" / "sub_category_id"
+    // so the edit form can correctly re-populate the two cascading
+    // dropdowns (Category + Sub Category) for any item, regardless
+    // of whether it's a Category, Subcategory, or Sub-subcategory.
+    // ─────────────────────────────────────────────────────────────────
+    // public static function list($post)
+    // {
+    //     try {
+    //         $get = $post;
+
+    //         foreach ($get['columns'] as $key => $value) {
+    //             $get['columns'][$key]['search']['value'] =
+    //                 trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
+    //         }
+
+    //         $cond = "c.status = 'Y' AND c.orgid = '" . addslashes($post['orgid']) . "'";
+
+    //         if (!empty($get['columns'][1]['search']['value'])) {
+    //             $cond .= " AND LOWER(c.title) LIKE '%" . $get['columns'][1]['search']['value'] . "%'";
+    //         }
+
+    //         $limit  = 10;
+    //         $offset = 0;
+    //         if (!empty($get['length'])) {
+    //             $limit  = (int) $get['length'];
+    //             $offset = (int) $get['start'];
+    //         }
+
+    //         $query = Category::from('categories as c')
+    //             ->leftJoin('categories as p1', 'p1.id', '=', 'c.parent_id')      // direct parent
+    //             ->leftJoin('categories as p2', 'p2.id', '=', 'p1.parent_id')     // grandparent
+    //             ->selectRaw("
+    //                 (SELECT COUNT(*) FROM categories WHERE {$cond}) AS totalrecs,
+    //                 c.id,
+    //                 c.title,
+    //                 c.image,
+    //                 c.parent_id,
+    //                 p1.title AS parent_name,
+    //                 CASE
+    //                     WHEN c.parent_id IS NULL THEN 0
+    //                     WHEN p1.parent_id IS NULL THEN 1
+    //                     ELSE 2
+    //                 END AS level,
+    //                 -- top-level Category id to preselect in the Category dropdown
+    //                 CASE
+    //                     WHEN c.parent_id IS NULL THEN c.id
+    //                     WHEN p1.parent_id IS NULL THEN c.parent_id
+    //                     ELSE p1.parent_id
+    //                 END AS top_category_id,
+    //                 -- Sub Category id to preselect in the Sub Category dropdown
+    //                 -- (only applies when this row is itself a sub-subcategory)
+    //                 CASE
+    //                     WHEN c.parent_id IS NULL THEN NULL
+    //                     WHEN p1.parent_id IS NULL THEN NULL
+    //                     ELSE c.parent_id
+    //                 END AS sub_category_id
+    //             ")
+    //             ->whereRaw($cond);
+
+    //         $result = ($limit > -1)
+    //             ? $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->offset($offset)->limit($limit)->get()
+    //             : $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->get();
+
+    //         $ndata                      = $result;
+    //         $ndata['totalrecs']         = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
+    //         $ndata['totalfilteredrecs'] = $ndata['totalrecs'];
+
+    //         return $ndata;
+    //     } catch (Exception $e) {
+    //         throw $e;
+    //     }
+    // }
     public static function list($post)
-    {
-        try {
-            $get = $post;
+{
+    try {
+        $get = $post;
 
-            foreach ($get['columns'] as $key => $value) {
-                $get['columns'][$key]['search']['value'] =
-                    trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
-            }
-
-            $cond = "c.status = 'Y' AND c.orgid = '" . addslashes($post['orgid']) . "'";
-
-            // Search by category name (column index 1)
-            if (!empty($get['columns'][1]['search']['value'])) {
-                $cond .= " AND LOWER(c.title) LIKE '%" . $get['columns'][1]['search']['value'] . "%'";
-            }
-
-            $limit  = 10;
-            $offset = 0;
-            if (!empty($get['length'])) {
-                $limit  = (int) $get['length'];
-                $offset = (int) $get['start'];
-            }
-
-            $query = Category::from('categories as c')
-                ->leftJoin('categories as p', 'p.id', '=', 'c.parent_id')
-                ->selectRaw("
-                    (SELECT COUNT(*) FROM categories WHERE {$cond}) AS totalrecs,
-                    c.id,
-                    c.title,
-                    c.image,
-                    c.parent_id,
-                    p.title AS parent_name
-                ")
-                ->whereRaw($cond);
-
-            $result = ($limit > -1)
-                ? $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->offset($offset)->limit($limit)->get()
-                : $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->get();
-
-            $ndata                    = $result;
-            $ndata['totalrecs']       = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
-            $ndata['totalfilteredrecs'] = $ndata['totalrecs'];
-
-            return $ndata;
-        } catch (Exception $e) {
-            throw $e;
+        foreach ($get['columns'] as $key => $value) {
+            $get['columns'][$key]['search']['value'] =
+                trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
         }
+
+        $cond = "c.status = 'Y' AND c.orgid = '" . addslashes($post['orgid']) . "'";
+
+        if (!empty($get['columns'][1]['search']['value'])) {
+            $cond .= " AND LOWER(c.title) LIKE '%" . $get['columns'][1]['search']['value'] . "%'";
+        }
+
+        $limit  = 10;
+        $offset = 0;
+        if (!empty($get['length'])) {
+            $limit  = (int) $get['length'];
+            $offset = (int) $get['start'];
+        }
+
+        $query = Category::from('categories as c')
+            ->leftJoin('categories as p1', 'p1.id', '=', 'c.parent_id')   // direct parent
+            ->leftJoin('categories as p2', 'p2.id', '=', 'p1.parent_id')  // grandparent
+            ->selectRaw("
+                (SELECT COUNT(*) FROM categories WHERE {$cond}) AS totalrecs,
+                c.id,
+                c.title,
+                c.image,
+                c.parent_id,
+                c.level,
+                p1.title AS parent_name,
+                -- top-level Category id, for preselecting the Category dropdown
+                CASE
+                    WHEN c.level = 1 THEN c.id
+                    WHEN c.level = 2 THEN c.parent_id
+                    WHEN c.level = 3 THEN p1.parent_id
+                END AS top_category_id,
+                -- Sub Category id, only meaningful when this row is level 3
+                CASE
+                    WHEN c.level = 3 THEN c.parent_id
+                    ELSE NULL
+                END AS sub_category_id
+            ")
+            ->whereRaw($cond);
+
+        $result = ($limit > -1)
+            ? $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->offset($offset)->limit($limit)->get()
+            : $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->get();
+
+        $ndata                      = $result;
+        $ndata['totalrecs']         = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
+        $ndata['totalfilteredrecs'] = $ndata['totalrecs'];
+
+        return $ndata;
+    } catch (Exception $e) {
+        throw $e;
     }
+}
 
     // ─────────────────────────────────────────────────────────────────
-    // Soft delete (status = N)
+    // Soft delete — unchanged
     // ─────────────────────────────────────────────────────────────────
     public static function deleteCategory($post)
     {
@@ -295,31 +369,97 @@ class Category extends Model
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Get all active categories for Parent dropdown
-    // Excludes the category being edited (to prevent self-reference)
+    // NEW: Top-level categories only (parent_id IS NULL) — powers the
+    // first "Category" dropdown. $excludeId lets edit mode hide itself.
     // ─────────────────────────────────────────────────────────────────
-    public static function getParentOptions($orgid, $excludeId = null)
+    public static function getTopLevelCategories($orgid, $excludeId = null)
     {
         try {
-            $query = DB::table('categories')
+            return DB::table('categories')
                 ->select('id', 'title')
                 ->where('status', 'Y')
                 ->where('orgid', $orgid)
-                ->whereNull('parent_id'); // only top-level categories can be parents
-
-            if ($excludeId) {
-                $query->where('id', '!=', $excludeId);
-            }
-
-            return $query->orderBy('title')->get();
+                ->whereNull('parent_id')
+                ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+                ->orderBy('title')
+                ->get();
         } catch (Exception $e) {
             throw $e;
         }
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Used by other controllers (SubCategory dropdown etc.)
+    // NEW: Direct children of a given category — powers the second
+    // "Sub Category" dropdown, populated via AJAX once a Category is
+    // chosen. $excludeId lets edit mode hide itself.
     // ─────────────────────────────────────────────────────────────────
+    public static function getChildrenOf($orgid, $parentId, $excludeId = null)
+    {
+        try {
+            if (empty($parentId)) {
+                return collect();
+            }
+
+            return DB::table('categories')
+                ->select('id', 'title')
+                ->where('status', 'Y')
+                ->where('orgid', $orgid)
+                ->where('parent_id', $parentId)
+                ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+                ->orderBy('title')
+                ->get();
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    // Kept for backward compatibility (no longer used by the new cascading UI)
+    public static function getParentOptions($orgid, $excludeId = null)
+    {
+        try {
+            $rows = DB::table('categories')
+                ->select('id', 'title', 'parent_id')
+                ->where('status', 'Y')
+                ->where('orgid', $orgid)
+                ->orderBy('title')
+                ->get();
+
+            $byId    = $rows->keyBy('id');
+            $options = [];
+
+            foreach ($rows as $row) {
+                if ($excludeId && $row->id == $excludeId) continue;
+
+                $level                 = 0;
+                $walk                  = $row;
+                $guard                 = 0;
+                $isDescendantOfExclude = false;
+
+                while ($walk->parent_id && $guard < 10) {
+                    if ($excludeId && $walk->parent_id == $excludeId) {
+                        $isDescendantOfExclude = true;
+                    }
+                    $level++;
+                    $walk = $byId->get($walk->parent_id);
+                    if (!$walk) break;
+                    $guard++;
+                }
+
+                if ($isDescendantOfExclude) continue;
+                if ($level > 1) continue;
+
+                $options[] = (object) [
+                    'id'    => $row->id,
+                    'title' => str_repeat('— ', $level) . $row->title,
+                ];
+            }
+
+            return collect($options);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
     public static function getCategory($post)
     {
         try {

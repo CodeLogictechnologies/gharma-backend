@@ -8,11 +8,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title')</title>
     <meta name="description" content="" />
-
+    <link rel="stylesheet" href="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/css/nepali.datepicker.v5.0.6.min.css">
     <!-- Favicon -->
-<link rel="shortcut icon"
-    href="{{ $orgLogo ? asset('storage/organizations/' . $orgLogo) : asset('erp.png') }}">
-    
+    <link rel="shortcut icon"
+        href="{{ $orgLogo ? asset('storage/organizations/' . $orgLogo) : asset('erp.png') }}">
+
     <style>
         /* ── Loader ─────────────────────────────────────────────── */
         #global-loader {
@@ -135,6 +135,7 @@
 
     <!-- Bootstrap Bundle ONCE (has Popper inside) — remove local bootstrap.js to avoid conflict -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js"></script>
 
     <script src="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
     <script src="/assets/vendor/js/menu.js"></script>

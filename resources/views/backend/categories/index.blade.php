@@ -83,16 +83,25 @@
                                    placeholder="e.g. Electronics">
                         </div>
 
-                        {{-- Parent Category --}}
+                        {{-- Category (top level) --}}
                         <div class="mb-3">
-                            <label class="form-label" for="catParent">Parent Category</label>
-                            <select name="parent_id" id="catParent" class="form-control">
+                            <label class="form-label" for="catCategory">Parent Category</label>
+                            <select name="category_id" id="catCategory" class="form-control">
                                 <option value="">-- None (Top Level) --</option>
-                                @foreach ($parentCategories as $cat)
+                                @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}">{{ $cat->title }}</option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">Optional. Assign a parent to make this a sub-category.</small>
+                            <small class="text-muted">Optional. Assign a category to make this a sub-category.</small>
+                        </div>
+
+                        {{-- Sub Category (children of selected Category) --}}
+                        <div class="mb-3">
+                            <label class="form-label" for="catSubCategory">Category</label>
+                            <select name="subcategory_id" id="catSubCategory" class="form-control">
+                                <option value="">-- None (Top Level) --</option>
+                            </select>
+                            <small class="text-muted">Optional. Only enabled once a Parent Category is selected — pick one to make this a sub-sub-category.</small>
                         </div>
 
                         {{-- Image --}}
@@ -132,6 +141,7 @@
                                 <tr class="align-middle">
                                     <th>S.No</th>
                                     <th>Name</th>
+                                    <th>Type</th>
                                     <th>Parent</th>
                                     <th>Photo</th>
                                     <th>Actions</th>
@@ -175,6 +185,32 @@ $(document).ready(function () {
         headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
     });
 
+    // ── Cascading dropdown: Category → Sub Category ─────────────────
+    // Loads the Sub Category options for whatever Category is selected.
+    // `excludeId` hides the item currently being edited from the list
+    // (so it can never be picked as its own parent).
+    function loadSubCategories(categoryId, excludeId, selectedValue) {
+        if (!categoryId) {
+            $('#catSubCategory').html('<option value="">-- None (Top Level) --</option>').prop('disabled', true);
+            return;
+        }
+        $('#catSubCategory').prop('disabled', true);
+        $.get('{{ route('category.subcategories') }}', { category_id: categoryId, exclude: excludeId }, function (res) {
+            $('#catSubCategory').html(res.options).prop('disabled', false);
+            if (selectedValue) {
+                $('#catSubCategory').val(selectedValue);
+            }
+        });
+    }
+
+    $(document).on('change', '#catCategory', function () {
+        var excludeId = $('#catId').val() || null;
+        loadSubCategories($(this).val(), excludeId, null);
+    });
+
+    // Sub Category starts disabled until a Category is chosen
+    $('#catSubCategory').prop('disabled', true);
+
     // ── DataTable ─────────────────────────────────────────────────
     catTable = $('#categoryTable').dataTable({
         sPaginationType: 'full_numbers',
@@ -204,17 +240,17 @@ $(document).ready(function () {
         oLanguage: {
             sEmptyTable: "<p class='no_data_message'>No data available.</p>"
         },
-        aoColumnDefs: [{ bSortable: false, aTargets: [2, 3, 4] }],
+        aoColumnDefs: [{ bSortable: false, aTargets: [2, 3, 4, 5] }],
         aoColumns: [
             { data: 'sno'         },
             { data: 'title'       },
+            { data: 'type'        },
             { data: 'parent_name' },
             { data: 'image'       },
             { data: 'action'      }
         ],
         initComplete: function () {
-            // Search inputs for Name (col 1) and Parent (col 2)
-            this.api().columns([1, 2]).every(function () {
+            this.api().columns([1]).every(function () {
                 var col = this;
                 var hdr = $(col.header()).text().trim();
                 $('<input type="text" class="form-control" placeholder="' + hdr + '..." style="width:100%;margin-top:4px;">')
@@ -254,9 +290,9 @@ $(document).ready(function () {
                 if (result.type === 'success') {
                     resetForm();
                     catTable.fnDraw();
-                    // Refresh parent dropdown
-                    if (result.parentOptions) {
-                        $('#catParent').html(result.parentOptions);
+                    // Refresh the Category dropdown (a new top-level category may exist now)
+                    if (result.categoryOptions) {
+                        $('#catCategory').html(result.categoryOptions);
                     }
                 }
             },
@@ -275,26 +311,34 @@ $(document).ready(function () {
         $('#formHeading').text('Add Category');
         $('.saveCategory').html('<i class="fa fa-save"></i> Save');
         $('#catName').removeClass('border-danger');
+        $('#catSubCategory').html('<option value="">-- None (Top Level) --</option>').prop('disabled', true);
     }
     $('#resetCatBtn').on('click', resetForm);
 
     // ── Edit ──────────────────────────────────────────────────────
     $(document).on('click', '.editCategory', function (e) {
         e.preventDefault();
-        var id       = $(this).data('id');
-        var title    = $(this).data('title');
-        var image    = $(this).data('image');
-        var parentId = $(this).data('parent_id');
+        var id            = $(this).data('id');
+        var title         = $(this).data('title');
+        var image         = $(this).data('image');
+        var categoryId    = $(this).data('category_id');
+        var subcategoryId = $(this).data('subcategory_id');
 
         $('#catId').val(id);
         $('#catName').val(title);
         $('#formHeading').text('Edit Category');
         $('.saveCategory').html('<i class="fas fa-save"></i> Update');
 
-        // Reload parent dropdown excluding self
-        $.get('{{ url('admin/category/parent-options') }}', { exclude: id }, function (res) {
-            $('#catParent').html(res.options);
-            if (parentId) $('#catParent').val(parentId);
+        // Reload the Category dropdown excluding self, then set its value
+        $.get('{{ route('category.top-level') }}', { exclude: id }, function (res) {
+            $('#catCategory').html(res.options);
+            if (categoryId) {
+                $('#catCategory').val(categoryId);
+                // Then load Sub Category options for that category, excluding self
+                loadSubCategories(categoryId, id, subcategoryId);
+            } else {
+                $('#catSubCategory').html('<option value="">-- None (Top Level) --</option>').prop('disabled', true);
+            }
         });
 
         $('#img_preview').attr('src', image ? '/storage/categories/' + image : '{{ asset('no-image.jpg') }}');
@@ -334,9 +378,9 @@ $(document).ready(function () {
                 showNotification(result.message, result.type === 'success' ? 'success' : 'error');
                 if (result.type === 'success') {
                     catTable.fnDraw();
-                    // Refresh parent dropdown
-                    $.get('{{ url('admin/category/parent-options') }}', function (res2) {
-                        $('#catParent').html(res2.options);
+                    // Refresh the Category dropdown (a top-level item may have been removed)
+                    $.get('{{ route('category.top-level') }}', function (res2) {
+                        $('#catCategory').html(res2.options);
                     });
                 }
             })

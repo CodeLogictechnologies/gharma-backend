@@ -10,6 +10,7 @@ use App\Http\Controllers\BackPanel\ForgotPasswordController;
 use App\Http\Controllers\BackPanel\HeatmapController;
 use App\Http\Controllers\BackPanel\HomeController;
 use App\Http\Controllers\BackPanel\InventoryController;
+use App\Http\Controllers\BackPanel\FiscalyearController;
 use App\Http\Controllers\BackPanel\InventoryReportController;
 use App\Http\Controllers\BackPanel\PurchaseVoucherController;
 use App\Http\Controllers\BackPanel\PurchaseReturnController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\BackPanel\DriverController;
 use App\Http\Controllers\BackPanel\StoreController;
 use App\Http\Controllers\BackPanel\ReturnRefundController;
 use App\Http\Controllers\BackPanel\SubCategoryController;
+use App\Http\Controllers\BackPanel\SubSubCategoryController;
 use App\Http\Controllers\BackPanel\UserController;
 use App\Http\Controllers\DatabaseDumpController;
 use App\Http\Controllers\BackPanel\VendorController;
@@ -158,6 +160,15 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save-permissions', [RoleController::class, 'savePermissions'])->name('role.savePermissions');
         });
 
+        Route::group(['prefix' => 'fiscalyear'], function () {
+            Route::get('/',       [FiscalyearController::class, 'index'])->name('fiscalyear');
+            Route::post('/list',  [FiscalyearController::class, 'list'])->name('fiscalyear.list');
+            Route::any('/form',   [FiscalyearController::class, 'form'])->name('fiscalyear.form');
+            Route::post('/save',  [FiscalyearController::class, 'save'])->name('fiscalyear.save');
+            Route::post('/delete', [FiscalyearController::class, 'delete'])->name('fiscalyear.delete');
+            Route::post('/view',  [FiscalyearController::class, 'view'])->name('fiscalyear.view');
+        });
+
         Route::group(['prefix' => 'permission'], function () {
             Route::get('/', [PermissionController::class, 'index'])->name('permission');
             Route::post('/save', [PermissionController::class, 'save'])->name('permission.save');
@@ -197,12 +208,17 @@ Route::group(['middleware' => ['auth']], function () {
         //     Route::post('/delete', [SubCategoryController::class, 'delete'])->name('subcategory.delete');
         // });
 
+        // Replace your existing 'category' route group in web.php with this:
+
         Route::group(['prefix' => 'category'], function () {
             Route::get('/',                [BackPanelCategoryController::class, 'index'])->name('category');
             Route::post('/list',           [BackPanelCategoryController::class, 'list'])->name('category.list');
             Route::post('/save',           [BackPanelCategoryController::class, 'save'])->name('category.save');
             Route::post('/delete',         [BackPanelCategoryController::class, 'delete'])->name('category.delete');
             Route::get('/parent-options',  [BackPanelCategoryController::class, 'getParentOptions'])->name('category.parent-options');
+
+            Route::get('/top-level',       [BackPanelCategoryController::class, 'topLevel'])->name('category.top-level');
+            Route::get('/subcategories',   [BackPanelCategoryController::class, 'getSubcategories'])->name('category.subcategories');
         });
 
         Route::group(['prefix' => 'hometab'], function () {
@@ -332,6 +348,14 @@ Route::group(['middleware' => ['auth']], function () {
                 Route::post('/save', [SubCategoryController::class, 'save'])->name('subcategory.save');
                 Route::post('/delete', [SubCategoryController::class, 'delete'])->name('subcategory.delete');
             });
+        });
+
+        Route::group(['prefix' => 'subsubcategory'], function () {
+            Route::get('/',              [SubSubCategoryController::class, 'index'])->name('subsubcategory');
+            Route::post('/list',         [SubSubCategoryController::class, 'list'])->name('subsubcategory.list');
+            Route::post('/save',         [SubSubCategoryController::class, 'save'])->name('subsubcategory.save');
+            Route::post('/delete',       [SubSubCategoryController::class, 'delete'])->name('subsubcategory.delete');
+            Route::get('/subcategories', [SubSubCategoryController::class, 'getSubcategoriesByCategory'])->name('subsubcategory.subcategories');
         });
 
         Route::group(['prefix' => 'notification'], function () {
