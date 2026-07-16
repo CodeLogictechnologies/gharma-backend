@@ -122,20 +122,20 @@ class Category extends Model
 // Walk the parent_id chain all the way to the root and return the
 // 1-based level (1 = Category, 2 = Subcategory, 3 = Sub-subcategory)
 // ─────────────────────────────────────────────────────────────────
-public static function levelOf($id)
-{
-    $level   = 1;
-    $guard   = 0;
-    $current = DB::table('categories')->select('parent_id')->where('id', $id)->first();
+// public static function levelOf($id)
+// {
+//     $level   = 1;
+//     $guard   = 0;
+//     $current = DB::table('categories')->select('parent_id')->where('id', $id)->first();
 
-    while ($current && $current->parent_id && $guard < 10) {
-        $level++;
-        $current = DB::table('categories')->select('parent_id')->where('id', $current->parent_id)->first();
-        $guard++;
-    }
+//     while ($current && $current->parent_id && $guard < 10) {
+//         $level++;
+//         $current = DB::table('categories')->select('parent_id')->where('id', $current->parent_id)->first();
+//         $guard++;
+//     }
 
-    return $level;
-}
+//     return $level;
+// }
 
 public static function saveData($post)
 {
@@ -219,134 +219,73 @@ public static function saveData($post)
     // dropdowns (Category + Sub Category) for any item, regardless
     // of whether it's a Category, Subcategory, or Sub-subcategory.
     // ─────────────────────────────────────────────────────────────────
-    // public static function list($post)
-    // {
-    //     try {
-    //         $get = $post;
-
-    //         foreach ($get['columns'] as $key => $value) {
-    //             $get['columns'][$key]['search']['value'] =
-    //                 trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
-    //         }
-
-    //         $cond = "c.status = 'Y' AND c.orgid = '" . addslashes($post['orgid']) . "'";
-
-    //         if (!empty($get['columns'][1]['search']['value'])) {
-    //             $cond .= " AND LOWER(c.title) LIKE '%" . $get['columns'][1]['search']['value'] . "%'";
-    //         }
-
-    //         $limit  = 10;
-    //         $offset = 0;
-    //         if (!empty($get['length'])) {
-    //             $limit  = (int) $get['length'];
-    //             $offset = (int) $get['start'];
-    //         }
-
-    //         $query = Category::from('categories as c')
-    //             ->leftJoin('categories as p1', 'p1.id', '=', 'c.parent_id')      // direct parent
-    //             ->leftJoin('categories as p2', 'p2.id', '=', 'p1.parent_id')     // grandparent
-    //             ->selectRaw("
-    //                 (SELECT COUNT(*) FROM categories WHERE {$cond}) AS totalrecs,
-    //                 c.id,
-    //                 c.title,
-    //                 c.image,
-    //                 c.parent_id,
-    //                 p1.title AS parent_name,
-    //                 CASE
-    //                     WHEN c.parent_id IS NULL THEN 0
-    //                     WHEN p1.parent_id IS NULL THEN 1
-    //                     ELSE 2
-    //                 END AS level,
-    //                 -- top-level Category id to preselect in the Category dropdown
-    //                 CASE
-    //                     WHEN c.parent_id IS NULL THEN c.id
-    //                     WHEN p1.parent_id IS NULL THEN c.parent_id
-    //                     ELSE p1.parent_id
-    //                 END AS top_category_id,
-    //                 -- Sub Category id to preselect in the Sub Category dropdown
-    //                 -- (only applies when this row is itself a sub-subcategory)
-    //                 CASE
-    //                     WHEN c.parent_id IS NULL THEN NULL
-    //                     WHEN p1.parent_id IS NULL THEN NULL
-    //                     ELSE c.parent_id
-    //                 END AS sub_category_id
-    //             ")
-    //             ->whereRaw($cond);
-
-    //         $result = ($limit > -1)
-    //             ? $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->offset($offset)->limit($limit)->get()
-    //             : $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->get();
-
-    //         $ndata                      = $result;
-    //         $ndata['totalrecs']         = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
-    //         $ndata['totalfilteredrecs'] = $ndata['totalrecs'];
-
-    //         return $ndata;
-    //     } catch (Exception $e) {
-    //         throw $e;
-    //     }
-    // }
     public static function list($post)
-{
-    try {
-        $get = $post;
+    {
+        try {
+            $get = $post;
 
-        foreach ($get['columns'] as $key => $value) {
-            $get['columns'][$key]['search']['value'] =
-                trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
+            foreach ($get['columns'] as $key => $value) {
+                $get['columns'][$key]['search']['value'] =
+                    trim(strtolower(htmlspecialchars($value['search']['value'], ENT_QUOTES)));
+            }
+
+            $cond = "c.status = 'Y' AND c.orgid = '" . addslashes($post['orgid']) . "'";
+
+            if (!empty($get['columns'][1]['search']['value'])) {
+                $cond .= " AND LOWER(c.title) LIKE '%" . $get['columns'][1]['search']['value'] . "%'";
+            }
+
+            $limit  = 10;
+            $offset = 0;
+            if (!empty($get['length'])) {
+                $limit  = (int) $get['length'];
+                $offset = (int) $get['start'];
+            }
+
+            $query = Category::from('categories as c')
+                ->leftJoin('categories as p1', 'p1.id', '=', 'c.parent_id')      // direct parent
+                ->leftJoin('categories as p2', 'p2.id', '=', 'p1.parent_id')     // grandparent
+                ->selectRaw("
+                    (SELECT COUNT(*) FROM categories WHERE {$cond}) AS totalrecs,
+                    c.id,
+                    c.title,
+                    c.image,
+                    c.parent_id,
+                    p1.title AS parent_name,
+                    CASE
+                        WHEN c.parent_id IS NULL THEN 0
+                        WHEN p1.parent_id IS NULL THEN 1
+                        ELSE 2
+                    END AS level,
+                    -- top-level Category id to preselect in the Category dropdown
+                    CASE
+                        WHEN c.parent_id IS NULL THEN c.id
+                        WHEN p1.parent_id IS NULL THEN c.parent_id
+                        ELSE p1.parent_id
+                    END AS top_category_id,
+                    -- Sub Category id to preselect in the Sub Category dropdown
+                    -- (only applies when this row is itself a sub-subcategory)
+                    CASE
+                        WHEN c.parent_id IS NULL THEN NULL
+                        WHEN p1.parent_id IS NULL THEN NULL
+                        ELSE c.parent_id
+                    END AS sub_category_id
+                ")
+                ->whereRaw($cond);
+
+            $result = ($limit > -1)
+                ? $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->offset($offset)->limit($limit)->get()
+                : $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->get();
+
+            $ndata                      = $result;
+            $ndata['totalrecs']         = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
+            $ndata['totalfilteredrecs'] = $ndata['totalrecs'];
+
+            return $ndata;
+        } catch (Exception $e) {
+            throw $e;
         }
-
-        $cond = "c.status = 'Y' AND c.orgid = '" . addslashes($post['orgid']) . "'";
-
-        if (!empty($get['columns'][1]['search']['value'])) {
-            $cond .= " AND LOWER(c.title) LIKE '%" . $get['columns'][1]['search']['value'] . "%'";
-        }
-
-        $limit  = 10;
-        $offset = 0;
-        if (!empty($get['length'])) {
-            $limit  = (int) $get['length'];
-            $offset = (int) $get['start'];
-        }
-
-        $query = Category::from('categories as c')
-            ->leftJoin('categories as p1', 'p1.id', '=', 'c.parent_id')   // direct parent
-            ->leftJoin('categories as p2', 'p2.id', '=', 'p1.parent_id')  // grandparent
-            ->selectRaw("
-                (SELECT COUNT(*) FROM categories WHERE {$cond}) AS totalrecs,
-                c.id,
-                c.title,
-                c.image,
-                c.parent_id,
-                c.level,
-                p1.title AS parent_name,
-                -- top-level Category id, for preselecting the Category dropdown
-                CASE
-                    WHEN c.level = 1 THEN c.id
-                    WHEN c.level = 2 THEN c.parent_id
-                    WHEN c.level = 3 THEN p1.parent_id
-                END AS top_category_id,
-                -- Sub Category id, only meaningful when this row is level 3
-                CASE
-                    WHEN c.level = 3 THEN c.parent_id
-                    ELSE NULL
-                END AS sub_category_id
-            ")
-            ->whereRaw($cond);
-
-        $result = ($limit > -1)
-            ? $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->offset($offset)->limit($limit)->get()
-            : $query->orderByRaw('COALESCE(c.updated_at, c.created_at) DESC')->get();
-
-        $ndata                      = $result;
-        $ndata['totalrecs']         = $result->isNotEmpty() ? $result[0]->totalrecs : 0;
-        $ndata['totalfilteredrecs'] = $ndata['totalrecs'];
-
-        return $ndata;
-    } catch (Exception $e) {
-        throw $e;
     }
-}
 
     // ─────────────────────────────────────────────────────────────────
     // Soft delete — unchanged
