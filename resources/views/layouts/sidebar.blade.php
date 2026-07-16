@@ -3,9 +3,7 @@
         <a href="{{ route('admin.dashboard') }}" class="app-brand-link">
             <span class="app-brand-logo demo">
                 <img style="width: 200px;"
-                    src="{{ $orgLogo 
-                 ? asset('storage/organizations/' . $orgLogo) 
-                 : asset('gharma ecommerce.svg') }}"
+                    src="{{ $orgLogo ? asset('storage/organizations/' . $orgLogo) : asset('gharma ecommerce.svg') }}"
                     alt="{{ $orgName ?? 'logo' }}">
             </span>
         </a>
@@ -89,6 +87,7 @@
                 <div>Home Tab</div>
             </a>
         </li>
+
         <!-- Store -->
         <li class="menu-item {{ request()->routeIs('store') ? 'active' : '' }}">
             <a href="{{ route('store') }}" class="menu-link">
@@ -97,9 +96,27 @@
             </a>
         </li>
 
+        <!-- Vendor -->
+        <li class="menu-item {{ request()->routeIs('vendor.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-group"></i>
+                <div>Vendor</div>
+            </a>
+
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('vendor.info') ? 'active' : '' }}">
+                    <a href="{{ route('vendor.info') }}" class="menu-link">
+                        <i class="bx bx-id-card me-2"></i>
+                        <div>Vendor Info</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+
         <!-- Category / Brand / Item -->
         <li
-            class="menu-item {{ request()->routeIs('category') || request()->routeIs('brand') || request()->routeIs('item') || request()->routeIs('variation-attribute') ? 'active open' : '' }}">
+            class="menu-item {{ request()->routeIs('category') || request()->routeIs('brand') || request()->routeIs('unit') || request()->routeIs('item') || request()->routeIs('variation-attribute') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-category"></i>
                 <div>Category / Brand / Item</div>
@@ -108,31 +125,40 @@
             <ul class="menu-sub">
                 <li class="menu-item {{ request()->routeIs('category') ? 'active' : '' }}">
                     <a href="{{ route('category') }}" class="menu-link">
-                        <i class="bx bx-category-alt me-2"></i>
+                        {{-- <i class="bx bx-category-alt me-2"></i> --}}
                         <div>Category</div>
                     </a>
                 </li>
 
                 <li class="menu-item {{ request()->routeIs('brand') ? 'active' : '' }}">
                     <a href="{{ route('brand') }}" class="menu-link">
-                        <i class="bx bx-purchase-tag me-2"></i>
+                        {{-- <i class="bx bx-purchase-tag me-2"></i> --}}
                         <div>Brand</div>
+                    </a>
+                </li>
+
+                   <li class="menu-item {{ request()->routeIs('variation-attribute') ? 'active' : '' }}">
+                    <a href="{{ route('variation-attribute') }}" class="menu-link">
+                        {{-- <i class="bx bx-slider me-2"></i> --}}
+                        <div>Variation Attributes</div>
+                    </a>
+                </li>
+
+                <li class="menu-item {{ request()->routeIs('unit') ? 'active' : '' }}">
+                    <a href="{{ route('unit') }}" class="menu-link">
+                        {{-- <i class="bx bx-slider me-2"></i> --}}
+                        <div>Unit</div>
                     </a>
                 </li>
 
                 <li class="menu-item {{ request()->routeIs('item') ? 'active' : '' }}">
                     <a href="{{ route('item') }}" class="menu-link">
-                        <i class="bx bx-box me-2"></i>
+                        {{-- <i class="bx bx-box me-2"></i> --}}
                         <div>Item</div>
                     </a>
                 </li>
 
-                <li class="menu-item {{ request()->routeIs('variation-attribute') ? 'active' : '' }}">
-                    <a href="{{ route('variation-attribute') }}" class="menu-link">
-                        <i class="bx bx-slider me-2"></i>
-                        <div>Variation Attributes</div>
-                    </a>
-                </li>
+             
             </ul>
         </li>
 
@@ -175,7 +201,7 @@
 
         <!-- Inventory Management -->
         <li
-            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') || request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') || request()->routeIs('sales') || request()->routeIs('sales.*') || request()->routeIs('sales-return') || request()->routeIs('sales-return.*') ? 'active open' : '' }}">
+            class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') || request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-store"></i>
                 <div>Inventory Management</div>
@@ -189,28 +215,45 @@
                     </a>
                 </li>
 
-                <li class="menu-item {{ request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') ? 'active' : '' }}">
+                <li
+                    class="menu-item {{ request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') ? 'active' : '' }}">
                     <a href="{{ route('purchase-voucher') }}" class="menu-link">
                         <i class="bx bx-file me-2"></i>
                         <div>Purchase</div>
                     </a>
                 </li>
 
-                <li class="menu-item {{ request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active' : '' }}">
+                <li
+                    class="menu-item {{ request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active' : '' }}">
                     <a href="{{ route('purchase-return') }}" class="menu-link">
                         <i class="bx bx-transfer-alt me-2"></i>
                         <div>Purchase Return (Dr. Note)</div>
                     </a>
                 </li>
+            </ul>
+        </li>
 
-                <li class="menu-item {{ request()->routeIs('sales') || request()->routeIs('sales.*') ? 'active' : '' }}">
+        <!-- Sales Management -->
+        <li
+            class="menu-item {{ request()->routeIs('sales') || request()->routeIs('sales.*') || request()->routeIs('sales-return') || request()->routeIs('sales-return.*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-cart"></i>
+                <div>Sales</div>
+            </a>
+
+            <ul class="menu-sub">
+
+
+                <li
+                    class="menu-item {{ request()->routeIs('sales') || request()->routeIs('sales.*') ? 'active' : '' }}">
                     <a href="{{ route('sales') }}" class="menu-link">
                         <i class="bx bx-cart-alt me-2"></i>
                         <div>Sales</div>
                     </a>
                 </li>
 
-                <li class="menu-item {{ request()->routeIs('sales-return') || request()->routeIs('sales-return.*') ? 'active' : '' }}">
+                <li
+                    class="menu-item {{ request()->routeIs('sales-return') || request()->routeIs('sales-return.*') ? 'active' : '' }}">
                     <a href="{{ route('sales-return') }}" class="menu-link">
                         <i class="bx bx-revision me-2"></i>
                         <div>Sales Return (Cr. Note)</div>
@@ -219,22 +262,6 @@
             </ul>
         </li>
 
-        <!-- Vendor -->
-        <li class="menu-item {{ request()->routeIs('vendor.*') ? 'active open' : '' }}">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-group"></i>
-                <div>Vendor</div>
-            </a>
-
-            <ul class="menu-sub">
-                <li class="menu-item {{ request()->routeIs('vendor.info') ? 'active' : '' }}">
-                    <a href="{{ route('vendor.info') }}" class="menu-link">
-                        <i class="bx bx-id-card me-2"></i>
-                        <div>Vendor Info</div>
-                    </a>
-                </li>
-            </ul>
-        </li>
 
         <!-- Price Management -->
         <li

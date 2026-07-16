@@ -270,6 +270,8 @@ class Item extends Model
                     $ids                     = [];
                     $attributeCases          = [];
                     $varAttrIdCases          = [];
+                    $unitCases               = [];
+                    $unitIdCases             = [];
                     $valueCases              = [];
                     $productCodeCases        = [];
                     $companyProductCodeCases = [];
@@ -287,6 +289,12 @@ class Item extends Model
                         ->pluck('name', 'id')
                         ->toArray();
 
+                    $unitNameMap = DB::table('units')
+                        ->where('orgid', $post['orgid'] ?? null)
+                        ->where('status', 'Y')
+                        ->pluck('unit_name', 'id')
+                        ->toArray();
+
                     foreach ($post['variations'] as $variation) {
                         if (empty($variation['value'])) continue;
 
@@ -297,6 +305,8 @@ class Item extends Model
                             $ids[]          = $id;
                             $attrId         = $variation['attribute_id'] ?? null;
                             $attrName       = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $unitId         = $variation['unit_id'] ?? null;
+                            $unitName       = !empty($unitId) ? ($unitNameMap[$unitId] ?? '') : '';
                             $threshold      = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
                             $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
                             $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
@@ -307,6 +317,8 @@ class Item extends Model
 
                             $attributeCases[]          = "WHEN '$id' THEN '" . addslashes($attrName) . "'";
                             $varAttrIdCases[]          = !empty($attrId) ? "WHEN '$id' THEN '$attrId'::uuid" : "WHEN '$id' THEN NULL::uuid";
+                            $unitCases[]               = "WHEN '$id' THEN '" . addslashes($unitName) . "'";
+                            $unitIdCases[]             = !empty($unitId) ? "WHEN '$id' THEN '$unitId'::uuid" : "WHEN '$id' THEN NULL::uuid";
                             $valueCases[]              = "WHEN '$id' THEN '" . addslashes($variation['value'])               . "'";
                             $productCodeCases[]        = "WHEN '$id' THEN '" . addslashes($variation['product_code']         ?? '') . "'";
                             $companyProductCodeCases[] = "WHEN '$id' THEN '" . addslashes($variation['company_product_code'] ?? '') . "'";
@@ -321,6 +333,8 @@ class Item extends Model
                         } else {
                             $attrId         = $variation['attribute_id'] ?? null;
                             $attrName       = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                            $unitId         = $variation['unit_id'] ?? null;
+                            $unitName       = !empty($unitId) ? ($unitNameMap[$unitId] ?? '') : '';
                             $threshold      = is_numeric($variation['threshold'] ?? null) ? (int) $variation['threshold'] : 0;
                             $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
                             $discount       = ($discountType === 'percentage' && is_numeric($variation['discount_percentage'] ?? null))
@@ -335,6 +349,8 @@ class Item extends Model
                                 'item_id'                => $itemId,
                                 'attribute'              => $attrName,
                                 'variation_attribute_id' => $attrId ?: null,
+                                'unit'                   => $unitName,
+                                'unit_id'                => $unitId ?: null,
                                 'value'                  => $variation['value'],
                                 'threshold'              => $threshold,
                                 'discount_type'          => $discountType,
@@ -444,22 +460,24 @@ class Item extends Model
 
                         $idsList = "'" . implode("','", $ids) . "'";
                         DB::statement("
-                            UPDATE itemvariations SET
-                                attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
-                                variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
-                                value                  = CASE id " . implode(' ', $valueCases)              . " END,
-                                product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
-                                company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
-                                hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
-                                threshold              = CASE id " . implode(' ', $thresholdCases)          . " END,
-                                discount_type          = CASE id " . implode(' ', $discountTypeCases)       . " END,
-                                discount               = CASE id " . implode(' ', $discountCases)           . " END,
-                                discount_amount        = CASE id " . implode(' ', $discountAmountCases)     . " END,
-                                price                  = CASE id " . implode(' ', $priceCases)              . " END,
-                                updated_at             = NOW(),
-                                updatedby              = ?
-                            WHERE id IN ($idsList)
-                        ", [$post['userid']]);
+                        UPDATE itemvariations SET
+                            attribute              = CASE id " . implode(' ', $attributeCases)         . " END,
+                            variation_attribute_id = CASE id " . implode(' ', $varAttrIdCases)         . " END,
+                            unit                    = CASE id " . implode(' ', $unitCases)              . " END,
+                            unit_id                 = CASE id " . implode(' ', $unitIdCases)            . " END,
+                            value                  = CASE id " . implode(' ', $valueCases)              . " END,
+                            product_code           = CASE id " . implode(' ', $productCodeCases)        . " END,
+                            company_product_code   = CASE id " . implode(' ', $companyProductCodeCases) . " END,
+                            hs_code                = CASE id " . implode(' ', $hsCodeCases)             . " END,
+                            threshold              = CASE id " . implode(' ', $thresholdCases)          . " END,
+                            discount_type          = CASE id " . implode(' ', $discountTypeCases)       . " END,
+                            discount               = CASE id " . implode(' ', $discountCases)           . " END,
+                            discount_amount        = CASE id " . implode(' ', $discountAmountCases)     . " END,
+                            price                  = CASE id " . implode(' ', $priceCases)              . " END,
+                            updated_at             = NOW(),
+                            updatedby              = ?
+                        WHERE id IN ($idsList)
+                    ", [$post['userid']]);
 
                         foreach ($existingVariationPrices as $varId => $price) {
                             if ($price <= 0) continue;
@@ -666,12 +684,20 @@ class Item extends Model
                         ->pluck('name', 'id')
                         ->toArray();
 
+                    $unitNameMap = DB::table('units')
+                        ->where('orgid', $post['orgid'] ?? null)
+                        ->where('status', 'Y')
+                        ->pluck('unit_name', 'id')
+                        ->toArray();
+
                     foreach ($post['variations'] as $variation) {
                         if (empty($variation['value'])) continue;
 
                         $status         = (($variation['status'] ?? 'active') === 'active') ? 'Y' : 'N';
                         $attrId         = $variation['attribute_id'] ?? null;
                         $attrName       = !empty($attrId) ? ($attrNameMap[$attrId] ?? '') : '';
+                        $unitId         = $variation['unit_id'] ?? null;
+                        $unitName       = !empty($unitId) ? ($unitNameMap[$unitId] ?? '') : '';
                         $varId          = (string) Str::uuid();
                         $price          = is_numeric($variation['price'] ?? null) ? (float) $variation['price'] : 0;
                         $discountType   = in_array($variation['discount_type'] ?? null, ['percentage', 'fixed'], true) ? $variation['discount_type'] : null;
@@ -685,6 +711,8 @@ class Item extends Model
                             'item_id'                => $itemId,
                             'attribute'              => $attrName,
                             'variation_attribute_id' => $attrId ?: null,
+                            'unit'                   => $unitName,
+                            'unit_id'                => $unitId ?: null,
                             'value'                  => $variation['value'],
                             'threshold'              => $variation['threshold']          ?? 0,
                             'discount_type'          => $discountType,
