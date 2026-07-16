@@ -9,6 +9,7 @@ use App\Models\BackPanel\Item;
 use App\Models\BackPanel\ItemImage;
 use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\SubCategory;
+use App\Models\BackPanel\Unit;
 use App\Models\BackPanel\VariationAttribute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,7 @@ class ItemController extends Controller
         $categories          = Category::getCategory($post);
         $subCategories       = SubCategory::getSubCategory($post);
         $brands              = Brand::getBrand($post);
+        $units              = Unit::getUnit($post);
         $variationAttributes = VariationAttribute::fetchVariationAttributes($post);
 
         $data = [
@@ -115,6 +117,8 @@ class ItemController extends Controller
                 ->map(fn($v) => [
                     'variationid'          => $v->id,
                     'attribute_id'         => $v->variation_attribute_id ?? '',
+                    'unit_id'         => $v->unit_id ?? '',
+                    'unit'         => $v->unit ?? '',
                     'name'                 => $v->attribute,
                     'value'                => $v->value,
                     'product_code'         => $v->product_code         ?? '',
@@ -159,6 +163,7 @@ class ItemController extends Controller
             'categories'          => $categories,
             'subCategories'       => $subCategories,
             'brands'              => $brands,
+            'units'              => $units,
             'variationAttributes' => $variationAttributes,
         ]);
     }
@@ -188,9 +193,9 @@ class ItemController extends Controller
                 'variations'           => 'nullable|array',
             ];
 
-            if (empty($request->id)) {
-                $rules['images'] = 'required|array|min:1';
-            }
+            // if (empty($request->id)) {
+            //     $rules['images'] = 'required|array|min:1';
+            // }
 
             $message = [
                 'name.required' => 'Please enter category title.',

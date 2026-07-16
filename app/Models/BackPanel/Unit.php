@@ -2,19 +2,20 @@
 
 namespace App\Models\BackPanel;
 
+
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class VariationAttribute extends Model
+class Unit extends Model
 {
     public $incrementing = false;
     protected $keyType   = 'string';
-    protected $table     = 'variation_attributes';
+    protected $table     = 'units';
 
-    protected $fillable = ['name', 'status', 'orgid', 'postedby', 'updatedby'];
+    protected $fillable = ['unit_name', 'status', 'orgid', 'postedby', 'updatedby', 'updated_at', 'created_at'];
 
     /**
      * To save variation attribute
@@ -26,22 +27,22 @@ class VariationAttribute extends Model
     {
         try {
             $dataArray = [
-                'name'   => $post['name'],
-                'orgid'  => $post['orgid'],
-                'status' => 'Y',
+                'unit_name' => $post['name'],
+                'orgid'     => $post['orgid'],
+                'status'    => 'Y',
             ];
 
             if (!empty($post['id'])) {
                 $dataArray['updatedby']  = $post['updatedby'] ?? null;
                 $dataArray['updated_at'] = Carbon::now();
 
-                if (!VariationAttribute::where('id', $post['id'])->update($dataArray)) {
+                if (!Unit::where('id', $post['id'])->update($dataArray)) {
                     throw new Exception("Couldn't update record");
                 }
             } else {
                 // Restore soft-deleted record if one exists with same orgid+name
-                $softDeleted = VariationAttribute::where('orgid', $post['orgid'])
-                    ->where('name', $post['name'])
+                $softDeleted = Unit::where('orgid', $post['orgid'])
+                    ->where('unit_name', $post['name'])
                     ->where('status', 'N')
                     ->first();
 
@@ -51,15 +52,14 @@ class VariationAttribute extends Model
                         'updatedby'  => $post['updatedby'] ?? null,
                         'updated_at' => Carbon::now(),
                     ];
-                    if (!VariationAttribute::where('id', $softDeleted->id)->update($restoreArray)) {
+                    if (!Unit::where('id', $softDeleted->id)->update($restoreArray)) {
                         throw new Exception("Couldn't save record");
                     }
                 } else {
                     $dataArray['id']         = (string) Str::uuid();
                     $dataArray['postedby']   = $post['postedby'] ?? null;
                     $dataArray['created_at'] = Carbon::now();
-
-                    if (!VariationAttribute::insert($dataArray)) {
+                    if (!Unit::insert($dataArray)) {
                         throw new Exception("Couldn't save record");
                     }
                 }
@@ -89,7 +89,7 @@ class VariationAttribute extends Model
             $cond = " status = 'Y' AND orgid = '" . addslashes($post['orgid']) . "' ";
 
             if (!empty($get['columns'][1]['search']['value'])) {
-                $cond .= " and lower(name) like '%" . $get['columns'][1]['search']['value'] . "%'";
+                $cond .= " and lower(unit_name) like '%" . $get['columns'][1]['search']['value'] . "%'";
             }
 
             $limit  = 15;
@@ -99,7 +99,7 @@ class VariationAttribute extends Model
                 $offset = $get['start'];
             }
 
-            $query = VariationAttribute::selectRaw("(SELECT count(*) FROM variation_attributes WHERE {$cond}) AS totalrecs, name, id")
+            $query = Unit::selectRaw("(SELECT count(*) FROM units WHERE {$cond}) AS totalrecs, unit_name as name, id")
                 ->whereRaw($cond);
 
             if ($limit > -1) {
@@ -136,7 +136,7 @@ class VariationAttribute extends Model
                 'updated_at' => Carbon::now(),
             ];
 
-            if (!VariationAttribute::where('id', $post['id'])
+            if (!Unit::where('id', $post['id'])
                 ->where('orgid', $post['orgid'])
                 ->update($updateArray)) {
                 throw new Exception("Couldn't delete record. Please try again.");
@@ -149,15 +149,23 @@ class VariationAttribute extends Model
     }
 
 
-    public static function fetchVariationAttributes($post)
+    public static function getUnit($post)
     {
         try {
-            return DB::table('variation_attributes')
-                ->select('id', 'name')
+            $query = DB::table('units')
+                ->select('id', 'unit_name')
                 ->where('orgid', $post['orgid'])
-                ->where('status', 'Y')
-                ->orderBy('name')
+                ->where('status', 'Y');
+
+            // if (!empty($post['brandid'])) {
+            //     $query->where('id', $post['brandid']);
+            // }
+
+            $result = $query
+                ->orderBy('unit_name', 'asc')
                 ->get();
+
+            return $result;
         } catch (Exception $e) {
             throw $e;
         }

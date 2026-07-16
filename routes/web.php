@@ -44,6 +44,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\BackPanel\OrganizationRoleController;
+use App\Http\Controllers\BackPanel\UnitController;
 use App\Models\Payment;
 use App\Models\WholesalerPrice;
 use Illuminate\Support\Facades\Route;
@@ -227,6 +228,13 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/list',   [VariationAttributeController::class, 'list'])->name('variation-attribute.list');
             Route::post('/save',   [VariationAttributeController::class, 'save'])->name('variation-attribute.save');
             Route::post('/delete', [VariationAttributeController::class, 'delete'])->name('variation-attribute.delete');
+        });
+
+        Route::group(['prefix' => 'unit'], function () {
+            Route::get('/',        [UnitController::class, 'index'])->name('unit');
+            Route::post('/list',   [UnitController::class, 'list'])->name('unit.list');
+            Route::post('/save',   [UnitController::class, 'save'])->name('unit.save');
+            Route::post('/delete', [UnitController::class, 'delete'])->name('unit.delete');
         });
 
         Route::group(['prefix' => 'item'], function () {
