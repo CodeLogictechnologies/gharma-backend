@@ -20,7 +20,6 @@ class Cart extends Model
             } else {
                 $post['type'] = 'R';
             }
-            // dd($post);
             if (!empty($post['roleid']) && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002') {
 
                 // Fetch wholesaler price with min_qty
@@ -102,40 +101,28 @@ class Cart extends Model
                 }
             } else {
                 $price = DB::table('retailer_prices as p')
-                    ->leftJoin('discounts as d', function ($join) use ($post) { // ✅ pass $post here
-                        $join->on(function ($q) {
-                            $q->where('d.applies_to', 'entire')
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        })->orOn(function ($q) use ($post) {
-                            $q->where('d.applies_to', 'item')
-                                ->whereColumn('d.item_id', 'p.itemid')
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        })->orOn(function ($q) use ($post) {
-                            $q->where('d.applies_to', 'variation')
-                                ->where('d.variation_id', $post['variationid'])
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        });
-                    })
+                    // ->leftJoin('discounts as d', function ($join) use ($post) {
+                    //     $join->on(function ($q) {
+                    //         $q->where('d.applies_to', 'entire')
+                    //             ->where('d.status', 'Y')
+                    //             ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
+                    //     })->orOn(function ($q) use ($post) {
+                    //         $q->where('d.applies_to', 'item')
+                    //             ->whereColumn('d.item_id', 'p.itemid')
+                    //             ->where('d.status', 'Y')
+                    //             ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
+                    //     })->orOn(function ($q) use ($post) {
+                    //         $q->where('d.applies_to', 'variation')
+                    //             ->where('d.variation_id', $post['variationid'])
+                    //             ->where('d.status', 'Y')
+                    //             ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
+                    //     });
+                    // })
                     ->where('p.variation_id', $post['variationid'])
                     ->where('p.status', 'Y')
                     ->where('p.orgid', $post['orgid'])
                     ->select(
-                        'p.price as original_price',
-                        DB::raw("
-                            CASE
-                                WHEN d.id IS NULL THEN p.price
-                                WHEN d.type = 'percentage' THEN ROUND(p.price - (p.price * d.percentage / 100), 2)
-                                WHEN d.type = 'fixed'      THEN ROUND(p.price - d.value, 2)
-                                ELSE p.price
-                            END as price
-                        "),
-
-                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.type       END as discount_type"),
-                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.value      END as discount_value"),
-                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.percentage END as discount_percentage"),
+                        'p.price_after_discount as original_price'
                     )
                     ->first();
 
@@ -168,7 +155,7 @@ class Cart extends Model
                     $updated = Cart::where('id', $existingCart->id)
                         ->update([
                             'quantity'    => $newQty,
-                            'total_price' => $newQty * $price->price,
+                            'total_price' => $newQty * $price->original_price,
                         ]);
 
                     if (!$updated) {
@@ -181,8 +168,8 @@ class Cart extends Model
                         'orgid'        => $post['orgid'],
                         'userid'       => $post['userid'],
                         'variation_id' => $post['variationid'],
-                        'unit_price'   => $price->price,
-                        'total_price'  => $post['qty'] * $price->price,
+                        'unit_price'   => $price->original_price,
+                        'total_price'  => $post['qty'] * $price->original_price,
                         'quantity'     => $post['qty'],
                         'type'     => $post['type'],
                     ];
