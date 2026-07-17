@@ -17,7 +17,7 @@
                     <i class="bx bx-calendar"></i>
                 </label>
                 <input type="text" name="start_date" id="start_date_np" class="form-control" placeholder="2079-04-01"
-                    autocomplete="off" value="{{ $fiscalyear->start_date ?? '' }}" required readonly>
+                    autocomplete="off" value="{{ $fiscalyear->start_date ?? '' }}" required>
             </div>
         </div>
 
@@ -28,14 +28,14 @@
                     <i class="bx bx-calendar"></i>
                 </label>
                 <input type="text" name="end_date" id="end_date_np" class="form-control" placeholder="2080-03-32"
-                    autocomplete="off" value="{{ $fiscalyear->end_date ?? '' }}" required readonly>
+                    autocomplete="off" value="{{ $fiscalyear->end_date ?? '' }}" required>
             </div>
         </div>
 
         <div class="mb-3">
             <label class="form-label">Fiscal Year Code</label>
-            <input type="text" id="code_preview" class="form-control" value="{{ $fiscalyear->code ?? '' }}" disabled
-                placeholder="Auto-generated from dates">
+            <input type="text" id="code_preview" class="form-control" name="code_preview"
+                value="{{ $fiscalyear->code ?? '' }}" placeholder="Auto-generated from dates">
         </div>
 
         <div class="mb-3 form-check">
