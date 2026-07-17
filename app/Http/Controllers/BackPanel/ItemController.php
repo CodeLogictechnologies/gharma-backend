@@ -264,7 +264,7 @@ class ItemController extends Controller
     public function list(Request $request)
     {
         $post          = $request->all();
-        $post['orgid'] = session('orgid'); // ← fix: pass orgid
+        $post['orgid'] = session('orgid');
         $data          = Item::list($post);
 
         $i            = 0;
@@ -283,9 +283,9 @@ class ItemController extends Controller
             $array[$i]['type']        = $row->type          ?? '—';
             $array[$i]['brand']       = $row->brand         ?? '—';
 
-            $action  = '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteItem px-2" style="color:red;" data-id="'  . $row->id . '"><i class="bx bx-trash"></i></a>';
-            $action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewItem"  style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+            $action = '<a href="javascript:;" title="View Data"   class="tooltipdiv viewItem"  style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
             $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editItem"  style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteItem" style="color:red;" data-id="'  . $row->id . '"><i class="bx bx-trash"></i></a>';
 
             $array[$i]['action'] = $action;
             $i++;

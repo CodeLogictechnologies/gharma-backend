@@ -62,7 +62,7 @@ class SalesReturnController extends Controller
                 }
                 $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewSalesReturn" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
                 $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editSalesReturn" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteSalesReturn px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteSalesReturn" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
 
                 $array[$i]["action"] = $action;
                 $i++;

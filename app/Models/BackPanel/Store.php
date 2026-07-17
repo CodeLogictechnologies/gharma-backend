@@ -163,7 +163,7 @@ class Store extends Model
                 ->whereRaw($cond, $bindings)
                 ->count();
 
-            $query = Store::selectRaw("name, email, id, phone, address, country, city, latitude, longitude")
+            $query = Store::selectRaw("name, email, id, phone, radius, address, country, city, latitude, longitude")
                 ->whereRaw($cond, $bindings)
                 ->orderBy('created_at', 'desc');
 

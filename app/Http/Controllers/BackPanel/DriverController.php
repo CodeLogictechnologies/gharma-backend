@@ -62,7 +62,7 @@ class DriverController extends Controller
 
     public function save(Request $request)
     {
-        // try {
+        try {
             $post          = $request->all();
             $post['orgid'] = session('orgid');
             $rules = [
@@ -85,15 +85,15 @@ class DriverController extends Controller
                 throw new Exception('Could not assign driver', 1);
             }
             DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = 'Something went wrong';
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = 'Something went wrong';
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -154,8 +154,8 @@ class DriverController extends Controller
                 $array[$i]['phone']   = $row->phone   ?? '-';
 
                 $action  = '';
-                $action .= '<a href="javascript:;" class="deleteDriver px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
                 $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editDriver px-2" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                $action .= '<a href="javascript:;" class="deleteDriver px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
 
                 $array[$i]['action'] = $action;
                 $i++;
@@ -214,55 +214,55 @@ class DriverController extends Controller
     public function saveDriver(Request $request)
     {
         // try {
-            $post = $request->all();
-            $rules = [
-                'first_name' => 'required|min:3|max:255',
-                'phone'      => 'required|min:5|max:5000',
-                'address'    => 'required',
-                'email'      => [
-                    'required',
-                    'email',
-                    Rule::unique('users')->ignore($request->id)
-                ],
-                'username'   => 'required',
-            ];
+        $post = $request->all();
+        $rules = [
+            'first_name' => 'required|min:3|max:255',
+            'phone'      => 'required|min:5|max:5000',
+            'address'    => 'required',
+            'email'      => [
+                'required',
+                'email',
+                Rule::unique('users')->ignore($request->id)
+            ],
+            'username'   => 'required',
+        ];
 
-            if (empty($request->id)) {
-                $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
-            }
+        if (empty($request->id)) {
+            $rules['image'] = 'nullable:mimes:jpg,jpeg,png:max:2048';
+        }
 
-            $message = [
-                'first_name.required' => 'Please enter first name',
-                'first_name.min'      => 'First name must be at least 3 characters',
-                'phone.required'      => 'Phone number is required',
-                'address.required'    => 'Address is required',
-                'email.required'      => 'Email is required',
-                'username.required'   => 'User Name is required',
-            ];
+        $message = [
+            'first_name.required' => 'Please enter first name',
+            'first_name.min'      => 'First name must be at least 3 characters',
+            'phone.required'      => 'Phone number is required',
+            'address.required'    => 'Address is required',
+            'email.required'      => 'Email is required',
+            'username.required'   => 'User Name is required',
+        ];
 
-            $validate = Validator::make($request->all(), $rules, $message);
+        $validate = Validator::make($request->all(), $rules, $message);
 
-            if ($validate->fails()) {
-                throw new Exception($validate->errors()->first(), 1);
-            }
+        if ($validate->fails()) {
+            throw new Exception($validate->errors()->first(), 1);
+        }
 
-            $post          = $request->all();
-            $post['type']  = 'driver';
-            $type          = 'success';
-            $post['orgid'] = session('orgid');
+        $post          = $request->all();
+        $post['type']  = 'driver';
+        $type          = 'success';
+        $post['orgid'] = session('orgid');
 
-            if (!empty($post['id'])) {
-                $message = 'Driver updated successfully';
-            } else {
-                $message = 'Driver saved successfully';
-            }
+        if (!empty($post['id'])) {
+            $message = 'Driver updated successfully';
+        } else {
+            $message = 'Driver saved successfully';
+        }
 
-            DB::beginTransaction();
+        DB::beginTransaction();
 
-            if (!Driver::saveData($post)) {
-                throw new Exception('Could not save record', 1);
-            }
-            DB::commit();
+        if (!Driver::saveData($post)) {
+            throw new Exception('Could not save record', 1);
+        }
+        DB::commit();
         // } catch (QueryException $e) {
         //     DB::rollBack();
         //     $type    = 'error';

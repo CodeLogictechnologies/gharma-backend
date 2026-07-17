@@ -64,7 +64,7 @@ class PurchaseVoucherController extends Controller
 
                 $action  = '<a href="javascript:;" title="View Data" class="tooltipdiv viewPurchaseVoucher" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
                 $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editPurchaseVoucher" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseVoucher px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseVoucher" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
 
                 $array[$i]["action"] = $action;
                 $i++;

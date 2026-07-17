@@ -38,7 +38,7 @@ class HomeTabController extends Controller
                 'id'           => $row->id,
                 'tab_name'     => $row->tab_name,
                 'category_ids' => $row->category_ids ?? [],
-                'icon_name'    => $row->icon_name ??'',
+                'icon_name'    => $row->icon_name ?? '',
                 'bg_color'     => $row->bg_color ?? '#ffffff',
             ];
         }
@@ -71,7 +71,6 @@ class HomeTabController extends Controller
             $post['userid'] = session('userid');
 
             HomeTab::saveData($post);
-
         } catch (QueryException $e) {
             $type    = 'error';
             $message = $this->queryMessage;
@@ -92,20 +91,28 @@ class HomeTabController extends Controller
         $i            = 0;
         $totalrecs    = $result['totalrecs']     ?? 0;
         $filtereddata = $result['filteredCount'] ?? $totalrecs;
-
+        $action = '';
         foreach ($result['data'] as $row) {
             $array[$i]['sno']            = $request->input('start', 0) + $i + 1;
             $array[$i]['tab_name']       = $row->tab_name       ?? '—';
-            $array[$i]['category_names'] = $row->category_names
-                        ? implode('<br>', array_map('trim', explode(',', $row->category_names)))
-                        : '—';
+            $array[$i]['category_names'] = '—';
+
+            if (!empty($row->category_names)) {
+                $categories = array_map('trim', explode(',', $row->category_names));
+
+                $chunks = array_chunk($categories, 6);
+
+                $array[$i]['category_names'] = implode('<br>', array_map(function ($chunk) {
+                    return implode(', ', $chunk);
+                }, $chunks));
+            }
             $array[$i]['icon_name']      = $row->icon_name      ?? '—';
             $array[$i]['bg_color']       = $row->bg_color
                 ? '<span style="display:inline-block;width:20px;height:20px;background:' . e($row->bg_color) . ';border-radius:4px;border:1px solid #ccc;" title="' . e($row->bg_color) . '"></span> ' . e($row->bg_color)
                 : '—';
 
-            $action  = '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
             $action .= '<a href="javascript:;" class="editHomeTab"         style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            $action  = '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
 
             $array[$i]['action'] = $action;
             $i++;
