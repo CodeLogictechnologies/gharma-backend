@@ -8,7 +8,6 @@ use App\Models\BackPanel\Category;
 use App\Models\BackPanel\Item;
 use App\Models\BackPanel\ItemImage;
 use App\Models\BackPanel\Itemvariation;
-use App\Models\BackPanel\SubCategory;
 use App\Models\BackPanel\Unit;
 use App\Models\BackPanel\VariationAttribute;
 use Illuminate\Http\Request;
@@ -25,11 +24,10 @@ class ItemController extends Controller
     public function index()
     {
         $post['orgid'] = session('orgid');
-        $categories = Category::getCategory($post);
-        $subCategories = SubCategory::getSubCategory($post);
+        $categories = Category::getCategory($post); // top-level only
+
         $data = [
-            'categories'    => $categories,
-            'subCategories' => $subCategories,
+            'categories' => $categories,
         ];
         return view('backend.item.index', $data);
     }
@@ -40,10 +38,9 @@ class ItemController extends Controller
         $post = $request->all();
         $post['orgid'] = session('orgid');
 
-        $categories          = Category::getCategory($post);
-        $subCategories       = SubCategory::getSubCategory($post);
+        $categories          = Category::getCategory($post); // top-level only
         $brands              = Brand::getBrand($post);
-        $units              = Unit::getUnit($post);
+        $units               = Unit::getUnit($post);
         $variationAttributes = VariationAttribute::fetchVariationAttributes($post);
 
         $data = [
@@ -63,6 +60,7 @@ class ItemController extends Controller
             'excise_value'         => '',
             'categories'           => [],
             'sub_categories'       => [],
+            'sub_sub_categories'   => [],
             'description'          => '',
             'images'               => [],
             'variations' => [
@@ -83,6 +81,10 @@ class ItemController extends Controller
             ],
         ];
 
+        // Default: nothing selected yet, so no sub / sub-sub options to preload
+        $subCategories    = collect();
+        $subSubCategories = collect();
+
         if (!empty($id)) {
             $item = Item::findOrFail($id);
 
@@ -97,6 +99,32 @@ class ItemController extends Controller
                 ->pluck('subcategoryid')
                 ->map(fn($v) => (string) $v)
                 ->toArray();
+
+            $subSubCategoryIds = DB::table('sub_sub_category_items')
+                ->where('itemid', $id)
+                ->pluck('subsubcategoryid')
+                ->map(fn($v) => (string) $v)
+                ->toArray();
+
+            if (!empty($categoryIds)) {
+                $subCategories = DB::table('categories')
+                    ->select('id', 'title')
+                    ->where('orgid', $post['orgid'])
+                    ->where('status', 'Y')
+                    ->whereIn('parent_id', $categoryIds)
+                    ->orderBy('title')
+                    ->get();
+            }
+
+            if (!empty($subCategoryIds)) {
+                $subSubCategories = DB::table('categories')
+                    ->select('id', 'title')
+                    ->where('orgid', $post['orgid'])
+                    ->where('status', 'Y')
+                    ->whereIn('parent_id', $subCategoryIds)
+                    ->orderBy('title')
+                    ->get();
+            }
 
             $existingImages = DB::table('item_images')
                 ->where('item_id', $id)
@@ -117,8 +145,8 @@ class ItemController extends Controller
                 ->map(fn($v) => [
                     'variationid'          => $v->id,
                     'attribute_id'         => $v->variation_attribute_id ?? '',
-                    'unit_id'         => $v->unit_id ?? '',
-                    'unit'         => $v->unit ?? '',
+                    'unit_id'              => $v->unit_id ?? '',
+                    'unit'                 => $v->unit ?? '',
                     'name'                 => $v->attribute,
                     'value'                => $v->value,
                     'product_code'         => $v->product_code         ?? '',
@@ -149,6 +177,7 @@ class ItemController extends Controller
                 'excise_value'         => $item->excise_value      ?? '',
                 'categories'           => $categoryIds,
                 'sub_categories'       => $subCategoryIds,
+                'sub_sub_categories'   => $subSubCategoryIds,
                 'description'          => $item->description,
                 'images'               => $existingImages,
                 'variations'           => !empty($existingVariations)
@@ -162,8 +191,9 @@ class ItemController extends Controller
             'id'                  => $id,
             'categories'          => $categories,
             'subCategories'       => $subCategories,
+            'subSubCategories'    => $subSubCategories,
             'brands'              => $brands,
-            'units'              => $units,
+            'units'               => $units,
             'variationAttributes' => $variationAttributes,
         ]);
     }
@@ -178,7 +208,8 @@ class ItemController extends Controller
                 'type'                 => 'required|in:Regular,Special,Featured',
                 'description'          => 'nullable|string',
                 'categories'           => 'required|exists:categories,id',
-                'sub_categories'       => 'nullable|exists:sub_categories,id',
+                'sub_categories'       => 'nullable|exists:categories,id',
+                'sub_sub_categories'   => 'nullable|exists:categories,id',
                 'product_code'         => 'nullable|string|max:255',
                 'company_product_code' => 'nullable|string|max:255',
                 'hs_code'              => 'nullable|digits_between:6,15',
@@ -193,10 +224,6 @@ class ItemController extends Controller
                 'variations'           => 'nullable|array',
             ];
 
-            // if (empty($request->id)) {
-            //     $rules['images'] = 'required|array|min:1';
-            // }
-
             $message = [
                 'name.required' => 'Please enter category title.',
             ];
@@ -207,7 +234,6 @@ class ItemController extends Controller
                 throw new Exception($validation->errors()->first(), 1);
             }
 
-            // At least one product code required
             if (empty(trim($request->product_code)) && empty(trim($request->company_product_code))) {
                 throw new Exception('Please enter at least one: Product Code or Company Product Code.', 1);
             }
@@ -226,10 +252,12 @@ class ItemController extends Controller
             DB::commit();
         } catch (QueryException $e) {
             DB::rollBack();
+            \Log::error('Item save QueryException: ' . $e->getMessage());
             $type    = 'error';
             $message = $this->queryMessage;
         } catch (Exception $e) {
             DB::rollBack();
+            \Log::error('Item save Exception: ' . $e->getMessage());
             $type    = 'error';
             $message = $e->getMessage();
         }
@@ -318,5 +346,57 @@ class ItemController extends Controller
         }
 
         return view('backend.item.view', $data);
+    }
+
+    /**
+     * AJAX: Sub Category options for the Item form, filtered by the
+     * selected Category id(s). Bound to route('item.subcategories').
+     * Both Category and Sub Category live in the SAME `categories`
+     * table — a Sub Category is simply a row whose parent_id points
+     * at one of the selected Category ids.
+     */
+    public function getSubcategoriesForItem(Request $request)
+    {
+        $categoryIds = (array) $request->input('category_ids', []);
+        $categoryIds = array_values(array_filter($categoryIds, fn($v) => !empty($v)));
+
+        if (empty($categoryIds)) {
+            return response()->json(['data' => []]);
+        }
+
+        $subCategories = DB::table('categories')
+            ->select('id', 'title')
+            ->where('orgid', session('orgid'))
+            ->where('status', 'Y')
+            ->whereIn('parent_id', $categoryIds)
+            ->orderBy('title')
+            ->get();
+
+        return response()->json(['data' => $subCategories]);
+    }
+
+    /**
+     * AJAX: Sub Sub Category options for the Item form, filtered by the
+     * selected Sub Category id(s). Bound to route('item.subsubcategories').
+     * Same `categories` table again, one level deeper.
+     */
+    public function getSubSubcategories(Request $request)
+    {
+        $subCategoryIds = (array) $request->input('sub_category_ids', []);
+        $subCategoryIds = array_values(array_filter($subCategoryIds, fn($v) => !empty($v)));
+
+        if (empty($subCategoryIds)) {
+            return response()->json(['data' => []]);
+        }
+
+        $subSubCategories = DB::table('categories')
+            ->select('id', 'title')
+            ->where('orgid', session('orgid'))
+            ->where('status', 'Y')
+            ->whereIn('parent_id', $subCategoryIds)
+            ->orderBy('title')
+            ->get();
+
+        return response()->json(['data' => $subSubCategories]);
     }
 }
