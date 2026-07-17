@@ -210,7 +210,7 @@
         <li
             class="menu-item {{ request()->routeIs('inventory') || request()->routeIs('purchase-voucher') || request()->routeIs('purchase-voucher.*') || request()->routeIs('purchase-return') || request()->routeIs('purchase-return.*') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
-                {{-- <i class="menu-icon tf-icons bx bx-store"></i> --}}
+                <i class="menu-icon tf-icons bx bx-store"></i>
                 <div>Inventory Management</div>
             </a>
 
@@ -244,7 +244,7 @@
         <li
             class="menu-item {{ request()->routeIs('sales') || request()->routeIs('sales.*') || request()->routeIs('sales-return') || request()->routeIs('sales-return.*') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
-                {{-- <i class="menu-icon tf-icons bx bx-cart"></i> --}}
+                <i class="menu-icon tf-icons bx bx-cart"></i>
                 <div>Sales</div>
             </a>
 

@@ -245,11 +245,26 @@ class ItemController extends Controller
 
             DB::beginTransaction();
 
-            if (!Item::saveData($post)) {
+            $itemId = Item::saveData($post);
+            if (!$itemId) {
                 throw new Exception('Could not save record', 1);
             }
 
             DB::commit();
+
+            $item = DB::table('items')
+                ->select(
+                    'id as itemid',
+                    'title as itemname',
+                    'vat_status',
+                    'vat_percent',
+                    'excise_status',
+                    'excise_type',
+                    'excise_percentage',
+                    'excise_value'
+                )
+                ->where('id', $itemId)
+                ->first();
         } catch (QueryException $e) {
             DB::rollBack();
             \Log::error('Item save QueryException: ' . $e->getMessage());
@@ -262,7 +277,7 @@ class ItemController extends Controller
             $message = $e->getMessage();
         }
 
-        return json_encode(['type' => $type, 'message' => $message]);
+        return json_encode(['type' => $type, 'message' => $message, 'item' => $item ?? null]);
     }
 
     public function delete(Request $request)

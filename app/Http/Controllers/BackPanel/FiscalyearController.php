@@ -9,6 +9,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
+use Exception;
+use Illuminate\Database\QueryException;
 
 class FiscalyearController extends Controller
 {
@@ -20,33 +22,47 @@ class FiscalyearController extends Controller
     public function list(Request $request)
     {
         try {
-            $query = Fiscalyear::query();
+            $post          = $request->all();
+            $post['orgid'] = session('orgid');
+            $data          = Fiscalyear::list($post);
 
-            $total    = Fiscalyear::count();
-            $filtered = (clone $query)->count();
+            $i            = 0;
+            $array        = [];
+            $totalrecs    = $data["totalrecs"];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $totalrecs);
 
-            $data = $query->orderBy('start_date', 'desc')
-                ->skip($request->start ?? 0)
-                ->take($request->length ?? 10)
-                ->get();
+            foreach ($data["data"] as $row) {
+                $array[$i]["sno"]     = $i + 1;
+                $array[$i]["code"]    = $row->code ?? '-';
+                $array[$i]["start_date"]   = $row->start_date ?? '-';
+                $array[$i]["end_date"] = $row->end_date ?? '-';
+                $array[$i]["is_current"]   = $row->is_current ?? '-';
 
-            return response()->json([
-                'draw'            => intval($request->draw),
-                'recordsTotal'    => $total,
-                'recordsFiltered' => $filtered,
-                'data'            => $data,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Fiscalyear list error: ' . $e->getMessage());
+                $action  = '';
+                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editfiscalyear  btn-edit-fy " style="color:#696cff;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a> ';
+                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deletefiscalyear btn-delete-fy" style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $array[$i]["action"] = $action;
 
-            return response()->json([
-                'draw'            => intval($request->draw ?? 0),
-                'recordsTotal'    => 0,
-                'recordsFiltered' => 0,
-                'data'            => [],
-                'error'           => 'Unable to load fiscal years. Please try again.',
-            ], 500);
+                $i++;
+            }
+
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs)    $totalrecs    = 0;
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         }
+
+        return json_encode([
+            "recordsFiltered" => $filtereddata,
+            "recordsTotal"    => $totalrecs,
+            "data"            => $array,
+        ]);
     }
 
     public function form(Request $request)
@@ -80,21 +96,21 @@ class FiscalyearController extends Controller
                 'status'     => 'nullable|in:Y,N',
             ]);
 
-            // Derive BS years from the date strings (e.g. "2079-04-01" -> "2079")
             $startYear = explode('-', $request->start_date)[0] ?? '';
             $endYear   = explode('-', $request->end_date)[0] ?? '';
 
             if (strlen($startYear) < 3 || strlen($endYear) < 3) {
                 return response()->json([
                     'status'  => false,
+                    'type'    => 'error',
                     'message' => 'Invalid start or end date format.',
                 ], 422);
             }
 
-            // "2079" -> "079", "2080" -> "080"
-            $code = substr($startYear, -3) . '/' . substr($endYear, -3);
+            $post = $request->all();
+            $code = $post['code_preview'];
+            $post['code'] = $code;
 
-            // Manually check uniqueness since code is now generated, not user input
             $exists = Fiscalyear::where('code', $code)
                 ->when($request->id, fn($q) => $q->where('id', '!=', $request->id))
                 ->exists();
@@ -102,42 +118,29 @@ class FiscalyearController extends Controller
             if ($exists) {
                 return response()->json([
                     'status'  => false,
+                    'type'    => 'error',
                     'message' => "Fiscal year {$code} already exists.",
                 ], 422);
             }
 
-            $fiscalyear = $request->id
-                ? Fiscalyear::findOrFail($request->id)
-                : new Fiscalyear();
-
-            $fiscalyear->code       = $code;
-            $fiscalyear->start_date = $request->start_date;
-            $fiscalyear->end_date   = $request->end_date;
-            $fiscalyear->is_current = $request->is_current ?? 'N';
-            $fiscalyear->status     = $request->status ?? 'Y';
-            $fiscalyear->save();
+            Fiscalyear::saveData($post);
 
             return response()->json([
                 'status'  => true,
+                'type'    => 'success',
                 'message' => 'Fiscal year saved successfully.',
             ]);
-        } catch (ValidationException $e) {
+        } catch (QueryException $e) {
             return response()->json([
                 'status'  => false,
-                'message' => 'Validation failed.',
-                'errors'  => $e->errors(),
-            ], 422);
-        } catch (ModelNotFoundException $e) {
+                'type'    => 'error',
+                'message' => $this->queryMessage,
+            ], 500);
+        } catch (Exception $e) {
             return response()->json([
                 'status'  => false,
-                'message' => 'Fiscal year not found.',
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error('Fiscalyear save error: ' . $e->getMessage());
-
-            return response()->json([
-                'status'  => false,
-                'message' => 'Unable to save fiscal year. Please try again.',
+                'type'    => 'error',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

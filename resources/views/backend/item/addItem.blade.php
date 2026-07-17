@@ -1548,6 +1548,10 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                             itemTable.ajax.reload(null, false);
                         }
 
+                        if (result.item) {
+                            $(document).trigger('item:created', [result.item]);
+                        }
+
                         const $modalEl = $('#itemForm').closest('.modal');
                         if ($modalEl.length) {
                             const bsModal = bootstrap.Modal.getInstance($modalEl[0]);

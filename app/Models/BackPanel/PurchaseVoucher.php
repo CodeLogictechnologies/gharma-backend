@@ -335,7 +335,7 @@ class PurchaseVoucher extends Model
                 return 1;
             }
 
-            return $lastVoucher->debit_note_no + 1;
+            return $lastVoucher->voucher_no + 1;
         } catch (\Exception $e) {
             throw $e;
         }

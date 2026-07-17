@@ -1,3 +1,7 @@
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+    rel="stylesheet" />
+
 <div class="modal-header">
     <h5 class="modal-title">
         {{ isset($id) ? 'Edit Purchase Voucher' : 'Add Purchase Voucher' }}
@@ -105,7 +109,14 @@
                         <th>Qty <span class="text-danger">*</span></th>
                         <th>Rate <span class="text-danger">*</span></th>
                         <th>Amount</th>
-                        <th>VAT</th>
+                        <th>
+                            <select id="headerVatSelect" class="form-select form-select-sm mt-1">
+                                <option value="">VAT</option>
+                                @foreach (config('vat.taxable') as $rate)
+                                    <option value="{{ $rate }}">{{ $rate }}%</option>
+                                @endforeach
+                            </select>
+                        </th>
                         <th>Excise Duty</th>
                         <th></th>
                     </tr>
@@ -168,6 +179,8 @@
     </div>
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     (function($) {
 
@@ -184,11 +197,55 @@
         @endforeach
 
         var itemOptionsHtml = '<option value="">-- Item --</option>';
+        itemOptionsHtml += '<option value="__add_new_item__">+ Add New Item</option>';
         @foreach ($items as $item)
             itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
         @endforeach
 
         var rowIndex = 0;
+        var globalVatOverride = null;
+        var pendingItemRow = null;
+
+        function escapeHtml(str) {
+            return $('<div>').text(str == null ? '' : str).html();
+        }
+
+        function addNewItemOption(item) {
+            if (!item || !item.itemid) return;
+
+            itemsMeta[item.itemid] = {
+                vat_status: item.vat_status,
+                vat_percent: parseFloat(item.vat_percent) || 0,
+                excise_status: item.excise_status,
+                excise_type: item.excise_type,
+                excise_percentage: item.excise_percentage,
+                excise_value: item.excise_value
+            };
+
+            var alreadyListed = itemOptionsHtml.indexOf('value="' + item.itemid + '"') !== -1;
+            if (!alreadyListed) {
+                var optionHtml = '<option value="' + item.itemid + '">' + escapeHtml(item.itemname) +
+                    '</option>';
+                itemOptionsHtml = itemOptionsHtml.replace('<option value="__add_new_item__">+ Add New Item</option>',
+                    '<option value="__add_new_item__">+ Add New Item</option>' + optionHtml);
+
+                $('.item-select').each(function() {
+                    if ($(this).find('option[value="' + item.itemid + '"]').length === 0) {
+                        $(this).find('option[value="__add_new_item__"]').after(optionHtml);
+                    }
+                });
+            }
+        }
+
+        function initItemSelect($tr) {
+            $tr.find('.item-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Item --',
+                width: '100%',
+                dropdownParent: $('#pvModal'),
+                minimumResultsForSearch: 0
+            });
+        }
 
         function round2(n) {
             return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -226,7 +283,11 @@
             var vatText = '-';
             var exciseText = '-';
             if (meta) {
-                vatText = meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%';
+                if (globalVatOverride !== null) {
+                    vatText = globalVatOverride + '%';
+                } else {
+                    vatText = meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%';
+                }
                 if (meta.excise_status === 'Y') {
                     if (meta.excise_type === 'percentage') {
                         exciseText = meta.excise_percentage + '%';
@@ -275,6 +336,12 @@
 
             if (prefill.item_id) {
                 $tr.find('.item-select').val(prefill.item_id);
+                $tr.data('lastItemId', prefill.item_id);
+            }
+
+            initItemSelect($tr);
+
+            if (prefill.item_id) {
                 applyItemTaxInfo($tr, prefill.item_id);
                 loadVariationsForRow($tr, prefill.item_id, prefill.variation_id);
             }
@@ -330,7 +397,9 @@
                 }
 
                 var taxableForVat = share + exciseAmt;
-                var vatPercent = meta && meta.vat_status === 'Y' ? meta.vat_percent : 0;
+                var vatPercent = globalVatOverride !== null ?
+                    globalVatOverride :
+                    (meta && meta.vat_status === 'Y' ? meta.vat_percent : 0);
                 var vatAmt = round2(taxableForVat * vatPercent / 100);
 
                 totalVat += vatAmt;
@@ -349,19 +418,62 @@
         }
 
         /* ── Row events ───────────────────────────────────────────── */
-        $(document).on('change', '.item-select', function() {
+        var suppressItemChange = false;
+
+        $(document).off('change.pv', '.item-select').on('change.pv', '.item-select', function() {
+            if (suppressItemChange) return;
+
             var $tr = $(this).closest('tr');
             var itemId = $(this).val();
+
+            if (itemId === '__add_new_item__') {
+                pendingItemRow = $tr;
+
+                suppressItemChange = true;
+                $(this).val($tr.data('lastItemId') || '').trigger('change');
+                suppressItemChange = false;
+
+                if (typeof window.pvOpenAddItemModal === 'function') {
+                    window.pvOpenAddItemModal();
+                }
+                return;
+            }
+
+            $tr.data('lastItemId', itemId);
             applyItemTaxInfo($tr, itemId);
             loadVariationsForRow($tr, itemId, null);
             recalcAll();
         });
 
-        $(document).on('input change', '.qty-input, .rate-input, #billDiscountPercent', function() {
+        /* ── New item created from the nested "Add Item" modal ─────── */
+        $(document).off('item:created.pv').on('item:created.pv', function(e, item) {
+            addNewItemOption(item);
+
+            if (pendingItemRow && $.contains(document, pendingItemRow[0])) {
+                pendingItemRow.data('lastItemId', item.itemid);
+                pendingItemRow.find('.item-select').val(item.itemid).trigger('change');
+            }
+            pendingItemRow = null;
+        });
+
+        $('#headerVatSelect').on('change', function() {
+            var v = $(this).val();
+            globalVatOverride = v === '' ? null : parseFloat(v);
+
+            $('#itemRows tr.item-row').each(function() {
+                var $tr = $(this);
+                applyItemTaxInfo($tr, $tr.find('.item-select').val());
+            });
+
             recalcAll();
         });
 
-        $(document).on('click', '.remove-item-row', function() {
+        $(document).off('input.pv change.pv', '.qty-input, .rate-input, #billDiscountPercent')
+            .on('input.pv change.pv', '.qty-input, .rate-input, #billDiscountPercent', function() {
+                recalcAll();
+            });
+
+        $(document).off('click.pv', '.remove-item-row').on('click.pv', '.remove-item-row', function() {
             if ($('#itemRows tr.item-row').length <= 1) {
                 showNotification('At least one item row is required.', 'warning');
                 return;
@@ -381,20 +493,24 @@
         });
 
         /* ── Hydrate initial rows ─────────────────────────────────── */
-        var initialLineItems = @json($lineItems ?? []);
-        if (initialLineItems.length > 0) {
-            initialLineItems.forEach(function(li) {
-                newItemRow({
-                    item_id: li.item_id,
-                    variation_id: li.variation_id,
-                    unit: li.unit,
-                    qty: li.qty,
-                    unit_rate: li.unit_rate
-                });
+        /* Deferred until the modal is actually visible — select2 needs a laid-out (non display:none) container to size correctly */
+        $(document).off('shown.bs.modal.purchaseVoucher', '#pvModal')
+            .on('shown.bs.modal.purchaseVoucher', '#pvModal', function() {
+                var initialLineItems = @json($lineItems ?? []);
+                if (initialLineItems.length > 0) {
+                    initialLineItems.forEach(function(li) {
+                        newItemRow({
+                            item_id: li.item_id,
+                            variation_id: li.variation_id,
+                            unit: li.unit,
+                            qty: li.qty,
+                            unit_rate: li.unit_rate
+                        });
+                    });
+                } else {
+                    newItemRow();
+                }
             });
-        } else {
-            newItemRow();
-        }
 
         /* ── Client-side validation ───────────────────────────────── */
         window.pvValidateForm = function($form) {
@@ -419,11 +535,12 @@
             return valid;
         };
 
-        $(document).on('input change', '#purchaseVoucherForm .form-control, #purchaseVoucherForm .form-select',
-            function() {
-                $(this).removeClass('is-invalid');
-                $(this).siblings('.invalid-feedback').hide();
-            });
+        $(document).off('input.pv change.pv', '#purchaseVoucherForm .form-control, #purchaseVoucherForm .form-select')
+            .on('input.pv change.pv', '#purchaseVoucherForm .form-control, #purchaseVoucherForm .form-select',
+                function() {
+                    $(this).removeClass('is-invalid');
+                    $(this).siblings('.invalid-feedback').hide();
+                });
 
     })(jQuery);
 </script>

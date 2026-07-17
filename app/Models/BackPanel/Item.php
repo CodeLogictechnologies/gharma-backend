@@ -790,7 +790,7 @@ class Item extends Model
             }
 
             DB::commit();
-            return true;
+            return $itemId;
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
