@@ -161,7 +161,7 @@ class Category extends Model
                 $subcategoryId = null;
             } else {
                 $level         = 3;
-                $parentId      = $post['category_id'];
+                $parentId      = $post['subcategory_id'];     // ✅ direct parent is the subcategory
                 $subcategoryId = $post['subcategory_id'];
             }
 
@@ -172,7 +172,7 @@ class Category extends Model
                 'orgid'          => $post['orgid'],
                 'level'          => $level,
                 'parent_id'      => $parentId,
-                'sub_category_id' => $subcategoryId,
+                'subcategory_id' => $subcategoryId,           // ✅ matches actual column
             ];
 
             if ($imageName) {
@@ -398,6 +398,7 @@ class Category extends Model
                 ->select('id', 'title')
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
+                ->whereNull('parent_id') 
                 ->orderBy('title')
                 ->get();
         } catch (Exception $e) {

@@ -132,10 +132,6 @@ class Item extends Model
             $query->whereRaw("LOWER(s.title) LIKE ?", ["%{$search3}%"]);
         }
 
-        // ← fix: filter totalrecs by orgid too
-        // $totalrecs     = self::from('items')->where('status', 'Y')->where('orgid', $orgid)->count();
-        // $filteredCount = (clone $query)->get()->count();
-
         $totalrecs     = self::from('items')->where('status', 'Y')->where('orgid', $orgid)->count();
         $filteredCount = DB::table(DB::raw("({$query->toSql()}) as sub"))
             ->mergeBindings($query->getQuery())
@@ -264,6 +260,27 @@ class Item extends Model
                         ];
                     }
                     DB::table('sub_category_items')->insert($subCategoryRows);
+                }
+
+                // ── Sub Sub Category (delete old links, then re-insert current selection) ──
+                DB::table('sub_sub_category_items')->where('itemid', $itemId)->delete();
+
+                if (!empty($post['sub_sub_categories'])) {
+                    $subSubCategoryRows = [];
+                    foreach ($post['sub_sub_categories'] as $subSubCategoryId) {
+                        $subSubCategoryRows[] = [
+                            'id'               => (string) Str::uuid(),
+                            'orgid'            => $post['orgid'] ?? null,
+                            'subsubcategoryid' => $subSubCategoryId,
+                            'itemid'           => $itemId,
+                            'status'           => 'Y',
+                            'postedby'         => $post['userid'],
+                            'updatedby'        => $post['userid'],
+                            'created_at'       => Carbon::now(),
+                            'updated_at'       => Carbon::now(),
+                        ];
+                    }
+                    DB::table('sub_sub_category_items')->insert($subSubCategoryRows);
                 }
 
                 if (!empty($post['variations'])) {
@@ -523,12 +540,6 @@ class Item extends Model
                                 'price'                 => $price,
                                 'price_before_discount' => round($varPriceBeforeDiscount, 2),
                                 'price_after_discount'  => round($varPriceAfterDiscount, 2),
-                                // 'vat_status'            => $rpVatStatus,
-                                // 'vat_percent'           => $rpVatPercent,
-                                // 'excise_status'         => $rpExciseStatus,
-                                // 'excise_type'           => $rpExciseType,
-                                // 'excise_percentage'     => $rpExcisePercentage,
-                                // 'excise_value'          => $rpExciseValue,
                                 'updatedby'             => $post['userid'],
                                 'updated_at'            => Carbon::now(),
                             ];
@@ -649,6 +660,25 @@ class Item extends Model
                         ];
                     }
                     DB::table('sub_category_items')->insert($subCategoryRows);
+                }
+
+                // ── Sub Sub Category (new item — no existing rows to delete) ──
+                if (!empty($post['sub_sub_categories'])) {
+                    $subSubCategoryRows = [];
+                    foreach ($post['sub_sub_categories'] as $subSubCategoryId) {
+                        $subSubCategoryRows[] = [
+                            'id'               => (string) Str::uuid(),
+                            'orgid'            => $post['orgid'] ?? null,
+                            'subsubcategoryid' => $subSubCategoryId,
+                            'itemid'           => $itemId,
+                            'status'           => 'Y',
+                            'postedby'         => $post['userid'],
+                            'updatedby'        => $post['userid'],
+                            'created_at'       => Carbon::now(),
+                            'updated_at'       => Carbon::now(),
+                        ];
+                    }
+                    DB::table('sub_sub_category_items')->insert($subSubCategoryRows);
                 }
 
                 if (!empty($post['images'])) {

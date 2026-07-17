@@ -261,7 +261,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/delete', [ItemController::class, 'delete'])->name('item.delete');
             Route::post('/view', [ItemController::class, 'view'])->name('item.view');
             Route::post('/images/reorder', [ItemImageController::class, 'reorder'])->name('item.images.reorder'); // ← ADD HERE
-
+            Route::get('subcategories', [ItemController::class, 'getSubcategoriesForItem'])->name('item.subcategories');
+Route::get('subsubcategories', [ItemController::class, 'getSubSubcategories'])->name('item.subsubcategories');
         });
 
 
