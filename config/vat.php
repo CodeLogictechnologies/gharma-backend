@@ -3,8 +3,8 @@
 return [
     // Selectable VAT rates an item can be taxed at.
     "taxable" => [
-        13,
         5,
+        13,
         15,
     ],
 

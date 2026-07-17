@@ -162,7 +162,7 @@ Route::group(['middleware' => ['auth']], function () {
 
         Route::group(['prefix' => 'fiscalyear'], function () {
             Route::get('/',       [FiscalyearController::class, 'index'])->name('fiscalyear');
-            Route::post('/list',  [FiscalyearController::class, 'list'])->name('fiscalyear.list');
+            Route::any('/list',  [FiscalyearController::class, 'list'])->name('fiscalyear.list');
             Route::any('/form',   [FiscalyearController::class, 'form'])->name('fiscalyear.form');
             Route::post('/save',  [FiscalyearController::class, 'save'])->name('fiscalyear.save');
             Route::post('/delete', [FiscalyearController::class, 'delete'])->name('fiscalyear.delete');
