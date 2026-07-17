@@ -123,7 +123,6 @@ class OrderController extends Controller
 
         $orderDetailIds = DB::table('order_details')
             ->where('ordermasterid', $request->id)
-            ->where('orgid', session('orgid'))
             ->pluck('id')
             ->toArray();
 
