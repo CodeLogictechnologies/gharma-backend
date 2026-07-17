@@ -9,6 +9,8 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\BsdateController;
+
 
 class SalesVoucher extends Model
 {
@@ -79,22 +81,22 @@ class SalesVoucher extends Model
     }
 
     /* Generate a voucher number unique across sales_vouchers.voucher_no and order_masters.voucher_number for this org */
-    public static function generateUniqueVoucherNo($orgid)
+    public static function generateUniqueVoucherNo($post)
     {
-        do {
-            $candidate = 'VCH-' . strtoupper(Str::random(8));
+        try {
+            $lastVoucher = DB::table('order_masters')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->orderByDesc('voucher_number')
+                ->first();
 
-            $exists = DB::table('sales_vouchers')
-                ->where('orgid', $orgid)
-                ->where('voucher_no', $candidate)
-                ->exists()
-                || DB::table('order_masters')
-                ->where('orgid', $orgid)
-                ->where('voucher_number', $candidate)
-                ->exists();
-        } while ($exists);
-
-        return $candidate;
+            if (!$lastVoucher) {
+                return 1;
+            }
+            return $lastVoucher->voucher_number + 1;
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     /* Retailer (flat, discounted) and wholesaler (qty-tiered) pricing for a single item variation */
@@ -262,6 +264,7 @@ class SalesVoucher extends Model
                 }
 
                 $lineTotal = round($amountAfterExcise + $vatAmount, 2);
+
                 $insertOrderDetails[] = [
                     'id'                             => (string) Str::uuid(),
                     'ordermasterid'                  => $orderMasterId,
@@ -296,8 +299,12 @@ class SalesVoucher extends Model
                 $grandTotal    += $lineTotal;
             }
 
+            $bsdate = new BsdateController;
+            $sales_vouchers_date_eng = $bsdate->nep_to_eng($post['voucher_date']);
             $insertOrderMaster = [
                 'id'                        => $orderMasterId,
+                'sales_vouchers_date_nep'                        => $post['voucher_date'],
+                'sales_vouchers_date_eng'                        => $sales_vouchers_date_eng,
                 'orgid'                     => $post['orgid'],
                 'payment_method'            => $post['paymentmethod'] ?? 'COD',
                 'voucher_number'            => $post['voucher_no'],

@@ -7,6 +7,7 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\BsdateController;
 
 class SalesReturnVoucher extends Model
 {
@@ -86,6 +87,10 @@ class SalesReturnVoucher extends Model
             $subtotal = 0;
             $lineData = [];
 
+
+            $bsdate = new BsdateController;
+            $sales_retrun_vouchers_date_eng = $bsdate->nep_to_eng($post['return_date']);
+
             foreach ($items as $row) {
                 if (empty($row['item_id']) || empty($row['qty']) || !isset($row['unit_rate']) || $row['unit_rate'] === '') {
                     continue;
@@ -153,6 +158,7 @@ class SalesReturnVoucher extends Model
                 'subtotal'              => round($subtotal, 2),
                 'bill_discount_percent' => $billDiscountPercent,
                 'bill_discount_amount'  => $billDiscountAmount,
+                'sales_retrun_vouchers_date_eng'  => $sales_retrun_vouchers_date_eng,
                 'taxable_amount'        => $taxableAmount,
                 'vat_amount'            => round($totalVatAmount, 2),
                 'total_amount'          => $totalAmount,
@@ -297,6 +303,26 @@ class SalesReturnVoucher extends Model
 
             return true;
         } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+
+    public static function generateUniqueVoucherNo($post)
+    {
+        try {
+            $lastVoucher = DB::table('sales_return_vouchers')
+                ->select('credit_note_no')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->orderByDesc('credit_note_no')
+                ->first();
+
+            if (!$lastVoucher) {
+                return 1;
+            }
+            return $lastVoucher->credit_note_no + 1;
+        } catch (\Exception $e) {
             throw $e;
         }
     }

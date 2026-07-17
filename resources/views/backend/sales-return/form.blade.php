@@ -19,8 +19,8 @@
         <div class="row g-3 mb-3">
             <div class="col-md-3">
                 <label class="form-label">Date <span class="text-danger">*</span></label>
-                <input type="date" name="return_date" class="form-control" data-required
-                    value="{{ $return_date ?? \Carbon\Carbon::now()->format('Y-m-d') }}">
+                <input type="text" name="return_date" id="return_date" class="form-control" data-required
+                    value="{{ $return_date ?? '' }}">
                 <div class="invalid-feedback">Date is required.</div>
             </div>
 

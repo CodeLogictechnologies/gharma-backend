@@ -114,6 +114,10 @@ class PurchaseVoucherController extends Controller
                 $data['remarks']                = $result->remarks;
                 $data['bill_discount_percent']  = $result->bill_discount_percent;
                 $data['lineItems']              = $result->items;
+            } else {
+
+                $data['voucher_no'] = PurchaseVoucher::getVoucherNumber($post);
+                $data['vendorVouchers'] = [];
             }
         } catch (QueryException $e) {
             $data['error'] = $this->queryMessage;
