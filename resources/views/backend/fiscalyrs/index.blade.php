@@ -213,19 +213,26 @@
             // ── Save (Add/Edit) ───────────────────────────────────────────────────────
             $(document).on('submit', '#fiscalyearForm', function(e) {
                 e.preventDefault();
+
                 $.post("{{ route('fiscalyear.save') }}", $(this).serialize())
                     .done(function(res) {
-                        var result = typeof res === 'string' ? JSON.parse(res) : res;
-                        if (result.type === 'success') {
-                            showNotification(result.message, 'success');
+                        if (res.type === 'success') {
+                            showNotification(res.message, 'success');
                             $('#fiscalyearModal').modal('hide');
                             window.fiscalYear.fnDraw();
                         } else {
-                            showNotification(result.message, 'error');
+                            showNotification(res.message, 'error');
                         }
                     })
-                    .fail(function() {
-                        showNotification('Save failed.', 'error');
+                    .fail(function(xhr) {
+
+                        let message = 'Save failed.';
+
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+
+                        showNotification(message, 'error');
                     });
             });
 

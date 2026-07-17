@@ -5,6 +5,9 @@ namespace App\Models\BackPanel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Exception;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class Fiscalyear extends Model
 {
@@ -78,6 +81,47 @@ class Fiscalyear extends Model
                 'totalfilteredrecs' => $totalRecords,
             ];
         } catch (\Exception $e) {
+            throw $e;
+        }
+    }
+
+    public static function saveData($post)
+    {
+        try {
+            DB::beginTransaction();
+
+            $id = $post['id'] ?? null;
+
+            if ($id) {
+
+                DB::table('fiscal_years')
+                    ->where('id', $id)
+                    ->update([
+                        'start_date' => $post['start_date'],
+                        'code'       => $post['code'],
+                        'end_date'   => $post['end_date'],
+                        'is_current' => $post['is_current'] ?? 'N',
+                        'status'     => $post['status'] ?? 'Y',
+                        'updated_at' => Carbon::now(),
+                    ]);
+            } else {
+
+                DB::table('fiscal_years')->insert([
+                    'id'         => (string) Str::uuid(),
+                    'start_date' => $post['start_date'],
+                    'code'       => $post['code'],
+                    'end_date'   => $post['end_date'],
+                    'is_current' => $post['is_current'] ?? 'N',
+                    'status'     => $post['status'] ?? 'Y',
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
+                ]);
+            }
+
+            DB::commit();
+            return true;
+        } catch (Exception $e) {
+            DB::rollBack();
             throw $e;
         }
     }
