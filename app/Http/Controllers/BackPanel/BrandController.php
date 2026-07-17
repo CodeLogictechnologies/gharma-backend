@@ -83,62 +83,60 @@ class BrandController extends Controller
     //function to list team category
     public function list(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] =  session('orgid');
+        try {
+            $post = $request->all();
+            $post['orgid'] =  session('orgid');
 
-        $data = Brand::list($post);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs = $data["totalrecs"];
+            $data = Brand::list($post);
+            $i = 0;
+            $array = [];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs = $data["totalrecs"];
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
-        foreach ($data as $row) {
-            $array[$i]["sno"] = $i + 1;
-            $array[$i]["name"]    = $row->name;
-            if (!empty($row->logo)) {
-    $imagePath = storage_path('app/public/brands/' . $row->logo);
-    if (file_exists($imagePath)) {
-        $imageUrl = asset('storage/brands/' . $row->logo); // ✅ storage path
-    } else {
-        $imageUrl = asset('no-image.jpg');
-    }
-} else {
-    $imageUrl = asset('no-image.jpg');
-}
-            $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
-            $action = '';
+            unset($data["totalfilteredrecs"]);
+            unset($data["totalrecs"]);
+            foreach ($data as $row) {
+                $array[$i]["sno"] = $i + 1;
+                $array[$i]["name"]    = $row->name;
+                if (!empty($row->logo)) {
+                    $imagePath = storage_path('app/public/brands/' . $row->logo);
+                    if (file_exists($imagePath)) {
+                        $imageUrl = asset('storage/brands/' . $row->logo); // ✅ storage path
+                    } else {
+                        $imageUrl = asset('no-image.jpg');
+                    }
+                } else {
+                    $imageUrl = asset('no-image.jpg');
+                }
+                $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
+                $action = '';
 
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteBrand px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-            // for show
+                $action .= '<a href="javascript:;" 
+                                title="Edit Data" class="tooltipdiv 
+                                editBrand" style="color:blue;" 
+                                data-id="' . $row->id . '" 
+                                                    data-name="' . $row->name . '" 
+                                                    data-description="' . $row->description . '" 
+                                                    data-image="' . $row->logo . '">
+                                <i class="bx bx-edit-alt"></i></a>';
 
-            $action .= '<a href="javascript:;" 
-            title="Edit Data" class="tooltipdiv 
-            editBrand" style="color:blue;" 
-              data-id="' . $row->id . '" 
-                                data-name="' . $row->name . '" 
-                                data-description="' . $row->description . '" 
-                                data-image="' . $row->logo . '">
-            <i class="bx bx-edit-alt"></i></a>';
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteBrand px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
 
-
-            $array[$i]["action"]  = $action;
-            $i++;
+                $array[$i]["action"]  = $action;
+                $i++;
+            }
+            // dd($data);
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs) $totalrecs = 0;
+        } catch (QueryException $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
+        } catch (Exception $e) {
+            $array = [];
+            $totalrecs = 0;
+            $filtereddata = 0;
         }
-        // dd($data);
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs) $totalrecs = 0;
-        // } catch (QueryException $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // } catch (Exception $e) {
-        //     $array = [];
-        //     $totalrecs = 0;
-        //     $filtereddata = 0;
-        // }
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 

@@ -220,11 +220,10 @@ class WholesalerPriceController extends Controller
             $array[$i]['max_qty'] = $row->max_qty ?? '—';
             $action = '';
 
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteWholesaleprice px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
             // for show
             $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewWholesaleprice" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
-
             $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editWholesaleprice" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
+            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteWholesaleprice" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
             $array[$i]["action"]  = $action;
 
             $i++;

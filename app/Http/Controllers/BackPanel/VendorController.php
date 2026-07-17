@@ -186,9 +186,9 @@ class VendorController extends Controller
                 $array[$i]["registration_number"] = $row->registration_number;
                 $array[$i]["company_name"]        = $row->company_name;
 
-                $action  = '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteVendor px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
-                $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewVendor" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+                $action = '<a href="javascript:;" title="View Data" class="tooltipdiv viewVendor" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
                 $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editVendor" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                $action  .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteVendor px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>'; 
 
                 $array[$i]["action"] = $action;
                 $i++;

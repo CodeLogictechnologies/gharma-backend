@@ -71,7 +71,7 @@ class PurchaseReturnController extends Controller
                 }
                 $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewPurchaseReturn" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
                 $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editPurchaseReturn" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseReturn px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseReturn" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
 
                 $array[$i]["action"] = $action;
                 $i++;
@@ -234,60 +234,60 @@ class PurchaseReturnController extends Controller
     public function save(Request $request)
     {
         try {
-        $rules = [
-            'return_date'       => 'required|date',
-            'debit_note_no'     => 'required|string|max:255',
-            'vendor_id'         => 'required',
-            'items'             => 'required|array|min:1',
-            'items.*.item_id'   => 'required',
-            'items.*.qty'       => 'required|numeric|min:0.01',
-            'items.*.unit_rate' => 'required|numeric|min:0',
-        ];
+            $rules = [
+                'return_date'       => 'required|date',
+                'debit_note_no'     => 'required|string|max:255',
+                'vendor_id'         => 'required',
+                'items'             => 'required|array|min:1',
+                'items.*.item_id'   => 'required',
+                'items.*.qty'       => 'required|numeric|min:0.01',
+                'items.*.unit_rate' => 'required|numeric|min:0',
+            ];
 
-        $messages = [
-            'return_date.required'      => 'Date is required.',
-            'debit_note_no.required'    => 'Debit Note No. is required.',
-            'vendor_id.required'        => 'Vendor is required.',
-            'items.required'            => 'At least one item is required.',
-            'items.*.item_id.required'  => 'Item is required for each row.',
-            'items.*.qty.required'      => 'Quantity is required for each row.',
-            'items.*.unit_rate.required' => 'Rate is required for each row.',
-        ];
+            $messages = [
+                'return_date.required'      => 'Date is required.',
+                'debit_note_no.required'    => 'Debit Note No. is required.',
+                'vendor_id.required'        => 'Vendor is required.',
+                'items.required'            => 'At least one item is required.',
+                'items.*.item_id.required'  => 'Item is required for each row.',
+                'items.*.qty.required'      => 'Quantity is required for each row.',
+                'items.*.unit_rate.required' => 'Rate is required for each row.',
+            ];
 
-        $validation = Validator::make($request->all(), $rules, $messages);
-        if ($validation->fails()) {
+            $validation = Validator::make($request->all(), $rules, $messages);
+            if ($validation->fails()) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => $validation->errors()->first(),
+                ]);
+            }
+
+            $post           = $request->all();
+            $post['orgid']  = session('orgid');
+            $post['userid'] = session('userid');
+
+            $isEdit = !empty($post['id']);
+
+            $duplicate = DB::table('purchase_return_vouchers')
+                ->where('orgid', $post['orgid'])
+                ->where('debit_note_no', $post['debit_note_no'])
+                ->where('status', 'Y')
+                ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+                ->exists();
+
+            if ($duplicate) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => 'This Debit Note No. already exists.',
+                ]);
+            }
+
+            PurchaseReturnVoucher::saveData($post);
+
             return response()->json([
-                'type'    => 'error',
-                'message' => $validation->errors()->first(),
+                'type'    => 'success',
+                'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
             ]);
-        }
-
-        $post           = $request->all();
-        $post['orgid']  = session('orgid');
-        $post['userid'] = session('userid');
-
-        $isEdit = !empty($post['id']);
-
-        $duplicate = DB::table('purchase_return_vouchers')
-            ->where('orgid', $post['orgid'])
-            ->where('debit_note_no', $post['debit_note_no'])
-            ->where('status', 'Y')
-            ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-            ->exists();
-
-        if ($duplicate) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => 'This Debit Note No. already exists.',
-            ]);
-        }
-
-        PurchaseReturnVoucher::saveData($post);
-
-        return response()->json([
-            'type'    => 'success',
-            'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
-        ]);
         } catch (QueryException $e) {
             return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
         } catch (Exception $e) {

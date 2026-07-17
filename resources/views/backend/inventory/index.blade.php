@@ -4,12 +4,12 @@
 
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="card">
-            <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            {{-- <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
                 <h5 class="mb-0">Inventory List</h5>
                 <button type="button" id="addInventory" class="btn btn-primary">
                     <i class="bx bx-plus me-1"></i> Add Inventory
                 </button>
-            </div>
+            </div> --}}
 
             <div class="table-responsive text-nowrap mx-4 mb-4">
                 <table class="table" id="inventoryTable">

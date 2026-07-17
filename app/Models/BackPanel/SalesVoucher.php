@@ -53,7 +53,7 @@ class SalesVoucher extends Model
                 ->select(
                     'om.id',
                     'u.name',
-                    'om.created_at',
+                    'om.sales_vouchers_date_nep as created_at',
                     'om.voucher_number',
                     'u.email',
                     'u.phone'
