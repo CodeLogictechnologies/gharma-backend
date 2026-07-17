@@ -92,8 +92,6 @@ class PurchaseVoucher extends Model
             $subtotal = 0;
             $lineData = [];
 
-            dd($post);
-
             foreach ($items as $row) {
                 if (empty($row['item_id']) || empty($row['qty']) || !isset($row['unit_rate']) || $row['unit_rate'] === '') {
                     continue;
