@@ -127,7 +127,14 @@ class Order extends Model
             throw $e;
         }
     }
-    public static function statusCounts()
+
+    /**
+     * To count status for orders
+     *
+     * @param [type] $orgid
+     * @return void
+     */
+    public static function statusCounts($orgid)
     {
         $statuses = EnumType::orderStatuses();
 
