@@ -123,6 +123,7 @@ class SalesReturnController extends Controller
                     ])
                     : [];
             } else {
+                $data['credit_note_no']     = SalesReturnVoucher::generateUniqueVoucherNo($post);
                 $data['customerVouchers'] = [];
             }
         } catch (QueryException $e) {

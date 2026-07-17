@@ -22,8 +22,8 @@
         <div class="row g-3 mb-3">
             <div class="col-md-3">
                 <label class="form-label">Date <span class="text-danger">*</span></label>
-                <input type="date" name="voucher_date" class="form-control" data-required
-                    value="{{ $voucher_date ?? \Carbon\Carbon::now()->format('Y-m-d') }}">
+                <input type="text" name="voucher_date" id="voucher_date" class="form-control" data-required
+                    value="{{ $voucher_date ?? '' }}">
                 <div class="invalid-feedback">Date is required.</div>
             </div>
 
@@ -178,7 +178,7 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-(function($) {
+    (function($) {
 
         var itemsMeta = {};
         @foreach ($items as $item)
@@ -510,32 +510,32 @@
             newItemRow();
         });
 
-    /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
-    /* select2 and row insertion both need a laid-out (non display:none) container to size correctly */
-    $(document).off('shown.bs.modal.salesVoucher', '#svModal')
-        .on('shown.bs.modal.salesVoucher', '#svModal', function() {
-            $('#customerSelect').select2({
-                theme: 'bootstrap-5',
-                placeholder: '-- Select Customer --',
-                width: '100%',
-                dropdownParent: $('#svModal'),
-                minimumResultsForSearch: 0,
-            });
-
-            var initialLineItems = @json($lineItems ?? []);
-            if (initialLineItems.length > 0) {
-                initialLineItems.forEach(function(li) {
-                    newItemRow({
-                        item_id: li.item_id,
-                        variation_id: li.variation_id,
-                        qty: li.qty,
-                        unit_rate: li.unit_rate
-                    });
+        /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
+        /* select2 and row insertion both need a laid-out (non display:none) container to size correctly */
+        $(document).off('shown.bs.modal.salesVoucher', '#svModal')
+            .on('shown.bs.modal.salesVoucher', '#svModal', function() {
+                $('#customerSelect').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '-- Select Customer --',
+                    width: '100%',
+                    dropdownParent: $('#svModal'),
+                    minimumResultsForSearch: 0,
                 });
-            } else {
-                newItemRow();
-            }
-        });
+
+                var initialLineItems = @json($lineItems ?? []);
+                if (initialLineItems.length > 0) {
+                    initialLineItems.forEach(function(li) {
+                        newItemRow({
+                            item_id: li.item_id,
+                            variation_id: li.variation_id,
+                            qty: li.qty,
+                            unit_rate: li.unit_rate
+                        });
+                    });
+                } else {
+                    newItemRow();
+                }
+            });
 
         /* ── Client-side validation ───────────────────────────────── */
         window.svValidateForm = function($form) {

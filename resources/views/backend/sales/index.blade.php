@@ -149,6 +149,9 @@
                 var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
                 req.done(function(response) {
                     $('#svModalContent').html(response);
+                    $('#voucher_date').nepaliDatePicker({
+                        container: '#svModal'
+                    });
                     var modalEl = document.getElementById('svModal');
                     var existing = bootstrap.Modal.getInstance(modalEl);
                     if (existing) existing.dispose();
@@ -247,13 +250,16 @@
                 $.get('{{ route('user.customer.form') }}')
                     .done(function(response) {
                         $('#addCustomerModalContent').html(response);
+
+
                         var modalEl = document.getElementById('addCustomerModal');
                         var existing = bootstrap.Modal.getInstance(modalEl);
                         if (existing) existing.dispose();
                         new bootstrap.Modal(modalEl).show();
                     })
                     .fail(function() {
-                        showNotification('Failed to load Add Customer form. Please try again.', 'error');
+                        showNotification('Failed to load Add Customer form. Please try again.',
+                            'error');
                     });
             });
 

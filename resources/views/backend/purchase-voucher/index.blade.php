@@ -63,7 +63,9 @@
         $(document).ready(function() {
 
             $.ajaxSetup({
-                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
             });
 
             /* ── DataTable ───────────────────────────────────────── */
@@ -72,41 +74,65 @@
                 bSearchable: false,
                 language: {
                     paginate: {
-                        first:    '<i class="bx bx-chevrons-left"></i>',
+                        first: '<i class="bx bx-chevrons-left"></i>',
                         previous: '<i class="bx bx-chevron-left"></i>',
-                        next:     '<i class="bx bx-chevron-right"></i>',
-                        last:     '<i class="bx bx-chevrons-right"></i>'
+                        next: '<i class="bx bx-chevron-right"></i>',
+                        last: '<i class="bx bx-chevrons-right"></i>'
                     }
                 },
-                lengthMenu:     [[10, 30, 50, 70, 90, -1], [10, 30, 50, 70, 90, 'All']],
-                iDisplayLength: 10,
-                sDom:           'ltipr',
-                bAutoWidth:     false,
-                aaSorting:      [[0, 'desc']],
-                bProcessing:    true,
-                bServerSide:    true,
-                sAjaxSource:    '{{ route('purchase-voucher.list') }}',
-                sServerMethod:  'POST',
-                oLanguage:      { sEmptyTable: "<p class='no_data_message'>No data available.</p>" },
-                aoColumnDefs: [
-                    { bSortable: false, aTargets: [0, 6] }
+                lengthMenu: [
+                    [10, 30, 50, 70, 90, -1],
+                    [10, 30, 50, 70, 90, 'All']
                 ],
-                aoColumns: [
-                    { data: 'sno'          },
-                    { data: 'voucher_no'   },
-                    { data: 'voucher_date' },
-                    { data: 'vendor'       },
-                    { data: 'type'         },
-                    { data: 'total'        },
-                    { data: 'action'       },
+                iDisplayLength: 10,
+                sDom: 'ltipr',
+                bAutoWidth: false,
+                aaSorting: [
+                    [0, 'desc']
+                ],
+                bProcessing: true,
+                bServerSide: true,
+                sAjaxSource: '{{ route('purchase-voucher.list') }}',
+                sServerMethod: 'POST',
+                oLanguage: {
+                    sEmptyTable: "<p class='no_data_message'>No data available.</p>"
+                },
+                aoColumnDefs: [{
+                    bSortable: false,
+                    aTargets: [0, 6]
+                }],
+                aoColumns: [{
+                        data: 'sno'
+                    },
+                    {
+                        data: 'voucher_no'
+                    },
+                    {
+                        data: 'voucher_date'
+                    },
+                    {
+                        data: 'vendor'
+                    },
+                    {
+                        data: 'type'
+                    },
+                    {
+                        data: 'total'
+                    },
+                    {
+                        data: 'action'
+                    },
                 ],
                 initComplete: function() {
                     this.api().columns([1, 3]).every(function() {
                         var column = this;
                         var header = $(column.header()).text().trim();
-                        $('<input type="text" class="form-control" placeholder="' + header + '..." style="width:100%;" />')
+                        $('<input type="text" class="form-control" placeholder="' + header +
+                                '..." style="width:100%;" />')
                             .appendTo($(column.header()).empty())
-                            .on('keyup change', function() { column.search(this.value).draw(); });
+                            .on('keyup change', function() {
+                                column.search(this.value).draw();
+                            });
                     });
                 }
             });
@@ -116,10 +142,17 @@
                 var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
                 req.done(function(response) {
                     $('#pvModalContent').html(response);
-                    var modalEl  = document.getElementById('pvModal');
+                    $('#voucher_date').nepaliDatePicker({
+                        container: '#pvModal'
+                    });
+
+                    var modalEl = document.getElementById('pvModal');
                     var existing = bootstrap.Modal.getInstance(modalEl);
                     if (existing) existing.dispose();
-                    new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false }).show();
+                    new bootstrap.Modal(modalEl, {
+                        backdrop: 'static',
+                        keyboard: false
+                    }).show();
                 }).fail(function() {
                     showNotification('Failed to load form. Please try again.', 'error');
                 });
@@ -134,8 +167,10 @@
             $(document).on('click', '.editPurchaseVoucher', function(e) {
                 e.preventDefault();
                 openPvModal(
-                    '{{ route('purchase-voucher.form') }}',
-                    { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
+                    '{{ route('purchase-voucher.form') }}', {
+                        id: $(this).data('id'),
+                        _token: '{{ csrf_token() }}'
+                    },
                     'POST'
                 );
             });
@@ -144,8 +179,10 @@
             $(document).on('click', '.viewPurchaseVoucher', function(e) {
                 e.preventDefault();
                 openPvModal(
-                    '{{ route('purchase-voucher.view') }}',
-                    { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
+                    '{{ route('purchase-voucher.view') }}', {
+                        id: $(this).data('id'),
+                        _token: '{{ csrf_token() }}'
+                    },
                     'POST'
                 );
             });
@@ -161,7 +198,10 @@
 
             $('#confirmDelete').on('click', function() {
                 if (!deleteId) return;
-                $.post('{{ route('purchase-voucher.delete') }}', { id: deleteId, _token: '{{ csrf_token() }}' })
+                $.post('{{ route('purchase-voucher.delete') }}', {
+                        id: deleteId,
+                        _token: '{{ csrf_token() }}'
+                    })
                     .done(function(response) {
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
@@ -203,24 +243,29 @@
                     type: 'POST',
                     data: $form.serialize(),
                     success: function(response) {
-                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        var result = typeof response === 'string' ? JSON.parse(response) :
+                            response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
                             purchaseVoucherTable.fnDraw();
-                            bootstrap.Modal.getInstance(document.getElementById('pvModal')).hide();
+                            bootstrap.Modal.getInstance(document.getElementById('pvModal'))
+                                .hide();
                         } else {
                             showNotification(result.message, 'error');
                             $btn.prop('disabled', false).html(
-                                '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') + ' me-1"></i> ' + origText
+                                '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') +
+                                ' me-1"></i> ' + origText
                             );
                         }
                     },
                     error: function(xhr) {
                         $btn.prop('disabled', false).html(
-                            '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') + ' me-1"></i> ' + origText
+                            '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') +
+                            ' me-1"></i> ' + origText
                         );
                         if (xhr.status === 422) {
-                            showNotification(Object.values(xhr.responseJSON.errors)[0][0], 'error');
+                            showNotification(Object.values(xhr.responseJSON.errors)[0][0],
+                                'error');
                         } else {
                             showNotification('Something went wrong!', 'error');
                         }

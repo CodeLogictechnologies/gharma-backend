@@ -64,7 +64,9 @@
         $(document).ready(function() {
 
             $.ajaxSetup({
-                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
             });
 
             /* ── DataTable ───────────────────────────────────────── */
@@ -73,55 +75,90 @@
                 bSearchable: false,
                 language: {
                     paginate: {
-                        first:    '<i class="bx bx-chevrons-left"></i>',
+                        first: '<i class="bx bx-chevrons-left"></i>',
                         previous: '<i class="bx bx-chevron-left"></i>',
-                        next:     '<i class="bx bx-chevron-right"></i>',
-                        last:     '<i class="bx bx-chevrons-right"></i>'
+                        next: '<i class="bx bx-chevron-right"></i>',
+                        last: '<i class="bx bx-chevrons-right"></i>'
                     }
                 },
-                lengthMenu:     [[10, 30, 50, 70, 90, -1], [10, 30, 50, 70, 90, 'All']],
-                iDisplayLength: 10,
-                sDom:           'ltipr',
-                bAutoWidth:     false,
-                aaSorting:      [[0, 'desc']],
-                bProcessing:    true,
-                bServerSide:    true,
-                sAjaxSource:    '{{ route('purchase-return.list') }}',
-                sServerMethod:  'POST',
-                oLanguage:      { sEmptyTable: "<p class='no_data_message'>No data available.</p>" },
-                aoColumnDefs: [
-                    { bSortable: false, aTargets: [0, 7] }
+                lengthMenu: [
+                    [10, 30, 50, 70, 90, -1],
+                    [10, 30, 50, 70, 90, 'All']
                 ],
-                aoColumns: [
-                    { data: 'sno'            },
-                    { data: 'debit_note_no'  },
-                    { data: 'return_date'    },
-                    { data: 'vendor'         },
-                    { data: 'against_voucher'},
-                    { data: 'total'          },
-                    { data: 'status'         },
-                    { data: 'action'         },
+                iDisplayLength: 10,
+                sDom: 'ltipr',
+                bAutoWidth: false,
+                aaSorting: [
+                    [0, 'desc']
+                ],
+                bProcessing: true,
+                bServerSide: true,
+                sAjaxSource: '{{ route('purchase-return.list') }}',
+                sServerMethod: 'POST',
+                oLanguage: {
+                    sEmptyTable: "<p class='no_data_message'>No data available.</p>"
+                },
+                aoColumnDefs: [{
+                    bSortable: false,
+                    aTargets: [0, 7]
+                }],
+                aoColumns: [{
+                        data: 'sno'
+                    },
+                    {
+                        data: 'debit_note_no'
+                    },
+                    {
+                        data: 'return_date'
+                    },
+                    {
+                        data: 'vendor'
+                    },
+                    {
+                        data: 'against_voucher'
+                    },
+                    {
+                        data: 'total'
+                    },
+                    {
+                        data: 'status'
+                    },
+                    {
+                        data: 'action'
+                    },
                 ],
                 initComplete: function() {
                     this.api().columns([1, 3]).every(function() {
                         var column = this;
                         var header = $(column.header()).text().trim();
-                        $('<input type="text" class="form-control" placeholder="' + header + '..." style="width:100%;" />')
+                        $('<input type="text" class="form-control" placeholder="' + header +
+                                '..." style="width:100%;" />')
                             .appendTo($(column.header()).empty())
-                            .on('keyup change', function() { column.search(this.value).draw(); });
+                            .on('keyup change', function() {
+                                column.search(this.value).draw();
+                            });
                     });
                 }
             });
+
+            
 
             /* ── Helper: open modal via AJAX ─────────────────────── */
             function openPrModal(url, data, method) {
                 var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
                 req.done(function(response) {
                     $('#prModalContent').html(response);
-                    var modalEl  = document.getElementById('prModal');
+                    $('#return_date_np').nepaliDatePicker({
+                        container: "#prModalContent"
+                    });
+
+                    var modalEl = document.getElementById('prModal');
                     var existing = bootstrap.Modal.getInstance(modalEl);
                     if (existing) existing.dispose();
-                    new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false }).show();
+                    new bootstrap.Modal(modalEl, {
+                        backdrop: 'static',
+                        keyboard: false
+                    }).show();
                 }).fail(function() {
                     showNotification('Failed to load form. Please try again.', 'error');
                 });
@@ -136,8 +173,10 @@
             $(document).on('click', '.editPurchaseReturn', function(e) {
                 e.preventDefault();
                 openPrModal(
-                    '{{ route('purchase-return.form') }}',
-                    { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
+                    '{{ route('purchase-return.form') }}', {
+                        id: $(this).data('id'),
+                        _token: '{{ csrf_token() }}'
+                    },
                     'POST'
                 );
             });
@@ -146,8 +185,10 @@
             $(document).on('click', '.viewPurchaseReturn', function(e) {
                 e.preventDefault();
                 openPrModal(
-                    '{{ route('purchase-return.view') }}',
-                    { id: $(this).data('id'), _token: '{{ csrf_token() }}' },
+                    '{{ route('purchase-return.view') }}', {
+                        id: $(this).data('id'),
+                        _token: '{{ csrf_token() }}'
+                    },
                     'POST'
                 );
             });
@@ -163,7 +204,10 @@
 
             $('#confirmDelete').on('click', function() {
                 if (!deleteId) return;
-                $.post('{{ route('purchase-return.delete') }}', { id: deleteId, _token: '{{ csrf_token() }}' })
+                $.post('{{ route('purchase-return.delete') }}', {
+                        id: deleteId,
+                        _token: '{{ csrf_token() }}'
+                    })
                     .done(function(response) {
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
@@ -184,7 +228,11 @@
 
             /* ── Approve / Reject ─────────────────────────────────── */
             function updatePurchaseReturnStatus(id, status) {
-                $.post('{{ route('purchase-return.status') }}', { id: id, return_status: status, _token: '{{ csrf_token() }}' })
+                $.post('{{ route('purchase-return.status') }}', {
+                        id: id,
+                        return_status: status,
+                        _token: '{{ csrf_token() }}'
+                    })
                     .done(function(response) {
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
@@ -232,24 +280,29 @@
                     type: 'POST',
                     data: $form.serialize(),
                     success: function(response) {
-                        var result = typeof response === 'string' ? JSON.parse(response) : response;
+                        var result = typeof response === 'string' ? JSON.parse(response) :
+                            response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
                             purchaseReturnTable.fnDraw();
-                            bootstrap.Modal.getInstance(document.getElementById('prModal')).hide();
+                            bootstrap.Modal.getInstance(document.getElementById('prModal'))
+                                .hide();
                         } else {
                             showNotification(result.message, 'error');
                             $btn.prop('disabled', false).html(
-                                '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') + ' me-1"></i> ' + origText
+                                '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') +
+                                ' me-1"></i> ' + origText
                             );
                         }
                     },
                     error: function(xhr) {
                         $btn.prop('disabled', false).html(
-                            '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') + ' me-1"></i> ' + origText
+                            '<i class="bx ' + (isEdit ? 'bx-save' : 'bx-plus') +
+                            ' me-1"></i> ' + origText
                         );
                         if (xhr.status === 422) {
-                            showNotification(Object.values(xhr.responseJSON.errors)[0][0], 'error');
+                            showNotification(Object.values(xhr.responseJSON.errors)[0][0],
+                                'error');
                         } else {
                             showNotification('Something went wrong!', 'error');
                         }

@@ -107,9 +107,11 @@ class PurchaseReturnController extends Controller
             ];
 
             if (!empty($request->id)) {
+
                 $result = PurchaseReturnVoucher::getData($post);
+
                 if (!$result) {
-                    throw new Exception("Purchase return voucher not found", 1);
+                    throw new Exception("Purchase return voucher not found");
                 }
 
                 $data['id']                    = $result->id;
@@ -120,7 +122,8 @@ class PurchaseReturnController extends Controller
                 $data['remarks']               = $result->remarks;
                 $data['bill_discount_percent'] = $result->bill_discount_percent;
                 $data['lineItems']             = $result->items;
-                $data['vendorVouchers']    = !empty($result->vendor_id)
+
+                $data['vendorVouchers'] = !empty($result->vendor_id)
                     ? PurchaseVoucher::getVendorVouchers([
                         'orgid'             => $post['orgid'],
                         'vendor_id'         => $result->vendor_id,
@@ -128,6 +131,8 @@ class PurchaseReturnController extends Controller
                     ])
                     : [];
             } else {
+
+                $data['debit_note_no'] = PurchaseReturnVoucher::getVoucherNumber($post);
                 $data['vendorVouchers'] = [];
             }
         } catch (QueryException $e) {
@@ -228,66 +233,66 @@ class PurchaseReturnController extends Controller
 
     public function save(Request $request)
     {
-        // try {
-            $rules = [
-                'return_date'       => 'required|date',
-                'debit_note_no'     => 'required|string|max:255',
-                'vendor_id'         => 'required',
-                'items'             => 'required|array|min:1',
-                'items.*.item_id'   => 'required',
-                'items.*.qty'       => 'required|numeric|min:0.01',
-                'items.*.unit_rate' => 'required|numeric|min:0',
-            ];
+        try {
+        $rules = [
+            'return_date'       => 'required|date',
+            'debit_note_no'     => 'required|string|max:255',
+            'vendor_id'         => 'required',
+            'items'             => 'required|array|min:1',
+            'items.*.item_id'   => 'required',
+            'items.*.qty'       => 'required|numeric|min:0.01',
+            'items.*.unit_rate' => 'required|numeric|min:0',
+        ];
 
-            $messages = [
-                'return_date.required'      => 'Date is required.',
-                'debit_note_no.required'    => 'Debit Note No. is required.',
-                'vendor_id.required'        => 'Vendor is required.',
-                'items.required'            => 'At least one item is required.',
-                'items.*.item_id.required'  => 'Item is required for each row.',
-                'items.*.qty.required'      => 'Quantity is required for each row.',
-                'items.*.unit_rate.required' => 'Rate is required for each row.',
-            ];
+        $messages = [
+            'return_date.required'      => 'Date is required.',
+            'debit_note_no.required'    => 'Debit Note No. is required.',
+            'vendor_id.required'        => 'Vendor is required.',
+            'items.required'            => 'At least one item is required.',
+            'items.*.item_id.required'  => 'Item is required for each row.',
+            'items.*.qty.required'      => 'Quantity is required for each row.',
+            'items.*.unit_rate.required' => 'Rate is required for each row.',
+        ];
 
-            $validation = Validator::make($request->all(), $rules, $messages);
-            if ($validation->fails()) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => $validation->errors()->first(),
-                ]);
-            }
-
-            $post           = $request->all();
-            $post['orgid']  = session('orgid');
-            $post['userid'] = session('userid');
-
-            $isEdit = !empty($post['id']);
-
-            $duplicate = DB::table('purchase_return_vouchers')
-                ->where('orgid', $post['orgid'])
-                ->where('debit_note_no', $post['debit_note_no'])
-                ->where('status', 'Y')
-                ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-                ->exists();
-
-            if ($duplicate) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'This Debit Note No. already exists.',
-                ]);
-            }
-
-            PurchaseReturnVoucher::saveData($post);
-
+        $validation = Validator::make($request->all(), $rules, $messages);
+        if ($validation->fails()) {
             return response()->json([
-                'type'    => 'success',
-                'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
+                'type'    => 'error',
+                'message' => $validation->errors()->first(),
             ]);
-        // } catch (QueryException $e) {
-        //     return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
-        // } catch (Exception $e) {
-        //     return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
-        // }
+        }
+
+        $post           = $request->all();
+        $post['orgid']  = session('orgid');
+        $post['userid'] = session('userid');
+
+        $isEdit = !empty($post['id']);
+
+        $duplicate = DB::table('purchase_return_vouchers')
+            ->where('orgid', $post['orgid'])
+            ->where('debit_note_no', $post['debit_note_no'])
+            ->where('status', 'Y')
+            ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'This Debit Note No. already exists.',
+            ]);
+        }
+
+        PurchaseReturnVoucher::saveData($post);
+
+        return response()->json([
+            'type'    => 'success',
+            'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
+        ]);
+        } catch (QueryException $e) {
+            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+        } catch (Exception $e) {
+            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     public function view(Request $request)

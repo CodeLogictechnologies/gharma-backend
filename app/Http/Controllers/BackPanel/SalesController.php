@@ -22,45 +22,45 @@ class SalesController extends Controller
 
     public function list(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
+        try {
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
 
-        $data = SalesVoucher::list($post);
-        $i = 0;
-        $array = [];
-        $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
-        $totalrecs    = $data["totalrecs"];
+            $data = SalesVoucher::list($post);
+            $i = 0;
+            $array = [];
+            $filtereddata = ($data["totalfilteredrecs"] > 0 ? $data["totalfilteredrecs"] : $data["totalrecs"]);
+            $totalrecs    = $data["totalrecs"];
 
-        unset($data["totalfilteredrecs"]);
-        unset($data["totalrecs"]);
+            unset($data["totalfilteredrecs"]);
+            unset($data["totalrecs"]);
 
-        foreach ($data['data'] as $row) {
-            $array[$i]["sno"]       = $i + 1;
-            $array[$i]["name"]     = $row->name;
-            $array[$i]["phone"]  = $row->phone;
-            $array[$i]["email"]     = $row->email;
-            $array[$i]["voucher_number"]     = $row->voucher_number;
-            $array[$i]["created_at"]     = $row->created_at;
-            $action  = '';
-            $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewSalesVoucher   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
-            $array[$i]["action"] = $action;
-            $i++;
+            foreach ($data['data'] as $row) {
+                $array[$i]["sno"]       = $i + 1;
+                $array[$i]["name"]     = $row->name;
+                $array[$i]["phone"]  = $row->phone;
+                $array[$i]["email"]     = $row->email;
+                $array[$i]["voucher_number"]     = $row->voucher_number;
+                $array[$i]["created_at"]     = $row->created_at;
+                $action  = '';
+                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewSalesVoucher   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                $array[$i]["action"] = $action;
+                $i++;
+            }
+
+            if (!$filtereddata) $filtereddata = 0;
+            if (!$totalrecs)    $totalrecs    = 0;
+
+            return response()->json([
+                'recordsFiltered' => $filtereddata,
+                'recordsTotal'    => $totalrecs,
+                'data'            => $array,
+            ]);
+        } catch (QueryException $e) {
+            return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
+        } catch (Exception $e) {
+            return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
         }
-
-        if (!$filtereddata) $filtereddata = 0;
-        if (!$totalrecs)    $totalrecs    = 0;
-
-        return response()->json([
-            'recordsFiltered' => $filtereddata,
-            'recordsTotal'    => $totalrecs,
-            'data'            => $array,
-        ]);
-        // } catch (QueryException $e) {
-        //     return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
-        // } catch (Exception $e) {
-        //     return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []], 500);
-        // }
     }
 
     public function form(Request $request)
@@ -99,7 +99,7 @@ class SalesController extends Controller
                     ])
                     : [];
             } else {
-                $data['voucher_no']     = SalesVoucher::generateUniqueVoucherNo($post['orgid']);
+                $data['voucher_no']     = SalesVoucher::generateUniqueVoucherNo($post);
                 $data['customerOrders'] = [];
             }
         } catch (QueryException $e) {
@@ -203,7 +203,7 @@ class SalesController extends Controller
             ]);
         }
     }
-    
+
     public function view(Request $request)
     {
         try {

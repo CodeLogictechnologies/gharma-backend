@@ -7,6 +7,7 @@ use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\BsdateController;
 
 class PurchaseVoucher extends Model
 {
@@ -168,7 +169,8 @@ class PurchaseVoucher extends Model
             if (!$vendor) {
                 throw new Exception('Selected vendor was not found.');
             }
-
+            $bsdate = new BsdateController;
+            $purchase_vouchers_date_eng = $bsdate->nep_to_eng($post['voucher_date']);
             $header = [
                 'voucher_date'           => $post['voucher_date'],
                 'voucher_no'             => $post['voucher_no'],
@@ -183,6 +185,7 @@ class PurchaseVoucher extends Model
                 'vat_amount'             => round($totalVatAmount, 2),
                 'excise_amount'          => round($totalExciseAmount, 2),
                 'total_amount'           => $totalAmount,
+                'purchase_vouchers_date_eng'          => $purchase_vouchers_date_eng,
                 'orgid'                  => $post['orgid'],
             ];
 
@@ -314,6 +317,26 @@ class PurchaseVoucher extends Model
                 ->orderBy('pv.voucher_date', 'desc')
                 ->get();
         } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    public static function getVoucherNumber($post)
+    {
+        try {
+
+            $lastVoucher = DB::table('purchase_vouchers')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->orderByDesc('voucher_no')
+                ->first();
+
+            if (!$lastVoucher) {
+                return 1;
+            }
+
+            return $lastVoucher->debit_note_no + 1;
+        } catch (\Exception $e) {
             throw $e;
         }
     }
