@@ -105,7 +105,14 @@
                         <th>Qty <span class="text-danger">*</span></th>
                         <th>Rate <span class="text-danger">*</span></th>
                         <th>Amount</th>
-                        <th>VAT</th>
+                        <th>
+                            <select id="headerVatSelect" class="form-select form-select-sm mt-1">
+                                <option value="">VAT</option>
+                                @foreach (config('vat.taxable') as $rate)
+                                    <option value="{{ $rate }}">{{ $rate }}%</option>
+                                @endforeach
+                            </select>
+                        </th>
                         <th>Excise Duty</th>
                         <th></th>
                     </tr>
@@ -189,6 +196,7 @@
         @endforeach
 
         var rowIndex = 0;
+        var globalVatOverride = null;
 
         function round2(n) {
             return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -226,7 +234,11 @@
             var vatText = '-';
             var exciseText = '-';
             if (meta) {
-                vatText = meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%';
+                if (globalVatOverride !== null) {
+                    vatText = globalVatOverride + '%';
+                } else {
+                    vatText = meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%';
+                }
                 if (meta.excise_status === 'Y') {
                     if (meta.excise_type === 'percentage') {
                         exciseText = meta.excise_percentage + '%';
@@ -330,7 +342,9 @@
                 }
 
                 var taxableForVat = share + exciseAmt;
-                var vatPercent = meta && meta.vat_status === 'Y' ? meta.vat_percent : 0;
+                var vatPercent = globalVatOverride !== null ?
+                    globalVatOverride :
+                    (meta && meta.vat_status === 'Y' ? meta.vat_percent : 0);
                 var vatAmt = round2(taxableForVat * vatPercent / 100);
 
                 totalVat += vatAmt;
@@ -354,6 +368,18 @@
             var itemId = $(this).val();
             applyItemTaxInfo($tr, itemId);
             loadVariationsForRow($tr, itemId, null);
+            recalcAll();
+        });
+
+        $('#headerVatSelect').on('change', function() {
+            var v = $(this).val();
+            globalVatOverride = v === '' ? null : parseFloat(v);
+
+            $('#itemRows tr.item-row').each(function() {
+                var $tr = $(this);
+                applyItemTaxInfo($tr, $tr.find('.item-select').val());
+            });
+
             recalcAll();
         });
 
