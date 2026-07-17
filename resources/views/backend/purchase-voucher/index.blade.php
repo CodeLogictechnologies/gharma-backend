@@ -37,6 +37,13 @@
         </div>
     </div>
 
+    {{-- Add Item Modal (triggered from "+ Add New Item" inside the purchase voucher item row) --}}
+    <div class="modal fade" id="pvAddItemModal" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content" id="pvAddItemModalContent"></div>
+        </div>
+    </div>
+
     {{-- Delete Confirm Modal --}}
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -157,6 +164,28 @@
                     showNotification('Failed to load form. Please try again.', 'error');
                 });
             }
+
+            /* ── Helper: open the "Add Item" modal on top of the purchase voucher form ── */
+            window.pvOpenAddItemModal = function() {
+                $.get('{{ route('item.form') }}', {})
+                    .done(function(response) {
+                        $('#pvAddItemModalContent').html(response);
+
+                        var modalEl = document.getElementById('pvAddItemModal');
+                        var existing = bootstrap.Modal.getInstance(modalEl);
+                        if (existing) existing.dispose();
+                        new bootstrap.Modal(modalEl, {
+                            backdrop: 'static',
+                            keyboard: false
+                        }).show();
+                    }).fail(function() {
+                        showNotification('Failed to load item form. Please try again.', 'error');
+                    });
+            };
+
+            document.getElementById('pvAddItemModal').addEventListener('hidden.bs.modal', function() {
+                $('#pvAddItemModalContent').html('');
+            });
 
             /* ── Add ─────────────────────────────────────────────── */
             $('#addPurchaseVoucher').on('click', function() {
