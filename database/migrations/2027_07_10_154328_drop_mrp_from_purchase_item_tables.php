@@ -11,13 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('purchase_voucher_items', function (Blueprint $table) {
-            $table->dropColumn('mrp');
-        });
+        if (Schema::hasColumn('purchase_voucher_items', 'mrp')) {
+            Schema::table('purchase_voucher_items', function (Blueprint $table) {
+                $table->dropColumn('mrp');
+            });
+        }
 
-        Schema::table('purchase_return_voucher_items', function (Blueprint $table) {
-            $table->dropColumn('mrp');
-        });
+        if (Schema::hasColumn('purchase_return_voucher_items', 'mrp')) {
+            Schema::table('purchase_return_voucher_items', function (Blueprint $table) {
+                $table->dropColumn('mrp');
+            });
+        }
     }
 
     /**
@@ -25,12 +29,16 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('purchase_voucher_items', function (Blueprint $table) {
-            $table->decimal('mrp', 12, 2)->nullable();
-        });
+        if (!Schema::hasColumn('purchase_voucher_items', 'mrp')) {
+            Schema::table('purchase_voucher_items', function (Blueprint $table) {
+                $table->decimal('mrp', 12, 2)->nullable();
+            });
+        }
 
-        Schema::table('purchase_return_voucher_items', function (Blueprint $table) {
-            $table->decimal('mrp', 12, 2)->nullable()->after('excise_amount');
-        });
+        if (!Schema::hasColumn('purchase_return_voucher_items', 'mrp')) {
+            Schema::table('purchase_return_voucher_items', function (Blueprint $table) {
+                $table->decimal('mrp', 12, 2)->nullable()->after('excise_amount');
+            });
+        }
     }
 };

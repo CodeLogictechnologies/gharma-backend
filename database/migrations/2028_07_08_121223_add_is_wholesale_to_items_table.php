@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('items', function (Blueprint $table) {
-
-            $table->enum('is_wholesale', ['Y', 'N'])->nullable()->after('excise_value');
-        });
+        if (!Schema::hasColumn('items', 'is_wholesale')) {
+            Schema::table('items', function (Blueprint $table) {
+                $table->enum('is_wholesale', ['Y', 'N'])->nullable()->after('excise_value');
+            });
+        }
     }
 
     /**
@@ -22,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('items', function (Blueprint $table) {
-            //
-        });
+        if (Schema::hasColumn('items', 'is_wholesale')) {
+            Schema::table('items', function (Blueprint $table) {
+                $table->dropColumn('is_wholesale');
+            });
+        }
     }
 };

@@ -90,31 +90,13 @@
                 <div class="invalid-feedback">Please select what this discount applies to.</div>
             </div>
 
-            {{-- Category dropdown (only visible when Applies To = Category) --}}
+            {{-- Category dropdown (visible for Category, Sub Category, Sub Sub Category) --}}
             <div class="col-md-8" id="categoryField" style="display: none;">
                 <label class="form-label">Select Category <span class="text-danger">*</span></label>
                 <select name="category_target_id" id="categorySelect" class="form-select">
                     <option value="">-- Select Category --</option>
                 </select>
                 <div class="invalid-feedback">Please select a category.</div>
-            </div>
-
-            {{-- Sub Category dropdown --}}
-            <div class="col-md-8" id="subCategoryField" style="display: none;">
-                <label class="form-label">Select Sub Category <span class="text-danger">*</span></label>
-                <select name="sub_category_target_id" id="subCategorySelect" class="form-select">
-                    <option value="">-- Select Sub Category --</option>
-                </select>
-                <div class="invalid-feedback">Please select a sub category.</div>
-            </div>
-
-            {{-- Sub Sub Category dropdown --}}
-            <div class="col-md-8" id="subSubCategoryField" style="display: none;">
-                <label class="form-label">Select Sub Sub Category <span class="text-danger">*</span></label>
-                <select name="sub_sub_category_target_id" id="subSubCategorySelect" class="form-select">
-                    <option value="">-- Select Sub Sub Category --</option>
-                </select>
-                <div class="invalid-feedback">Please select a sub sub category.</div>
             </div>
 
             {{-- Brand dropdown --}}
@@ -128,7 +110,30 @@
 
         </div>
 
-        {{-- ── Row 2b: Item checklist — shared across all "applies to" types, filtered accordingly ── --}}
+        {{-- ── Row 2b: Sub Category + Sub Sub Category — shown together, side by side ── --}}
+        <div class="row g-3 mb-3">
+
+            {{-- Sub Category dropdown (visible for Sub Category, Sub Sub Category) --}}
+            <div class="col-md-6" id="subCategoryField" style="display: none;">
+                <label class="form-label">Select Sub Category <span class="text-danger">*</span></label>
+                <select name="sub_category_target_id" id="subCategorySelect" class="form-select">
+                    <option value="">-- Select Sub Category --</option>
+                </select>
+                <div class="invalid-feedback">Please select a sub category.</div>
+            </div>
+
+            {{-- Sub Sub Category dropdown (visible only for Sub Sub Category) --}}
+            <div class="col-md-6" id="subSubCategoryField" style="display: none;">
+                <label class="form-label">Select Sub Sub Category <span class="text-danger">*</span></label>
+                <select name="sub_sub_category_target_id" id="subSubCategorySelect" class="form-select">
+                    <option value="">-- Select Sub Sub Category --</option>
+                </select>
+                <div class="invalid-feedback">Please select a sub sub category.</div>
+            </div>
+
+        </div>
+
+        {{-- ── Row 2c: Item checklist — shared across all "applies to" types, filtered accordingly ── --}}
         <div class="row g-3 mb-3">
             <div class="col-12" id="itemField" style="display: none;">
                 <label class="form-label">Select Item(s) <span class="text-danger">*</span></label>
@@ -232,7 +237,7 @@
         window._discountModalInitialized = true;
 
         var ITEMS_URL = '{{ route('api.items.list') }}';
-        var CATEGORY_URL = '{{ url('admin/discount/categories') }}'; // ?level=1/2/3
+        var CATEGORY_URL = '{{ url('admin/discount/categories') }}'; // ?level=1/2/3&parent_id=
         var BRAND_URL = '{{ url('admin/discount/brands') }}';
 
         // Pre-selected values when editing
@@ -303,12 +308,21 @@
 
         /* =========================================================
            LOAD CATEGORY-TYPE DROPDOWNS (category / sub / sub-sub)
+           level: 1 = category, 2 = sub category, 3 = sub sub category
+           parentId: pass the parent category/sub-category id to filter
+                     level 2 / level 3 options (cascading)
         ========================================================= */
-        function loadCategoryLevelOptions(level, $select, selectedId, placeholder) {
+        function loadCategoryLevelOptions(level, $select, selectedId, placeholder, parentId) {
             $select.html('<option value="">Loading...</option>');
-            $.get(CATEGORY_URL, {
-                    level: level
-                })
+
+            var params = {
+                level: level
+            };
+            if (parentId) {
+                params.parent_id = parentId;
+            }
+
+            $.get(CATEGORY_URL, params)
                 .done(function(response) {
                     var options = '<option value="">' + placeholder + '</option>';
                     $.each(response.data, function(i, cat) {
@@ -343,6 +357,9 @@
 
         /* =========================================================
            APPLIES TO TOGGLE — one field group per type
+           - category         -> Category
+           - sub_category     -> Category -> Sub Category
+           - sub_sub_category -> Category -> Sub Category -> Sub Sub Category
         ========================================================= */
         function applyAppliesToToggle(val) {
 
@@ -367,25 +384,65 @@
 
             } else if (val === 'sub_category') {
 
+                $('#categoryField').show();
                 $('#subCategoryField').show();
 
                 loadCategoryLevelOptions(
-                    2,
-                    $('#subCategorySelect'),
-                    editSubCategoryTargetId,
-                    '-- Select Sub Category --'
+                    1,
+                    $('#categorySelect'),
+                    editCategoryTargetId,
+                    '-- Select Category --'
                 );
+
+                if (editCategoryTargetId) {
+                    loadCategoryLevelOptions(
+                        2,
+                        $('#subCategorySelect'),
+                        editSubCategoryTargetId,
+                        '-- Select Sub Category --',
+                        editCategoryTargetId
+                    );
+                } else {
+                    $('#subCategorySelect').html('<option value="">-- Select Category first --</option>');
+                }
 
             } else if (val === 'sub_sub_category') {
 
+                $('#categoryField').show();
+                $('#subCategoryField').show();
                 $('#subSubCategoryField').show();
 
                 loadCategoryLevelOptions(
-                    3,
-                    $('#subSubCategorySelect'),
-                    editSubSubCategoryTargetId,
-                    '-- Select Sub Sub Category --'
+                    1,
+                    $('#categorySelect'),
+                    editCategoryTargetId,
+                    '-- Select Category --'
                 );
+
+                if (editCategoryTargetId) {
+                    loadCategoryLevelOptions(
+                        2,
+                        $('#subCategorySelect'),
+                        editSubCategoryTargetId,
+                        '-- Select Sub Category --',
+                        editCategoryTargetId
+                    );
+                } else {
+                    $('#subCategorySelect').html('<option value="">-- Select Category first --</option>');
+                }
+
+                if (editSubCategoryTargetId) {
+                    loadCategoryLevelOptions(
+                        3,
+                        $('#subSubCategorySelect'),
+                        editSubSubCategoryTargetId,
+                        '-- Select Sub Sub Category --',
+                        editSubCategoryTargetId
+                    );
+                } else {
+                    $('#subSubCategorySelect').html(
+                        '<option value="">-- Select Sub Category first --</option>');
+                }
 
             } else if (val === 'brand') {
 
@@ -396,19 +453,81 @@
             }
         }
 
-
+        /* =========================================================
+           CASCADING CHANGE HANDLERS
+           Behaviour depends on the current "Applies To" selection:
+           - category:          selecting Category loads the item list
+           - sub_category:      selecting Category loads Sub Categories,
+                                 selecting Sub Category loads the item list
+           - sub_sub_category:  selecting Category loads Sub Categories,
+                                 selecting Sub Category loads Sub Sub Categories,
+                                 selecting Sub Sub Category loads the item list
+        ========================================================= */
         $(document).on('change', '#categorySelect', function() {
-            $('#itemField').show();
-            loadItemChecklist([], {
-                category_id: $(this).val()
-            });
+
+            var appliesTo = $('#appliesTo').val();
+            var categoryId = $(this).val();
+
+            if (appliesTo === 'category') {
+
+                $('#itemField').show();
+                loadItemChecklist([], {
+                    category_id: categoryId
+                });
+
+            } else if (appliesTo === 'sub_category' || appliesTo === 'sub_sub_category') {
+
+                $('#itemField').hide();
+
+                if (categoryId) {
+                    loadCategoryLevelOptions(
+                        2,
+                        $('#subCategorySelect'),
+                        '',
+                        '-- Select Sub Category --',
+                        categoryId
+                    );
+                } else {
+                    $('#subCategorySelect').html(
+                        '<option value="">-- Select Category first --</option>');
+                }
+
+                if (appliesTo === 'sub_sub_category') {
+                    $('#subSubCategorySelect').html(
+                        '<option value="">-- Select Sub Category first --</option>');
+                }
+            }
         });
 
         $(document).on('change', '#subCategorySelect', function() {
-            $('#itemField').show();
-            loadItemChecklist([], {
-                sub_category_id: $(this).val()
-            });
+
+            var appliesTo = $('#appliesTo').val();
+            var subCategoryId = $(this).val();
+
+            if (appliesTo === 'sub_category') {
+
+                $('#itemField').show();
+                loadItemChecklist([], {
+                    sub_category_id: subCategoryId
+                });
+
+            } else if (appliesTo === 'sub_sub_category') {
+
+                $('#itemField').hide();
+
+                if (subCategoryId) {
+                    loadCategoryLevelOptions(
+                        3,
+                        $('#subSubCategorySelect'),
+                        '',
+                        '-- Select Sub Sub Category --',
+                        subCategoryId
+                    );
+                } else {
+                    $('#subSubCategorySelect').html(
+                        '<option value="">-- Select Sub Category first --</option>');
+                }
+            }
         });
 
         $(document).on('change', '#subSubCategorySelect', function() {
@@ -424,6 +543,7 @@
                 brand_id: $(this).val()
             });
         });
+
         /* =========================================================
            MIN REQUIREMENT TOGGLE
         ========================================================= */
