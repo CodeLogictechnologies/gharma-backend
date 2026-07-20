@@ -296,13 +296,21 @@
         </li>
 
         <!-- Return Refund poilcy -->
-        <li class="menu-item">
+        <!-- Return Refund policy -->
+        <li class="menu-item {{ request()->routeIs('refunds.policy') ? 'active' : '' }}">
             <a href="{{ route('refunds.policy') }}" class="menu-link">
                 <i class="menu-icon bx bx-shield"></i>
                 <div>Return & Refund Policy</div>
             </a>
         </li>
 
+        <!-- Terms and condition and Privacy Policy -->
+        <li class="menu-item {{ request()->routeIs('terms.conditions') ? 'active' : '' }}">
+            <a href="{{ route('terms.conditions') }}" class="menu-link">
+                <i class="menu-icon bx bx-file-blank"></i>
+                <div>Terms Conditions and Privacy Policy</div>
+            </a>
+        </li>
 
         <!-- Home Tab -->
         <!-- <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
@@ -366,8 +374,9 @@
         </li> --}}
 
         <!-- Refund -->
-        <li class="menu-item {{ request()->routeIs('refunds.policy') ? 'active' : '' }}">
-            <a href="{{ route('refunds.policy') }}" class="menu-link">
+        <!-- Refund -->
+        <li class="menu-item {{ request()->routeIs('refund') || request()->routeIs('refund.*') ? 'active' : '' }}">
+            <a href="{{ route('refund') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-revision"></i>
                 <div>Refund</div>
             </a>

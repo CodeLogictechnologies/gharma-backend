@@ -31,6 +31,7 @@ use App\Http\Controllers\BackPanel\CouponController;
 use App\Http\Controllers\BackPanel\DriverController;
 use App\Http\Controllers\BackPanel\StoreController;
 use App\Http\Controllers\BackPanel\ReturnRefundController;
+use App\Http\Controllers\BackPanel\TermsConditionController;
 use App\Http\Controllers\BackPanel\SubCategoryController;
 use App\Http\Controllers\BackPanel\SubSubCategoryController;
 use App\Http\Controllers\BackPanel\UserController;
@@ -262,7 +263,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/view', [ItemController::class, 'view'])->name('item.view');
             Route::post('/images/reorder', [ItemImageController::class, 'reorder'])->name('item.images.reorder'); // ← ADD HERE
             Route::get('subcategories', [ItemController::class, 'getSubcategoriesForItem'])->name('item.subcategories');
-Route::get('subsubcategories', [ItemController::class, 'getSubSubcategories'])->name('item.subsubcategories');
+            Route::get('subsubcategories', [ItemController::class, 'getSubSubcategories'])->name('item.subsubcategories');
         });
 
 
@@ -445,6 +446,12 @@ Route::get('subsubcategories', [ItemController::class, 'getSubSubcategories'])->
         Route::group(['prefix' => 'return-refund'], function () {
             Route::get('/',     [ReturnRefundController::class, 'index'])->name('refunds.policy');
             Route::post('/save', [ReturnRefundController::class, 'savePolicy'])->name('refunds.policy.save');
+        });
+
+        // Terms & Conditions / Privacy Policy
+        Route::group(['prefix' => 'terms-conditions'], function () {
+            Route::get('/',     [TermsConditionController::class, 'index'])->name('terms.conditions');
+            Route::post('/save', [TermsConditionController::class, 'savePolicy'])->name('terms.conditions.save');
         });
 
         Route::group(['prefix' => 'refund'], function () {
