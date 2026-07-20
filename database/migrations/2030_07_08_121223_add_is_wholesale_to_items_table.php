@@ -11,10 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('items', function (Blueprint $table) {
-
-            $table->enum('is_wholesale', ['Y', 'N'])->nullable()->after('excise_value');
-        });
+        try {
+            Schema::table('items', function (Blueprint $table) {
+                $table->enum('is_wholesale', ['Y', 'N'])->nullable()->after('excise_value');
+            });
+        } catch (\Throwable $e) {
+            // Column already exists — safe to ignore
+        }
     }
 
     /**
@@ -22,8 +25,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('items', function (Blueprint $table) {
-            //
-        });
+        try {
+            Schema::table('items', function (Blueprint $table) {
+                $table->dropColumn('is_wholesale');
+            });
+        } catch (\Throwable $e) {
+            // Column doesn't exist — safe to ignore
+        }
     }
 };

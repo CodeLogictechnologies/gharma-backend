@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('units', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('orgid');
-            $table->string('unit_name');
-            $table->string('unit_short_name')->nullable();
-            $table->enum('status', ['Y', 'N'])->default('Y');
-            $table->string('postedby')->nullable();
-            $table->string('updatedby')->nullable();
-            $table->timestamps();
-            $table->foreign('orgid')->references('id')->on('organizations')->onDelete('cascade');
-            $table->unique(['orgid', 'unit_name']);
-        });
+        if (!Schema::hasTable('units')) {
+            Schema::create('units', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->uuid('orgid');
+                $table->string('unit_name');
+                $table->string('unit_short_name')->nullable();
+                $table->enum('status', ['Y', 'N'])->default('Y');
+                $table->string('postedby')->nullable();
+                $table->string('updatedby')->nullable();
+                $table->timestamps();
+                $table->foreign('orgid')->references('id')->on('organizations')->onDelete('cascade');
+                $table->unique(['orgid', 'unit_name']);
+            });
+        }
     }
 
     /**

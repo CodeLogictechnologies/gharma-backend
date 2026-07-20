@@ -8,16 +8,37 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('categories', function (Blueprint $table) {
-            $table->uuid('sub_category_id')->nullable()->after('image');
-            $table->unsignedTinyInteger('level')->default(1)->after('sub_category_id');
-        });
+        try {
+            Schema::table('categories', function (Blueprint $table) {
+                $table->uuid('sub_category_id')->nullable()->after('image');
+            });
+        } catch (\Throwable $e) {
+            // Column already exists — safe to ignore
+        }
+
+        try {
+            Schema::table('categories', function (Blueprint $table) {
+                $table->unsignedTinyInteger('level')->default(1)->after('sub_category_id');
+            });
+        } catch (\Throwable $e) {
+            // Column already exists — safe to ignore
+        }
     }
 
     public function down(): void
     {
-        Schema::table('categories', function (Blueprint $table) {
-            $table->uuid(['sub_category_id']);
-        });
+        try {
+            Schema::table('categories', function (Blueprint $table) {
+                $table->dropColumn('level');
+            });
+        } catch (\Throwable $e) {
+        }
+
+        try {
+            Schema::table('categories', function (Blueprint $table) {
+                $table->dropColumn('sub_category_id');
+            });
+        } catch (\Throwable $e) {
+        }
     }
 };
