@@ -89,6 +89,11 @@ class PurchaseVoucher extends Model
                 throw new Exception('At least one item is required.');
             }
 
+            $allowedVatRates = array_values(array_unique(array_merge(
+                [(float) config('vat.non-taxable')],
+                array_map('floatval', config('vat.taxable'))
+            )));
+
             $subtotal = 0;
             $lineData = [];
 
@@ -106,7 +111,20 @@ class PurchaseVoucher extends Model
                 $unitRate = (float) $row['unit_rate'];
                 $amount   = round($qty * $unitRate, 2);
 
-                $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
+                $rowVatTouched = !empty($row['vat_touched']) && $row['vat_touched'] != '0';
+                $rowVatPercent = isset($row['vat_percent']) && $row['vat_percent'] !== '' ? (float) $row['vat_percent'] : null;
+
+                if ($rowVatTouched && $rowVatPercent !== null && in_array($rowVatPercent, $allowedVatRates, true)) {
+                    $vatPercent = $rowVatPercent;
+
+                    DB::table('items')->where('id', $item->id)->update([
+                        'vat_status'  => $vatPercent > 0 ? 'Y' : 'N',
+                        'vat_percent' => $vatPercent,
+                        'updated_at'  => Carbon::now(),
+                    ]);
+                } else {
+                    $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
+                }
 
                 $exciseType       = $item->excise_status === 'Y' ? $item->excise_type : null;
                 $excisePercentage = $exciseType === 'percentage' ? (float) $item->excise_percentage : null;

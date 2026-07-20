@@ -10,6 +10,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use Exception;
 
@@ -131,6 +132,11 @@ class PurchaseVoucherController extends Controller
     public function save(Request $request)
     {
         try {
+            $allowedVatRates = array_values(array_unique(array_merge(
+                [(float) config('vat.non-taxable')],
+                array_map('floatval', config('vat.taxable'))
+            )));
+
             $rules = [
                 'voucher_date'    => 'required|date',
                 'voucher_no'      => 'required|string|max:255',
@@ -140,6 +146,7 @@ class PurchaseVoucherController extends Controller
                 'items.*.item_id' => 'required',
                 'items.*.qty'     => 'required|numeric|min:0.01',
                 'items.*.unit_rate' => 'required|numeric|min:0',
+                'items.*.vat_percent' => ['nullable', Rule::in($allowedVatRates)],
             ];
 
             $messages = [
