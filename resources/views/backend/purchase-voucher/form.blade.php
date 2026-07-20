@@ -89,7 +89,7 @@
         </style>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="pvItemsTable"
-                style="min-width:1290px; table-layout:fixed;">
+                style="min-width:1320px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
                     <col style="width:190px;">
@@ -97,7 +97,7 @@
                     <col style="width:130px;">
                     <col style="width:140px;">
                     <col style="width:160px;">
-                    <col style="width:100px;">
+                    <col style="width:130px;">
                     <col style="width:140px;">
                     <col style="width:60px;">
                 </colgroup>
@@ -112,8 +112,9 @@
                         <th>
                             <select id="headerVatSelect" class="form-select form-select-sm mt-1">
                                 <option value="">VAT</option>
+                                <option value="{{ config('vat.non-taxable') }}">VAT {{ config('vat.non-taxable') }}%</option>
                                 @foreach (config('vat.taxable') as $rate)
-                                    <option value="{{ $rate }}">{{ $rate }}%</option>
+                                    <option value="{{ $rate }}">VAT {{ $rate }}%</option>
                                 @endforeach
                             </select>
                         </th>
@@ -202,6 +203,18 @@
             itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
         @endforeach
 
+        var allowedVatRates = @json(array_values(array_unique(array_merge([(float) config('vat.non-taxable')], array_map('floatval', config('vat.taxable'))))));
+        var defaultVatRate = @json((float) config('vat.default'));
+        var vatOptionsHtml = '';
+        allowedVatRates.forEach(function(rate) {
+            vatOptionsHtml += '<option value="' + rate + '">' + rate + '%</option>';
+        });
+
+        function normalizeVat(v) {
+            v = parseFloat(v);
+            return allowedVatRates.indexOf(v) !== -1 ? v : defaultVatRate;
+        }
+
         var rowIndex = 0;
         var globalVatOverride = null;
         var pendingItemRow = null;
@@ -266,7 +279,12 @@
                 '<td><input type="number" name="items[' + idx +
                 '][unit_rate]" class="form-control rate-input" min="0" step="0.01" data-required></td>' +
                 '<td><input type="text" class="form-control amount-display" readonly value="0.00"></td>' +
-                '<td class="text-center vat-col">-</td>' +
+                '<td>' +
+                '<select name="items[' + idx + '][vat_percent]" class="form-select form-select-sm vat-select">' +
+                vatOptionsHtml + '</select>' +
+                '<input type="hidden" name="items[' + idx +
+                '][vat_touched]" class="vat-touched-input" value="0">' +
+                '</td>' +
                 '<td class="text-center excise-col">-</td>' +
                 '<td>' +
                 '<div class="d-flex align-items-center justify-content-center">' +
@@ -280,13 +298,15 @@
 
         function applyItemTaxInfo($tr, itemId) {
             var meta = itemsMeta[itemId];
-            var vatText = '-';
             var exciseText = '-';
             if (meta) {
                 if (globalVatOverride !== null) {
-                    vatText = globalVatOverride + '%';
+                    $tr.find('.vat-select').val(String(normalizeVat(globalVatOverride)));
+                    $tr.find('.vat-touched-input').val('1');
                 } else {
-                    vatText = meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%';
+                    var defaultVat = meta.vat_status === 'Y' ? meta.vat_percent : 0;
+                    $tr.find('.vat-select').val(String(normalizeVat(defaultVat)));
+                    $tr.find('.vat-touched-input').val('0');
                 }
                 if (meta.excise_status === 'Y') {
                     if (meta.excise_type === 'percentage') {
@@ -297,8 +317,10 @@
                 } else {
                     exciseText = 'N/A';
                 }
+            } else {
+                $tr.find('.vat-select').val('0');
+                $tr.find('.vat-touched-input').val('0');
             }
-            $tr.find('.vat-col').text(vatText);
             $tr.find('.excise-col').text(exciseText);
         }
 
@@ -347,6 +369,15 @@
             }
             if (prefill.qty) $tr.find('.qty-input').val(prefill.qty);
             if (prefill.unit_rate) $tr.find('.rate-input').val(prefill.unit_rate);
+
+            if (prefill.vat_percent !== undefined && prefill.vat_percent !== null && prefill.vat_percent !== '') {
+                var savedVat = normalizeVat(prefill.vat_percent);
+                var currentVat = parseFloat($tr.find('.vat-select').val());
+                if (savedVat !== currentVat) {
+                    $tr.find('.vat-select').val(String(savedVat));
+                    $tr.find('.vat-touched-input').val('1');
+                }
+            }
 
             recalcAll();
         }
@@ -397,9 +428,7 @@
                 }
 
                 var taxableForVat = share + exciseAmt;
-                var vatPercent = globalVatOverride !== null ?
-                    globalVatOverride :
-                    (meta && meta.vat_status === 'Y' ? meta.vat_percent : 0);
+                var vatPercent = parseFloat(r.$tr.find('.vat-select').val()) || 0;
                 var vatAmt = round2(taxableForVat * vatPercent / 100);
 
                 totalVat += vatAmt;
@@ -468,6 +497,11 @@
             recalcAll();
         });
 
+        $(document).off('change.pv', '.vat-select').on('change.pv', '.vat-select', function() {
+            $(this).closest('tr').find('.vat-touched-input').val('1');
+            recalcAll();
+        });
+
         $(document).off('input.pv change.pv', '.qty-input, .rate-input, #billDiscountPercent')
             .on('input.pv change.pv', '.qty-input, .rate-input, #billDiscountPercent', function() {
                 recalcAll();
@@ -504,7 +538,8 @@
                             variation_id: li.variation_id,
                             unit: li.unit,
                             qty: li.qty,
-                            unit_rate: li.unit_rate
+                            unit_rate: li.unit_rate,
+                            vat_percent: li.vat_percent
                         });
                     });
                 } else {
