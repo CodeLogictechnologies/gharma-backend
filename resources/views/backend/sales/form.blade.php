@@ -490,7 +490,21 @@
             recalcAll();
         });
 
+        /* ── Track what the user typed while searching the customer dropdown ── */
+        var lastCustomerSearchTerm = '';
+        $(document).on('input', '#svModal .select2-search__field', function() {
+            lastCustomerSearchTerm = $(this).val();
+        });
+
         $('#customerSelect').on('change', function() {
+            var val = $(this).val();
+
+            if (val === '__add_customer__') {
+                // Hand the typed term off so the Add Customer form can prefill Username with it
+                window.prefillCustomerName = lastCustomerSearchTerm;
+                $(document).trigger('sv:openAddCustomer', [lastCustomerSearchTerm]);
+            }
+
             $('#itemRows tr.item-row').each(function() {
                 applyAutoRate($(this));
             });
@@ -510,6 +524,31 @@
             newItemRow();
         });
 
+        /* ── Select2: keep "+ Add Customer" visible even when search has no matches ── */
+        function customerMatcher(params, data) {
+            // No search term entered: show all options as-is
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+
+            // Always keep the "+ Add Customer" option visible regardless of search term
+            if (data.id === '__add_customer__') {
+                return data;
+            }
+
+            // Skip options without text (e.g. placeholder groups)
+            if (typeof data.text === 'undefined') {
+                return null;
+            }
+
+            // Standard case-insensitive contains match for real customers
+            if (data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1) {
+                return data;
+            }
+
+            return null;
+        }
+
         /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
         /* select2 and row insertion both need a laid-out (non display:none) container to size correctly */
         $(document).off('shown.bs.modal.salesVoucher', '#svModal')
@@ -520,6 +559,7 @@
                     width: '100%',
                     dropdownParent: $('#svModal'),
                     minimumResultsForSearch: 0,
+                    matcher: customerMatcher
                 });
 
                 var initialLineItems = @json($lineItems ?? []);

@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\HelloController;
 use App\Http\Controllers\API\ItemController;
 use App\Http\Controllers\API\VariationAttributeController as APIVariationAttributeController;
 use App\Http\Controllers\API\RefundReturnController;
+use App\Http\Controllers\API\TermsAndPrivacyController;
 use App\Http\Controllers\API\LocationTrackerController;
 use App\Http\Controllers\API\LoyaltyController;
 use App\Http\Controllers\API\OrderController;
@@ -151,6 +152,8 @@ Route::middleware('auth:api')->group(function () {
     // Refund-Return Policy
     Route::get('/refund-return/policy', [RefundReturnController::class, 'getReturnRefundPolicy']);
 
+    // Terms-Privacy-Policy
+    Route::get('terms-privacy-policy', [TermsAndPrivacyController::class, 'getTermsAndPrivacyPolicy']);
     Route::get('/items/search/history', [ItemController::class, 'searchHistory']);
 
 

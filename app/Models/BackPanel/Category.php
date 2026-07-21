@@ -161,7 +161,7 @@ class Category extends Model
                 $subcategoryId = null;
             } else {
                 $level         = 3;
-                $parentId      = $post['subcategory_id'];     // ✅ direct parent is the subcategory
+                $parentId      = $post['subcategory_id'];     //  direct parent is the subcategory
                 $subcategoryId = $post['subcategory_id'];
             }
 
@@ -172,7 +172,7 @@ class Category extends Model
                 'orgid'          => $post['orgid'],
                 'level'          => $level,
                 'parent_id'      => $parentId,
-                'subcategory_id' => $subcategoryId,           // ✅ matches actual column
+                'subcategory_id' => $subcategoryId,           //  matches actual column
             ];
 
             if ($imageName) {
