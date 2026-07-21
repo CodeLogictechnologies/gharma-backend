@@ -235,6 +235,12 @@
                 $('#addCustomerModalContent').html('');
             });
 
+            /* ── Track what the user typed while searching the customer dropdown ── */
+            var lastCustomerSearchTerm = '';
+            $(document).on('input', '#svModal .select2-search__field', function() {
+                lastCustomerSearchTerm = $(this).val();
+            });
+
             /* ── "+ Add Customer" from the customer dropdown ─────── */
             var customerSelectPrevValue = '';
 
@@ -247,10 +253,16 @@
 
                 $(this).val(customerSelectPrevValue);
 
+                var typedName = lastCustomerSearchTerm;
+
                 $.get('{{ route('user.customer.form') }}')
                     .done(function(response) {
                         $('#addCustomerModalContent').html(response);
 
+                        // Prefill Username with whatever the user typed in the customer search box
+                        if (typedName) {
+                            $('#ac_first_name').val(typedName);
+                        }
 
                         var modalEl = document.getElementById('addCustomerModal');
                         var existing = bootstrap.Modal.getInstance(modalEl);

@@ -29,12 +29,17 @@ class HomeTab extends Model
     {
         $limit  = (int) ($post['iDisplayLength'] ?? 15);
         $offset = (int) ($post['iDisplayStart']  ?? 0);
+        $orgid  = session('orgid');
 
         $query = DB::table('home_tabs as ht')
-            ->select('ht.id', 'ht.tab_name', 'ht.icon_name', 'ht.bg_color','ht.status', 'ht.created_at')
-            ->where('ht.status', 'Y');
+            ->select('ht.id', 'ht.tab_name', 'ht.icon_name', 'ht.bg_color', 'ht.status', 'ht.created_at')
+            ->where('ht.status', 'Y')
+            ->where('ht.orgid', $orgid);
 
-        $totalrecs     = DB::table('home_tabs')->where('status', 'Y')->count();
+        $totalrecs     = DB::table('home_tabs')
+            ->where('status', 'Y')
+            ->where('orgid', $orgid)
+            ->count();
         $filteredCount = (clone $query)->count();
 
         $query->orderBy('ht.created_at', 'desc');
@@ -75,16 +80,20 @@ class HomeTab extends Model
             DB::beginTransaction();
 
             $tabId = $post['id'] ?? null;
+            $orgid = session('orgid');
 
             if (!empty($tabId)) {
-                // UPDATE
-                DB::table('home_tabs')->where('id', $tabId)->update([
-                    'tab_name'   => $post['tab_name'],
-                    'icon_name'  => $post['icon_name'] ?? null,
-                    'bg_color'   => $post['bg_color']  ?? null,
-                    'updatedby'  => $post['userid'],
-                    'updated_at' => Carbon::now(),
-                ]);
+                // UPDATE — scoped to the current org so you can't edit another org's tab
+                DB::table('home_tabs')
+                    ->where('id', $tabId)
+                    ->where('orgid', $orgid)
+                    ->update([
+                        'tab_name'   => $post['tab_name'],
+                        'icon_name'  => $post['icon_name'] ?? null,
+                        'bg_color'   => $post['bg_color']  ?? null,
+                        'updatedby'  => $post['userid'],
+                        'updated_at' => Carbon::now(),
+                    ]);
             } else {
                 // INSERT
                 $tabId = (string) Str::uuid();
@@ -94,7 +103,7 @@ class HomeTab extends Model
                     'icon_name'  => $post['icon_name'] ?? null,
                     'bg_color'   => $post['bg_color']  ?? null,
                     'status'     => 'Y',
-                    'orgid'      => $post['orgid']  ?? null,
+                    'orgid'      => $orgid,
                     'postedby'   => $post['userid'],
                     'updatedby'  => $post['userid'],
                     'created_at' => Carbon::now(),
@@ -129,7 +138,10 @@ class HomeTab extends Model
 
     public static function getData(array $post)
     {
-        $tab = DB::table('home_tabs')->where('id', $post['id'])->first();
+        $tab = DB::table('home_tabs')
+            ->where('id', $post['id'])
+            ->where('orgid', session('orgid'))
+            ->first();
 
         if ($tab) {
             $tab->category_ids = DB::table('home_tab_categories')
@@ -145,10 +157,13 @@ class HomeTab extends Model
     {
         try {
             DB::beginTransaction();
-            DB::table('home_tabs')->where('id', $post['id'])->update([
-                'status'     => 'N',
-                'updated_at' => Carbon::now(),
-            ]);
+            DB::table('home_tabs')
+                ->where('id', $post['id'])
+                ->where('orgid', session('orgid'))
+                ->update([
+                    'status'     => 'N',
+                    'updated_at' => Carbon::now(),
+                ]);
             DB::table('home_tab_categories')->where('home_tab_id', $post['id'])->delete();
             DB::commit();
             return true;
