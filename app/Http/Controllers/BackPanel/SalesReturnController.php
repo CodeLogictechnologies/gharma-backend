@@ -4,6 +4,7 @@ namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
 use App\Models\BackPanel\Item;
+use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\Order;
 use App\Models\BackPanel\SalesReturnVoucher;
 use App\Models\BackPanel\SalesVoucher;
@@ -89,15 +90,17 @@ class SalesReturnController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
-            $items     = Item::getItem($post);
-            $customers = User::getUserData($post);
+            $items          = Item::getItem($post);
+            $itemVariations = Itemvariation::getProductCodes($post);
+            $customers      = User::getUserData($post);
 
             $getVoucher = Order::getVoucher($post);
 
             $data = [
-                'items'   => $items,
-                'getVoucher'   => $getVoucher,
-                'customers' => $customers,
+                'items'          => $items,
+                'itemVariations' => $itemVariations,
+                'getVoucher'     => $getVoucher,
+                'customers'      => $customers,
             ];
 
             if (!empty($request->id)) {
