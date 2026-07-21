@@ -18,70 +18,125 @@ class SubCategory extends Model
 
 
     //function to save sub category
+    // public static function saveData($post)
+    // {
+    //     try {
+
+    //         $imageName = null;
+
+    //         //  Handle Image Upload
+    //         if (!empty($post['image'])) {
+    //             $file = $post['image'];
+
+    //             // Create unique name
+    //             $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+
+    //             // Move image to public folder
+    //             $file->storeAs('subcategories', $imageName, 'public');
+    //         }
+
+    //         $dataArray = [
+    //             'title' => $post['title'],
+    //             'slug' => Str::slug($post['title']) . '-' . time(),
+    //             'status' => 'Y',
+    //             'orgid' => $post['orgid'],
+    //             'category_id' => $post['category_id'] ?? null,
+    //         ];
+
+    //         // Save image if exists
+    //         if ($imageName) {
+    //             $dataArray['image'] = $imageName;
+    //         }
+
+    //         if (!empty($post['id'])) {
+
+    //             //  Update case
+    //             $oldData = SubCategory::find($post['id']);
+
+    //             // Delete old image if new uploaded
+    //             if ($imageName && $oldData && $oldData->image) {
+    //                 $oldPath = storage_path('app/public/subcategories/' . $oldData->image);
+    //                 if (File::exists($oldPath)) {
+    //                     File::delete($oldPath);
+    //                 }
+    //             }
+
+    //             $dataArray['updated_at'] = Carbon::now();
+
+    //             if (!SubCategory::where('id', $post['id'])->update($dataArray)) {
+    //                 throw new \Exception("Couldn't update Records");
+    //             }
+    //         } else {
+
+    //             $dataArray['id'] = (string) Str::uuid();
+
+    //             $dataArray['created_at'] = Carbon::now();
+
+    //             if (!SubCategory::insert($dataArray)) {
+    //                 throw new \Exception("Couldn't Save Records");
+    //             }
+    //         }
+
+    //         return true;
+    //     } catch (\Exception $e) {
+    //         throw $e;
+    //     }
+    // }
     public static function saveData($post)
-    {
-        try {
+{
+    try {
+        $imageName = null;
 
-            $imageName = null;
-
-            //  Handle Image Upload
-            if (!empty($post['image'])) {
-                $file = $post['image'];
-
-                // Create unique name
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-                // Move image to public folder
-                $file->storeAs('subcategories', $imageName, 'public');
-            }
-
-            $dataArray = [
-                'title' => $post['title'],
-                'slug' => Str::slug($post['title']) . '-' . time(),
-                'status' => 'Y',
-                'orgid' => $post['orgid'],
-                'category_id' => $post['category_id'] ?? null,
-            ];
-
-            // Save image if exists
-            if ($imageName) {
-                $dataArray['image'] = $imageName;
-            }
-
-            if (!empty($post['id'])) {
-
-                //  Update case
-                $oldData = SubCategory::find($post['id']);
-
-                // Delete old image if new uploaded
-                if ($imageName && $oldData && $oldData->image) {
-                    $oldPath = storage_path('app/public/subcategories/' . $oldData->image);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
-                }
-
-                $dataArray['updated_at'] = Carbon::now();
-
-                if (!SubCategory::where('id', $post['id'])->update($dataArray)) {
-                    throw new \Exception("Couldn't update Records");
-                }
-            } else {
-
-                $dataArray['id'] = (string) Str::uuid();
-
-                $dataArray['created_at'] = Carbon::now();
-
-                if (!SubCategory::insert($dataArray)) {
-                    throw new \Exception("Couldn't Save Records");
-                }
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            throw $e;
+        if (!empty($post['image'])) {
+            $file = $post['image'];
+            $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('subcategories', $imageName, 'public');
         }
+
+        $dataArray = [
+            'title'       => $post['title'],
+            'slug'        => Str::slug($post['title']) . '-' . time(),
+            'status'      => 'Y',
+            'orgid'       => $post['orgid'],
+            'category_id' => $post['category_id'] ?? null,
+        ];
+
+        if ($imageName) {
+            $dataArray['image'] = $imageName;
+        }
+
+        if (!empty($post['id'])) {
+            $oldData = SubCategory::find($post['id']);
+
+            if ($imageName && $oldData && $oldData->image) {
+                $oldPath = storage_path('app/public/subcategories/' . $oldData->image);
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+            }
+
+            $dataArray['updated_at'] = Carbon::now();
+
+            if (!SubCategory::where('id', $post['id'])->update($dataArray)) {
+                throw new \Exception("Couldn't update Records");
+            }
+
+            return $post['id'];
+        } else {
+            $newId = (string) Str::uuid();
+            $dataArray['id'] = $newId;
+            $dataArray['created_at'] = Carbon::now();
+
+            if (!SubCategory::insert($dataArray)) {
+                throw new \Exception("Couldn't Save Records");
+            }
+
+            return $newId;
+        }
+    } catch (\Exception $e) {
+        throw $e;
     }
+}
 
     //function to list team category
     public static function list($post)

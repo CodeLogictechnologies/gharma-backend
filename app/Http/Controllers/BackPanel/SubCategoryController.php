@@ -35,52 +35,98 @@ class SubCategoryController extends Controller
     }
 
     //function to save team category 
+    // public function save(Request $request)
+    // {
+    //     try {
+
+    //         $rules = [
+    //             'title' => 'required|min:3|max:255',
+    //             // 'category' => 'required',
+    //         ];
+    //         if (empty($request->id)) {
+    //             $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
+    //         }
+
+    //         $message = [
+    //             'title.required' => 'Please enter sub category title.',
+    //             // 'category.required' => 'Please select category.',
+    //         ];
+
+    //         $validation = Validator::make($request->all(), $rules, $message);
+
+    //         if ($validation->fails()) {
+    //             throw new Exception($validation->errors()->first(), 1);
+    //         }
+
+    //         $post = $request->all();
+    //         $post['orgid'] =  session('orgid');
+
+    //         $type = 'success';
+    //         $message = 'Records saved successfully';
+    //         DB::beginTransaction();
+
+    //         if (!SubCategory::saveData($post)) {
+    //             throw new Exception('Could not save record', 1);
+    //         }
+    //         DB::commit();
+    //     } catch (QueryException $e) {
+    //         DB::rollBack();
+    //         $type = 'error';
+    //         $message = $this->queryMessage;
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         $type = 'error';
+    //         $message = $e->getMessage();
+    //     }
+    //     return json_encode(['type' => $type, 'message' => $message]);
+    // }
     public function save(Request $request)
-    {
-        try {
+{
+    try {
+        $isQuickAdd = $request->boolean('quick_add');
 
-            $rules = [
-                'title' => 'required|min:3|max:255',
-                // 'category' => 'required',
-            ];
-            if (empty($request->id)) {
-                $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
-            }
-
-            $message = [
-                'title.required' => 'Please enter sub category title.',
-                // 'category.required' => 'Please select category.',
-            ];
-
-            $validation = Validator::make($request->all(), $rules, $message);
-
-            if ($validation->fails()) {
-                throw new Exception($validation->errors()->first(), 1);
-            }
-
-            $post = $request->all();
-            $post['orgid'] =  session('orgid');
-
-            $type = 'success';
-            $message = 'Records saved successfully';
-            DB::beginTransaction();
-
-            if (!SubCategory::saveData($post)) {
-                throw new Exception('Could not save record', 1);
-            }
-            DB::commit();
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
+        $rules = [
+            'title' => 'required|min:3|max:255',
+        ];
+        if (empty($request->id) && !$isQuickAdd) {
+            $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
         }
-        return json_encode(['type' => $type, 'message' => $message]);
-    }
 
+        $message = [
+            'title.required' => 'Please enter sub category title.',
+        ];
+
+        $validation = Validator::make($request->all(), $rules, $message);
+
+        if ($validation->fails()) {
+            throw new Exception($validation->errors()->first(), 1);
+        }
+
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
+
+        $type = 'success';
+        $message = 'Records saved successfully';
+        DB::beginTransaction();
+
+        $subCategoryId = SubCategory::saveData($post);
+        if (!$subCategoryId) {
+            throw new Exception('Could not save record', 1);
+        }
+        DB::commit();
+
+        $created = DB::table('sub_categories')->where('id', $subCategoryId)->select('id', 'title')->first();
+    } catch (QueryException $e) {
+        DB::rollBack();
+        $type = 'error';
+        $message = $this->queryMessage;
+    } catch (Exception $e) {
+        DB::rollBack();
+        $type = 'error';
+        $message = $e->getMessage();
+    }
+    return json_encode(['type' => $type, 'message' => $message, 'subCategory' => $created ?? null]);
+}
 
     //function to list team category
     public function list(Request $request)

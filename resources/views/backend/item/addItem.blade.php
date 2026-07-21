@@ -363,10 +363,13 @@
                 </select>
             </div>
 
-            <div class="col-md-4">
-                <label class="form-label">Brand <span class="text-danger">*</span></label>
-                <select name="brand" id="brandSelect" class="form-select">
-                    <option value="">-- Select Brand --</option>
+            <div class="col-md-4" id="brandWrapper">
+                <label class="form-label fw-semibold"
+                    style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">
+                    Brand <span class="text-danger">*</span>
+                </label>
+
+                <select name="brand" id="brandSelect" style="display:none;">
                     @foreach ($brands as $brand)
                     <option value="{{ $brand->id }}"
                         {{ ($data['brand'] ?? '') == $brand->id ? 'selected' : '' }}>
@@ -374,6 +377,30 @@
                     </option>
                     @endforeach
                 </select>
+
+                <div class="multi-select-wrapper" id="brandMultiSelect">
+                    <div class="multi-select-trigger" id="brandTrigger" tabindex="0">
+                        <div class="ms-tags" id="brandTags">
+                            <span class="ms-placeholder">-- Select Brand --</span>
+                        </div>
+                    </div>
+                    <div class="multi-select-box" id="brandCheckList">
+                        <div class="ms-search-wrapper" style="position:sticky; top:0; background:#fff; padding:6px 8px; border-bottom:1px solid #eee; z-index:1;">
+                            <input type="text" class="form-control form-control-sm ms-search-input" placeholder="Search brand...">
+                        </div>
+                        <div class="ms-option ms-add-option" data-target="brandSelect" style="color:#0d6efd; font-weight:600;">
+                            + Add Brand
+                        </div>
+                        @forelse ($brands as $brand)
+                        <div class="ms-option {{ ($data['brand'] ?? '') == $brand->id ? 'selected' : '' }}"
+                            data-id="{{ $brand->id }}" data-label="{{ $brand->name }}" data-target="brandSelect">
+                            {{ $brand->name }}
+                        </div>
+                        @empty
+                        <div class="ms-empty">No brands found.</div>
+                        @endforelse
+                    </div>
+                </div>
                 <div class="field-error" id="brandError">Please select a brand.</div>
             </div>
         </div>
@@ -518,10 +545,15 @@
                         </div>
                     </div>
                     <div class="multi-select-box" id="categoryCheckList">
+                        <div class="ms-search-wrapper" style="position:sticky; top:0; background:#fff; padding:6px 8px; border-bottom:1px solid #eee; z-index:1;">
+                            <input type="text" class="form-control form-control-sm ms-search-input" placeholder="Search category...">
+                        </div>
+                        <div class="ms-option ms-add-option" data-target="categorySelect" style="color:#0d6efd; font-weight:600;">
+                            + Add Category
+                        </div>
                         @forelse ($categories as $cat)
                         <div class="ms-option {{ in_array($cat->id, $data['categories'] ?? []) ? 'selected' : '' }}"
-                            data-id="{{ $cat->id }}" data-label="{{ $cat->title }}"
-                            data-target="categorySelect">
+                            data-id="{{ $cat->id }}" data-label="{{ $cat->title }}" data-target="categorySelect">
                             {{ $cat->title }}
                         </div>
                         @empty
@@ -554,10 +586,15 @@
                         </div>
                     </div>
                     <div class="multi-select-box" id="subCategoryCheckList">
+                        <div class="ms-search-wrapper" style="position:sticky; top:0; background:#fff; padding:6px 8px; border-bottom:1px solid #eee; z-index:1;">
+                            <input type="text" class="form-control form-control-sm ms-search-input" placeholder="Search sub category...">
+                        </div>
+                        <div class="ms-option ms-add-option" data-target="subCategorySelect" style="color:#0d6efd; font-weight:600;">
+                            + Add Sub Category
+                        </div>
                         @forelse ($subCategories as $sub)
                         <div class="ms-option {{ in_array($sub->id, $data['sub_categories'] ?? []) ? 'selected' : '' }}"
-                            data-id="{{ $sub->id }}" data-label="{{ $sub->title }}"
-                            data-target="subCategorySelect">
+                            data-id="{{ $sub->id }}" data-label="{{ $sub->title }}" data-target="subCategorySelect">
                             {{ $sub->title }}
                         </div>
                         @empty
@@ -590,10 +627,15 @@
                         </div>
                     </div>
                     <div class="multi-select-box" id="subSubCategoryCheckList">
+                        <div class="ms-search-wrapper" style="position:sticky; top:0; background:#fff; padding:6px 8px; border-bottom:1px solid #eee; z-index:1;">
+                            <input type="text" class="form-control form-control-sm ms-search-input" placeholder="Search sub sub category...">
+                        </div>
+                        <div class="ms-option ms-add-option" data-target="subSubCategorySelect" style="color:#0d6efd; font-weight:600;">
+                            + Add Sub Sub Category
+                        </div>
                         @forelse ($subSubCategories ?? [] as $subSub)
                         <div class="ms-option {{ in_array($subSub->id, $data['sub_sub_categories'] ?? []) ? 'selected' : '' }}"
-                            data-id="{{ $subSub->id }}" data-label="{{ $subSub->title }}"
-                            data-target="subSubCategorySelect">
+                            data-id="{{ $subSub->id }}" data-label="{{ $subSub->title }}" data-target="subSubCategorySelect">
                             {{ $subSub->title }}
                         </div>
                         @empty
@@ -805,7 +847,6 @@
         </div>
 
     </div>{{-- /modal-body --}}
-
     <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="saveItemBtn">
@@ -815,11 +856,192 @@
     </div>
 </form>
 
+{{-- ── Quick-Add Modals: Brand / Category / Sub Category / Sub Sub Category ── --}}
+{{-- These are OUTSIDE #itemForm on purpose — their inputs must never be
+     picked up by `new FormData($('#itemForm')[0])` when the Item form saves. --}}
+
+<div class="modal fade" id="addBrandModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Brand</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Brand Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="name" placeholder="Enter brand name...">
+                <div class="text-danger small mt-1 quick-add-error" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary quick-add-save-btn" data-quick-add-type="brand">
+                    <i class="fa fa-plus me-1"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addCategoryModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="name" placeholder="Enter category name...">
+                <div class="text-danger small mt-1 quick-add-error" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary quick-add-save-btn" data-quick-add-type="category">
+                    <i class="fa fa-plus me-1"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSubCategoryModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Sub Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Sub Category Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="title" placeholder="Enter sub category name...">
+                <select name="parent_id" style="display:none;"></select>
+                <div class="text-danger small mt-1 quick-add-error" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary quick-add-save-btn" data-quick-add-type="subCategory">
+                    <i class="fa fa-plus me-1"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSubSubCategoryModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Sub Sub Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Sub Sub Category Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="title" placeholder="Enter sub sub category name...">
+                <select name="parent_id" style="display:none;"></select>
+                <div class="text-danger small mt-1 quick-add-error" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary quick-add-save-btn" data-quick-add-type="subSubCategory">
+                    <i class="fa fa-plus me-1"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- SortableJS --}}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
     $(function() {
+
+        /* ─────────────────────────────────────────────
+           QUICK-ADD CONFIG (must be before autoQuickSave)
+        ───────────────────────────────────────────── */
+      const quickAddConfig = {
+    brand: {
+        url: '{{ route("brand.save") }}',
+        modal: '#addBrandModal',
+        nameField: 'name',
+        eventName: 'brand:created',
+        responseKey: 'brand'
+    },
+    category: {
+        url: '{{ route("category.save") }}',
+        modal: '#addCategoryModal',
+        nameField: 'name',
+        eventName: 'category:created',
+        responseKey: 'category'
+    },
+    subCategory: {
+        url: '{{ route("category.save") }}',        // was subcategory.save
+        modal: '#addSubCategoryModal',
+        nameField: 'name',                            // Category controller reads "name"
+        eventName: 'subCategory:created',
+        responseKey: 'category'                        // Category controller returns "category"
+    },
+    subSubCategory: {
+        url: '{{ route("category.save") }}',          // was subsubcategory.save
+        modal: '#addSubSubCategoryModal',
+        nameField: 'name',
+        eventName: 'subSubCategory:created',
+        responseKey: 'category'
+    }
+};
+
+        /* ─────────────────────────────────────────────
+           AUTO QUICK-SAVE (no modal popup)
+        ───────────────────────────────────────────── */
+        function autoQuickSave(type, name) {
+            const cfg = quickAddConfig[type];
+            if (!cfg) return;
+
+            const formData = new FormData();
+            formData.append(cfg.nameField, name);
+            formData.append('quick_add', '1');
+            formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+            // Add parent_id for sub-categories
+            if (type === 'subCategory') {
+                const selectedCategories = $('#categorySelect').val();
+                if (selectedCategories && selectedCategories.length === 1) {
+                    formData.append('category_id', selectedCategories[0]);
+                }
+            }
+            if (type === 'subSubCategory') {
+                const selectedSubCategories = $('#subCategorySelect').val();
+                if (selectedSubCategories && selectedSubCategories.length === 1) {
+                    formData.append('subcategory_id', selectedSubCategories[0]); // was 'subcategory'
+                }
+            }
+
+            $.ajax({
+                url: cfg.url,
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    const result = (typeof response === 'string') ? JSON.parse(response) : response;
+                    if (result.type === 'success') {
+                        showNotification(result.message || 'Saved successfully.', 'success');
+                        const created = result[cfg.responseKey];
+                        if (created) {
+                            $(document).trigger(cfg.eventName, [created]);
+                        }
+                    } else {
+                        showNotification(result.message || 'Something went wrong.', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    const msg = xhr.responseJSON?.message ||
+                        xhr.responseJSON?.errors?.[Object.keys(xhr.responseJSON.errors)[0]]?.[0] ||
+                        'Something went wrong. Please try again.';
+                    showNotification(msg, 'error');
+                }
+            });
+        }
 
         /* ─────────────────────────────────────────────
         // VAT STATUS → show/hide VAT rate field
@@ -905,6 +1127,131 @@
             });
         }
 
+        /* ─────────────────────────────────────────────
+           AFTER-CREATE REFRESH HANDLERS
+        ───────────────────────────────────────────── */
+
+        $(document).on('brand:created', function(e, brand) {
+            if (!brand || !brand.id) return;
+
+            const $list = $('#brandCheckList');
+            $list.find('.ms-empty').remove();
+            $list.find('.ms-option.selected').removeClass('selected'); // brand is single-select
+
+            let $existing = $list.find(`.ms-option[data-id="${brand.id}"]`);
+            if ($existing.length) {
+                $existing.addClass('selected');
+            } else {
+                $list.find('.ms-add-option').after(
+                    `<div class="ms-option selected" data-id="${brand.id}" data-label="${brand.name}" data-target="brandSelect">${brand.name}</div>`
+                );
+            }
+
+            const $select = $('#brandSelect');
+            if (!$select.find(`option[value="${brand.id}"]`).length) {
+                $select.append(`<option value="${brand.id}">${brand.name}</option>`);
+            }
+            $select.val(brand.id);
+
+            $('#brandTags').html(`
+        <span class="ms-tag" data-id="${brand.id}">
+            ${brand.name}
+            <button type="button" class="ms-tag-remove" data-id="${brand.id}">×</button>
+        </span><span class="ms-caret"></span>`);
+
+            $select.removeClass('is-invalid-select');
+            $('#brandError').removeClass('show');
+        });
+
+        $(document).on('category:created', function(e, category) {
+            if (!category || !category.id) return;
+            addOptionToMultiSelect({
+                listId: 'categoryCheckList',
+                selectId: 'categorySelect',
+                tagsId: 'categoryTags',
+                errorId: 'categoriesError',
+                wrapperId: 'categoryMultiSelect',
+                placeholder: '-- Select Category --',
+                id: category.id,
+                label: category.title
+            });
+            refreshSubCategoryOptions();
+        });
+
+        $(document).on('subCategory:created', function(e, subCategory) {
+            if (!subCategory || !subCategory.id) return;
+            addOptionToMultiSelect({
+                listId: 'subCategoryCheckList',
+                selectId: 'subCategorySelect',
+                tagsId: 'subCategoryTags',
+                errorId: 'subCategoriesError',
+                wrapperId: 'subCategoryMultiSelect',
+                placeholder: '-- Select Sub Category --',
+                id: subCategory.id,
+                label: subCategory.title
+            });
+            refreshSubSubCategoryOptions();
+        });
+
+        $(document).on('subSubCategory:created', function(e, subSubCategory) {
+            if (!subSubCategory || !subSubCategory.id) return;
+            addOptionToMultiSelect({
+                listId: 'subSubCategoryCheckList',
+                selectId: 'subSubCategorySelect',
+                tagsId: 'subSubCategoryTags',
+                errorId: 'subSubCategoriesError',
+                wrapperId: 'subSubCategoryMultiSelect',
+                placeholder: '-- Select Sub Sub Category --',
+                id: subSubCategory.id,
+                label: subSubCategory.title
+            });
+        });
+
+        function addOptionToMultiSelect(cfg) {
+            const $list = $('#' + cfg.listId);
+            const $select = $('#' + cfg.selectId);
+            const $tags = $('#' + cfg.tagsId);
+
+            $list.find('.ms-empty').remove();
+
+            let $existing = $list.find(`.ms-option[data-id="${cfg.id}"]`);
+            if ($existing.length) {
+                $existing.addClass('selected');
+            } else {
+                const $newOption = $(`
+                    <div class="ms-option selected" data-id="${cfg.id}" data-label="${cfg.label}" data-target="${cfg.selectId}">
+                        ${cfg.label}
+                    </div>`);
+                $list.find('.ms-add-option').after($newOption);
+            }
+
+            if (!$select.find(`option[value="${cfg.id}"]`).length) {
+                $select.append(`<option value="${cfg.id}">${cfg.label}</option>`);
+            }
+            $select.find(`option[value="${cfg.id}"]`).prop('selected', true);
+
+            $tags.empty();
+            const $selected = $list.find('.ms-option.selected');
+            if (!$selected.length) {
+                $tags.append(`<span class="ms-placeholder">${cfg.placeholder}</span>`);
+            } else {
+                $selected.each(function() {
+                    if ($(this).hasClass('ms-add-option')) return;
+                    const id = $(this).data('id');
+                    const label = $(this).data('label');
+                    $tags.append(`
+                        <span class="ms-tag" data-id="${id}">
+                            ${label}
+                            <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
+                        </span>`);
+                });
+            }
+            $tags.append('<span class="ms-caret"></span>');
+
+            $('#' + cfg.errorId).removeClass('show');
+            $('#' + cfg.wrapperId).removeClass('ms-invalid');
+        }
+
         $(document).on('click', '.btn-primary-img', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -976,9 +1323,6 @@
             }
         });
 
-        /* ─────────────────────────────────────────────
-           SYNC IMAGE ORDER
-        ───────────────────────────────────────────── */
         function syncImageOrder() {
             $('#itemForm input[name="image_order[]"]').remove();
             document.querySelectorAll('#imagePreviewGrid .img-preview-card[data-type="existing"]')
@@ -993,13 +1337,14 @@
         /* ─────────────────────────────────────────────
            CUSTOM DROPDOWN MULTI-SELECT (no checkboxes)
         ───────────────────────────────────────────── */
-        function initMultiSelect(wrapperId, checkListId, hiddenSelectId, tagsId, errorId, placeholder, onChange) {
+        function initMultiSelect(wrapperId, checkListId, hiddenSelectId, tagsId, errorId, placeholder, onChange, addEventName) {
             const $wrapper = $('#' + wrapperId);
             const $trigger = $wrapper.find('.multi-select-trigger');
             const $list = $('#' + checkListId);
             const $select = $('#' + hiddenSelectId);
             const $tags = $('#' + tagsId);
             const $error = $('#' + errorId);
+            const $searchInput = $list.find('.ms-search-input');
 
             function rebuildTags() {
                 $tags.empty();
@@ -1008,13 +1353,14 @@
                     $tags.append(`<span class="ms-placeholder">${placeholder}</span>`);
                 } else {
                     $selected.each(function() {
+                        if ($(this).hasClass('ms-add-option')) return;
                         const id = $(this).data('id');
                         const label = $(this).data('label');
                         $tags.append(`
-                    <span class="ms-tag" data-id="${id}">
-                        ${label}
-                        <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
-                    </span>`);
+                            <span class="ms-tag" data-id="${id}">
+                                ${label}
+                                <button type="button" class="ms-tag-remove" data-id="${id}">×</button>
+                            </span>`);
                     });
                 }
                 $tags.append('<span class="ms-caret"></span>');
@@ -1023,18 +1369,21 @@
             function syncSelect() {
                 $select.find('option').prop('selected', false);
                 $list.find('.ms-option.selected').each(function() {
+                    if ($(this).hasClass('ms-add-option')) return;
                     $select.find(`option[value="${$(this).data('id')}"]`).prop('selected', true);
                 });
             }
 
             function clearError() {
-                if ($select.val() && $select.val().length > 0) {
+                const selectedValues = $select.val();
+                if (selectedValues && selectedValues.length > 0) {
                     $error.removeClass('show');
                     $wrapper.removeClass('ms-invalid');
                 }
             }
 
             function toggleOption($opt) {
+                if ($opt.hasClass('ms-add-option')) return;
                 const nowSelected = !$opt.hasClass('selected');
                 $opt.toggleClass('selected', nowSelected);
                 syncSelect();
@@ -1043,9 +1392,34 @@
                 if (typeof onChange === 'function') onChange();
             }
 
+            $list.on('click', '.ms-add-option', function(e) {
+                e.stopPropagation();
+                const typedTerm = $searchInput.val().trim();
+                if (!typedTerm) {
+                    closeDropdown();
+                    return;
+                }
+
+                // Auto-save without showing modal
+                const typeMap = {
+                    'item:openAddBrand': 'brand',
+                    'item:openAddCategory': 'category',
+                    'item:openAddSubCategory': 'subCategory',
+                    'item:openAddSubSubCategory': 'subSubCategory'
+                };
+                const quickType = typeMap[addEventName];
+
+                if (quickType) {
+                    autoQuickSave(quickType, typedTerm);
+                }
+                closeDropdown();
+            });
+
             function openDropdown() {
                 $('.multi-select-wrapper.open').not($wrapper).removeClass('open');
                 $wrapper.addClass('open');
+                $searchInput.val('').trigger('input');
+                setTimeout(() => $searchInput.trigger('focus'), 0);
             }
 
             function closeDropdown() {
@@ -1066,13 +1440,24 @@
                 }
             });
 
-            // keep dropdown open while picking multiple options
             $list.on('click', function(e) {
                 e.stopPropagation();
             });
 
             $list.on('click', '.ms-option', function() {
                 toggleOption($(this));
+            });
+
+            $searchInput.on('input', function() {
+                const term = $(this).val().toLowerCase();
+                $list.find('.ms-option').each(function() {
+                    if ($(this).hasClass('ms-add-option')) {
+                        $(this).show();
+                        return;
+                    }
+                    const label = $(this).data('label') || '';
+                    $(this).toggle(label.toLowerCase().indexOf(term) > -1);
+                });
             });
 
             $tags.on('click', '.ms-tag-remove', function(e) {
@@ -1084,7 +1469,6 @@
                 if (typeof onChange === 'function') onChange();
             });
 
-            // close when clicking outside
             $(document).on('click', function(e) {
                 if (!$(e.target).closest($wrapper).length) closeDropdown();
             });
@@ -1093,23 +1477,22 @@
             rebuildTags();
         }
 
-       initMultiSelect('categoryMultiSelect', 'categoryCheckList', 'categorySelect', 'categoryTags',
-            'categoriesError', '-- Select Category --', refreshSubCategoryOptions);
+        initMultiSelect(
+            'brandMultiSelect', 'brandCheckList', 'brandSelect', 'brandTags',
+            'brandError', '-- Select Brand --', null, 'item:openAddBrand'
+        );
+
+        initMultiSelect('categoryMultiSelect', 'categoryCheckList', 'categorySelect', 'categoryTags',
+            'categoriesError', '-- Select Category --', refreshSubCategoryOptions, 'item:openAddCategory');
+
         initMultiSelect('subCategoryMultiSelect', 'subCategoryCheckList', 'subCategorySelect',
-            'subCategoryTags', 'subCategoriesError', '-- Select Sub Category --', refreshSubSubCategoryOptions);
+            'subCategoryTags', 'subCategoriesError', '-- Select Sub Category --', refreshSubSubCategoryOptions, 'item:openAddSubCategory');
+
         initMultiSelect('subSubCategoryMultiSelect', 'subSubCategoryCheckList', 'subSubCategorySelect',
-            'subSubCategoryTags', 'subSubCategoriesError', '-- Select Sub Sub Category --');
-        // Sync Sub Category / Sub Sub Category visibility on initial load.
-        // In "Add" mode (no categories selected yet) this hides both columns.
-        // In "Edit" mode (categories already selected) this fetches and reveals
-        // whichever columns actually have matching children.
+            'subSubCategoryTags', 'subSubCategoriesError', '-- Select Sub Sub Category --', null, 'item:openAddSubSubCategory');
+
         refreshSubCategoryOptions();
 
-        /* ─────────────────────────────────────────────
-   CATEGORY → SUB CATEGORY (AJAX cascading filter)
-   Sub-categories are children (parent_id) of the
-   selected top-level categories, same table.
-───────────────────────────────────────────── */
         function refreshSubCategoryOptions() {
             const categoryIds = $('#categorySelect').val() || [];
 
@@ -1119,7 +1502,7 @@
             }
 
             $.ajax({
-                url: '{{ route('item.subcategories') }}',
+                url: '{{ route("item.subcategories") }}',
                 type: 'GET',
                 data: {
                     category_ids: categoryIds
@@ -1134,7 +1517,6 @@
         }
 
         function rebuildSubCategoryList(subCats) {
-            // keep any previously-selected sub-categories that are still valid children
             const previouslySelected = $('#subCategoryCheckList .ms-option.selected')
                 .map(function() {
                     return String($(this).data('id'));
@@ -1144,7 +1526,7 @@
             const $select = $('#subCategorySelect');
             const $tags = $('#subCategoryTags');
 
-            $list.empty();
+            $list.find('.ms-option:not(.ms-add-option), .ms-empty').remove();
             $select.empty();
 
             if (!subCats.length) {
@@ -1162,7 +1544,6 @@
                 });
             }
 
-            // rebuild the visible tags in the trigger
             $tags.empty();
             const $selectedNow = $list.find('.ms-option.selected');
             if (!$selectedNow.length) {
@@ -1180,20 +1561,9 @@
             }
             $tags.append('<span class="ms-caret"></span>');
 
-            // sub-categories changed, so downstream sub-sub-categories must refresh too
             refreshSubSubCategoryOptions();
         }
 
-        // Refresh Sub Category list whenever a Category option is toggled or removed
-        // $('#categoryMultiSelect').on('click', '.ms-option, .ms-tag-remove', function() {
-        //     setTimeout(refreshSubCategoryOptions, 0);
-        // });
-
-        /* ─────────────────────────────────────────────
-           SUB CATEGORY → SUB SUB CATEGORY (AJAX cascading filter)
-           Sub-sub-categories are children (parent_id) of the
-           selected sub-categories, same table.
-        ───────────────────────────────────────────── */
         function refreshSubSubCategoryOptions() {
             const subCategoryIds = $('#subCategorySelect').val() || [];
 
@@ -1203,7 +1573,7 @@
             }
 
             $.ajax({
-                url: '{{ route('item.subsubcategories') }}',
+                url: '{{ route("item.subsubcategories") }}',
                 type: 'GET',
                 data: {
                     sub_category_ids: subCategoryIds
@@ -1218,7 +1588,6 @@
         }
 
         function rebuildSubSubCategoryList(subSubCats) {
-            // keep any previously-selected sub-sub-categories that are still valid children
             const previouslySelected = $('#subSubCategoryCheckList .ms-option.selected')
                 .map(function() {
                     return String($(this).data('id'));
@@ -1228,7 +1597,7 @@
             const $select = $('#subSubCategorySelect');
             const $tags = $('#subSubCategoryTags');
 
-            $list.empty();
+            $list.find('.ms-option:not(.ms-add-option), .ms-empty').remove();
             $select.empty();
 
             if (!subSubCats.length) {
@@ -1246,7 +1615,6 @@
                 });
             }
 
-            // rebuild the visible tags in the trigger
             $tags.empty();
             const $selectedNow = $list.find('.ms-option.selected');
             if (!$selectedNow.length) {
@@ -1265,11 +1633,6 @@
             $tags.append('<span class="ms-caret"></span>');
         }
 
-        // Refresh Sub Sub Category list whenever a Sub Category option is toggled or removed
-        // $('#subCategoryMultiSelect').on('click', '.ms-option, .ms-tag-remove', function() {
-        //     setTimeout(refreshSubSubCategoryOptions, 0);
-        // });
-
         /* ─────────────────────────────────────────────
            CLEAR ERRORS ON CHANGE
         ───────────────────────────────────────────── */
@@ -1281,7 +1644,7 @@
         });
 
         $('[name="brand"]').on('change', function() {
-            if ($(this).val()) {
+            if ($(this).val() && $(this).val() !== '__add_brand__') {
                 $(this).removeClass('is-invalid-select');
                 $('#brandError').removeClass('show');
             }
@@ -1290,9 +1653,9 @@
         /* ─────────────────────────────────────────────
            VARIATION ROWS
         ───────────────────────────────────────────── */
-       let varIdx = {{ count($data['variations'] ?? [['']]) }};
+        let varIdx = {{ count($data['variations'] ?? [['']]) }};
 
-const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
+        const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
 
         function buildAttributeOptions(selectedId) {
             if (!variationAttributeOptions.length) {
@@ -1315,7 +1678,6 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                 return `<option value="${u.id}"${sel}>${u.name}</option>`;
             }).join('');
         }
-
 
         function newVariationRow(idx) {
             return `
@@ -1365,7 +1727,7 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                     <input type="number" name="variations[${idx}][price]"
                            class="form-control" placeholder="0.00" min="0" step="0.01">
                 </div>
-           
+
                 <div class="col-md-3">
                     <label class="form-label mb-1">Discount Type</label>
                     <select name="variations[${idx}][discount_type]" class="form-select discount-type-select">
@@ -1406,7 +1768,6 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
             $(this).closest('.variation-row').remove();
         });
 
-        // Discount type → show the matching Percentage/Amount column only (mirrors excise type/value behavior)
         function applyDiscountTypeUI($row) {
             const type = $row.find('.discount-type-select').val();
             const $percentageCol = $row.find('.discount-percentage-col');
@@ -1459,7 +1820,7 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                 $('#company_product_codeError').removeClass('show');
             }
 
-            if (!$('[name="brand"]').val()) {
+            if (!$('[name="brand"]').val() || $('[name="brand"]').val() === '__add_brand__') {
                 $('[name="brand"]').addClass('is-invalid-select');
                 $('#brandError').addClass('show');
                 valid = false;
@@ -1472,7 +1833,6 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                 valid = false;
             }
 
-            // HS Code validation: 6-15 digits if provided
             let hsValid = true;
             $('input[name="hs_code"], input[name^="variations"][name$="[hs_code]"]').each(function() {
                 const val = $(this).val().trim();
@@ -1528,7 +1888,7 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
             );
 
             $.ajax({
-                url: '{{ route('item.save') }}',
+                url: '{{ route("item.save") }}',
                 type: 'POST',
                 data: new FormData($('#itemForm')[0]),
                 contentType: false,
@@ -1538,8 +1898,7 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                 },
 
                 success: function(response) {
-                    const result = (typeof response === 'string') ? JSON.parse(response) :
-                        response;
+                    const result = (typeof response === 'string') ? JSON.parse(response) : response;
 
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
@@ -1552,18 +1911,10 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                             $(document).trigger('item:created', [result.item]);
                         }
 
-                        const $modalEl = $('#itemForm').closest('.modal');
-                        if ($modalEl.length) {
-                            const bsModal = bootstrap.Modal.getInstance($modalEl[0]);
-                            if (bsModal) {
-                                bsModal.hide();
-                            } else {
-                                new bootstrap.Modal($modalEl[0]).hide();
-                            }
-                        }
+                        // Stay on Add Item form - don't close modal
+                        $btn.prop('disabled', false).html(origHtml);
                     } else {
-                        showNotification(result.message || 'Something went wrong.',
-                            'error');
+                        showNotification(result.message || 'Something went wrong.', 'error');
                         $btn.prop('disabled', false).html(origHtml);
                     }
                 },
@@ -1580,34 +1931,24 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
 
                             switch (cleanField) {
                                 case 'categories':
-                                    $('#categoryMultiSelect').addClass(
-                                        'ms-invalid');
-                                    $('#categoriesError').text(messages[0])
-                                        .addClass('show');
+                                    $('#categoryMultiSelect').addClass('ms-invalid');
+                                    $('#categoriesError').text(messages[0]).addClass('show');
                                     break;
                                 case 'sub_categories':
-                                    $('#subCategoryMultiSelect').addClass(
-                                        'ms-invalid');
-                                    $('#subCategoriesError').text(messages[0])
-                                        .addClass('show');
+                                    $('#subCategoryMultiSelect').addClass('ms-invalid');
+                                    $('#subCategoriesError').text(messages[0]).addClass('show');
                                     break;
                                 case 'sub_sub_categories':
-                                    $('#subSubCategoryMultiSelect').addClass(
-                                        'ms-invalid');
-                                    $('#subSubCategoriesError').text(messages[0])
-                                        .addClass('show');
+                                    $('#subSubCategoryMultiSelect').addClass('ms-invalid');
+                                    $('#subSubCategoriesError').text(messages[0]).addClass('show');
                                     break;
                                 case 'title':
-                                    $('[name="title"]').addClass(
-                                        'is-invalid-select');
-                                    $('#titleError').text(messages[0]).addClass(
-                                        'show');
+                                    $('[name="title"]').addClass('is-invalid-select');
+                                    $('#titleError').text(messages[0]).addClass('show');
                                     break;
                                 case 'brand':
-                                    $('[name="brand"]').addClass(
-                                        'is-invalid-select');
-                                    $('#brandError').text(messages[0]).addClass(
-                                        'show');
+                                    $('[name="brand"]').addClass('is-invalid-select');
+                                    $('#brandError').text(messages[0]).addClass('show');
                                     break;
                                 default: {
                                     const $field = $(`[name="${cleanField}"]`);
@@ -1623,8 +1964,7 @@ const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id
                             }
                         });
                     } else {
-                        showNotification('Something went wrong. Please try again.',
-                            'error');
+                        showNotification('Something went wrong. Please try again.', 'error');
                     }
                 }
             });

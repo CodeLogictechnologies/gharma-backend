@@ -20,71 +20,127 @@ class Brand extends Model
 
     //function to save team category
 
+    // public static function saveData($post)
+    // {
+    //     try {
+
+    //         $imageName = null;
+
+    //         // ✅ Handle Image Upload
+    //         if (!empty($post['image'])) {
+    //             $file = $post['image'];
+
+    //             // Create unique name
+    //             $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+
+    //             // Move image to public folder
+    //             $file->storeAs('brands', $imageName, 'public');
+    //         }
+
+    //         $dataArray = [
+    //             'name' => $post['name'],
+    //             'description' => $post['description'],
+    //             'slug' => Str::slug($post['name']) . '-' . time(),
+    //             'status' => 'Y',
+    //             'orgid' => $post['orgid'],
+    //             'postedby' => $post['userid']
+    //         ];
+
+    //         // Save image if exists
+    //         if ($imageName) {
+    //             $dataArray['logo'] = $imageName;
+    //         }
+
+    //         if (!empty($post['id'])) {
+
+    //             // ✅ Update case
+    //             $oldData = Brand::find($post['id']);
+
+    //             // ✅ Delete old image from storage
+    //             if ($imageName && $oldData && $oldData->logo) {
+    //                 $oldPath = storage_path('app/public/brands/' . $oldData->logo);
+    //                 if (File::exists($oldPath)) {
+    //                     File::delete($oldPath);
+    //                 }
+    //             }
+    //             $dataArray['updated_at'] = Carbon::now();
+    //             $dataArray['updatedby'] = $post['userid'];
+
+    //             if (!Brand::where('id', $post['id'])->update($dataArray)) {
+    //                 throw new \Exception("Couldn't update Records");
+    //             }
+    //         } else {
+
+    //             $dataArray['id'] = (string) Str::uuid();
+
+    //             $dataArray['created_at'] = Carbon::now();
+
+    //             if (!Brand::insert($dataArray)) {
+    //                 throw new \Exception("Couldn't Save Records");
+    //             }
+    //         }
+
+    //         return true;
+    //     } catch (\Exception $e) {
+    //         throw $e;
+    //     }
+    // }
     public static function saveData($post)
-    {
-        try {
+{
+    try {
+        $imageName = null;
 
-            $imageName = null;
-
-            // ✅ Handle Image Upload
-            if (!empty($post['image'])) {
-                $file = $post['image'];
-
-                // Create unique name
-                $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-                // Move image to public folder
-                $file->storeAs('brands', $imageName, 'public');
-            }
-
-            $dataArray = [
-                'name' => $post['name'],
-                'description' => $post['description'],
-                'slug' => Str::slug($post['name']) . '-' . time(),
-                'status' => 'Y',
-                'orgid' => $post['orgid'],
-                'postedby' => $post['userid']
-            ];
-
-            // Save image if exists
-            if ($imageName) {
-                $dataArray['logo'] = $imageName;
-            }
-
-            if (!empty($post['id'])) {
-
-                // ✅ Update case
-                $oldData = Brand::find($post['id']);
-
-                // ✅ Delete old image from storage
-                if ($imageName && $oldData && $oldData->logo) {
-                    $oldPath = storage_path('app/public/brands/' . $oldData->logo);
-                    if (File::exists($oldPath)) {
-                        File::delete($oldPath);
-                    }
-                }
-                $dataArray['updated_at'] = Carbon::now();
-                $dataArray['updatedby'] = $post['userid'];
-
-                if (!Brand::where('id', $post['id'])->update($dataArray)) {
-                    throw new \Exception("Couldn't update Records");
-                }
-            } else {
-
-                $dataArray['id'] = (string) Str::uuid();
-
-                $dataArray['created_at'] = Carbon::now();
-
-                if (!Brand::insert($dataArray)) {
-                    throw new \Exception("Couldn't Save Records");
-                }
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            throw $e;
+        if (!empty($post['image'])) {
+            $file = $post['image'];
+            $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('brands', $imageName, 'public');
         }
+
+        $dataArray = [
+            'name'        => $post['name'],
+            'description' => $post['description'] ?? null,
+            'slug'        => Str::slug($post['name']) . '-' . time(),
+            'status'      => 'Y',
+            'orgid'       => $post['orgid'],
+            'postedby'    => $post['userid']
+        ];
+
+        if ($imageName) {
+            $dataArray['logo'] = $imageName;
+        }
+
+        if (!empty($post['id'])) {
+            $oldData = Brand::find($post['id']);
+
+            if ($imageName && $oldData && $oldData->logo) {
+                $oldPath = storage_path('app/public/brands/' . $oldData->logo);
+                if (File::exists($oldPath)) {
+                    File::delete($oldPath);
+                }
+            }
+            $dataArray['updated_at'] = Carbon::now();
+            $dataArray['updatedby'] = $post['userid'];
+
+            if (!Brand::where('id', $post['id'])->update($dataArray)) {
+                throw new \Exception("Couldn't update Records");
+            }
+
+            return $post['id'];
+        } else {
+            $newId = (string) Str::uuid();
+            $dataArray['id'] = $newId;
+            $dataArray['created_at'] = Carbon::now();
+
+            if (!Brand::insert($dataArray)) {
+                throw new \Exception("Couldn't Save Records");
+            }
+
+            return $newId;
+        }
+    } catch (\Exception $e) {
+        throw $e;
     }
+}
 
     //function to list team category
     public static function list($post)
