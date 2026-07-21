@@ -30,15 +30,64 @@ class BrandController extends Controller
     }
 
     //function to save team category 
+    // public function save(Request $request)
+    // {
+    //     try {
+    //         $rules = [
+    //             'name' => 'required|min:3|max:255',
+    //         ];
+
+    //         if (empty($request->id)) {
+    //             // ✅ Fixed: use pipes | not colons :
+    //             $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
+    //         }
+
+    //         $message = [
+    //             'name.required' => 'Please enter brand name.',
+    //         ];
+
+    //         $validation = Validator::make($request->all(), $rules, $message);
+
+    //         if ($validation->fails()) {
+    //             return json_encode(['type' => 'error', 'message' => $validation->errors()->first()]);
+    //         }
+
+    //         $post = $request->all();
+    //         $post['orgid'] =  session('orgid');
+    //         $post['userid'] =  session('userid');
+
+    //         $type = 'success';
+    //         $message = 'Records saved successfully';
+
+    //         DB::beginTransaction();
+
+    //         if (!Brand::saveData($post)) {
+    //             throw new Exception('Could not save record');
+    //         }
+
+    //         DB::commit();
+    //     } catch (QueryException $e) {
+    //         DB::rollBack();
+    //         $type = 'error';
+    //         $message = 'Database error: ' . $e->getMessage();
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         $type = 'error';
+    //         $message = $e->getMessage();
+    //     }
+
+    //     return json_encode(['type' => $type, 'message' => $message]);
+    // }
     public function save(Request $request)
     {
         try {
+            $isQuickAdd = $request->boolean('quick_add');
+
             $rules = [
                 'name' => 'required|min:3|max:255',
             ];
 
-            if (empty($request->id)) {
-                // ✅ Fixed: use pipes | not colons :
+            if (empty($request->id) && !$isQuickAdd) {
                 $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
             }
 
@@ -61,11 +110,14 @@ class BrandController extends Controller
 
             DB::beginTransaction();
 
-            if (!Brand::saveData($post)) {
+            $brandId = Brand::saveData($post);
+            if (!$brandId) {
                 throw new Exception('Could not save record');
             }
 
             DB::commit();
+
+            $created = DB::table('brands')->where('id', $brandId)->select('id', 'name')->first();
         } catch (QueryException $e) {
             DB::rollBack();
             $type = 'error';
@@ -76,9 +128,8 @@ class BrandController extends Controller
             $message = $e->getMessage();
         }
 
-        return json_encode(['type' => $type, 'message' => $message]);
+        return json_encode(['type' => $type, 'message' => $message, 'brand' => $created ?? null]);
     }
-
 
     //function to list team category
     public function list(Request $request)

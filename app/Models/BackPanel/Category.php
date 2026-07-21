@@ -191,15 +191,17 @@ class Category extends Model
                 if (!Category::where('id', $post['id'])->update($dataArray)) {
                     throw new \Exception("Couldn't update record.");
                 }
+                return $post['id']; 
             } else {
-                $dataArray['id']         = (string) Str::uuid();
-                $dataArray['created_at'] = Carbon::now();
-                if (!Category::insert($dataArray)) {
-                    throw new \Exception("Couldn't save record.");
-                }
-            }
+    $newId = (string) Str::uuid();
+    $dataArray['id']         = $newId;
+    $dataArray['created_at'] = Carbon::now();
+    if (!Category::insert($dataArray)) {
+        throw new \Exception("Couldn't save record.");
+    }
 
-            return true;
+    return $newId;                   // ← was: (nothing, fell through to `return true;` below)
+}
         } catch (\Exception $e) {
             throw $e;
         }

@@ -41,63 +41,124 @@ class CategoryController extends Controller
     //   - category only     -> parent_id = category   (Subcategory)
     //   - category + sub    -> parent_id = subcategory (Sub-subcategory)
     // ─────────────────────────────────────────────────────────────────
+    // public function save(Request $request)
+    // {
+    //     try {
+    //         $rules = [
+    //             'name' => 'required|min:2|max:255',
+    //         ];
+    //         if (empty($request->id)) {
+    //             $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
+    //         }
+
+    //         $validation = Validator::make($request->all(), $rules, [
+    //             'name.required'  => 'Please enter category name.',
+    //             'image.required' => 'Please select an image.',
+    //         ]);
+
+    //         if ($validation->fails()) {
+    //             throw new Exception($validation->errors()->first(), 1);
+    //         }
+
+    //         $categoryId    = $request->input('category_id') ?: null;
+    //         $subcategoryId = $request->input('subcategory_id') ?: null;
+
+    //         $post              = $request->all();
+    //         $post['image']     = $request->file('image');
+    //         $post['orgid']     = session('orgid');
+    //         $post['parent_id'] = $subcategoryId ?: $categoryId;
+
+    //         $type    = 'success';
+    //         $message = 'Category saved successfully.';
+
+    //         DB::beginTransaction();
+    //         if (!Category::saveData($post)) {
+    //             throw new Exception('Could not save record.', 1);
+    //         }
+    //         DB::commit();
+
+    //         // Refresh the top-level Category dropdown options (a brand new
+    //         // top-level category may have just been created)
+    //         $categories = Category::getTopLevelCategories(session('orgid'));
+    //         $options = '<option value="">-- None (Top Level) --</option>';
+    //         foreach ($categories as $cat) {
+    //             $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
+    //         }
+
+    //         return json_encode([
+    //             'type'            => $type,
+    //             'message'         => $message,
+    //             'categoryOptions' => $options,
+    //         ]);
+    //     } catch (QueryException $e) {
+    //         DB::rollBack();
+    //         return json_encode(['type' => 'error', 'message' => $this->queryMessage]);
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         return json_encode(['type' => 'error', 'message' => $e->getMessage()]);
+    //     }
+    // }
     public function save(Request $request)
-    {
-        try {
-            $rules = [
-                'name' => 'required|min:2|max:255',
-            ];
-            if (empty($request->id)) {
-                $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
-            }
+{
+    try {
+        $isQuickAdd = $request->boolean('quick_add');
 
-            $validation = Validator::make($request->all(), $rules, [
-                'name.required'  => 'Please enter category name.',
-                'image.required' => 'Please select an image.',
-            ]);
-
-            if ($validation->fails()) {
-                throw new Exception($validation->errors()->first(), 1);
-            }
-
-            $categoryId    = $request->input('category_id') ?: null;
-            $subcategoryId = $request->input('subcategory_id') ?: null;
-
-            $post              = $request->all();
-            $post['image']     = $request->file('image');
-            $post['orgid']     = session('orgid');
-            $post['parent_id'] = $subcategoryId ?: $categoryId;
-
-            $type    = 'success';
-            $message = 'Category saved successfully.';
-
-            DB::beginTransaction();
-            if (!Category::saveData($post)) {
-                throw new Exception('Could not save record.', 1);
-            }
-            DB::commit();
-
-            // Refresh the top-level Category dropdown options (a brand new
-            // top-level category may have just been created)
-            $categories = Category::getTopLevelCategories(session('orgid'));
-            $options = '<option value="">-- None (Top Level) --</option>';
-            foreach ($categories as $cat) {
-                $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
-            }
-
-            return json_encode([
-                'type'            => $type,
-                'message'         => $message,
-                'categoryOptions' => $options,
-            ]);
-        } catch (QueryException $e) {
-            DB::rollBack();
-            return json_encode(['type' => 'error', 'message' => $this->queryMessage]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            return json_encode(['type' => 'error', 'message' => $e->getMessage()]);
+        $rules = [
+            'name' => 'required|min:2|max:255',
+        ];
+        if (empty($request->id) && !$isQuickAdd) {
+            $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
         }
+
+        $validation = Validator::make($request->all(), $rules, [
+            'name.required'  => 'Please enter category name.',
+            'image.required' => 'Please select an image.',
+        ]);
+
+        if ($validation->fails()) {
+            throw new Exception($validation->errors()->first(), 1);
+        }
+
+        $categoryId    = $request->input('category_id') ?: null;
+        $subcategoryId = $request->input('subcategory_id') ?: null;
+
+        $post              = $request->all();
+        $post['image']     = $request->file('image');
+        $post['orgid']     = session('orgid');
+        $post['parent_id'] = $subcategoryId ?: $categoryId;
+
+        $type    = 'success';
+        $message = 'Category saved successfully.';
+
+        DB::beginTransaction();
+        $categoryId2 = Category::saveData($post);
+        if (!$categoryId2) {
+            throw new Exception('Could not save record.', 1);
+        }
+        DB::commit();
+
+        $categories = Category::getTopLevelCategories(session('orgid'));
+        $options = '<option value="">-- None (Top Level) --</option>';
+        foreach ($categories as $cat) {
+            $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
+        }
+
+        $created = DB::table('categories')->where('id', $categoryId2)->select('id', 'title')->first();
+
+        return json_encode([
+            'type'            => $type,
+            'message'         => $message,
+            'categoryOptions' => $options,
+            'category'        => $created,
+        ]);
+    } catch (QueryException $e) {
+        DB::rollBack();
+        return json_encode(['type' => 'error', 'message' => $this->queryMessage]);
+    } catch (Exception $e) {
+        DB::rollBack();
+        return json_encode(['type' => 'error', 'message' => $e->getMessage()]);
     }
+}
 
     // ─────────────────────────────────────────────────────────────────
     // DataTable list
