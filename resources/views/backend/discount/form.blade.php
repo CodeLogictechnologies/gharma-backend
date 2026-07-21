@@ -345,7 +345,7 @@
                     var options = '<option value="">-- Select Brand --</option>';
                     $.each(response.data, function(i, b) {
                         var sel = (String(b.id) === String(selectedId)) ? 'selected' : '';
-                        options += '<option value="' + b.id + '" ' + sel + '>' + b.title + '</option>';
+                        options += '<option value="' + b.id + '" ' + sel + '>' + b.name  + '</option>';
                     });
                     $('#brandSelect').html(options);
                 })

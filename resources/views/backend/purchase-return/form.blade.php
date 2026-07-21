@@ -1,3 +1,7 @@
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+    rel="stylesheet" />
+
 <div class="modal-header">
     <h5 class="modal-title">
         {{ isset($id) ? 'Edit Purchase Return (Debit Note)' : 'Add Purchase Return (Debit Note)' }}
@@ -159,8 +163,19 @@
     </div>
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
     (function($) {
+        $(document).off('shown.bs.modal.purchaseReturn', '#prModal')
+            .on('shown.bs.modal.purchaseReturn', '#prModal', function() {
+                $('#vendorSelect').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '-- Select --',
+                    width: '100%',
+                    dropdownParent: $('#prModal')
+                });
+            });
 
         var itemsMeta = {};
         @foreach ($items as $item)

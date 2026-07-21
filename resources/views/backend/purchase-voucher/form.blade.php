@@ -527,9 +527,15 @@
         });
 
         /* ── Hydrate initial rows ─────────────────────────────────── */
-        /* Deferred until the modal is actually visible — select2 needs a laid-out (non display:none) container to size correctly */
         $(document).off('shown.bs.modal.purchaseVoucher', '#pvModal')
             .on('shown.bs.modal.purchaseVoucher', '#pvModal', function() {
+                $('#vendorSelect').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '-- Select Vendor --',
+                    width: '100%',
+                    dropdownParent: $('#pvModal')
+                });
+
                 var initialLineItems = @json($lineItems ?? []);
                 if (initialLineItems.length > 0) {
                     initialLineItems.forEach(function(li) {

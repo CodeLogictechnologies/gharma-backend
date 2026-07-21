@@ -285,10 +285,10 @@ class DiscountController extends Controller
     public function brandsList()
     {
         $items = DB::table('brands')
-            ->select('id', 'title')
+            ->select('id', 'name')
             ->where('orgid', session('orgid'))
             ->where('status', 'Y')
-            ->orderBy('title')
+            ->orderBy('name')
             ->get();
 
         return response()->json(['data' => $items]);
