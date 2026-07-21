@@ -89,9 +89,10 @@
         </style>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="pvItemsTable"
-                style="min-width:1320px; table-layout:fixed;">
+                style="min-width:1480px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
+                    <col style="width:160px;">
                     <col style="width:190px;">
                     <col style="width:170px;">
                     <col style="width:130px;">
@@ -104,6 +105,7 @@
                 <thead class="table-light">
                     <tr class="text-nowrap">
                         <th>#</th>
+                        <th>Product Code</th>
                         <th>Item <span class="text-danger">*</span></th>
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
@@ -203,6 +205,37 @@
             itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
         @endforeach
 
+        /* ── Product Code dropdown: items + itemvariations, keyed "i:<item_id>" / "v:<variation_id>" ── */
+        var productCodeIndex = {};
+        var productCodeOptionsHtml = '<option value="">-- Product Code --</option>';
+        productCodeOptionsHtml += '<option value="__add_product_code__">+ Add Product Code</option>';
+        @foreach ($items as $item)
+            @if (!empty($item->product_code))
+                productCodeIndex['i:{{ $item->itemid }}'] = {
+                    item_id: '{{ $item->itemid }}',
+                    variation_id: null
+                };
+                productCodeOptionsHtml += '<option value="i:{{ $item->itemid }}">{{ addslashes($item->product_code) }}</option>';
+            @endif
+        @endforeach
+        @foreach ($itemVariations as $iv)
+            productCodeIndex['v:{{ $iv->variationid }}'] = {
+                item_id: '{{ $iv->itemid }}',
+                variation_id: '{{ $iv->variationid }}'
+            };
+            productCodeOptionsHtml += '<option value="v:{{ $iv->variationid }}">{{ addslashes($iv->product_code) }}</option>';
+        @endforeach
+
+        function findProductCodeValue(itemId, variationId) {
+            if (variationId && productCodeIndex['v:' + variationId]) {
+                return 'v:' + variationId;
+            }
+            if (itemId && productCodeIndex['i:' + itemId]) {
+                return 'i:' + itemId;
+            }
+            return '';
+        }
+
         var allowedVatRates = @json(array_values(array_unique(array_merge([(float) config('vat.non-taxable')], array_map('floatval', config('vat.taxable'))))));
         var defaultVatRate = @json((float) config('vat.default'));
         var vatOptionsHtml = '';
@@ -218,6 +251,8 @@
         var rowIndex = 0;
         var globalVatOverride = null;
         var pendingItemRow = null;
+        var suppressItemChange = false;
+        var suppressProductCodeChange = false;
 
         function escapeHtml(str) {
             return $('<div>').text(str == null ? '' : str).html();
@@ -248,6 +283,28 @@
                     }
                 });
             }
+
+            if (item.product_code && !productCodeIndex['i:' + item.itemid]) {
+                productCodeIndex['i:' + item.itemid] = {
+                    item_id: item.itemid,
+                    variation_id: null
+                };
+                var pcOptionHtml = '<option value="i:' + item.itemid + '">' + escapeHtml(item.product_code) +
+                    '</option>';
+                productCodeOptionsHtml += pcOptionHtml;
+                $('.product-code-select').each(function() {
+                    if ($(this).find('option[value="i:' + item.itemid + '"]').length === 0) {
+                        $(this).append(pcOptionHtml);
+                    }
+                });
+            }
+        }
+
+        function itemSelectMatcher(params, data) {
+            if (data.id === '__add_new_item__') return data;
+            if ($.trim(params.term) === '') return data;
+            if (typeof data.text === 'undefined') return null;
+            return data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1 ? data : null;
         }
 
         function initItemSelect($tr) {
@@ -256,7 +313,26 @@
                 placeholder: '-- Item --',
                 width: '100%',
                 dropdownParent: $('#pvModal'),
-                minimumResultsForSearch: 0
+                minimumResultsForSearch: 0,
+                matcher: itemSelectMatcher
+            });
+        }
+
+        function productCodeSelectMatcher(params, data) {
+            if (data.id === '__add_product_code__') return data;
+            if ($.trim(params.term) === '') return data;
+            if (typeof data.text === 'undefined') return null;
+            return data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1 ? data : null;
+        }
+
+        function initProductCodeSelect($tr) {
+            $tr.find('.product-code-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Product Code --',
+                width: '100%',
+                dropdownParent: $('#pvModal'),
+                minimumResultsForSearch: 0,
+                matcher: productCodeSelectMatcher
             });
         }
 
@@ -268,6 +344,7 @@
             return '' +
                 '<tr class="item-row align-middle" data-index="' + idx + '">' +
                 '<td class="row-no">' + (idx + 1) + '</td>' +
+                '<td><select class="form-select product-code-select">' + productCodeOptionsHtml + '</select></td>' +
                 '<td>' +
                 '<select name="items[' + idx + '][item_id]" class="form-select item-select" data-required>' +
                 itemOptionsHtml + '</select>' +
@@ -350,6 +427,14 @@
                 });
         }
 
+        function syncProductCodeSelect($tr, itemId, variationId) {
+            var val = findProductCodeValue(itemId, variationId);
+            suppressProductCodeChange = true;
+            $tr.find('.product-code-select').val(val).trigger('change');
+            suppressProductCodeChange = false;
+            $tr.data('lastProductCode', val);
+        }
+
         function newItemRow(prefill) {
             prefill = prefill || {};
             var idx = rowIndex++;
@@ -359,9 +444,13 @@
             if (prefill.item_id) {
                 $tr.find('.item-select').val(prefill.item_id);
                 $tr.data('lastItemId', prefill.item_id);
+                var pcVal = findProductCodeValue(prefill.item_id, prefill.variation_id);
+                $tr.find('.product-code-select').val(pcVal);
+                $tr.data('lastProductCode', pcVal);
             }
 
             initItemSelect($tr);
+            initProductCodeSelect($tr);
 
             if (prefill.item_id) {
                 applyItemTaxInfo($tr, prefill.item_id);
@@ -447,8 +536,6 @@
         }
 
         /* ── Row events ───────────────────────────────────────────── */
-        var suppressItemChange = false;
-
         $(document).off('change.pv', '.item-select').on('change.pv', '.item-select', function() {
             if (suppressItemChange) return;
 
@@ -457,13 +544,14 @@
 
             if (itemId === '__add_new_item__') {
                 pendingItemRow = $tr;
+                var existingItemId = $tr.data('lastItemId');
 
                 suppressItemChange = true;
-                $(this).val($tr.data('lastItemId') || '').trigger('change');
+                $(this).val(existingItemId || '').trigger('change');
                 suppressItemChange = false;
 
                 if (typeof window.pvOpenAddItemModal === 'function') {
-                    window.pvOpenAddItemModal();
+                    window.pvOpenAddItemModal(existingItemId || null);
                 }
                 return;
             }
@@ -471,6 +559,49 @@
             $tr.data('lastItemId', itemId);
             applyItemTaxInfo($tr, itemId);
             loadVariationsForRow($tr, itemId, null);
+            syncProductCodeSelect($tr, itemId, null);
+            recalcAll();
+        });
+
+        $(document).off('change.pv', '.variation-select').on('change.pv', '.variation-select', function() {
+            var $tr = $(this).closest('tr');
+            var itemId = $tr.find('.item-select').val();
+            var variationId = $(this).val();
+            syncProductCodeSelect($tr, itemId, variationId);
+        });
+
+        $(document).off('change.pv', '.product-code-select').on('change.pv', '.product-code-select', function() {
+            if (suppressProductCodeChange) return;
+
+            var $tr = $(this).closest('tr');
+            var val = $(this).val();
+
+            if (val === '__add_product_code__') {
+                pendingItemRow = $tr;
+                var existingItemId = $tr.data('lastItemId');
+
+                suppressProductCodeChange = true;
+                $(this).val($tr.data('lastProductCode') || '').trigger('change');
+                suppressProductCodeChange = false;
+
+                if (typeof window.pvOpenAddItemModal === 'function') {
+                    window.pvOpenAddItemModal(existingItemId || null);
+                }
+                return;
+            }
+
+            var ref = productCodeIndex[val];
+            if (!ref) return;
+
+            $tr.data('lastProductCode', val);
+
+            suppressItemChange = true;
+            $tr.find('.item-select').val(ref.item_id).trigger('change');
+            suppressItemChange = false;
+
+            $tr.data('lastItemId', ref.item_id);
+            applyItemTaxInfo($tr, ref.item_id);
+            loadVariationsForRow($tr, ref.item_id, ref.variation_id);
             recalcAll();
         });
 

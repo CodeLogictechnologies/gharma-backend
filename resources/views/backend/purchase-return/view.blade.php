@@ -57,6 +57,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
+                        <th>Product Code</th>
                         <th>Item</th>
                         <th>Variation</th>
                         <th>Qty</th>
@@ -70,6 +71,7 @@
                     @foreach ($voucherDetail->items as $i => $line)
                         <tr>
                             <td>{{ $i + 1 }}</td>
+                            <td>{{ $line->variation_product_code ?: ($line->item_product_code ?: '-') }}</td>
                             <td>{{ $line->item_title }}</td>
                             <td>{{ $line->variation_value ? ($line->variation_attribute . ': ' . $line->variation_value) : '-' }}</td>
                             <td>{{ $line->qty }}</td>

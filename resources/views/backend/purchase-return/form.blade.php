@@ -84,9 +84,10 @@
         </style>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="prItemsTable"
-                style="min-width:960px; table-layout:fixed;">
+                style="min-width:1110px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
+                    <col style="width:150px;">
                     <col style="width:210px;">
                     <col style="width:190px;">
                     <col style="width:100px;">
@@ -99,6 +100,7 @@
                 <thead class="table-light">
                     <tr class="text-nowrap">
                         <th>#</th>
+                        <th>Product Code</th>
                         <th>Item <span class="text-danger">*</span></th>
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
@@ -194,6 +196,29 @@
             itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
         @endforeach
 
+        /* ── Product Code display: variation's code wins, falls back to the item's own code ── */
+        var itemProductCode = {};
+        @foreach ($items as $item)
+            @if (!empty($item->product_code))
+                itemProductCode['{{ $item->itemid }}'] = @json($item->product_code);
+            @endif
+        @endforeach
+
+        var variationProductCode = {};
+        @foreach ($itemVariations as $iv)
+            variationProductCode['{{ $iv->variationid }}'] = @json($iv->product_code);
+        @endforeach
+
+        function getProductCodeDisplay(itemId, variationId) {
+            if (variationId && variationProductCode[variationId]) {
+                return variationProductCode[variationId];
+            }
+            if (itemId && itemProductCode[itemId]) {
+                return itemProductCode[itemId];
+            }
+            return '-';
+        }
+
         var rowIndex = 0;
 
         function round2(n) {
@@ -204,6 +229,7 @@
             return '' +
                 '<tr class="item-row align-middle" data-index="' + idx + '">' +
                 '<td class="row-no">' + (idx + 1) + '</td>' +
+                '<td><input type="text" class="form-control product-code-display" readonly disabled value="-"></td>' +
                 '<td>' +
                 '<select class="form-select item-select" data-required disabled>' + itemOptionsHtml + '</select>' +
                 '<input type="hidden" name="items[' + idx + '][item_id]" class="item-id-hidden">' +
@@ -290,6 +316,7 @@
             if (prefill.variation_id) {
                 $tr.find('.variation-id-hidden').val(prefill.variation_id);
             }
+            $tr.find('.product-code-display').val(getProductCodeDisplay(prefill.item_id, prefill.variation_id));
             if (prefill.qty) $tr.find('.qty-input').val(prefill.qty);
             if (prefill.unit_rate) $tr.find('.rate-input').val(prefill.unit_rate);
 
