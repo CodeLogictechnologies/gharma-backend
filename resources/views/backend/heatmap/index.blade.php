@@ -122,7 +122,7 @@
         }
         .hm-legend-bar {
             width: 150px; height: 8px; border-radius: 4px;
-            background: linear-gradient(to right, #ffffd4, #41b6c4, #225ea8, #0c2c84);
+            background: linear-gradient(to right, #ffffd4, #feb24c, #fd8d3c, #e31a1c);
         }
         .hm-legend-label { font-size: 11px; color: #8896a5; font-weight: 500; }
         .hm-legend-dot   { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #5a6a7a; font-weight: 500; }
@@ -280,10 +280,10 @@
                     <span class="hm-legend-label">High density</span>
                 </div>
                 <div id="legend-dots" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <span class="hm-legend-dot"><span style="background:#0c2c84"></span>Very high</span>
-                    <span class="hm-legend-dot"><span style="background:#225ea8"></span>High</span>
-                    <span class="hm-legend-dot"><span style="background:#41b6c4"></span>Medium</span>
-                    <span class="hm-legend-dot"><span style="background:#a1dab4"></span>Low</span>
+                    <span class="hm-legend-dot"><span style="background:#e31a1c"></span>Very high</span>
+                    <span class="hm-legend-dot"><span style="background:#fd8d3c"></span>High</span>
+                    <span class="hm-legend-dot"><span style="background:#feb24c"></span>Medium</span>
+                    <span class="hm-legend-dot"><span style="background:#ffffd4"></span>Low</span>
                 </div>
                 <span class="ms-auto hm-legend-label">Click any marker for details &nbsp;·&nbsp; Scroll to zoom</span>
             </div>
@@ -406,11 +406,6 @@
     {{--
         ╔══════════════════════════════════════════════════════════════╗
         ║  SCRIPT 1 — Global filter functions                         ║
-        ║                                                             ║
-        ║  Must be plain `function` declarations (NOT arrow funcs,    ║
-        ║  NOT assigned to var/let/const, NOT inside an IIFE) so      ║
-        ║  they are hoisted to window scope and available to          ║
-        ║  onclick="" attributes the instant the browser parses them. ║
         ╚══════════════════════════════════════════════════════════════╝
     --}}
     <script>
@@ -424,7 +419,6 @@
             Returned:'#993556', Refunded:'#444441'
         };
 
-        // Delegated to map engine once it initialises (Script 2)
         function setMode(mode, btn) {
             if (window.HM) HM.setMode(mode, btn);
         }
@@ -565,16 +559,12 @@
             applyFilters();
         }
 
-        // Wire up dropdown auto-apply (safe here — DOM is ready, function is hoisted)
         document.getElementById('f-status').addEventListener('change', applyFilters);
     </script>
 
     {{--
         ╔══════════════════════════════════════════════════════════════╗
-        ║  SCRIPT 2 — Map engine                                      ║
-        ║                                                             ║
-        ║  Runs after Leaflet CDN scripts are loaded.                 ║
-        ║  Exposes window.HM so Script 1 functions can call into it.  ║
+        ║  SCRIPT 2 — Map engine with RED heatmap colors              ║
         ╚══════════════════════════════════════════════════════════════╝
     --}}
     <script>
@@ -599,15 +589,18 @@
             }).addTo(map);
 
             // ── Helpers ────────────────────────────────────────────────
+            // Updated intensityColor for red scale
             function intensityColor(r) {
-                if (r > 0.75) return '#0c2c84';
-                if (r > 0.50) return '#225ea8';
-                if (r > 0.25) return '#41b6c4';
-                return '#a1dab4';
+                if (r > 0.75) return '#e31a1c';      // Dark Red (Very High)
+                if (r > 0.50) return '#fd8d3c';      // Orange-Red (High)
+                if (r > 0.25) return '#feb24c';      // Orange-Yellow (Medium)
+                return '#ffffd4';                    // Pale Yellow (Low)
             }
+            
             function addrTypeColor(t) {
                 return { home:'#185FA5', work:'#3B6D11', campus:'#534AB7', other:'#5F5E5A' }[t] || '#1D9E75';
             }
+            
             function popupHtml(p) {
                 return '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;min-width:200px;">'
                     + '<div style="font-weight:700;font-size:13px;color:#0d1f2d;margin-bottom:6px;'
@@ -633,16 +626,27 @@
                 if (dotLayer)     { map.removeLayer(dotLayer);     dotLayer     = null; }
                 if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
             }
+            
             function renderHeat() {
                 var mx  = Math.max.apply(null, RAW_POINTS.map(function(p){ return p.order_count; }).concat([1]));
                 var pts = RAW_POINTS.map(function(p) {
                     return [parseFloat(p.latitude), parseFloat(p.longitude), p.order_count / mx];
                 });
+                // Updated gradient: Yellow → Orange → Red
                 heatLayer = L.heatLayer(pts, {
-                    radius:35, blur:22, maxZoom:13,
-                    gradient:{ 0.0:'#ffffd4', 0.3:'#a1dab4', 0.5:'#41b6c4', 0.7:'#225ea8', 1.0:'#0c2c84' }
+                    radius:35, 
+                    blur:22, 
+                    maxZoom:13,
+                    gradient: { 
+                        0.0: '#ffffd4',   // Low - Pale Yellow
+                        0.3: '#feb24c',   // Medium Low - Orange-Yellow
+                        0.5: '#fd8d3c',   // Medium - Orange
+                        0.7: '#f03b20',   // High - Red-Orange
+                        1.0: '#e31a1c'    // Very High - Dark Red
+                    }
                 }).addTo(map);
             }
+            
             function renderDots() {
                 var mx = Math.max.apply(null, RAW_POINTS.map(function(p){ return p.order_count; }).concat([1]));
                 dotLayer = L.layerGroup();
@@ -650,19 +654,24 @@
                     var ratio  = p.order_count / mx;
                     var radius = Math.max(7, Math.min(26, 5 + p.order_count * 0.2));
                     L.circleMarker([parseFloat(p.latitude), parseFloat(p.longitude)], {
-                        radius:radius, fillColor:intensityColor(ratio),
-                        color:'#fff', weight:1.5, fillOpacity:0.82
+                        radius:radius, 
+                        fillColor:intensityColor(ratio),
+                        color:'#fff', 
+                        weight:1.5, 
+                        fillOpacity:0.82
                     }).bindPopup(popupHtml(p), { maxWidth:260 }).addTo(dotLayer);
                 });
                 dotLayer.addTo(map);
             }
+            
             function renderCluster() {
                 clusterLayer = L.markerClusterGroup({
                     maxClusterRadius: 60,
                     iconCreateFunction: function(cluster) {
                         var count = cluster.getChildCount();
                         var size  = count > 100 ? 48 : count > 20 ? 38 : 30;
-                        var bg    = count > 100 ? '#0c2c84' : count > 20 ? '#225ea8' : '#41b6c4';
+                        // Red-based cluster colors
+                        var bg    = count > 100 ? '#e31a1c' : count > 20 ? '#fd8d3c' : '#feb24c';
                         return L.divIcon({
                             html: '<div style="width:'+size+'px;height:'+size+'px;background:'+bg+';color:#fff;'
                                 + 'border-radius:50%;display:flex;align-items:center;justify-content:center;'
@@ -685,6 +694,7 @@
                 });
                 clusterLayer.addTo(map);
             }
+            
             function render() {
                 clearLayers();
                 if (activeMode === 'heat')         renderHeat();
@@ -693,6 +703,7 @@
                 document.getElementById('legend-heat').style.display = activeMode === 'heat' ? 'flex' : 'none';
                 document.getElementById('legend-dots').style.display = activeMode === 'dots' ? 'flex' : 'none';
             }
+            
             function fitMap() {
                 if (!RAW_POINTS.length) return;
                 var lats = RAW_POINTS.map(function(p){ return parseFloat(p.latitude); });
@@ -706,7 +717,7 @@
             fitMap();
             render();
 
-            // ── Public API (used by Script 1) ──────────────────────────
+            // ── Public API ──────────────────────────────────────────
             return {
                 setMode: function(mode, btn) {
                     activeMode = mode;

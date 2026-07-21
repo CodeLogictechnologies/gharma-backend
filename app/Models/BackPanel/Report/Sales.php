@@ -26,7 +26,7 @@ class Sales extends Model
                 ->select(
                     'om.id as order_id',
                     'om.created_at as order_date',
-                    // 'om.payment_method',
+                    'om.payment_method',
                     'om.status',
                     'p.title',
                     DB::raw("CONCAT(p.title, ' - ', iv.value) as product_name"),
@@ -35,7 +35,6 @@ class Sales extends Model
                     'od.order_detail_total_price as total_price'
                 );
 
-            // ── Date filter ────────────────────────────────────────
             $filter = $post['filter'] ?? 'month';
 
             if ($filter === 'day' && !empty($post['from_date']) && !empty($post['to_date'])) {
@@ -44,21 +43,27 @@ class Sales extends Model
                     $post['to_date'],
                 ]);
             } elseif ($filter === 'month' && !empty($post['month'])) {
-                $query->whereRaw("TO_CHAR(om.created_at, '%Y-%m') = ?", [$post['month']]);
+                $monthYear = explode('-', $post['month']);
+                if (count($monthYear) == 2) {
+                    $year = $monthYear[0];
+                    $month = $monthYear[1];
+                    $query->whereYear('om.created_at', $year)
+                        ->whereMonth('om.created_at', $month);
+                }
             } elseif ($filter === 'year' && !empty($post['year'])) {
                 $query->whereYear('om.created_at', $post['year']);
+            } else {
+                $query->whereYear('om.created_at', date('Y'))
+                    ->whereMonth('om.created_at', date('m'));
             }
 
             $rows = $query->get();
 
-            // ── Summary ────────────────────────────────────────────
             $totalSales    = $rows->sum('total_price');
             $totalOrders   = $rows->pluck('order_id')->unique()->count();
             $totalQty      = $rows->sum('quantity');
             $avgOrderValue = $totalOrders > 0 ? round($totalSales / $totalOrders, 2) : 0;
 
-            // ── Top 5 products ──────────────────────────────────────
-            // stdClass: use -> not []
             $topProducts = $rows->groupBy('product_name')
                 ->map(fn($g) => [
                     'product' => $g->first()->product_name,
@@ -69,7 +74,6 @@ class Sales extends Model
                 ->values()
                 ->take(5);
 
-            // ── Revenue trend ───────────────────────────────────────
             $trendFormat = ($filter === 'year') ? 'M Y' : 'd M';
 
             $trend = $rows
@@ -81,7 +85,6 @@ class Sales extends Model
                 ])
                 ->values();
 
-            // ── Payment breakdown ───────────────────────────────────
             $paymentBreakdown = $rows->groupBy('payment_method')
                 ->map(fn($g) => [
                     'method'  => $g->first()->payment_method ?? 'N/A',
@@ -104,6 +107,42 @@ class Sales extends Model
             ];
         } catch (\Exception $e) {
             throw $e;
+        }
+    }
+
+    public static function saleReport($post)
+    {
+        try {
+            $orgid = $post['orgid'];
+
+            $currentMonth = date('m');
+            $currentYear = date('Y');
+
+            $month = $post['month'] ?? $currentMonth;
+            $year = $post['year'] ?? $currentYear;
+
+            $query = DB::table('order_details as od')
+                ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
+                ->join('itemvariations as iv', 'iv.id', '=', 'od.variation_id')
+                ->join('items as p', 'p.id', '=', 'iv.item_id')
+                ->where('om.orgid', $orgid)
+                ->whereMonth('om.created_at', $month)
+                ->whereYear('om.created_at', $year)
+                ->select(
+                    'om.id as order_id',
+                    'om.created_at as order_date',
+                    'om.status',
+                    'p.title',
+                    DB::raw("CONCAT(p.title, ' - ', iv.value) as product_name"),
+                    'od.quantity',
+                    'od.price',
+                    'od.order_detail_total_price as total_price'
+                )
+                ->get();
+
+            return $query;
+        } catch (\Exception $e) {
+            throw new Exception('Error fetching sales report: ' . $e->getMessage());
         }
     }
 }

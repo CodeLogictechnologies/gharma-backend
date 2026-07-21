@@ -274,7 +274,7 @@
         <li
             class="menu-item {{ request()->routeIs('retailer') || request()->routeIs('wholesaler') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
-                {{-- <i class="menu-icon tf-icons bx bx-dollar-circle"></i> --}}
+                <i class="menu-icon tf-icons bx bx-dollar-circle"></i>
                 <div>Price Management</div>
             </a>
 
