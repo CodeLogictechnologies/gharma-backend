@@ -1,152 +1,171 @@
 @extends('layouts.main')
 @section('title', 'Dashboard')
 @section('content')
-<div class="container-xxl flex-grow-1 container-p-y">
-    <div class="row">
-        <div class="col-lg-8 mb-4 order-0">
-            <div class="card">
-                <div class="d-flex align-items-end row">
-                    <div class="col-sm-7">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">Congratulations John! 🎉</h5>
-                            <p class="mb-4">
-                                You have done <span class="fw-bold">72%</span> more sales today. Check your new badge in
-                                your profile.
-                            </p>
 
-                            <a href="javascript:;" class="btn btn-sm btn-outline-primary">View Badges</a>
-                        </div>
-                    </div>
-                    <div class="col-sm-5 text-center text-sm-left">
-                        <div class="card-body pb-0 px-0 px-md-4">
-                            <img
-                                src="../assets/img/illustrations/man-with-laptop-light.png"
-                                height="140"
-                                alt="View Badge User"
-                                data-app-dark-img="illustrations/man-with-laptop-dark.png"
-                                data-app-light-img="illustrations/man-with-laptop-light.png" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4 col-md-4 order-1">
-            <div class="row">
-                <div class="col-lg-6 col-md-12 col-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="card-title d-flex align-items-start justify-content-between">
-                                <div class="avatar flex-shrink-0">
-                                    <img
-                                        src="../assets/img/icons/unicons/chart-success.png"
-                                        alt="chart success"
-                                        class="rounded" />
-                                </div>
-                                <div class="dropdown">
-                                    <button
-                                        class="btn p-0"
-                                        type="button"
-                                        id="cardOpt3"
-                                        data-bs-toggle="dropdown"
-                                        aria-haspopup="true"
-                                        aria-expanded="false">
-                                        <i class="bx bx-dots-vertical-rounded"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt3">
-                                        <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                        <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                    </div>
-                                </div>
-                            </div>
-                            <span class="fw-semibold d-block mb-1">Profit</span>
-                            <h3 class="card-title mb-2">$12,628</h3>
-                            <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> +72.80%</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6 col-md-12 col-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="card-title d-flex align-items-start justify-content-between">
-                                <div class="avatar flex-shrink-0">
-                                    <img
-                                        src="../assets/img/icons/unicons/wallet-info.png"
-                                        alt="Credit Card"
-                                        class="rounded" />
-                                </div>
-                                <div class="dropdown">
-                                    <button
-                                        class="btn p-0"
-                                        type="button"
-                                        id="cardOpt6"
-                                        data-bs-toggle="dropdown"
-                                        aria-haspopup="true"
-                                        aria-expanded="false">
-                                        <i class="bx bx-dots-vertical-rounded"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt6">
-                                        <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                        <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                    </div>
-                                </div>
-                            </div>
-                            <span>Sales</span>
-                            <h3 class="card-title text-nowrap mb-1">$4,679</h3>
-                            <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> +28.42%</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Total Revenue -->
-        <div class="col-12 col-lg-8 order-2 order-md-3 order-lg-2 mb-4">
-            <div class="card">
-                <div class="row row-bordered g-0">
-                    <div class="col-md-8">
-                        <h5 class="card-header m-0 me-2 pb-3">Total Revenue</h5>
-                        <div id="totalRevenueChart" class="px-2"></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card-body">
-                            <div class="text-center">
-                                <div class="dropdown">
-                                    <button
-                                        class="btn btn-sm btn-outline-primary dropdown-toggle"
-                                        type="button"
-                                        id="growthReportId"
-                                        data-bs-toggle="dropdown"
-                                        aria-haspopup="true"
-                                        aria-expanded="false">
-                                        2022
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="growthReportId">
-                                        <a class="dropdown-item" href="javascript:void(0);">2021</a>
-                                        <a class="dropdown-item" href="javascript:void(0);">2020</a>
-                                        <a class="dropdown-item" href="javascript:void(0);">2019</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="growthChart"></div>
-                        <div class="text-center fw-semibold pt-3 mb-2">62% Company Growth</div>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-                        <div class="d-flex px-xxl-4 px-lg-2 p-4 gap-xxl-3 gap-lg-1 gap-3 justify-content-between">
-                            <div class="d-flex">
-                                <div class="me-2">
-                                    <span class="badge bg-label-primary p-2"><i class="bx bx-dollar text-primary"></i></span>
-                                </div>
-                                <div class="d-flex flex-column">
-                                    <small>2022</small>
-                                    <h6 class="mb-0">$32.5k</h6>
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row">
+            <!-- Welcome Card -->
+            <div class="col-lg-8 mb-4 order-0">
+                <div class="card">
+                    <div class="d-flex align-items-end row">
+                        <div class="col-sm-7">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary">Dashboard Overview</h5>
+                                <p class="mb-4">
+                                    Welcome to your dashboard! Here's a summary of your sales and inventory for
+                                    <strong>{{ date('F Y') }}</strong>.
+                                </p>
+                                <div class="d-flex gap-3">
+                                    <div>
+                                        <small class="text-muted">Total Orders</small>
+                                        <h4>{{ $getSalesReport ? $getSalesReport->count() : 0 }}</h4>
+                                    </div>
+                                    {{-- <div>
+                                        <small class="text-muted">Total Products</small>
+                                        <h4>{{ $getInventory ? $getInventory->count() : 0 }}</h4>
+                                    </div> --}}
                                 </div>
                             </div>
-                            <div class="d-flex">
-                                <div class="me-2">
-                                    <span class="badge bg-label-info p-2"><i class="bx bx-wallet text-info"></i></span>
+                        </div>
+                        <div class="col-sm-5 text-center text-sm-left">
+                            <div class="card-body pb-0 px-0 px-md-4">
+                                <img src="../assets/img/illustrations/man-with-laptop-light.png" height="140"
+                                    alt="View Badge User" data-app-dark-img="illustrations/man-with-laptop-dark.png"
+                                    data-app-light-img="illustrations/man-with-laptop-light.png" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="col-lg-4 col-md-4 order-1">
+                <div class="row">
+                    <div class="col-lg-6 col-md-12 col-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title d-flex align-items-start justify-content-between">
+                                    <div class="avatar flex-shrink-0">
+                                        <img src="../assets/img/icons/unicons/chart-success.png" alt="chart success"
+                                            class="rounded" />
+                                    </div>
                                 </div>
-                                <div class="d-flex flex-column">
-                                    <small>2021</small>
-                                    <h6 class="mb-0">$41.2k</h6>
+                                <span class="fw-semibold d-block mb-1">Total Sales</span>
+                                <h3 class="card-title mb-2">
+                                    NPR {{ number_format($getSalesReport ? $getSalesReport->sum('total_price') : 0) }}
+                                </h3>
+                                <small class="text-success fw-semibold">
+                                    <i class="bx bx-up-arrow-alt"></i>
+                                    {{ $getSalesReport ? $getSalesReport->count() : 0 }} orders
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-12 col-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title d-flex align-items-start justify-content-between">
+                                    <div class="avatar flex-shrink-0">
+                                        <img src="../assets/img/icons/unicons/wallet-info.png" alt="Credit Card"
+                                            class="rounded" />
+                                    </div>
+                                </div>
+                                <span>Inventory Items</span>
+                                <h3 class="card-title text-nowrap mb-1">
+                                    {{ $getInventory ? $getInventory->count() : 0 }}
+                                </h3>
+                                <small class="text-success fw-semibold">
+                                    <i class="bx bx-up-arrow-alt"></i>
+                                    {{ $getInventory ? $getInventory->sum('stock') : 0 }} total stock
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Chart -->
+            <div class="col-12 col-lg-8 order-2 order-md-3 order-lg-2 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title m-0">Sales Overview ({{ date('F Y') }})</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="updateChart('month')">Month</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="updateChart('week')">Week</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="salesChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="col-12 col-md-8 col-lg-4 order-3 order-md-2">
+                <div class="row">
+                    <div class="col-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title d-flex align-items-start justify-content-between">
+                                    <div class="avatar flex-shrink-0">
+                                        <img src="../assets/img/icons/unicons/paypal.png" alt="Credit Card"
+                                            class="rounded" />
+                                    </div>
+                                </div>
+                                <span class="d-block mb-1">Total Products</span>
+                                <h3 class="card-title text-nowrap mb-2">
+                                    {{ $getInventory ? $getInventory->groupBy('product_name')->count() : 0 }}
+                                </h3>
+                                <small class="text-success fw-semibold">Unique items</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="card-title d-flex align-items-start justify-content-between">
+                                    <div class="avatar flex-shrink-0">
+                                        <img src="../assets/img/icons/unicons/cc-primary.png" alt="Credit Card"
+                                            class="rounded" />
+                                    </div>
+                                </div>
+                                <span class="fw-semibold d-block mb-1">Low Stock Items</span>
+                                <h3 class="card-title mb-2">
+                                    {{ $getInventory? $getInventory->filter(function ($item) {return isset($item->available_qty) && isset($item->threshold) && $item->available_qty < $item->threshold;})->count(): 0 }}
+                                </h3>
+                                <small class="text-danger fw-semibold">Below threshold</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between flex-sm-row flex-column gap-3">
+                                    <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
+                                        <div class="card-title">
+                                            <h5 class="text-nowrap mb-2">Inventory Value</h5>
+                                            <span class="badge bg-label-primary rounded-pill">Current Stock</span>
+                                        </div>
+                                        <div class="mt-sm-auto">
+                                            <small class="text-success text-nowrap fw-semibold">
+                                                <i class="bx bx-chevron-up"></i>
+                                                {{ $getInventory ? $getInventory->sum('stock') : 0 }} units
+                                            </small>
+                                            <h3 class="mb-0">NPR
+                                                {{ number_format(
+                                                    $getInventory
+                                                        ? $getInventory->sum(function ($item) {
+                                                            return isset($item->stock) ? $item->stock * 100 : 0;
+                                                        })
+                                                        : 0,
+                                                ) }}
+                                            </h3>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -154,367 +173,351 @@
                 </div>
             </div>
         </div>
-        <!--/ Total Revenue -->
-        <div class="col-12 col-md-8 col-lg-4 order-3 order-md-2">
-            <div class="row">
-                <div class="col-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="card-title d-flex align-items-start justify-content-between">
-                                <div class="avatar flex-shrink-0">
-                                    <img src="../assets/img/icons/unicons/paypal.png" alt="Credit Card" class="rounded" />
-                                </div>
-                                <div class="dropdown">
-                                    <button
-                                        class="btn p-0"
-                                        type="button"
-                                        id="cardOpt4"
-                                        data-bs-toggle="dropdown"
-                                        aria-haspopup="true"
-                                        aria-expanded="false">
-                                        <i class="bx bx-dots-vertical-rounded"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt4">
-                                        <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                        <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                    </div>
-                                </div>
-                            </div>
-                            <span class="d-block mb-1">Payments</span>
-                            <h3 class="card-title text-nowrap mb-2">$2,456</h3>
-                            <small class="text-danger fw-semibold"><i class="bx bx-down-arrow-alt"></i> -14.82%</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="card-title d-flex align-items-start justify-content-between">
-                                <div class="avatar flex-shrink-0">
-                                    <img src="../assets/img/icons/unicons/cc-primary.png" alt="Credit Card" class="rounded" />
-                                </div>
-                                <div class="dropdown">
-                                    <button
-                                        class="btn p-0"
-                                        type="button"
-                                        id="cardOpt1"
-                                        data-bs-toggle="dropdown"
-                                        aria-haspopup="true"
-                                        aria-expanded="false">
-                                        <i class="bx bx-dots-vertical-rounded"></i>
-                                    </button>
-                                    <div class="dropdown-menu" aria-labelledby="cardOpt1">
-                                        <a class="dropdown-item" href="javascript:void(0);">View More</a>
-                                        <a class="dropdown-item" href="javascript:void(0);">Delete</a>
-                                    </div>
-                                </div>
-                            </div>
-                            <span class="fw-semibold d-block mb-1">Transactions</span>
-                            <h3 class="card-title mb-2">$14,857</h3>
-                            <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> +28.14%</small>
-                        </div>
-                    </div>
-                </div>
-                <!-- </div>
-<div class="row"> -->
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between flex-sm-row flex-column gap-3">
-                                <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
-                                    <div class="card-title">
-                                        <h5 class="text-nowrap mb-2">Profile Report</h5>
-                                        <span class="badge bg-label-warning rounded-pill">Year 2021</span>
-                                    </div>
-                                    <div class="mt-sm-auto">
-                                        <small class="text-success text-nowrap fw-semibold"><i class="bx bx-chevron-up"></i> 68.2%</small>
-                                        <h3 class="mb-0">$84,686k</h3>
-                                    </div>
-                                </div>
-                                <div id="profileReportChart"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <!-- Order Statistics -->
-        <div class="col-md-6 col-lg-4 col-xl-4 order-0 mb-4">
+
+        <div class="row">
+            <!-- Inventory Status Chart -->
+            {{-- <div class="col-md-6 col-lg-4 col-xl-4 order-0 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex align-items-center justify-content-between pb-0">
                     <div class="card-title mb-0">
-                        <h5 class="m-0 me-2">Order Statistics</h5>
-                        <small class="text-muted">42.82k Total Sales</small>
-                    </div>
-                    <div class="dropdown">
-                        <button
-                            class="btn p-0"
-                            type="button"
-                            id="orederStatistics"
-                            data-bs-toggle="dropdown"
-                            aria-haspopup="true"
-                            aria-expanded="false">
-                            <i class="bx bx-dots-vertical-rounded"></i>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="orederStatistics">
-                            <a class="dropdown-item" href="javascript:void(0);">Select All</a>
-                            <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
-                            <a class="dropdown-item" href="javascript:void(0);">Share</a>
-                        </div>
+                        <h5 class="m-0 me-2">Inventory Status</h5>
+                        <small class="text-muted">{{ $getInventory ? $getInventory->count() : 0 }} items tracked</small>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="d-flex flex-column align-items-center gap-1">
-                            <h2 class="mb-2">8,258</h2>
-                            <span>Total Orders</span>
+                    <canvas id="inventoryChart" height="200"></canvas>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Total Stock: <strong>{{ $getInventory ? $getInventory->sum('stock') : 0 }}</strong></span>
+                            <span>Available: <strong class="text-success">{{ $getInventory ? $getInventory->sum('available_qty') : 0 }}</strong></span>
+                            <span>Low Stock: <strong class="text-danger">{{ $getInventory ? $getInventory->filter(function($item) { return isset($item->available_qty) && isset($item->threshold) && $item->available_qty < $item->threshold; })->count() : 0 }}</strong></span>
                         </div>
-                        <div id="orderStatisticsChart"></div>
                     </div>
-                    <ul class="p-0 m-0">
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <span class="avatar-initial rounded bg-label-primary"><i class="bx bx-mobile-alt"></i></span>
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <h6 class="mb-0">Electronic</h6>
-                                    <small class="text-muted">Mobile, Earbuds, TV</small>
-                                </div>
-                                <div class="user-progress">
-                                    <small class="fw-semibold">82.5k</small>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <span class="avatar-initial rounded bg-label-success"><i class="bx bx-closet"></i></span>
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <h6 class="mb-0">Fashion</h6>
-                                    <small class="text-muted">T-shirt, Jeans, Shoes</small>
-                                </div>
-                                <div class="user-progress">
-                                    <small class="fw-semibold">23.8k</small>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <span class="avatar-initial rounded bg-label-info"><i class="bx bx-home-alt"></i></span>
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <h6 class="mb-0">Decor</h6>
-                                    <small class="text-muted">Fine Art, Dining</small>
-                                </div>
-                                <div class="user-progress">
-                                    <small class="fw-semibold">849k</small>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <span class="avatar-initial rounded bg-label-secondary"><i class="bx bx-football"></i></span>
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <h6 class="mb-0">Sports</h6>
-                                    <small class="text-muted">Football, Cricket Kit</small>
-                                </div>
-                                <div class="user-progress">
-                                    <small class="fw-semibold">99</small>
-                                </div>
-                            </div>
-                        </li>
-                    </ul>
                 </div>
             </div>
-        </div>
-        <!--/ Order Statistics -->
+        </div> --}}
 
-        <!-- Expense Overview -->
-        <div class="col-md-6 col-lg-4 order-1 mb-4">
+            <!-- Top Selling Products Chart -->
+            {{-- <div class="col-md-6 col-lg-4 order-1 mb-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <ul class="nav nav-pills" role="tablist">
-                        <li class="nav-item">
-                            <button
-                                type="button"
-                                class="nav-link active"
-                                role="tab"
-                                data-bs-toggle="tab"
-                                data-bs-target="#navs-tabs-line-card-income"
-                                aria-controls="navs-tabs-line-card-income"
-                                aria-selected="true">
-                                Income
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <button type="button" class="nav-link" role="tab">Expenses</button>
-                        </li>
-                        <li class="nav-item">
-                            <button type="button" class="nav-link" role="tab">Profit</button>
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-body px-0">
-                    <div class="tab-content p-0">
-                        <div class="tab-pane fade show active" id="navs-tabs-line-card-income" role="tabpanel">
-                            <div class="d-flex p-4 pt-3">
-                                <div class="avatar flex-shrink-0 me-3">
-                                    <img src="../assets/img/icons/unicons/wallet.png" alt="User" />
-                                </div>
-                                <div>
-                                    <small class="text-muted d-block">Total Balance</small>
-                                    <div class="d-flex align-items-center">
-                                        <h6 class="mb-0 me-1">$459.10</h6>
-                                        <small class="text-success fw-semibold">
-                                            <i class="bx bx-chevron-up"></i>
-                                            42.9%
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="incomeChart"></div>
-                            <div class="d-flex justify-content-center pt-4 gap-2">
-                                <div class="flex-shrink-0">
-                                    <div id="expensesOfWeek"></div>
-                                </div>
-                                <div>
-                                    <p class="mb-n1 mt-1">Expenses This Week</p>
-                                    <small class="text-muted">$39 less than last week</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!--/ Expense Overview -->
-
-        <!-- Transactions -->
-        <div class="col-md-6 col-lg-4 order-2 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="card-title m-0 me-2">Transactions</h5>
-                    <div class="dropdown">
-                        <button
-                            class="btn p-0"
-                            type="button"
-                            id="transactionID"
-                            data-bs-toggle="dropdown"
-                            aria-haspopup="true"
-                            aria-expanded="false">
-                            <i class="bx bx-dots-vertical-rounded"></i>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="transactionID">
-                            <a class="dropdown-item" href="javascript:void(0);">Last 28 Days</a>
-                            <a class="dropdown-item" href="javascript:void(0);">Last Month</a>
-                            <a class="dropdown-item" href="javascript:void(0);">Last Year</a>
-                        </div>
-                    </div>
+                    <h5 class="card-title m-0 me-2">Top Selling Products</h5>
+                    <small class="text-muted">By quantity sold</small>
                 </div>
                 <div class="card-body">
-                    <ul class="p-0 m-0">
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <img src="../assets/img/icons/unicons/paypal.png" alt="User" class="rounded" />
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <small class="text-muted d-block mb-1">Paypal</small>
-                                    <h6 class="mb-0">Send money</h6>
-                                </div>
-                                <div class="user-progress d-flex align-items-center gap-1">
-                                    <h6 class="mb-0">+82.6</h6>
-                                    <span class="text-muted">USD</span>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <img src="../assets/img/icons/unicons/wallet.png" alt="User" class="rounded" />
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <small class="text-muted d-block mb-1">Wallet</small>
-                                    <h6 class="mb-0">Mac'D</h6>
-                                </div>
-                                <div class="user-progress d-flex align-items-center gap-1">
-                                    <h6 class="mb-0">+270.69</h6>
-                                    <span class="text-muted">USD</span>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <img src="../assets/img/icons/unicons/chart.png" alt="User" class="rounded" />
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <small class="text-muted d-block mb-1">Transfer</small>
-                                    <h6 class="mb-0">Refund</h6>
-                                </div>
-                                <div class="user-progress d-flex align-items-center gap-1">
-                                    <h6 class="mb-0">+637.91</h6>
-                                    <span class="text-muted">USD</span>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <img src="../assets/img/icons/unicons/cc-success.png" alt="User" class="rounded" />
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <small class="text-muted d-block mb-1">Credit Card</small>
-                                    <h6 class="mb-0">Ordered Food</h6>
-                                </div>
-                                <div class="user-progress d-flex align-items-center gap-1">
-                                    <h6 class="mb-0">-838.71</h6>
-                                    <span class="text-muted">USD</span>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex mb-4 pb-1">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <img src="../assets/img/icons/unicons/wallet.png" alt="User" class="rounded" />
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <small class="text-muted d-block mb-1">Wallet</small>
-                                    <h6 class="mb-0">Starbucks</h6>
-                                </div>
-                                <div class="user-progress d-flex align-items-center gap-1">
-                                    <h6 class="mb-0">+203.33</h6>
-                                    <span class="text-muted">USD</span>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="d-flex">
-                            <div class="avatar flex-shrink-0 me-3">
-                                <img src="../assets/img/icons/unicons/cc-warning.png" alt="User" class="rounded" />
-                            </div>
-                            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="me-2">
-                                    <small class="text-muted d-block mb-1">Mastercard</small>
-                                    <h6 class="mb-0">Ordered Food</h6>
-                                </div>
-                                <div class="user-progress d-flex align-items-center gap-1">
-                                    <h6 class="mb-0">-92.45</h6>
-                                    <span class="text-muted">USD</span>
-                                </div>
-                            </div>
-                        </li>
+                    <canvas id="topProductsChart" height="200"></canvas>
+                </div>
+            </div>
+        </div> --}}
+
+            <!-- Recent Sales -->
+            {{-- <div class="col-md-6 col-lg-4 order-2 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title m-0 me-2">Recent Sales</h5>
+                    <span class="text-muted small">{{ $getSalesReport ? $getSalesReport->count() : 0 }} total</span>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    <ul class="p-0 m-0" style="list-style: none;">
+                        @if ($getSalesReport && $getSalesReport->count() > 0)
+                            @foreach ($getSalesReport->take(6) as $sale)
+                                <li class="d-flex mb-3 pb-1 border-bottom">
+                                    <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                                        <div class="me-2">
+                                            <small class="text-muted d-block mb-1">{{ isset($sale->order_date) ? \Carbon\Carbon::parse($sale->order_date)->format('d M Y') : 'N/A' }}</small>
+                                            <h6 class="mb-0">{{ isset($sale->product_name) ? Str::limit($sale->product_name, 20) : 'Unknown Product' }}</h6>
+                                            <small class="text-muted">Qty: {{ $sale->quantity ?? 0 }}</small>
+                                        </div>
+                                        <div class="user-progress d-flex align-items-center gap-1">
+                                            <h6 class="mb-0 text-success">NPR {{ number_format($sale->total_price ?? 0, 2) }}</h6>
+                                        </div>
+                                    </div>
+                                </li>
+                            @endforeach
+                        @else
+                            <li class="text-center text-muted py-4">No recent sales</li>
+                        @endif
                     </ul>
                 </div>
             </div>
+        </div> --}}
         </div>
-        <!--/ Transactions -->
     </div>
-</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get data from PHP
+            const salesData = @json($getSalesReport ? $getSalesReport->toArray() : []);
+            const inventoryData = @json($getInventory ? $getInventory->toArray() : []);
+
+            console.log('Sales Data:', salesData);
+            console.log('Inventory Data:', inventoryData);
+
+            // ── Sales Chart ──────────────────────────────────────────────
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+
+            // Prepare sales data by date
+            const salesByDate = {};
+            if (salesData && salesData.length > 0) {
+                salesData.forEach(function(item) {
+                    if (item.order_date) {
+                        const date = new Date(item.order_date);
+                        const dateStr = date.toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'short'
+                        });
+                        salesByDate[dateStr] = (salesByDate[dateStr] || 0) + parseFloat(item.total_price ||
+                            0);
+                    }
+                });
+            }
+
+            const salesLabels = Object.keys(salesByDate);
+            const salesValues = Object.values(salesByDate);
+
+            // If no data, show placeholder
+            if (salesLabels.length === 0) {
+                salesLabels.push('No Data');
+                salesValues.push(0);
+            }
+
+            const salesChart = new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: salesLabels,
+                    datasets: [{
+                        label: 'Daily Sales (NPR)',
+                        data: salesValues,
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#4CAF50',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'NPR ' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'NPR ' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // ── Inventory Chart (Doughnut) ──────────────────────────────
+            const invCtx = document.getElementById('inventoryChart').getContext('2d');
+
+            let inStockCount = 0;
+            let lowStockCount = 0;
+            let outStockCount = 0;
+
+            if (inventoryData && inventoryData.length > 0) {
+                inventoryData.forEach(function(item) {
+                    const available = parseFloat(item.available_qty || 0);
+                    const threshold = parseFloat(item.threshold || 0);
+
+                    if (available <= 0) {
+                        outStockCount++;
+                    } else if (available < threshold) {
+                        lowStockCount++;
+                    } else {
+                        inStockCount++;
+                    }
+                });
+            }
+
+            // If no inventory data, show placeholder
+            if (inStockCount === 0 && lowStockCount === 0 && outStockCount === 0) {
+                inStockCount = 1;
+            }
+
+            new Chart(invCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['In Stock', 'Low Stock', 'Out of Stock'],
+                    datasets: [{
+                        data: [inStockCount, lowStockCount, outStockCount],
+                        backgroundColor: ['#4CAF50', '#FFC107', '#F44336'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // ── Top Products Chart ──────────────────────────────────────
+            const prodCtx = document.getElementById('topProductsChart').getContext('2d');
+
+            // Group and sort products by quantity sold
+            const productGroups = {};
+            if (salesData && salesData.length > 0) {
+                salesData.forEach(function(item) {
+                    const name = item.product_name || 'Unknown';
+                    const qty = parseFloat(item.quantity || 0);
+                    if (name) {
+                        productGroups[name] = (productGroups[name] || 0) + qty;
+                    }
+                });
+            }
+
+            const sortedProducts = Object.entries(productGroups)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const productLabels = sortedProducts.map(function(p) {
+                return p[0].length > 15 ? p[0].substring(0, 15) + '...' : p[0];
+            });
+            const productData = sortedProducts.map(function(p) {
+                return p[1];
+            });
+
+            // If no product data, show placeholder
+            if (productLabels.length === 0) {
+                productLabels.push('No Data');
+                productData.push(0);
+            }
+
+            new Chart(prodCtx, {
+                type: 'bar',
+                data: {
+                    labels: productLabels,
+                    datasets: [{
+                        label: 'Quantity Sold',
+                        data: productData,
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.8)',
+                            'rgba(33, 150, 243, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(255, 87, 34, 0.8)',
+                            'rgba(156, 39, 176, 0.8)'
+                        ],
+                        borderColor: [
+                            '#4CAF50',
+                            '#2196F3',
+                            '#FFC107',
+                            '#FF5722',
+                            '#9C27B0'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+
+            // ── Update Chart Function ──────────────────────────────────
+            window.updateChart = function(period) {
+                // You can implement AJAX call here to fetch data for different periods
+                // Example: fetch('/dashboard/chart-data?period=' + period)
+                // Then update the chart with new data
+                alert('Chart will update for: ' + period);
+            };
+
+        });
+    </script>
+
+    <style>
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 50%;
+        }
+
+        .avatar img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+
+        .badge.bg-label-primary {
+            background: #e8eaf6;
+            color: #3f51b5;
+        }
+
+        .badge.bg-label-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .badge.bg-label-warning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .badge.bg-label-danger {
+            background: #fce4ec;
+            color: #c62828;
+        }
+    </style>
+
 @endsection

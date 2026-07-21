@@ -65,6 +65,7 @@ class Order extends Model
                 $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
 
                 $baseAmount = round($unitPrice * $qty, 2);
+
                 // Excise duty
                 $exciseAmount = 0.0;
                 if ($variation->excise_status === 'Y') {
@@ -75,7 +76,7 @@ class Order extends Model
                     }
                 }
                 $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
-                $amountAfterExcise = round($baseAmount + $exciseAmount, 2);
+
                 // VAT (applied on price + excise)
                 $vatAmount = 0.0;
                 $vatRate   = (float) ($variation->vat_percent ?? 0);
@@ -109,49 +110,54 @@ class Order extends Model
                 $grandTotal    += $lineTotal;
             }
 
-            $voucherNumber = 'VCH-' . strtoupper(Str::random(8));
+            // ── Generate Voucher Number ──────────────────────────
+            $lastOrder = DB::table('order_masters')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->orderByDesc('voucher_number')
+                ->first();
+
+            if (!$lastOrder) {
+                $voucherNumber = 1;
+            } else {
+                // Cast to integer before adding
+                $voucherNumber = (int) $lastOrder->voucher_number + 1;
+            }
+
+            // Format as string with leading zeros (optional)
+            $voucherNumberFormatted = str_pad($voucherNumber, 6, '0', STR_PAD_LEFT);
 
             $insertOrderMaster = [
                 'id'                        => $orderMasterId,
                 'orgid'                     => $post['orgid'],
-                'payment_method' => $post['paymentmethod'] ?? 'COD',
-                'voucher_number'            => $voucherNumber,
+                'payment_method'            => $post['paymentmethod'] ?? 'COD',
+                'voucher_number'            => $voucherNumberFormatted,
                 'userid'                    => $post['userid'],
                 'addressid'                 => $post['addressid'],
                 'order_master_subtotal'     => round($grandSubtotal, 2),
                 'order_master_excise_total' => round($grandExcise, 2),
                 'order_master_vat_total'    => round($grandVat, 2),
                 'order_master_total_price'  => round($grandTotal, 2),
+                'status'                    => 'Y',
                 'created_at'                => Carbon::now(),
             ];
+
             if (!OrderMaster::insert($insertOrderMaster)) {
                 throw new \Exception("Couldn't save order.");
             }
-
-            // $insertOrderStatusArray = [
-            //     'id'             => (string) Str::uuid(),
-            //     'orgid'          => $post['orgid'],
-            //     'payment_method' => $post['paymentmethod'] ?? 'COD',
-            //     'customerid'     => $post['userid'],
-            //     'ordermasterid'  => $orderMasterId,
-            //     'created_at'     => Carbon::now(),
-            //     'postedby'       => $post['userid'],
-            // ];
-
-            // if (!OrderStatus::insert($insertOrderStatusArray)) {
-            //     throw new \Exception("Couldn't save order.");
-            // }
 
             if (!OrderDetail::insert($insertOrderDetails)) {
                 throw new \Exception("Couldn't save order details.");
             }
 
+            // ── Clear Cart ──────────────────────────────────────
             APICart::where('orgid', $post['orgid'])
                 ->where('userid', $post['userid'])
                 ->whereIn('variation_id', $variationIds)
                 ->where('status', 'Y')
                 ->delete();
 
+            // ── Loyalty Points ──────────────────────────────────
             $setup = DB::table('loyalty_setups')
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
@@ -189,47 +195,56 @@ class Order extends Model
                 }
             }
 
-            // ── Generate Invoice PDF ────────────────────────────
-            // $invoiceData = [
-            //     'orgid'  => $post['orgid'],
-            //     'userid' => $post['userid'],
-            //     'id'     => $orderMasterId,
-            // ];
+            $orderDetail = DB::table('order_details as od')
+                ->join('order_masters as om', 'om.id', '=', 'od.ordermasterid')
+                ->join('users as u', 'u.id', '=', 'om.userid')
+                ->join('itemvariations as v', 'v.id', '=', 'od.variation_id')
+                ->join('items as i', 'i.id', '=', 'v.item_id')
+                ->where('od.ordermasterid', $orderMasterId)
+                ->select('om.id as ordermasterid', 'i.title', 'v.value', 'od.price', 'od.quantity', 'od.order_detail_total_price', 'u.name', 'od.excise_type', 'od.excise_percent', 'od.excise_amount', 'od.vat_amount', 'i.vat_percent', 'v.discount_type', 'v.discount_amount', 'om.discount_amount as extra_discount')
+                ->get();
 
-            // $orderDetail = BackPanelOrder::getDataInvoice($invoiceData);
+            $voucherDetail = DB::table('order_masters as om')
+                ->join('users as u', 'u.id', '=', 'om.userid')
+                ->where('om.id', $orderMasterId)
+                ->select('om.id as ordermasterid', 'om.voucher_number', 'om.created_at', 'u.name')
+                ->first();
 
-            // $adminUserId = DB::table('userorganizations as uo')
-            //     ->join('model_has_roles as mr', 'mr.model_id', '=', 'uo.userid')
-            //     ->where('mr.role_id', '550e8400-e29b-41d4-a716-446655440001')
-            //     ->where('uo.orgid', $post['orgid'])
-            //     ->where('uo.status', 'Y')
-            //     ->value('uo.userid');
+            // Get vendor details
+            $vendors = DB::table('vendors')
+                ->select('id as vendorid', 'name as vendorname', 'tax_number as vendorpan')
+                ->where('orgid', $post['orgid'])
+                ->where('status', 'Y')
+                ->first();
 
-            // if ($adminUserId) {
-            //     $token = DB::table('userdevicetokens')
-            //         ->where('userid', $adminUserId)
-            //         ->value('devicetoken');
+            // Get user address
+            $address = DB::table('user_addresses')
+                ->where('id', $post['addressid'])
+                ->where('userid', $post['userid'])
+                ->first();
 
-            //     if (!empty($token)) {
-            //         try {
-            //             app(\App\Services\FirebaseService::class)->sendNotification(
-            //                 $token,
-            //                 'New Order Received',
-            //                 'A new order has been placed. Please check the admin panel for the order details.'
-            //             );
-            //         } catch (\Exception $e) {
-            //             \Log::error('Failed to send order notification.', [
-            //                 'user_id'  => $adminUserId,
-            //                 'order_id' => $orderMasterId,
-            //                 'message'  => $e->getMessage(),
-            //             ]);
-            //         }
-            //     }
-            // }
-
-            return [
-                'ordermasterid' => $orderMasterId,
+            // Prepare data for PDF
+            $pdfData = [
+                'orderDetail'   => $orderDetail,
+                'voucherDetail'        => $voucherDetail,
             ];
+
+            // ── Generate PDF Invoice ────────────────────────────
+            $fileName = 'invoice_' . $voucherNumberFormatted . '_' . time() . '.pdf';
+            $filePath = 'invoices/' . $fileName;
+
+            // Generate and store the PDF
+            $pdf = Pdf::loadView('backend.order.invoice_pdf', $pdfData)
+                ->setPaper('a4', 'portrait');
+
+            // Store in public disk under invoices folder
+            Storage::disk('public')->put($filePath, $pdf->output());
+
+            // Get full URL for the PDF
+            $pdfUrl = asset('storage/' . $filePath);
+
+            // ── Return success with invoice data ────────────────
+            return $pdfUrl;
         } catch (\Exception $e) {
             throw $e;
         }

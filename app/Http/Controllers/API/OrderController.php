@@ -22,7 +22,7 @@ class OrderController extends Controller
     {
         try {
             $type = 'success';
-            $message = 'Order place successfully';
+            $message = 'Order placed successfully';
 
             DB::beginTransaction();
             $post = $request->all();
@@ -34,16 +34,17 @@ class OrderController extends Controller
             }
 
             DB::commit();
+
             return response()->json([
                 'type'    => $type,
                 'message' => $message,
-                'invoice' => $invoiceInfo,
+                'pdf_link'    => $invoiceInfo
             ], 200);
         } catch (QueryException $e) {
             DB::rollBack();
             return response()->json([
                 'type'    => 'error',
-                'message' => 'Something went wrong'
+                'message' => 'Database error: ' . $e->getMessage()
             ], 500);
         } catch (Exception $e) {
             DB::rollBack();

@@ -25,11 +25,11 @@ class OrderController extends Controller
     }
 
     public function list(Request $request)
-{
-    $post   = $request->all();
+    {
+        $post   = $request->all();
         $post['orgid'] = session('orgid');
 
-    $offset = (int) ($request->input('iDisplayStart', 0));
+        $offset = (int) ($request->input('iDisplayStart', 0));
 
         $data         = Order::list($post);
         $result       = $data['data'];

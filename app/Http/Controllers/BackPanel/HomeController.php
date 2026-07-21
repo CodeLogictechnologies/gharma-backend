@@ -3,33 +3,54 @@
 namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
-use App\Models\BackPanel\Enquiry;
+use App\Models\BackPanel\Report\Inventory;
+use App\Models\BackPanel\Report\Sales;
 use Exception;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-
         try {
-            $data = [];
-            $type = 'success';
-            $message = 'Successfully fetched data';
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
 
+            if (!$post['orgid']) {
+                return view('backend.dashboard.index', [
+                    'type' => 'error',
+                    'message' => 'Organization ID not found in session',
+                    'getSalesReport' => collect([]),
+                    'getInventory' => collect([])
+                ]);
+            }
 
-            $data = [
-                'type' => $type,
-                'message' => $message
-            ];
+            $getSalesReport = Sales::saleReport($post);
+            $getInventory = Inventory::inventoryReport($post);
+
+            return view('backend.dashboard.index', [
+                'getSalesReport' => $getSalesReport,
+                'getInventory' => $getInventory,
+                'type' => 'success',
+                'message' => 'Successfully fetched data'
+            ]);
+            
         } catch (QueryException $e) {
-            $data['type'] = 'error';
-            $data['message'] = 'Database query error: ' . $e->getMessage();
+            return view('backend.dashboard.index', [
+                'type' => 'error',
+                'message' => 'Database query error: ' . $e->getMessage(),
+                'getSalesReport' => collect([]),
+                'getInventory' => collect([])
+            ]);
+            
         } catch (Exception $e) {
-            $data['type'] = 'error';
-            $data['message'] = 'An error occurred: ' . $e->getMessage();
+            return view('backend.dashboard.index', [
+                'type' => 'error',
+                'message' => 'An error occurred: ' . $e->getMessage(),
+                'getSalesReport' => collect([]),
+                'getInventory' => collect([])
+            ]);
         }
-
-        return view('backend.dashboard.index', $data);
     }
 }
