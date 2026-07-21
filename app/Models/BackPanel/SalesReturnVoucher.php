@@ -239,8 +239,10 @@ class SalesReturnVoucher extends Model
             ->select(
                 'srvi.*',
                 'i.title as item_title',
+                'i.product_code as item_product_code',
                 'iv.attribute as variation_attribute',
-                'iv.value as variation_value'
+                'iv.value as variation_value',
+                'iv.product_code as variation_product_code'
             )
             ->where('srvi.sales_return_voucher_id', $id)
             ->orderBy('srvi.created_at')

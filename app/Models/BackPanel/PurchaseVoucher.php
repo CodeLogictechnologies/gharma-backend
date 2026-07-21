@@ -283,8 +283,10 @@ class PurchaseVoucher extends Model
             ->select(
                 'pvi.*',
                 'i.title as item_title',
+                'i.product_code as item_product_code',
                 'iv.attribute as variation_attribute',
-                'iv.value as variation_value'
+                'iv.value as variation_value',
+                'iv.product_code as variation_product_code'
             )
             ->where('pvi.purchase_voucher_id', $id)
             ->orderBy('pvi.created_at')

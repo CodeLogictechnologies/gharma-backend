@@ -44,6 +44,13 @@
         </div>
     </div>
 
+    {{-- Add Item Modal (triggered from "+ Add New Item" / "+ Add Product Code" inside the sales item row) --}}
+    <div class="modal fade" id="svAddItemModal" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content" id="svAddItemModalContent"></div>
+        </div>
+    </div>
+
     {{-- Delete Confirm Modal --}}
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -163,6 +170,31 @@
                     showNotification('Failed to load form. Please try again.', 'error');
                 });
             }
+
+            /* ── Helper: open the "Add/Edit Item" modal on top of the sales voucher form ──
+               Passing an itemId opens that item in edit mode (used when the row already has
+               an item selected and the user wants to add/fix its product code) instead of a
+               blank "Add Item" form. ── */
+            window.svOpenAddItemModal = function(itemId) {
+                $.get('{{ route('item.form') }}', itemId ? { id: itemId } : {})
+                    .done(function(response) {
+                        $('#svAddItemModalContent').html(response);
+
+                        var modalEl = document.getElementById('svAddItemModal');
+                        var existing = bootstrap.Modal.getInstance(modalEl);
+                        if (existing) existing.dispose();
+                        new bootstrap.Modal(modalEl, {
+                            backdrop: 'static',
+                            keyboard: false
+                        }).show();
+                    }).fail(function() {
+                        showNotification('Failed to load item form. Please try again.', 'error');
+                    });
+            };
+
+            document.getElementById('svAddItemModal').addEventListener('hidden.bs.modal', function() {
+                $('#svAddItemModalContent').html('');
+            });
 
             /* ── Add ─────────────────────────────────────────────── */
             $('#addSalesVoucher').on('click', function() {

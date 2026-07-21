@@ -975,14 +975,14 @@
         responseKey: 'category'
     },
     subCategory: {
-        url: '{{ route("category.save") }}',        // was subcategory.save
+        url: '{{ route("category.save") }}',        
         modal: '#addSubCategoryModal',
-        nameField: 'name',                            // Category controller reads "name"
+        nameField: 'name',                            
         eventName: 'subCategory:created',
-        responseKey: 'category'                        // Category controller returns "category"
+        responseKey: 'category'                        
     },
     subSubCategory: {
-        url: '{{ route("category.save") }}',          // was subsubcategory.save
+        url: '{{ route("category.save") }}',          
         modal: '#addSubSubCategoryModal',
         nameField: 'name',
         eventName: 'subSubCategory:created',

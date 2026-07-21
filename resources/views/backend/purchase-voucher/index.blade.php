@@ -165,9 +165,12 @@
                 });
             }
 
-            /* ── Helper: open the "Add Item" modal on top of the purchase voucher form ── */
-            window.pvOpenAddItemModal = function() {
-                $.get('{{ route('item.form') }}', {})
+            /* ── Helper: open the "Add/Edit Item" modal on top of the purchase voucher form ──
+               Passing an itemId opens that item in edit mode (used when the row already has
+               an item selected and the user wants to add/fix its product code) instead of a
+               blank "Add Item" form. ── */
+            window.pvOpenAddItemModal = function(itemId) {
+                $.get('{{ route('item.form') }}', itemId ? { id: itemId } : {})
                     .done(function(response) {
                         $('#pvAddItemModalContent').html(response);
 

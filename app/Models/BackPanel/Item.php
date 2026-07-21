@@ -866,6 +866,7 @@ class Item extends Model
                 ->select(
                     'id as itemid',
                     'title as itemname',
+                    'product_code',
                     'vat_status',
                     'vat_percent',
                     'excise_status',
