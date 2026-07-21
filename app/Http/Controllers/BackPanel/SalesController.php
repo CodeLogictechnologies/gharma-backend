@@ -4,6 +4,7 @@ namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
 use App\Models\BackPanel\Item;
+use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\SalesVoucher;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -69,12 +70,14 @@ class SalesController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
-            $items     = Item::getItem($post);
-            $customers = User::getUserData($post);
+            $items          = Item::getItem($post);
+            $itemVariations = Itemvariation::getProductCodes($post);
+            $customers      = User::getUserData($post);
 
             $data = [
-                'items'     => $items,
-                'customers' => $customers,
+                'items'          => $items,
+                'itemVariations' => $itemVariations,
+                'customers'      => $customers,
             ];
 
             if (!empty($request->id)) {
