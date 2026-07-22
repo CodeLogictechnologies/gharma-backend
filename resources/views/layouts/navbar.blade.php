@@ -26,6 +26,35 @@
                                 : asset('no-user.jpg');
             @endphp
 
+            <!-- Low Stock Notifications -->
+            <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-1">
+                <a class="nav-link dropdown-toggle hide-arrow position-relative" href="javascript:void(0);"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bx bx-bell bx-sm"></i>
+                    <span id="lowStockBadge"
+                        class="badge bg-danger rounded-pill position-absolute d-none"
+                        style="top: 2px; right: 2px; font-size: 0.65rem;">0</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end py-0" style="min-width: 300px;">
+                    <li class="dropdown-menu-header border-bottom">
+                        <div class="dropdown-header d-flex align-items-center py-3">
+                            <h6 class="mb-0 me-auto">Low Stock Alerts</h6>
+                        </div>
+                    </li>
+                    <li class="dropdown-menu-list" style="max-height: 320px; overflow-y: auto;">
+                        <ul class="list-unstyled m-0" id="lowStockList">
+                            <li class="dropdown-item text-center text-muted py-3">No low stock alerts</li>
+                        </ul>
+                    </li>
+                    <li class="dropdown-menu-footer border-top">
+                        <a href="{{ route('inventory') }}" class="dropdown-item d-flex justify-content-center p-2">
+                            View Stock
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <!--/ Low Stock Notifications -->
+
             <!-- User -->
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);"
@@ -84,3 +113,84 @@
         </ul>
     </div>
 </nav>
+
+<script>
+    (function () {
+        function csrfToken() {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        }
+
+        function renderLowStockAlerts(data) {
+            var badge = document.getElementById('lowStockBadge');
+            var list  = document.getElementById('lowStockList');
+            var count = data.count || 0;
+
+            if (!badge || !list) {
+                return;
+            }
+
+            if (count > 0) {
+                badge.textContent = count > 9 ? '9+' : String(count);
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+
+            list.innerHTML = '';
+
+            if (!data.items || data.items.length === 0) {
+                var empty = document.createElement('li');
+                empty.className = 'dropdown-item text-center text-muted py-3';
+                empty.textContent = 'No low stock alerts';
+                list.appendChild(empty);
+                return;
+            }
+
+            data.items.forEach(function (item) {
+                var li = document.createElement('li');
+                li.className = 'dropdown-item';
+
+                var wrap = document.createElement('div');
+                wrap.className = 'd-flex flex-column';
+
+                var title = document.createElement('span');
+                title.className = 'fw-semibold';
+                title.textContent = item.title;
+
+                var attr = document.createElement('small');
+                attr.className = 'text-muted';
+                attr.textContent = item.attribute;
+
+                var stock = document.createElement('small');
+                stock.className = 'text-danger';
+                stock.textContent = 'Remaining: ' + item.remaining + ' (Threshold: ' + item.threshold + ')';
+
+                wrap.appendChild(title);
+                wrap.appendChild(attr);
+                wrap.appendChild(stock);
+                li.appendChild(wrap);
+                list.appendChild(li);
+            });
+        }
+
+        function loadLowStockAlerts() {
+            fetch('{{ route('inventory.low-stock-alerts') }}', {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'Accept': 'application/json'
+                }
+            })
+                .then(function (res) { return res.json(); })
+                .then(renderLowStockAlerts)
+                .catch(function () {});
+        }
+
+        window.refreshLowStockAlerts = loadLowStockAlerts;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadLowStockAlerts();
+            setInterval(loadLowStockAlerts, 60000);
+        });
+    })();
+</script>

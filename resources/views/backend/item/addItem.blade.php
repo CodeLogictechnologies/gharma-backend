@@ -1912,6 +1912,10 @@
                             itemTable.ajax.reload(null, false);
                         }
 
+                        if (typeof window.refreshLowStockAlerts === 'function') {
+                            window.refreshLowStockAlerts();
+                        }
+
                         if (result.item) {
                             $(document).trigger('item:created', [result.item]);
                         }

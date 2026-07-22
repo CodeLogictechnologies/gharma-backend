@@ -281,6 +281,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/', [InventoryController::class, 'index'])->name('inventory');
             Route::post('/save', [InventoryController::class, 'save'])->name('inventory.save');
             Route::get('/variations', [InventoryController::class, 'getVariations'])->name('inventory.variations');
+            Route::get('/low-stock-alerts', [InventoryController::class, 'lowStockAlerts'])->name('inventory.low-stock-alerts');
 
             Route::post('/list', [InventoryController::class, 'list'])->name('inventory.list');
             Route::post('/view', [InventoryController::class, 'view'])->name('inventory.view');
