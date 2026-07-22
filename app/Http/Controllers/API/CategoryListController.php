@@ -123,19 +123,18 @@ class CategoryListController extends Controller
         try {
             $categoryId = $request->input('category_id');
 
-            $query = DB::table('sub_categories as s')
+            $query = DB::table('categories as s')
                 ->select(
                     's.id',
                     's.title',
                     's.slug',
                     's.status',
-                    's.category_id',
-                    DB::raw("CONCAT('" . url('storage/subcategories') . "/', s.image) as image")
+                    DB::raw("CONCAT('" . url('storage/categories') . "/', s.image) as image")
                 )
                 ->where('s.status', 'Y');
 
             if (!empty($categoryId)) {
-                $query->where('s.category_id', $categoryId);
+                $query->where('s.parent_id', $categoryId);
             }
 
             $data = $query->orderBy('s.created_at', 'asc')->get();
