@@ -241,7 +241,7 @@ class ItemController extends Controller
             $post           = $request->all();
             $post['orgid']  = session('orgid');
             $post['userid'] = session('userid');
-            $message        = 'Records saved successfully';
+            $message = !empty($request->id) ? 'Record updated successfully' : 'Record saved successfully';
 
             DB::beginTransaction();
 

@@ -225,6 +225,11 @@
         margin-left: 2px;
     }
 
+    /* ADD THIS RULE — hides the caret unless that dropdown is open */
+    .multi-select-wrapper:not(.open) .ms-caret {
+        display: none;
+    }
+
     @keyframes ms-blink {
         50% {
             opacity: 0;
@@ -959,36 +964,36 @@
         /* ─────────────────────────────────────────────
            QUICK-ADD CONFIG (must be before autoQuickSave)
         ───────────────────────────────────────────── */
-      const quickAddConfig = {
-    brand: {
-        url: '{{ route("brand.save") }}',
-        modal: '#addBrandModal',
-        nameField: 'name',
-        eventName: 'brand:created',
-        responseKey: 'brand'
-    },
-    category: {
-        url: '{{ route("category.save") }}',
-        modal: '#addCategoryModal',
-        nameField: 'name',
-        eventName: 'category:created',
-        responseKey: 'category'
-    },
-    subCategory: {
-        url: '{{ route("category.save") }}',        
-        modal: '#addSubCategoryModal',
-        nameField: 'name',                            
-        eventName: 'subCategory:created',
-        responseKey: 'category'                        
-    },
-    subSubCategory: {
-        url: '{{ route("category.save") }}',          
-        modal: '#addSubSubCategoryModal',
-        nameField: 'name',
-        eventName: 'subSubCategory:created',
-        responseKey: 'category'
-    }
-};
+        const quickAddConfig = {
+            brand: {
+                url: '{{ route("brand.save") }}',
+                modal: '#addBrandModal',
+                nameField: 'name',
+                eventName: 'brand:created',
+                responseKey: 'brand'
+            },
+            category: {
+                url: '{{ route("category.save") }}',
+                modal: '#addCategoryModal',
+                nameField: 'name',
+                eventName: 'category:created',
+                responseKey: 'category'
+            },
+            subCategory: {
+                url: '{{ route("category.save") }}',
+                modal: '#addSubCategoryModal',
+                nameField: 'name',
+                eventName: 'subCategory:created',
+                responseKey: 'category'
+            },
+            subSubCategory: {
+                url: '{{ route("category.save") }}',
+                modal: '#addSubSubCategoryModal',
+                nameField: 'name',
+                eventName: 'subSubCategory:created',
+                responseKey: 'category'
+            }
+        };
 
         /* ─────────────────────────────────────────────
            AUTO QUICK-SAVE (no modal popup)
@@ -1884,7 +1889,7 @@
             const origHtml = $btn.html();
 
             $btn.prop('disabled', true).html(
-                '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
+                // '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
             );
 
             $.ajax({
@@ -1915,7 +1920,12 @@
                             $(document).trigger('item:created', [result.item]);
                         }
 
-                        // Stay on Add Item form - don't close modal
+                        var $modalEl = $('#itemForm').closest('.modal');
+                        if ($modalEl.length) {
+                            var modalInstance = bootstrap.Modal.getInstance($modalEl[0]);
+                            if (modalInstance) modalInstance.hide();
+                        }
+
                         $btn.prop('disabled', false).html(origHtml);
                     } else {
                         showNotification(result.message || 'Something went wrong.', 'error');

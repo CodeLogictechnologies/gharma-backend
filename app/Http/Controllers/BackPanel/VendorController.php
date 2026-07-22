@@ -89,7 +89,9 @@ class VendorController extends Controller
             }
 
             $type    = 'success';
-            $message = 'Vendor saved successfully';
+            $message        = !empty($post['id'])
+                ? 'Vendor Info updated successfully'
+                : 'Vendor Info saved successfully';
 
             DB::beginTransaction();
 

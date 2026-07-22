@@ -84,21 +84,20 @@ class Driver extends Model
                 $user->assignRole($role);
 
                 $profileData = [
-                    'id'                  => (string) Str::uuid(),
-                    'user_id'             => $newUuid,
-                    'username'            => $post['username'],
-                    'first_name'          => $post['first_name'],
-                    'middle_name'         => $post['middle_name'] ?? null,
-                    'last_name'           => $post['last_name'],
-                    'phone'               => $post['phone'],
-                    'address'             => $post['address'],
-                    'gender'              => $post['gender'],
-                    'type'                => $post['type'],
-                    'company_name'        => $post['company_name'] ?? null,
-                    'tax_number'          => $post['tax_number'] ?? null,
-                    'registration_number' => $post['registration_number'] ?? null,
-                    'orgid'               => $firstOrg,
-                    'created_at'          => Carbon::now(),
+                    'id'           => (string) Str::uuid(),
+                    'user_id'      => $newUuid,
+                    'username'     => $post['username'],
+                    'first_name'   => $post['first_name'],
+                    'middle_name'  => $post['middle_name'] ?? null,
+                    'last_name'    => $post['last_name'],
+                    'phone'        => $post['phone'],
+                    'address'      => $post['address'],
+                    'gender'       => $post['gender'],
+                    'type'         => $post['type'],
+                    'company_name' => $post['company_name'] ?? null,
+                    'pan_number'   => $post['pan_number'] ?? null,
+                    'orgid'        => $firstOrg,
+                    'created_at'   => Carbon::now(),
                 ];
 
                 if ($imageName) {
@@ -143,18 +142,17 @@ class Driver extends Model
                 }
 
                 $profileData = [
-                    'username'            => $post['username'],
-                    'first_name'          => $post['first_name'],
-                    'middle_name'         => $post['middle_name'] ?? null,
-                    'last_name'           => $post['last_name'],
-                    'phone'               => $post['phone'],
-                    'address'             => $post['address'],
-                    'gender'              => $post['gender'],
-                    'type'                => $post['type'],
-                    'company_name'        => $post['company_name'] ?? null,
-                    'tax_number'          => $post['tax_number'] ?? null,
-                    'registration_number' => $post['registration_number'] ?? null,
-                    'updated_at'          => Carbon::now(),
+                    'username'     => $post['username'],
+                    'first_name'   => $post['first_name'],
+                    'middle_name'  => $post['middle_name'] ?? null,
+                    'last_name'    => $post['last_name'],
+                    'phone'        => $post['phone'],
+                    'address'      => $post['address'],
+                    'gender'       => $post['gender'],
+                    'type'         => $post['type'],
+                    'company_name' => $post['company_name'] ?? null,
+                    'pan_number'   => $post['pan_number'] ?? null,
+                    'updated_at'   => Carbon::now(),
                 ];
 
                 if ($imageName) {

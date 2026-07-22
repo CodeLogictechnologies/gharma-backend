@@ -27,6 +27,34 @@ class StoreController extends Controller
     }
 
     //function to save store
+    // public function save(SaveStoreRequest $request)
+    // {
+    //     try {
+    //         $post           = $request->all();
+    //         $post['userid'] = session('userid');
+    //         $post['orgid']  = session('orgid');
+    //         $type           = 'success';
+    //         $message        = 'Store saved successfully';
+
+    //         DB::beginTransaction();
+
+    //         if (!Store::saveData($post)) {
+    //             throw new Exception('Could not save record', 1);
+    //         }
+
+    //         DB::commit();
+    //     } catch (QueryException $e) {
+    //         DB::rollBack();
+    //         $type    = 'error';
+    //         $message = $e->getMessage();
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         $type    = 'error';
+    //         $message = $e->getMessage();
+    //     }
+
+    //     return json_encode(['type' => $type, 'message' => $message]);
+    // }
     public function save(SaveStoreRequest $request)
     {
         try {
@@ -34,7 +62,9 @@ class StoreController extends Controller
             $post['userid'] = session('userid');
             $post['orgid']  = session('orgid');
             $type           = 'success';
-            $message        = 'Store saved successfully';
+            $message        = !empty($post['id'])
+                ? 'Store updated successfully'
+                : 'Store saved successfully';
 
             DB::beginTransaction();
 

@@ -50,7 +50,8 @@ class LoyaltySetupController extends Controller
             $post['userid'] =  session('userid');
 
             $type = 'success';
-            $message = 'Records saved successfully';
+            $message = !empty($request->id) ? 'Record updated successfully' : 'Record saved successfully';
+
 
             DB::beginTransaction();
 

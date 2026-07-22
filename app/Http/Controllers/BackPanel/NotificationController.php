@@ -55,7 +55,8 @@ class NotificationController extends Controller
             $post['orgid'] = session('orgid');
             $post['userid'] = session('userid');
             $type = 'success';
-            $message = 'Nofice send successfully';
+            $message = !empty($request->id) ? 'Notification updated successfully' : 'Notification saved successfully';
+
 
             DB::beginTransaction();
 
