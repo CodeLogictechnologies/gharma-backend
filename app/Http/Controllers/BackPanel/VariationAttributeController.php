@@ -71,7 +71,9 @@ class VariationAttributeController extends Controller
             $post['updatedby'] = Auth::id();
 
             $type    = 'success';
-            $message = 'Record saved successfully';
+            $message        = !empty($post['id'])
+            ? 'Store updated successfully'
+            : 'Store saved successfully';
 
             DB::beginTransaction();
 

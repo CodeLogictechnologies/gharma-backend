@@ -49,8 +49,10 @@ class HomeTabController extends Controller
     public function save(Request $request)
     {
         try {
-            $type    = 'success';
-            $message = 'Record saved successfully.';
+            $type    = !empty($request->id) ? 'success' : 'success';
+            $message = !empty($request->id)
+                ? 'Record updated successfully.'
+                : 'Record saved successfully.';
 
             $validation = Validator::make($request->all(), [
                 'tab_name'       => 'required|string|max:255',
@@ -93,6 +95,7 @@ class HomeTabController extends Controller
         $filtereddata = $result['filteredCount'] ?? $totalrecs;
         $action = '';
         foreach ($result['data'] as $row) {
+            $action = '';
             $array[$i]['sno']            = $request->input('start', 0) + $i + 1;
             $array[$i]['tab_name']       = $row->tab_name       ?? '—';
             $array[$i]['category_names'] = '—';
@@ -111,9 +114,8 @@ class HomeTabController extends Controller
                 ? '<span style="display:inline-block;width:20px;height:20px;background:' . e($row->bg_color) . ';border-radius:4px;border:1px solid #ccc;" title="' . e($row->bg_color) . '"></span> ' . e($row->bg_color)
                 : '—';
 
-            $action .= '<a href="javascript:;" class="editHomeTab"         style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-            $action  = '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
-
+           $action .= '<a href="javascript:;" class="editHomeTab"         style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+$action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
             $array[$i]['action'] = $action;
             $i++;
         }

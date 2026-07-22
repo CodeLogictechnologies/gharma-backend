@@ -120,7 +120,9 @@ class WholesalerPriceController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
             $post['userid'] = session('userid');
-            $message = 'Records saved successfully';
+            $message        = !empty($post['id'])
+                ? 'Wholesaler updated successfully'
+                : 'Wholesaler saved successfully';
             DB::beginTransaction();
 
             if (!BackPanelWholesalerPrice::saveData($post)) {

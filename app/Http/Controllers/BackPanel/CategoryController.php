@@ -128,7 +128,8 @@ class CategoryController extends Controller
         $post['parent_id'] = $subcategoryId ?: $categoryId;
 
         $type    = 'success';
-        $message = 'Category saved successfully.';
+        $message = !empty($request->id) ? 'Category updated successfully.' : 'Category saved successfully.';
+
 
         DB::beginTransaction();
         $categoryId2 = Category::saveData($post);

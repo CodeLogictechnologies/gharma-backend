@@ -97,7 +97,9 @@ class RetailerPriceController extends Controller
             }
 
             $type = 'success';
-            $message = 'Records saved successfully';
+            $message        = !empty($post['id'])
+                ? 'Retailer updated successfully'
+                : 'Retailer saved successfully';
             DB::beginTransaction();
 
             if (!RetailerPrice::saveData($post)) {
