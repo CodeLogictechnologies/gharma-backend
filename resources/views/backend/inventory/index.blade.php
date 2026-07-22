@@ -142,11 +142,11 @@
                     {
                         data: 'stock'
                     },
-                    {
-                        data: 'remainingqty'
+                     {
+                        data: 'soldqty'
                     },
                     {
-                        data: 'soldqty'
+                        data: 'remainingqty'
                     },
                 ],
 

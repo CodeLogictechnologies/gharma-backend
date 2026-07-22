@@ -280,6 +280,34 @@ class Inventory extends Model
     //     }
     // }
 
+    public static function lowStockAlerts($orgid)
+    {
+        try {
+            $rows = DB::table('items as i')
+                ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+                ->join('purchase_voucher_items as pvi', 'pvi.variation_id', '=', 'iv.id')
+                ->leftJoin('order_details as o', 'o.variation_id', '=', 'iv.id')
+                ->where('i.orgid', $orgid)
+                ->selectRaw("
+                    iv.id as variation_id,
+                    i.id as item_id,
+                    i.title,
+                    iv.attribute,
+                    iv.value as variation_value,
+                    CAST(iv.threshold AS INTEGER) as threshold,
+                    pvi.qty - COALESCE(SUM(o.quantity), 0) AS remainingqty
+                ")
+                ->groupBy('iv.id', 'i.id', 'i.title', 'iv.attribute', 'iv.value', 'iv.threshold', 'pvi.qty')
+                ->havingRaw('(pvi.qty - COALESCE(SUM(o.quantity), 0)) < CAST(iv.threshold AS INTEGER)')
+                ->orderByRaw('(pvi.qty - COALESCE(SUM(o.quantity), 0)) asc')
+                ->get();
+
+            return $rows;
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
     public static function getData($post)
     {
         try {

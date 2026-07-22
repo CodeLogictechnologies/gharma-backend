@@ -280,6 +280,9 @@
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
                             purchaseVoucherTable.fnDraw();
+                            if (typeof window.refreshLowStockAlerts === 'function') {
+                                window.refreshLowStockAlerts();
+                            }
                             bootstrap.Modal.getInstance(document.getElementById('pvModal'))
                                 .hide();
                         } else {

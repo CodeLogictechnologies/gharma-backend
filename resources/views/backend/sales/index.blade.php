@@ -330,6 +330,9 @@
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
                             salesVoucherTable.fnDraw();
+                            if (typeof window.refreshLowStockAlerts === 'function') {
+                                window.refreshLowStockAlerts();
+                            }
                             bootstrap.Modal.getInstance(document.getElementById('svModal'))
                                 .hide();
                         } else {

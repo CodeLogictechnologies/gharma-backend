@@ -136,6 +136,26 @@ class InventoryController extends Controller
         return json_encode(array("recordsFiltered" => $filtereddata, "recordsTotal" => $totalrecs, "data" => $array));
     }
 
+    public function lowStockAlerts(Request $request)
+    {
+        $orgid = session('orgid');
+        $rows  = Inventory::lowStockAlerts($orgid);
+
+        $items = $rows->map(function ($row) {
+            return [
+                'title'     => $row->title,
+                'attribute' => ($row->attribute ?? '-') . ': ' . ($row->variation_value ?? '-'),
+                'remaining' => (int) $row->remainingqty,
+                'threshold' => (int) $row->threshold,
+            ];
+        })->values();
+
+        return response()->json([
+            'count' => $items->count(),
+            'items' => $items,
+        ]);
+    }
+
     public function view(Request $request)
     {
         try {
