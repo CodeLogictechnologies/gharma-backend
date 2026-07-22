@@ -18,14 +18,14 @@
                                     Welcome to your dashboard! Here's a summary of your sales and inventory for
                                     <strong>{{ date('F Y') }}</strong>.
                                 </p>
-                                <div class="d-flex gap-3">
+                                <div class="d-flex gap-4">
                                     <div>
                                         <small class="text-muted">Total Orders</small>
-                                        <h4>{{ $getSalesReport ? $getSalesReport->count() : 0 }}</h4>
+                                        <h4 class="mb-0">{{ $getSalesReport ? $getSalesReport->count() : 0 }}</h4>
                                     </div>
                                     {{-- <div>
                                         <small class="text-muted">Total Products</small>
-                                        <h4>{{ $getInventory ? $getInventory->count() : 0 }}</h4>
+                                        <h4 class="mb-0">{{ $getInventory ? $getInventory->count() : 0 }}</h4>
                                     </div> --}}
                                 </div>
                             </div>
@@ -45,7 +45,7 @@
             <div class="col-lg-4 col-md-4 order-1">
                 <div class="row">
                     <div class="col-lg-6 col-md-12 col-6 mb-4">
-                        <div class="card">
+                        <div class="card h-100">
                             <div class="card-body">
                                 <div class="card-title d-flex align-items-start justify-content-between">
                                     <div class="avatar flex-shrink-0">
@@ -65,7 +65,7 @@
                         </div>
                     </div>
                     <div class="col-lg-6 col-md-12 col-6 mb-4">
-                        <div class="card">
+                        <div class="card h-100">
                             <div class="card-body">
                                 <div class="card-title d-flex align-items-start justify-content-between">
                                     <div class="avatar flex-shrink-0">
@@ -92,9 +92,11 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title m-0">Sales Overview ({{ date('F Y') }})</h5>
-                        <div>
-                            <button class="btn btn-sm btn-outline-primary" onclick="updateChart('month')">Month</button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="updateChart('week')">Week</button>
+                        <div class="btn-group" role="group">
+                            <button type="button" id="btn-month" class="btn btn-sm btn-primary"
+                                onclick="updateChart('month')">Month</button>
+                            {{-- <button type="button" id="btn-week" class="btn btn-sm btn-outline-primary"
+                                onclick="updateChart('week')">Week</button> --}}
                         </div>
                     </div>
                     <div class="card-body">
@@ -107,7 +109,7 @@
             <div class="col-12 col-md-8 col-lg-4 order-3 order-md-2">
                 <div class="row">
                     <div class="col-6 mb-4">
-                        <div class="card">
+                        <div class="card h-100">
                             <div class="card-body">
                                 <div class="card-title d-flex align-items-start justify-content-between">
                                     <div class="avatar flex-shrink-0">
@@ -124,7 +126,7 @@
                         </div>
                     </div>
                     <div class="col-6 mb-4">
-                        <div class="card">
+                        <div class="card h-100">
                             <div class="card-body">
                                 <div class="card-title d-flex align-items-start justify-content-between">
                                     <div class="avatar flex-shrink-0">
@@ -134,7 +136,11 @@
                                 </div>
                                 <span class="fw-semibold d-block mb-1">Low Stock Items</span>
                                 <h3 class="card-title mb-2">
-                                    {{ $getInventory? $getInventory->filter(function ($item) {return isset($item->available_qty) && isset($item->threshold) && $item->available_qty < $item->threshold;})->count(): 0 }}
+                                    {{ $getInventory
+                                        ? $getInventory->filter(function ($item) {
+                                                return isset($item->available_qty) && isset($item->threshold) && $item->available_qty < $item->threshold;
+                                            })->count()
+                                        : 0 }}
                                 </h3>
                                 <small class="text-danger fw-semibold">Below threshold</small>
                             </div>
@@ -145,24 +151,20 @@
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between flex-sm-row flex-column gap-3">
-                                    <div class="d-flex flex-sm-column flex-row align-items-start justify-content-between">
+                                    <div
+                                        class="d-flex flex-sm-column flex-row align-items-start justify-content-between w-100">
                                         <div class="card-title">
-                                            <h5 class="text-nowrap mb-2">Inventory Value</h5>
-                                            <span class="badge bg-label-primary rounded-pill">Current Stock</span>
+                                            <h5 class="text-nowrap mb-2">Available Stock</h5>
+                                            <span class="badge bg-label-primary rounded-pill">Current Inventory</span>
                                         </div>
                                         <div class="mt-sm-auto">
                                             <small class="text-success text-nowrap fw-semibold">
                                                 <i class="bx bx-chevron-up"></i>
-                                                {{ $getInventory ? $getInventory->sum('stock') : 0 }} units
+                                                {{ $getInventory ? $getInventory->sum('sold_qty') : 0 }} units sold
                                             </small>
-                                            <h3 class="mb-0">NPR
-                                                {{ number_format(
-                                                    $getInventory
-                                                        ? $getInventory->sum(function ($item) {
-                                                            return isset($item->stock) ? $item->stock * 100 : 0;
-                                                        })
-                                                        : 0,
-                                                ) }}
+                                            <h3 class="mb-0">
+                                                {{ number_format($getInventory ? $getInventory->sum('available_qty') : 0) }}
+                                                <small class="fs-6 text-muted">units available</small>
                                             </h3>
                                         </div>
                                     </div>
@@ -177,108 +179,120 @@
         <div class="row">
             <!-- Inventory Status Chart -->
             {{-- <div class="col-md-6 col-lg-4 col-xl-4 order-0 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex align-items-center justify-content-between pb-0">
-                    <div class="card-title mb-0">
-                        <h5 class="m-0 me-2">Inventory Status</h5>
-                        <small class="text-muted">{{ $getInventory ? $getInventory->count() : 0 }} items tracked</small>
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center justify-content-between pb-0">
+                        <div class="card-title mb-0">
+                            <h5 class="m-0 me-2">Inventory Status</h5>
+                            <small class="text-muted">{{ $getInventory ? $getInventory->count() : 0 }} items tracked</small>
+                        </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="inventoryChart" height="200"></canvas>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Total Stock: <strong>{{ $getInventory ? $getInventory->sum('stock') : 0 }}</strong></span>
-                            <span>Available: <strong class="text-success">{{ $getInventory ? $getInventory->sum('available_qty') : 0 }}</strong></span>
-                            <span>Low Stock: <strong class="text-danger">{{ $getInventory ? $getInventory->filter(function($item) { return isset($item->available_qty) && isset($item->threshold) && $item->available_qty < $item->threshold; })->count() : 0 }}</strong></span>
+                    <div class="card-body">
+                        <canvas id="inventoryChart" height="200"></canvas>
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                <span>Total Stock: <strong>{{ $getInventory ? $getInventory->sum('stock') : 0 }}</strong></span>
+                                <span>Available: <strong class="text-success">{{ $getInventory ? $getInventory->sum('available_qty') : 0 }}</strong></span>
+                                <span>Low Stock: <strong class="text-danger">{{ $getInventory ? $getInventory->filter(function ($item) {
+                                    return isset($item->available_qty) && isset($item->threshold) && $item->available_qty < $item->threshold;
+                                })->count() : 0 }}</strong></span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div> --}}
+            </div> --}}
 
             <!-- Top Selling Products Chart -->
             {{-- <div class="col-md-6 col-lg-4 order-1 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title m-0 me-2">Top Selling Products</h5>
-                    <small class="text-muted">By quantity sold</small>
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title m-0 me-2">Top Selling Products</h5>
+                        <small class="text-muted">By quantity sold</small>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="topProductsChart" height="200"></canvas>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="topProductsChart" height="200"></canvas>
-                </div>
-            </div>
-        </div> --}}
+            </div> --}}
 
             <!-- Recent Sales -->
-            {{-- <div class="col-md-6 col-lg-4 order-2 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="card-title m-0 me-2">Recent Sales</h5>
-                    <span class="text-muted small">{{ $getSalesReport ? $getSalesReport->count() : 0 }} total</span>
-                </div>
-                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                    <ul class="p-0 m-0" style="list-style: none;">
-                        @if ($getSalesReport && $getSalesReport->count() > 0)
-                            @foreach ($getSalesReport->take(6) as $sale)
-                                <li class="d-flex mb-3 pb-1 border-bottom">
-                                    <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-                                        <div class="me-2">
-                                            <small class="text-muted d-block mb-1">{{ isset($sale->order_date) ? \Carbon\Carbon::parse($sale->order_date)->format('d M Y') : 'N/A' }}</small>
-                                            <h6 class="mb-0">{{ isset($sale->product_name) ? Str::limit($sale->product_name, 20) : 'Unknown Product' }}</h6>
-                                            <small class="text-muted">Qty: {{ $sale->quantity ?? 0 }}</small>
+            <div class="col-md-6 col-lg-4 order-2 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h5 class="card-title m-0 me-2">Recent Sales</h5>
+                        <span class="text-muted small">{{ $getSalesReport ? $getSalesReport->count() : 0 }} total</span>
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        <ul class="p-0 m-0" style="list-style: none;">
+                            @if ($getSalesReport && $getSalesReport->count() > 0)
+                                @foreach ($getSalesReport->sortByDesc('order_date')->take(6) as $sale)
+                                    <li class="d-flex mb-3 pb-1 border-bottom">
+                                        <div
+                                            class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                                            <div class="me-2">
+                                                <small
+                                                    class="text-muted d-block mb-1">{{ isset($sale->order_date) ? \Carbon\Carbon::parse($sale->order_date)->format('d M Y') : 'N/A' }}</small>
+                                                <h6 class="mb-0">
+                                                    {{ isset($sale->product_name) ? Str::limit($sale->product_name, 20) : 'Unknown Product' }}
+                                                </h6>
+                                                <small class="text-muted">Qty: {{ $sale->quantity ?? 0 }}</small>
+                                            </div>
+                                            <div class="user-progress d-flex align-items-center gap-1">
+                                                <h6 class="mb-0 text-success">NPR
+                                                    {{ number_format($sale->total_price ?? 0, 2) }}</h6>
+                                            </div>
                                         </div>
-                                        <div class="user-progress d-flex align-items-center gap-1">
-                                            <h6 class="mb-0 text-success">NPR {{ number_format($sale->total_price ?? 0, 2) }}</h6>
-                                        </div>
-                                    </div>
-                                </li>
-                            @endforeach
-                        @else
-                            <li class="text-center text-muted py-4">No recent sales</li>
-                        @endif
-                    </ul>
+                                    </li>
+                                @endforeach
+                            @else
+                                <li class="text-center text-muted py-4">No recent sales</li>
+                            @endif
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div> --}}
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Get data from PHP
-            const salesData = @json($getSalesReport ? $getSalesReport->toArray() : []);
-            const inventoryData = @json($getInventory ? $getInventory->toArray() : []);
+            const salesData = @json($getSalesReport ? $getSalesReport->values() : []);
+            const inventoryData = @json($getInventory ? $getInventory->values() : []);
 
-            console.log('Sales Data:', salesData);
-            console.log('Inventory Data:', inventoryData);
-
-            // ── Sales Chart ──────────────────────────────────────────────
-            const salesCtx = document.getElementById('salesChart').getContext('2d');
-
-            // Prepare sales data by date
-            const salesByDate = {};
-            if (salesData && salesData.length > 0) {
-                salesData.forEach(function(item) {
+            // ── Helpers ──────────────────────────────────────────────
+            function buildSalesByDate(data) {
+                const byDate = {};
+                data.forEach(function(item) {
                     if (item.order_date) {
                         const date = new Date(item.order_date);
                         const dateStr = date.toLocaleDateString('en-US', {
                             day: 'numeric',
                             month: 'short'
                         });
-                        salesByDate[dateStr] = (salesByDate[dateStr] || 0) + parseFloat(item.total_price ||
-                            0);
+                        byDate[dateStr] = (byDate[dateStr] || 0) + parseFloat(item.total_price || 0);
                     }
+                });
+                return byDate;
+            }
+
+            function last7DaysFilter(data) {
+                const cutoff = new Date();
+                cutoff.setDate(cutoff.getDate() - 7);
+                return data.filter(function(item) {
+                    return item.order_date && new Date(item.order_date) >= cutoff;
                 });
             }
 
-            const salesLabels = Object.keys(salesByDate);
-            const salesValues = Object.values(salesByDate);
+            // ── Sales Chart ──────────────────────────────────────────────
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            let currentSalesData = salesData;
+            let salesByDate = buildSalesByDate(currentSalesData);
+            let salesLabels = Object.keys(salesByDate);
+            let salesValues = Object.values(salesByDate);
 
-            // If no data, show placeholder
             if (salesLabels.length === 0) {
-                salesLabels.push('No Data');
-                salesValues.push(0);
+                salesLabels = ['No Data'];
+                salesValues = [0];
             }
 
             const salesChart = new Chart(salesCtx, {
@@ -334,22 +348,19 @@
             let lowStockCount = 0;
             let outStockCount = 0;
 
-            if (inventoryData && inventoryData.length > 0) {
-                inventoryData.forEach(function(item) {
-                    const available = parseFloat(item.available_qty || 0);
-                    const threshold = parseFloat(item.threshold || 0);
+            inventoryData.forEach(function(item) {
+                const available = parseFloat(item.available_qty || 0);
+                const threshold = parseFloat(item.threshold || 0);
 
-                    if (available <= 0) {
-                        outStockCount++;
-                    } else if (available < threshold) {
-                        lowStockCount++;
-                    } else {
-                        inStockCount++;
-                    }
-                });
-            }
+                if (available <= 0) {
+                    outStockCount++;
+                } else if (available < threshold) {
+                    lowStockCount++;
+                } else {
+                    inStockCount++;
+                }
+            });
 
-            // If no inventory data, show placeholder
             if (inStockCount === 0 && lowStockCount === 0 && outStockCount === 0) {
                 inStockCount = 1;
             }
@@ -384,33 +395,27 @@
             // ── Top Products Chart ──────────────────────────────────────
             const prodCtx = document.getElementById('topProductsChart').getContext('2d');
 
-            // Group and sort products by quantity sold
             const productGroups = {};
-            if (salesData && salesData.length > 0) {
-                salesData.forEach(function(item) {
-                    const name = item.product_name || 'Unknown';
-                    const qty = parseFloat(item.quantity || 0);
-                    if (name) {
-                        productGroups[name] = (productGroups[name] || 0) + qty;
-                    }
-                });
-            }
+            salesData.forEach(function(item) {
+                const name = item.product_name || 'Unknown';
+                const qty = parseFloat(item.quantity || 0);
+                productGroups[name] = (productGroups[name] || 0) + qty;
+            });
 
             const sortedProducts = Object.entries(productGroups)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5);
 
-            const productLabels = sortedProducts.map(function(p) {
+            let productLabels = sortedProducts.map(function(p) {
                 return p[0].length > 15 ? p[0].substring(0, 15) + '...' : p[0];
             });
-            const productData = sortedProducts.map(function(p) {
+            let productData = sortedProducts.map(function(p) {
                 return p[1];
             });
 
-            // If no product data, show placeholder
             if (productLabels.length === 0) {
-                productLabels.push('No Data');
-                productData.push(0);
+                productLabels = ['No Data'];
+                productData = [0];
             }
 
             new Chart(prodCtx, {
@@ -427,13 +432,7 @@
                             'rgba(255, 87, 34, 0.8)',
                             'rgba(156, 39, 176, 0.8)'
                         ],
-                        borderColor: [
-                            '#4CAF50',
-                            '#2196F3',
-                            '#FFC107',
-                            '#FF5722',
-                            '#9C27B0'
-                        ],
+                        borderColor: ['#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0'],
                         borderWidth: 2
                     }]
                 },
@@ -456,14 +455,28 @@
                 }
             });
 
-            // ── Update Chart Function ──────────────────────────────────
+            // ── Period Toggle (Month / Week) ────────────────────────────
             window.updateChart = function(period) {
-                // You can implement AJAX call here to fetch data for different periods
-                // Example: fetch('/dashboard/chart-data?period=' + period)
-                // Then update the chart with new data
-                alert('Chart will update for: ' + period);
-            };
+                document.getElementById('btn-month').classList.toggle('btn-primary', period === 'month');
+                document.getElementById('btn-month').classList.toggle('btn-outline-primary', period !==
+                'month');
+                document.getElementById('btn-week').classList.toggle('btn-primary', period === 'week');
+                document.getElementById('btn-week').classList.toggle('btn-outline-primary', period !== 'week');
 
+                const filtered = period === 'week' ? last7DaysFilter(salesData) : salesData;
+                const grouped = buildSalesByDate(filtered);
+                let labels = Object.keys(grouped);
+                let values = Object.values(grouped);
+
+                if (labels.length === 0) {
+                    labels = ['No Data'];
+                    values = [0];
+                }
+
+                salesChart.data.labels = labels;
+                salesChart.data.datasets[0].data = values;
+                salesChart.update();
+            };
         });
     </script>
 

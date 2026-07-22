@@ -13,24 +13,26 @@ class BrandController extends Controller
     public function index(Request $request, $brandid = null)
     {
         try {
-            $payload = JWTAuth::parseToken()->getPayload();
-            $profile = $payload->get('profile');
+            // $payload = JWTAuth::parseToken()->getPayload();
+            // $profile = $payload->get('profile');
 
-            $orgid = $profile['orgid'] ?? null;
+            // $orgid = $profile['orgid'] ?? null;
 
-            if (empty($orgid)) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'orgid not found in token.',
-                    'data'    => []
-                ], 400);
-            }
+            // if (empty($orgid)) {
+            //     return response()->json([
+            //         'status'  => false,
+            //         'message' => 'orgid not found in token.',
+            //         'data'    => []
+            //     ], 400);
+            // }
+
+            $orgid = 1;
 
             $params = ['orgid' => $orgid];
 
-            if (!empty($brandid)) {
-                $params['brandid'] = $brandid;
-            }
+            // if (!empty($brandid)) {
+            //     $params['brandid'] = $brandid;
+            // }
 
             $brands = Brand::getBrand($params);
 

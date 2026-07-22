@@ -182,7 +182,7 @@ class Brand extends Model
         try {
             $query = DB::table('brands')
                 ->select('id', 'name', 'description', 'logo', 'slug')
-                ->where('orgid', $post['orgid'])
+                // ->where('orgid', $post['orgid'])
                 ->where('status', 'Y');
 
             if (!empty($post['brandid'])) {
