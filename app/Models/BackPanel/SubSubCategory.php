@@ -17,42 +17,96 @@ class SubSubCategory extends Model
     protected $keyType = 'string';
 
     // function to save sub sub category
+    // public static function saveData($post)
+    // {
+    //     try {
+
+    //         $imageName = null;
+
+    //         //  Handle Image Upload
+    //         if (!empty($post['image'])) {
+    //             $file = $post['image'];
+
+    //             // Create unique name
+    //             $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+
+    //             // Move image to public folder
+    //             $file->storeAs('subsubcategories', $imageName, 'public');
+    //         }
+
+    //         $dataArray = [
+    //             'title' => $post['title'],
+    //             'slug' => Str::slug($post['title']) . '-' . time(),
+    //             'status' => 'Y',
+    //             'orgid' => $post['orgid'],
+    //             'subcategory_id' => $post['subcategory_id'] ?? null,
+    //         ];
+
+    //         // Save image if exists
+    //         if ($imageName) {
+    //             $dataArray['image'] = $imageName;
+    //         }
+
+    //         if (!empty($post['id'])) {
+
+    //             //  Update case
+    //             $oldData = SubSubCategory::find($post['id']);
+
+    //             // Delete old image if new uploaded
+    //             if ($imageName && $oldData && $oldData->image) {
+    //                 $oldPath = storage_path('app/public/subsubcategories/' . $oldData->image);
+    //                 if (File::exists($oldPath)) {
+    //                     File::delete($oldPath);
+    //                 }
+    //             }
+
+    //             $dataArray['updated_at'] = Carbon::now();
+
+    //             if (!SubSubCategory::where('id', $post['id'])->update($dataArray)) {
+    //                 throw new \Exception("Couldn't update Records");
+    //             }
+    //         } else {
+
+    //             $dataArray['id'] = (string) Str::uuid();
+
+    //             $dataArray['created_at'] = Carbon::now();
+
+    //             if (!SubSubCategory::insert($dataArray)) {
+    //                 throw new \Exception("Couldn't Save Records");
+    //             }
+    //         }
+
+    //         return true;
+    //     } catch (\Exception $e) {
+    //         throw $e;
+    //     }
+    // }
     public static function saveData($post)
     {
         try {
-
             $imageName = null;
 
-            //  Handle Image Upload
             if (!empty($post['image'])) {
                 $file = $post['image'];
-
-                // Create unique name
                 $imageName = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-                // Move image to public folder
                 $file->storeAs('subsubcategories', $imageName, 'public');
             }
 
             $dataArray = [
-                'title' => $post['title'],
-                'slug' => Str::slug($post['title']) . '-' . time(),
-                'status' => 'Y',
-                'orgid' => $post['orgid'],
+                'title'          => $post['title'],
+                'slug'           => Str::slug($post['title']) . '-' . time(),
+                'status'         => 'Y',
+                'orgid'          => $post['orgid'],
                 'subcategory_id' => $post['subcategory_id'] ?? null,
             ];
 
-            // Save image if exists
             if ($imageName) {
                 $dataArray['image'] = $imageName;
             }
 
             if (!empty($post['id'])) {
-
-                //  Update case
                 $oldData = SubSubCategory::find($post['id']);
 
-                // Delete old image if new uploaded
                 if ($imageName && $oldData && $oldData->image) {
                     $oldPath = storage_path('app/public/subsubcategories/' . $oldData->image);
                     if (File::exists($oldPath)) {
@@ -65,18 +119,19 @@ class SubSubCategory extends Model
                 if (!SubSubCategory::where('id', $post['id'])->update($dataArray)) {
                     throw new \Exception("Couldn't update Records");
                 }
+
+                return $post['id'];
             } else {
-
-                $dataArray['id'] = (string) Str::uuid();
-
+                $newId = (string) Str::uuid();
+                $dataArray['id'] = $newId;
                 $dataArray['created_at'] = Carbon::now();
 
                 if (!SubSubCategory::insert($dataArray)) {
                     throw new \Exception("Couldn't Save Records");
                 }
-            }
 
-            return true;
+                return $newId;
+            }
         } catch (\Exception $e) {
             throw $e;
         }

@@ -37,6 +37,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
+                        <th>Product Code</th>
                         <th>Item</th>
                         <th>Variation</th>
                         <th>Qty</th>
@@ -57,6 +58,7 @@
                         @endphp
                         <tr>
                             <td>{{ $i + 1 }}</td>
+                            <td>{{ $line->variation_product_code ?: ($line->item_product_code ?: '-') }}</td>
                             <td>{{ $line->title }}</td>
                             <td>{{ $line->value ?? '-' }}</td>
                             <td>{{ $line->quantity }}</td>
@@ -118,37 +120,37 @@
                     @endphp
 
                     <tr>
-                        <th colspan="7" class="text-end">Before Discount</th>
+                        <th colspan="8" class="text-end">Before Discount</th>
                         <th>{{ number_format($beforeDiscountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="7" class="text-end">Discount</th>
+                        <th colspan="8" class="text-end">Discount</th>
                         <th>- {{ number_format($discountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="7" class="text-end">Extra Discount</th>
+                        <th colspan="8" class="text-end">Extra Discount</th>
                         <th>- {{ number_format($extraDiscountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="7" class="text-end">After Discount</th>
+                        <th colspan="8" class="text-end">After Discount</th>
                         <th>{{ number_format($afterDiscountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="7" class="text-end">Excise</th>
+                        <th colspan="8" class="text-end">Excise</th>
                         <th>{{ number_format($exciseTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="7" class="text-end">VAT</th>
+                        <th colspan="8" class="text-end">VAT</th>
                         <th>{{ number_format($vatTotal, 2) }}</th>
                     </tr>
 
                     <tr class="table-primary fw-bold">
-                        <th colspan="7" class="text-end">Grand Total</th>
+                        <th colspan="8" class="text-end">Grand Total</th>
                         <th>{{ number_format($grandTotal, 2) }}</th>
                     </tr>
                 </tfoot>

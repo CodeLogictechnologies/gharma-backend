@@ -4,6 +4,7 @@ namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
 use App\Models\BackPanel\Item;
+use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\PurchaseReturnVoucher;
 use App\Models\BackPanel\PurchaseVoucher;
 use App\Models\BackPanel\Vendor;
@@ -98,12 +99,14 @@ class PurchaseReturnController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
-            $items   = Item::getItem($post);
-            $vendors = Vendor::getVendor($post);
+            $items          = Item::getItem($post);
+            $itemVariations = Itemvariation::getProductCodes($post);
+            $vendors        = Vendor::getVendor($post);
 
             $data = [
-                'items'   => $items,
-                'vendors' => $vendors,
+                'items'          => $items,
+                'itemVariations' => $itemVariations,
+                'vendors'        => $vendors,
             ];
 
             if (!empty($request->id)) {

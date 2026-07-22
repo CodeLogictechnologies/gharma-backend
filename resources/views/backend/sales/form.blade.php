@@ -72,9 +72,10 @@
         </style>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="svItemsTable"
-                style="min-width:1090px; table-layout:fixed;">
+                style="min-width:1250px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
+                    <col style="width:160px;">
                     <col style="width:190px;">
                     <col style="width:170px;">
                     <col style="width:110px;">
@@ -88,6 +89,7 @@
                 <thead class="table-light">
                     <tr class="text-nowrap">
                         <th>#</th>
+                        <th>Product Code</th>
                         <th>Item <span class="text-danger">*</span></th>
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
@@ -193,11 +195,128 @@
         @endforeach
 
         var itemOptionsHtml = '<option value="">-- Item --</option>';
+        itemOptionsHtml += '<option value="__add_new_item__">+ Add New Item</option>';
         @foreach ($items as $item)
             itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
         @endforeach
 
+        /* ── Product Code dropdown: items + itemvariations, keyed "i:<item_id>" / "v:<variation_id>" ── */
+        var productCodeIndex = {};
+        var productCodeOptionsHtml = '<option value="">-- Product Code --</option>';
+        productCodeOptionsHtml += '<option value="__add_product_code__">+ Add Product Code</option>';
+        @foreach ($items as $item)
+            @if (!empty($item->product_code))
+                productCodeIndex['i:{{ $item->itemid }}'] = {
+                    item_id: '{{ $item->itemid }}',
+                    variation_id: null
+                };
+                productCodeOptionsHtml += '<option value="i:{{ $item->itemid }}">{{ addslashes($item->product_code) }}</option>';
+            @endif
+        @endforeach
+        @foreach ($itemVariations as $iv)
+            productCodeIndex['v:{{ $iv->variationid }}'] = {
+                item_id: '{{ $iv->itemid }}',
+                variation_id: '{{ $iv->variationid }}'
+            };
+            productCodeOptionsHtml += '<option value="v:{{ $iv->variationid }}">{{ addslashes($iv->product_code) }}</option>';
+        @endforeach
+
+        function findProductCodeValue(itemId, variationId) {
+            if (variationId && productCodeIndex['v:' + variationId]) {
+                return 'v:' + variationId;
+            }
+            if (itemId && productCodeIndex['i:' + itemId]) {
+                return 'i:' + itemId;
+            }
+            return '';
+        }
+
         var rowIndex = 0;
+        var pendingItemRow = null;
+        var suppressItemChange = false;
+        var suppressProductCodeChange = false;
+
+        function escapeHtml(str) {
+            return $('<div>').text(str == null ? '' : str).html();
+        }
+
+        function addNewItemOption(item) {
+            if (!item || !item.itemid) return;
+
+            itemsMeta[item.itemid] = {
+                vat_status: item.vat_status,
+                vat_percent: parseFloat(item.vat_percent) || 0,
+                excise_status: item.excise_status,
+                excise_type: item.excise_type,
+                excise_percentage: item.excise_percentage,
+                excise_value: item.excise_value
+            };
+
+            var alreadyListed = itemOptionsHtml.indexOf('value="' + item.itemid + '"') !== -1;
+            if (!alreadyListed) {
+                var optionHtml = '<option value="' + item.itemid + '">' + escapeHtml(item.itemname) +
+                    '</option>';
+                itemOptionsHtml = itemOptionsHtml.replace('<option value="__add_new_item__">+ Add New Item</option>',
+                    '<option value="__add_new_item__">+ Add New Item</option>' + optionHtml);
+
+                $('.item-select').each(function() {
+                    if ($(this).find('option[value="' + item.itemid + '"]').length === 0) {
+                        $(this).find('option[value="__add_new_item__"]').after(optionHtml);
+                    }
+                });
+            }
+
+            if (item.product_code && !productCodeIndex['i:' + item.itemid]) {
+                productCodeIndex['i:' + item.itemid] = {
+                    item_id: item.itemid,
+                    variation_id: null
+                };
+                var pcOptionHtml = '<option value="i:' + item.itemid + '">' + escapeHtml(item.product_code) +
+                    '</option>';
+                productCodeOptionsHtml += pcOptionHtml;
+                $('.product-code-select').each(function() {
+                    if ($(this).find('option[value="i:' + item.itemid + '"]').length === 0) {
+                        $(this).append(pcOptionHtml);
+                    }
+                });
+            }
+        }
+
+        function itemSelectMatcher(params, data) {
+            if (data.id === '__add_new_item__') return data;
+            if ($.trim(params.term) === '') return data;
+            if (typeof data.text === 'undefined') return null;
+            return data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1 ? data : null;
+        }
+
+        function productCodeSelectMatcher(params, data) {
+            if (data.id === '__add_product_code__') return data;
+            if ($.trim(params.term) === '') return data;
+            if (typeof data.text === 'undefined') return null;
+            return data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1 ? data : null;
+        }
+
+        function initItemSelect($tr) {
+            $tr.find('.item-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Item --',
+                width: '100%',
+                dropdownParent: $('#svModal'),
+                minimumResultsForSearch: 0,
+                matcher: itemSelectMatcher
+            });
+        }
+
+        function initProductCodeSelect($tr) {
+            $tr.find('.product-code-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Product Code --',
+                width: '100%',
+                dropdownParent: $('#svModal'),
+                minimumResultsForSearch: 0,
+                matcher: productCodeSelectMatcher
+            });
+        }
 
         function round2(n) {
             return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -207,6 +326,7 @@
             return '' +
                 '<tr class="item-row align-middle" data-index="' + idx + '">' +
                 '<td class="row-no">' + (idx + 1) + '</td>' +
+                '<td><select class="form-select product-code-select">' + productCodeOptionsHtml + '</select></td>' +
                 '<td>' +
                 '<select name="items[' + idx + '][item_id]" class="form-select item-select" data-required>' +
                 itemOptionsHtml + '</select>' +
@@ -250,10 +370,11 @@
             $tr.find('.excise-col').text(exciseText);
         }
 
-        function loadVariationsForRow($tr, itemId, selectedVariationId) {
+        function loadVariationsForRow($tr, itemId, selectedVariationId, callback) {
             var $varSelect = $tr.find('.variation-select');
             if (!itemId) {
                 $varSelect.html('<option value="">-- None --</option>').prop('disabled', false);
+                if (typeof callback === 'function') callback();
                 return;
             }
             $varSelect.html('<option value="">Loading...</option>').prop('disabled', true);
@@ -270,10 +391,19 @@
                             .attribute + ': ' : '') + v.value + '</option>';
                     });
                     $varSelect.html(html).prop('disabled', false);
+                    if (typeof callback === 'function') callback();
                 })
                 .fail(function() {
                     $varSelect.html('<option value="">Failed to load</option>').prop('disabled', false);
                 });
+        }
+
+        function syncProductCodeSelect($tr, itemId, variationId) {
+            var val = findProductCodeValue(itemId, variationId);
+            suppressProductCodeChange = true;
+            $tr.find('.product-code-select').val(val).trigger('change');
+            suppressProductCodeChange = false;
+            $tr.data('lastProductCode', val);
         }
 
         /* ── Customer-type-aware item pricing (retailer flat/discounted, wholesaler qty-tiered) ── */
@@ -375,6 +505,16 @@
 
             if (prefill.item_id) {
                 $tr.find('.item-select').val(prefill.item_id);
+                $tr.data('lastItemId', prefill.item_id);
+                var pcVal = findProductCodeValue(prefill.item_id, prefill.variation_id);
+                $tr.find('.product-code-select').val(pcVal);
+                $tr.data('lastProductCode', pcVal);
+            }
+
+            initItemSelect($tr);
+            initProductCodeSelect($tr);
+
+            if (prefill.item_id) {
                 applyItemTaxInfo($tr, prefill.item_id);
                 loadVariationsForRow($tr, prefill.item_id, prefill.variation_id);
             }
@@ -470,15 +610,86 @@
 
         /* ── Row events ───────────────────────────────────────────── */
         $(document).on('change', '.item-select', function() {
+            if (suppressItemChange) return;
+
             var $tr = $(this).closest('tr');
             var itemId = $(this).val();
+
+            if (itemId === '__add_new_item__') {
+                pendingItemRow = $tr;
+                var existingItemId = $tr.data('lastItemId');
+
+                suppressItemChange = true;
+                $(this).val(existingItemId || '').trigger('change');
+                suppressItemChange = false;
+
+                if (typeof window.svOpenAddItemModal === 'function') {
+                    window.svOpenAddItemModal(existingItemId || null);
+                }
+                return;
+            }
+
+            $tr.data('lastItemId', itemId);
             applyItemTaxInfo($tr, itemId);
             loadVariationsForRow($tr, itemId, null);
+            syncProductCodeSelect($tr, itemId, null);
             recalcAll();
         });
 
         $(document).on('change', '.variation-select', function() {
-            applyAutoRate($(this).closest('tr'));
+            var $tr = $(this).closest('tr');
+            var itemId = $tr.find('.item-select').val();
+            var variationId = $(this).val();
+            syncProductCodeSelect($tr, itemId, variationId);
+            applyAutoRate($tr);
+        });
+
+        $(document).on('change', '.product-code-select', function() {
+            if (suppressProductCodeChange) return;
+
+            var $tr = $(this).closest('tr');
+            var val = $(this).val();
+
+            if (val === '__add_product_code__') {
+                pendingItemRow = $tr;
+                var existingItemId = $tr.data('lastItemId');
+
+                suppressProductCodeChange = true;
+                $(this).val($tr.data('lastProductCode') || '').trigger('change');
+                suppressProductCodeChange = false;
+
+                if (typeof window.svOpenAddItemModal === 'function') {
+                    window.svOpenAddItemModal(existingItemId || null);
+                }
+                return;
+            }
+
+            var ref = productCodeIndex[val];
+            if (!ref) return;
+
+            $tr.data('lastProductCode', val);
+
+            suppressItemChange = true;
+            $tr.find('.item-select').val(ref.item_id).trigger('change');
+            suppressItemChange = false;
+
+            $tr.data('lastItemId', ref.item_id);
+            applyItemTaxInfo($tr, ref.item_id);
+            loadVariationsForRow($tr, ref.item_id, ref.variation_id, function() {
+                applyAutoRate($tr);
+            });
+            recalcAll();
+        });
+
+        /* ── New item created from the nested "Add Item" modal ─────── */
+        $(document).off('item:created.sv').on('item:created.sv', function(e, item) {
+            addNewItemOption(item);
+
+            if (pendingItemRow && $.contains(document, pendingItemRow[0])) {
+                pendingItemRow.data('lastItemId', item.itemid);
+                pendingItemRow.find('.item-select').val(item.itemid).trigger('change');
+            }
+            pendingItemRow = null;
         });
 
         $(document).on('input change', '.qty-input', function() {

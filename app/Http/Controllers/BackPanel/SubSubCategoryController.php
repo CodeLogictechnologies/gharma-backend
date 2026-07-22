@@ -32,54 +32,105 @@ class SubSubCategoryController extends Controller
     }
 
     //function to save sub sub category
+    // public function save(Request $request)
+    // {
+    //     try {
+
+    //         $rules = [
+    //             'title' => 'required|min:3|max:255',
+    //             'subcategory' => 'required',
+    //         ];
+    //         if (empty($request->id)) {
+    //             $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
+    //         }
+
+    //         $message = [
+    //             'title.required' => 'Please enter sub sub category title.',
+    //             'subcategory.required' => 'Please select sub category.',
+    //         ];
+
+    //         $validation = Validator::make($request->all(), $rules, $message);
+
+    //         if ($validation->fails()) {
+    //             throw new Exception($validation->errors()->first(), 1);
+    //         }
+
+    //         $post = $request->all();
+    //         $post['orgid'] =  session('orgid');
+    //         $post['subcategory_id'] = $request->subcategory;
+
+    //         $type = 'success';
+    //         $message = 'Records saved successfully';
+    //         DB::beginTransaction();
+
+    //         if (!SubSubCategory::saveData($post)) {
+    //             throw new Exception('Could not save record', 1);
+    //         }
+    //         DB::commit();
+    //     } catch (QueryException $e) {
+    //         DB::rollBack();
+    //         $type = 'error';
+    //         $message = $this->queryMessage;
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         $type = 'error';
+    //         $message = $e->getMessage();
+    //     }
+    //     return json_encode(['type' => $type, 'message' => $message]);
+    // }
+
     public function save(Request $request)
-    {
-        try {
+{
+    try {
+        $isQuickAdd = $request->boolean('quick_add');
 
-            $rules = [
-                'title' => 'required|min:3|max:255',
-                'subcategory' => 'required',
-            ];
-            if (empty($request->id)) {
-                $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
-            }
-
-            $message = [
-                'title.required' => 'Please enter sub sub category title.',
-                'subcategory.required' => 'Please select sub category.',
-            ];
-
-            $validation = Validator::make($request->all(), $rules, $message);
-
-            if ($validation->fails()) {
-                throw new Exception($validation->errors()->first(), 1);
-            }
-
-            $post = $request->all();
-            $post['orgid'] =  session('orgid');
-            $post['subcategory_id'] = $request->subcategory;
-
-            $type = 'success';
-            $message = 'Records saved successfully';
-            DB::beginTransaction();
-
-            if (!SubSubCategory::saveData($post)) {
-                throw new Exception('Could not save record', 1);
-            }
-            DB::commit();
-        } catch (QueryException $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $this->queryMessage;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $type = 'error';
-            $message = $e->getMessage();
+        $rules = [
+            'title' => 'required|min:3|max:255',
+        ];
+        if (!$isQuickAdd) {
+            $rules['subcategory'] = 'required';
         }
-        return json_encode(['type' => $type, 'message' => $message]);
+        if (empty($request->id) && !$isQuickAdd) {
+            $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
+        }
+
+        $message = [
+            'title.required'       => 'Please enter sub sub category title.',
+            'subcategory.required' => 'Please select sub category.',
+        ];
+
+        $validation = Validator::make($request->all(), $rules, $message);
+
+        if ($validation->fails()) {
+            throw new Exception($validation->errors()->first(), 1);
+        }
+
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
+        $post['subcategory_id'] = $request->subcategory ?? null;
+
+        $type = 'success';
+        $message = 'Records saved successfully';
+        DB::beginTransaction();
+
+        $subSubCategoryId = SubSubCategory::saveData($post);
+        if (!$subSubCategoryId) {
+            throw new Exception('Could not save record', 1);
+        }
+        DB::commit();
+
+        $created = DB::table('sub_sub_categories')->where('id', $subSubCategoryId)->select('id', 'title')->first();
+    } catch (QueryException $e) {
+        DB::rollBack();
+        $type = 'error';
+        $message = $this->queryMessage;
+    } catch (Exception $e) {
+        DB::rollBack();
+        $type = 'error';
+        $message = $e->getMessage();
     }
-
-
+    return json_encode(['type' => $type, 'message' => $message, 'subSubCategory' => $created ?? null]);
+}
     //function to list sub sub category
     public function list(Request $request)
     {

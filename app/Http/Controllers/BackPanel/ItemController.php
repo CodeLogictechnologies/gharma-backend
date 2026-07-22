@@ -256,6 +256,7 @@ class ItemController extends Controller
                 ->select(
                     'id as itemid',
                     'title as itemname',
+                    'product_code',
                     'vat_status',
                     'vat_percent',
                     'excise_status',
