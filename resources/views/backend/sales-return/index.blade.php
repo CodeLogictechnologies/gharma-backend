@@ -286,6 +286,9 @@
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
                             salesReturnTable.fnDraw();
+                            if (typeof window.refreshLowStockAlerts === 'function') {
+                                window.refreshLowStockAlerts();
+                            }
                             bootstrap.Modal.getInstance(document.getElementById('srModal'))
                                 .hide();
                         } else {
