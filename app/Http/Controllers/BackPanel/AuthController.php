@@ -69,9 +69,30 @@ class AuthController extends SessionController
             throw new Exception('Organization not found for this user.');
         }
 
+        // Get organization details with current_fiscal_year_id
+        $organization = DB::table('organizations')
+            ->where('id', $org->orgid)
+            ->select('id', 'current_fiscal_year_id')
+            ->first();
+
+        // Get fiscal year from organizations.current_fiscal_year_id
+        $fiscalYear = null;
+        if (!empty($organization->current_fiscal_year_id)) {
+            $fiscalYear = DB::table('fiscal_years')
+                ->where('id', $organization->current_fiscal_year_id)
+                ->where('status', 'Y')
+                ->select('id', 'code')
+                ->first();
+        }
+
+
         $this->setSession($user);
 
-        session(['orgid' => $org->orgid]);
+        session([
+            'orgid'            => $org->orgid,
+            'fiscal_year_id'   => $fiscalYear->id ?? null,
+            'fiscal_year_code' => $fiscalYear->code ?? null,
+        ]);
 
         return response()->json([
             'type'    => 'success',
@@ -306,13 +327,13 @@ class AuthController extends SessionController
                 $profile = DB::table('profiles')->where('id', $newId)->first();
             }
 
-            // ✅ Delete old image
+            //  Delete old image
             if (!empty($profile->image)) {
                 $oldPath = storage_path('app/public/profiles/' . $profile->image);
                 if (file_exists($oldPath)) unlink($oldPath);
             }
 
-            // ✅ Update image + fix user_id mismatch permanently
+            //  Update image + fix user_id mismatch permanently
             DB::table('profiles')
                 ->where('id', $profile->id)
                 ->update([

@@ -107,8 +107,26 @@ class FiscalyearController extends Controller
                 ], 422);
             }
 
+            if ($request->end_date <= $request->start_date) {
+                return response()->json([
+                    'status'  => false,
+                    'type'    => 'error',
+                    'message' => 'End date must be after start date.',
+                ], 422);
+            }
+
+            // Compute code server-side; never trust client-supplied code_preview
+            $code = substr($startYear, -3) . '/' . substr($endYear, -3);
+
+            if (empty($code)) {
+                return response()->json([
+                    'status'  => false,
+                    'type'    => 'error',
+                    'message' => 'Unable to generate fiscal year code.',
+                ], 422);
+            }
+
             $post = $request->all();
-            $code = $post['code_preview'];
             $post['code'] = $code;
 
             $exists = Fiscalyear::where('code', $code)
@@ -131,10 +149,12 @@ class FiscalyearController extends Controller
                 'message' => 'Fiscal year saved successfully.',
             ]);
         } catch (QueryException $e) {
+            Log::error('Fiscalyear save DB error: ' . $e->getMessage());
+
             return response()->json([
                 'status'  => false,
                 'type'    => 'error',
-                'message' => $this->queryMessage,
+                'message' => 'A error occurred while saving. Please try again.',
             ], 500);
         } catch (Exception $e) {
             return response()->json([

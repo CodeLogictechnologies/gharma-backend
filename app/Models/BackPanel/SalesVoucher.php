@@ -157,20 +157,247 @@ class SalesVoucher extends Model
         ];
     }
 
+    // public static function saveData($post)
+    // {
+    //     try {
+    //         DB::beginTransaction();
+
+    //         // $duplicate = DB::table('order_masters')
+    //         //     ->where('orgid', $post['orgid'])
+    //         //     ->where('voucher_number', $post['voucher_no'])
+    //         //     ->exists();
+
+    //         // if ($duplicate) {
+    //         //     throw new \Exception("This Bill / Voucher No. already exists ");
+    //         // }
+
+    //         // Auto generate voucher number in backpanel
+    //         if (!empty($post['id'])) {
+    //             // Editing an existing voucher — keep its original number
+    //             $post['voucher_no'] = DB::table('order_masters')
+    //                 ->where('id', $post['id'])
+    //                 ->value('voucher_number');
+    //         } else {
+    //             // New voucher — generate the next number automatically
+    //             $post['voucher_no'] = self::generateUniqueVoucherNo($post);
+    //         }
+    //         $orderMasterId = (string) Str::uuid();
+
+    //         $insertOrderDetails = [];
+    //         $variationIds       = [];
+
+    //         $grandSubtotal = 0;
+    //         $grandExcise   = 0;
+    //         $grandVat      = 0;
+    //         $grandTotal    = 0;
+
+    //         $customer_id = $post['customer_id'];
+
+    //         foreach ($post['items'] as $item) {
+
+    //             $variation = DB::table('itemvariations as iv')
+    //                 ->join('items as i', 'i.id', '=', 'iv.item_id')
+    //                 ->where('iv.id', $item['variation_id'])
+    //                 ->where('iv.orgid', $post['orgid'])
+    //                 ->select(
+    //                     'iv.id as variation_id',
+    //                     'iv.price',
+    //                     'i.excise_status',
+    //                     'i.excise_type',
+    //                     'i.excise_percentage',
+    //                     'i.excise_value',
+    //                     'i.vat_status',
+    //                     'iv.discount_type',
+    //                     'iv.discount_amount',
+    //                     'i.vat_percent'
+    //                 )
+    //                 ->first();
+
+    //             if (!$variation) {
+    //                 throw new \Exception("Item or variation not found for item_id: {$item['item_id']}");
+    //             }
+    //             $qty = (float) $item['qty'];
+    //             $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+
+    //             // Base Amount
+    //             $baseAmount = round($unitPrice * $qty, 2);
+
+    //             // Discount
+    //             $discountAmount = 0.00;
+
+    //             if (!empty($variation->discount_type)) {
+
+    //                 if ($variation->discount_type == 'percentage') {
+    //                     $discountAmount = round(
+    //                         $baseAmount * ((float) ($variation->discount_amount ?? 0) / 100),
+    //                         2
+    //                     );
+    //                 } elseif ($variation->discount_type == 'fixed') {
+    //                     $discountAmount = round(
+    //                         (float) ($variation->discount_amount ?? 0) * $qty,
+    //                         2
+    //                     );
+    //                 }
+    //             }
+
+    //             $amountAfterDiscount = round($baseAmount - $discountAmount, 2);
+
+    //             $exciseAmount = 0.00;
+
+    //             if ($variation->excise_status === 'Y') {
+
+    //                 if ($variation->excise_type === 'percentage') {
+    //                     $exciseAmount = round(
+    //                         $amountAfterDiscount * ((float) $variation->excise_percentage / 100),
+    //                         2
+    //                     );
+    //                 } elseif ($variation->excise_type === 'fixed') {
+    //                     $exciseAmount = round(
+    //                         (float) ($variation->excise_value ?? 0) * $qty,
+    //                         2
+    //                     );
+    //                 }
+    //             }
+
+    //             $amountAfterExcise = round($amountAfterDiscount + $exciseAmount, 2);
+
+    //             $vatAmount = 0.00;
+    //             $vatRate = (float) ($variation->vat_percent ?? 0);
+
+    //             if ($variation->vat_status === 'Y') {
+    //                 $vatAmount = round(
+    //                     $amountAfterExcise * ($vatRate / 100),
+    //                     2
+    //                 );
+    //             }
+
+    //             $lineTotal = round($amountAfterExcise + $vatAmount, 2);
+
+    //             $insertOrderDetails[] = [
+    //                 'id'                             => (string) Str::uuid(),
+    //                 'ordermasterid'                  => $orderMasterId,
+    //                 'variation_id'                   => $variation->variation_id,
+    //                 'quantity'                       => $qty,
+    //                 'userid'                         => $customer_id,
+    //                 'price'                          => $unitPrice,
+    //                 'discount_type'                  => $variation->discount_type,
+    //                 'discount_amount'                => $variation->discount_amount ?? null,
+    //                 'discount_amount_per_variation'  => $discountAmount,
+    //                 'excise_type'                    => $variation->excise_status === 'Y'
+    //                     ? $variation->excise_type
+    //                     : null,
+    //                 'excise_percent'                 => $variation->excise_type === 'percentage'
+    //                     ? $variation->excise_percentage
+    //                     : null,
+    //                 'excise_amount'                  => $exciseAmount,
+    //                 'vat_percent'                    => $variation->vat_status === 'Y'
+    //                     ? $vatRate
+    //                     : 0,
+    //                 'vat_amount'                     => $vatAmount,
+    //                 'order_detail_total_price'       => $lineTotal,
+    //                 'created_at'                     => Carbon::now(),
+    //             ];
+
+    //             $variationIds[] = $variation->variation_id;
+
+    //             // Accumulate totals for loyalty calculation below
+    //             $grandSubtotal += $baseAmount;
+    //             $grandExcise   += $exciseAmount;
+    //             $grandVat      += $vatAmount;
+    //             $grandTotal    += $lineTotal;
+    //         }
+
+    //         $bsdate = new BsdateController;
+    //         $sales_vouchers_date_eng = $bsdate->nep_to_eng($post['voucher_date']);
+    //         $orgFiscalYearId = DB::table('organizations')
+    //             ->where('id', $post['orgid'])
+    //             ->value('current_fiscal_year_id');
+    //         $insertOrderMaster = [
+    //             'id'                        => $orderMasterId,
+    //             'sales_vouchers_date_nep'                        => $post['voucher_date'],
+    //             'sales_vouchers_date_eng'                        => $sales_vouchers_date_eng,
+    //             'orgid'                     => $post['orgid'],
+    //             'payment_method'            => $post['paymentmethod'] ?? 'COD',
+    //             'voucher_number'            => $post['voucher_no'],
+    //             'userid'                    => $post['customer_id'],
+    //             'addressid'                 => $post['addressid'] ?? null,
+    //             'order_master_subtotal'     => $post['subtotal'],
+    //             'order_master_excise_total' => $post['excise_amount'],
+    //             'order_master_vat_total'    => $post['vat_amount'],
+    //             'order_master_total_price'  => $post['total_amount'],
+    //             'discount_amount'           => $post['discount_amount'] ?? null,
+    //             'remarks'                   => $post['remarks'] ?? null,
+    //             'fiscal_year_id'            => $orgFiscalYearId, 
+    //             'created_at'                => Carbon::now(),
+    //         ];
+    //         if (!OrderMaster::insert($insertOrderMaster)) {
+    //             throw new \Exception("Couldn't save order.");
+    //         }
+
+    //         if (!OrderDetail::insert($insertOrderDetails)) {
+    //             throw new \Exception("Couldn't save order details.");
+    //         }
+
+    //         $setup = DB::table('loyalty_setups')
+    //             ->where('orgid', $post['orgid'])
+    //             ->where('status', 'Y')
+    //             ->where('minprice', '<=', $grandTotal)
+    //             ->where('maxprice', '>=', $grandTotal)
+    //             ->first();
+
+    //         if ($setup) {
+    //             $earnedPoint = ($grandTotal * $setup->percentage) / 100;
+
+    //             $existingLoyalty = DB::table('loyalties')
+    //                 ->where('userid', $post['userid'])
+    //                 ->where('orgid', $post['orgid'])
+    //                 ->first();
+
+    //             if ($existingLoyalty) {
+    //                 DB::table('loyalties')
+    //                     ->where('id', $existingLoyalty->id)
+    //                     ->update([
+    //                         'loyaltypoint' => $existingLoyalty->loyaltypoint + $earnedPoint,
+    //                         'updated_at'   => Carbon::now(),
+    //                         'updatedby'    => $post['userid'],
+    //                     ]);
+    //             } else {
+    //                 DB::table('loyalties')->insert([
+    //                     'id'              => (string) Str::uuid(),
+    //                     'userid'          => $post['userid'],
+    //                     'orgid'           => $post['orgid'],
+    //                     'order_detail_id' => $insertOrderDetails[0]['id'],
+    //                     'loyaltypoint'    => $earnedPoint,
+    //                     'status'          => 'Y',
+    //                     'postedby'        => $post['userid'],
+    //                     'created_at'      => Carbon::now(),
+    //                 ]);
+    //             }
+    //         }
+
+    //         DB::commit();
+    //         return $orderMasterId;
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         throw $e;
+    //     }
+    // }
+
     public static function saveData($post)
     {
         try {
             DB::beginTransaction();
 
-            $duplicate = DB::table('order_masters')
-                ->where('orgid', $post['orgid'])
-                ->where('voucher_number', $post['voucher_no'])
-                ->exists();
-
-            if ($duplicate) {
-                throw new \Exception("This Bill / Voucher No. already exists ");
+            // Auto generate voucher number in backpanel
+            if (!empty($post['id'])) {
+                // Editing an existing voucher — keep its original number
+                $post['voucher_no'] = DB::table('order_masters')
+                    ->where('id', $post['id'])
+                    ->value('voucher_number');
+            } else {
+                // New voucher — generate the next number automatically
+                $post['voucher_no'] = self::generateUniqueVoucherNo($post);
             }
-
             $orderMasterId = (string) Str::uuid();
 
             $insertOrderDetails = [];
@@ -203,22 +430,17 @@ class SalesVoucher extends Model
                     )
                     ->first();
 
-
-
                 if (!$variation) {
                     throw new \Exception("Item or variation not found for item_id: {$item['item_id']}");
                 }
                 $qty = (float) $item['qty'];
                 $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
 
-                // Base Amount
                 $baseAmount = round($unitPrice * $qty, 2);
 
-                // Discount
                 $discountAmount = 0.00;
 
                 if (!empty($variation->discount_type)) {
-
                     if ($variation->discount_type == 'percentage') {
                         $discountAmount = round(
                             $baseAmount * ((float) ($variation->discount_amount ?? 0) / 100),
@@ -237,7 +459,6 @@ class SalesVoucher extends Model
                 $exciseAmount = 0.00;
 
                 if ($variation->excise_status === 'Y') {
-
                     if ($variation->excise_type === 'percentage') {
                         $exciseAmount = round(
                             $amountAfterDiscount * ((float) $variation->excise_percentage / 100),
@@ -292,7 +513,6 @@ class SalesVoucher extends Model
 
                 $variationIds[] = $variation->variation_id;
 
-                // Accumulate totals for loyalty calculation below
                 $grandSubtotal += $baseAmount;
                 $grandExcise   += $exciseAmount;
                 $grandVat      += $vatAmount;
@@ -301,10 +521,11 @@ class SalesVoucher extends Model
 
             $bsdate = new BsdateController;
             $sales_vouchers_date_eng = $bsdate->nep_to_eng($post['voucher_date']);
+
             $insertOrderMaster = [
                 'id'                        => $orderMasterId,
-                'sales_vouchers_date_nep'                        => $post['voucher_date'],
-                'sales_vouchers_date_eng'                        => $sales_vouchers_date_eng,
+                'sales_vouchers_date_nep'   => $post['voucher_date'],
+                'sales_vouchers_date_eng'   => $sales_vouchers_date_eng,
                 'orgid'                     => $post['orgid'],
                 'payment_method'            => $post['paymentmethod'] ?? 'COD',
                 'voucher_number'            => $post['voucher_no'],
@@ -314,10 +535,18 @@ class SalesVoucher extends Model
                 'order_master_excise_total' => $post['excise_amount'],
                 'order_master_vat_total'    => $post['vat_amount'],
                 'order_master_total_price'  => $post['total_amount'],
-                'discount_amount'           => $post['discount_amount'] ?? null,
-                'remarks'                   => $post['remarks'] ?? null,
                 'created_at'                => Carbon::now(),
             ];
+
+            // Only stamp fiscal_year_id when creating a brand-new voucher, not on edit
+            if (empty($post['id'])) {
+                $orgFiscalYearId = DB::table('organizations')
+                    ->where('id', $post['orgid'])
+                    ->value('current_fiscal_year_id');
+
+                $insertOrderMaster['fiscal_year_id'] = $orgFiscalYearId;
+            }
+
             if (!OrderMaster::insert($insertOrderMaster)) {
                 throw new \Exception("Couldn't save order.");
             }

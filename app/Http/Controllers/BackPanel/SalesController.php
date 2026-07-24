@@ -157,7 +157,7 @@ class SalesController extends Controller
 
             $rules = [
                 'voucher_date'       => 'required|date',
-                'voucher_no'         => 'required|string|max:255',
+                // 'voucher_no'         => 'required|string|max:255',
                 'customer_id'        => 'required',
                 'items'              => 'required|array|min:1',
                 'items.*.item_id'    => 'required',
@@ -167,7 +167,7 @@ class SalesController extends Controller
 
             $messages = [
                 'voucher_date.required'      => 'Date is required.',
-                'voucher_no.required'        => 'Bill / Voucher No. is required.',
+                // 'voucher_no.required'        => 'Bill / Voucher No. is required.',
                 'customer_id.required'       => 'Customer is required.',
                 'items.required'             => 'At least one item is required.',
                 'items.*.item_id.required'   => 'Item is required for each row.',

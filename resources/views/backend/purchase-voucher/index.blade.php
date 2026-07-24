@@ -16,7 +16,7 @@
                     <thead class="table-light">
                         <tr class="align-middle">
                             <th>S.N</th>
-                            <th>Voucher No.</th>
+                            <!-- <th>Voucher No.</th> -->
                             <th>Date</th>
                             <th>Vendor</th>
                             <th>Type</th>
@@ -106,14 +106,14 @@
                 },
                 aoColumnDefs: [{
                     bSortable: false,
-                    aTargets: [0, 6]
+                    aTargets: [0, 5]
                 }],
                 aoColumns: [{
                         data: 'sno'
                     },
-                    {
-                        data: 'voucher_no'
-                    },
+                    // {
+                    //     data: 'voucher_no'
+                    // },
                     {
                         data: 'voucher_date'
                     },

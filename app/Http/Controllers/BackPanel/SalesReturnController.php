@@ -96,6 +96,7 @@ class SalesReturnController extends Controller
 
             $getVoucher = Order::getVoucher($post);
 
+
             $data = [
                 'items'          => $items,
                 'itemVariations' => $itemVariations,
@@ -203,6 +204,7 @@ class SalesReturnController extends Controller
             $post           = $request->all();
             $post['orgid']  = session('orgid');
             $post['userid'] = session('userid');
+            $post['fiscal_year_id'] = session('fiscal_year_id');
 
             SalesReturnVoucher::updateStatus($post);
 
@@ -222,7 +224,7 @@ class SalesReturnController extends Controller
         try {
             $rules = [
                 'return_date'       => 'required|date',
-                'credit_note_no'    => 'required|string|max:255',
+                // 'credit_note_no'    => 'required|string|max:255',
                 'customer_id'       => 'required',
                 'items'             => 'required|array|min:1',
                 'items.*.item_id'   => 'required',
@@ -232,7 +234,7 @@ class SalesReturnController extends Controller
 
             $messages = [
                 'return_date.required'      => 'Date is required.',
-                'credit_note_no.required'   => 'Credit Note No. is required.',
+                // 'credit_note_no.required'   => 'Credit Note No. is required.',
                 'customer_id.required'      => 'Customer is required.',
                 'items.required'            => 'At least one item is required.',
                 'items.*.item_id.required'  => 'Item is required for each row.',
@@ -254,19 +256,19 @@ class SalesReturnController extends Controller
 
             $isEdit = !empty($post['id']);
 
-            $duplicate = DB::table('sales_return_vouchers')
-                ->where('orgid', $post['orgid'])
-                ->where('credit_note_no', $post['credit_note_no'])
-                ->where('status', 'Y')
-                ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-                ->exists();
+            // $duplicate = DB::table('sales_return_vouchers')
+            //     ->where('orgid', $post['orgid'])
+            //     ->where('credit_note_no', $post['credit_note_no'])
+            //     ->where('status', 'Y')
+            //     ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+            //     ->exists();
 
-            if ($duplicate) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'This Credit Note No. already exists.',
-                ]);
-            }
+            // if ($duplicate) {
+            //     return response()->json([
+            //         'type'    => 'error',
+            //         'message' => 'This Credit Note No. already exists.',
+            //     ]);
+            // }
 
             SalesReturnVoucher::saveData($post);
 

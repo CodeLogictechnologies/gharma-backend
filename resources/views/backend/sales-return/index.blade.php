@@ -16,7 +16,7 @@
                     <thead class="table-light">
                         <tr class="align-middle">
                             <th>S.N</th>
-                            <th>Credit Note No.</th>
+                            <!-- <th>Credit Note No.</th> -->
                             <th>Date</th>
                             <th>Customer</th>
                             <th>Against Voucher</th>
@@ -101,14 +101,14 @@
                 },
                 aoColumnDefs: [{
                     bSortable: false,
-                    aTargets: [0, 8]
+                    aTargets: [0, 7]
                 }],
                 aoColumns: [{
                         data: 'sno'
                     },
-                    {
-                        data: 'credit_note_no'
-                    },
+                    // {
+                    //     data: 'credit_note_no'
+                    // },
                     {
                         data: 'return_date'
                     },

@@ -27,12 +27,12 @@
                 <div class="invalid-feedback">Date is required.</div>
             </div>
 
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
                 <label class="form-label">Debit Note No. <span class="text-danger">*</span></label>
                 <input type="text" name="debit_note_no" class="form-control" placeholder="e.g. DN-001"
                     value="{{ $debit_note_no ?? '' }}" data-required>
                 <div class="invalid-feedback">Debit Note No. is required.</div>
-            </div>
+            </div> -->
 
             <div class="col-md-3">
                 <label class="form-label">Vendor <span class="text-danger">*</span></label>

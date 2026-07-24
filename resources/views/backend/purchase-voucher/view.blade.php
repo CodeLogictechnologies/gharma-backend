@@ -26,10 +26,10 @@
                 <div class="text-muted small">Date</div>
                 <div>{{ \Carbon\Carbon::parse($voucherDetail->voucher_date)->format('Y-m-d') }}</div>
             </div>
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
                 <div class="text-muted small">Bill / Voucher No.</div>
                 <div>{{ $voucherDetail->voucher_no }}</div>
-            </div>
+            </div> -->
             <div class="col-md-3">
                 <div class="text-muted small">Purchase Type</div>
                 <div>{{ $purchaseTypeLabels[$voucherDetail->purchase_type] ?? $voucherDetail->purchase_type }}</div>

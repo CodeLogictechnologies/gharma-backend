@@ -217,8 +217,13 @@ class DiscountController extends Controller
 
     public function lists(Request $request)
     {
+            $orgid = session('orgid');
+
         $query = DB::table('itemvariations as iv')
             ->join('items as i', 'i.id', '=', 'iv.item_id')
+            ->where('iv.orgid', $orgid)
+        ->where('i.orgid', $orgid)
+        ->where('i.status', 'Y')
             ->select(
                 'iv.id',
                 'i.title',
@@ -242,7 +247,7 @@ class DiscountController extends Controller
         }
 
         if ($request->filled('brand_id')) {
-            $query->where('i.brandid', $request->brand_id);
+            $query->where('i.brand_id', $request->brand_id);
         }
 
         $data = $query->get()->map(function ($row) {

@@ -27,12 +27,12 @@
                 <div class="invalid-feedback">Date is required.</div>
             </div>
 
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
                 <label class="form-label">Bill / Voucher No. <span class="text-danger">*</span></label>
                 <input type="text" name="voucher_no" class="form-control" placeholder="e.g. INV-001"
                     value="{{ $voucher_no ?? '' }}" data-required>
                 <div class="invalid-feedback">Bill / Voucher No. is required.</div>
-            </div>
+            </div> -->
 
             <div class="col-md-3">
                 <label class="form-label">Purchase Type <span class="text-danger">*</span></label>

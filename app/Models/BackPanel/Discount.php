@@ -36,6 +36,12 @@ class Discount extends Model
             $appliesToId = null;
 
             switch ($post['applies_to']) {
+                case 'item':
+                    if (empty($post['item_ids'])) {
+                        throw new Exception('Please select at least one item.');
+                    }
+                    break;
+
                 case 'category':
                     $appliesToId = $post['category_target_id'];
                     break;
@@ -53,7 +59,7 @@ class Discount extends Model
                     break;
             }
 
-            if (empty($appliesToId)) {
+            if ($post['applies_to'] !== 'item' && empty($appliesToId)) {
                 throw new Exception('Please select Applies To.');
             }
 

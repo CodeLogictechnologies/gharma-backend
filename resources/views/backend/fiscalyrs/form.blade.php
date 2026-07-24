@@ -35,7 +35,7 @@
         <div class="mb-3">
             <label class="form-label">Fiscal Year Code</label>
             <input type="text" id="code_preview" class="form-control" name="code_preview"
-                value="{{ $fiscalyear->code ?? '' }}" placeholder="Auto-generated from dates">
+                value="{{ $fiscalyear->code ?? '' }}" placeholder="Auto-generated from dates" readonly>
         </div>
 
         <div class="mb-3 form-check">
