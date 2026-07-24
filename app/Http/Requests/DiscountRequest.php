@@ -49,7 +49,7 @@ class DiscountRequest extends FormRequest
             */
             'applies_to' => [
                 'required',
-                'in:category,sub_category,sub_sub_category,brand',
+                'in:item,category,sub_category,sub_sub_category,brand',
             ],
 
             'category_target_id' => [
@@ -78,9 +78,8 @@ class DiscountRequest extends FormRequest
             |--------------------------------------------------------------------------
             */
             'item_ids' => [
-                'required',
+                'required_if:applies_to,item',
                 'array',
-                'min:1',
             ],
 
             'item_ids.*' => [
@@ -150,6 +149,38 @@ class DiscountRequest extends FormRequest
     }
 
 
+    // public function withValidator($validator)
+    // {
+    //     $validator->after(function ($validator) {
+
+    //         if (empty($this->item_ids)) {
+    //             return;
+    //         }
+
+    //         $orgId = session('orgid'); // or session()->get('orgid')
+
+    //         $query = DB::table('discount_details as dd')
+    //             ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
+    //             ->where('dm.orgid', $orgId)
+    //             ->where('dm.status', 'Y')
+    //             ->whereIn('dd.variation_id', $this->item_ids);
+
+    //         // Ignore current record while editing
+    //         if (!empty($this->id)) {
+    //             $query->where('dm.id', '!=', $this->id);
+    //         }
+
+    //         $exists = $query->exists();
+
+    //         if ($exists) {
+    //             $validator->errors()->add(
+    //                 'item_ids',
+    //                 'One or more selected items already have a discount.'
+    //             );
+    //         }
+    //     });
+    // }
+
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
@@ -164,6 +195,7 @@ class DiscountRequest extends FormRequest
                 ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
                 ->where('dm.orgid', $orgId)
                 ->where('dm.status', 'Y')
+                ->where('dm.applies_to', 'item') // only conflict with other item-type discounts
                 ->whereIn('dd.variation_id', $this->item_ids);
 
             // Ignore current record while editing
@@ -176,7 +208,7 @@ class DiscountRequest extends FormRequest
             if ($exists) {
                 $validator->errors()->add(
                     'item_ids',
-                    'One or more selected items already have a discount.'
+                    'One or more selected items already have an item-specific discount.'
                 );
             }
         });

@@ -47,12 +47,12 @@
         </li> --}}
 
         <!-- Organization Access -->
-        {{-- <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
+         <li class="menu-item {{ request()->routeIs('organization.access') ? 'active' : '' }}">
         <a href="{{ route('organization.access') }}" class="menu-link">
             <i class="menu-icon tf-icons bx bx-lock-alt"></i>
             <div>Organization Access</div>
         </a>
-        </li> --}}
+        </li> 
 
 
         <!-- Organization Roles -->
@@ -80,6 +80,14 @@
         </a>
         </li> --}}
 
+        <!-- Fiscal Year -->
+        <li class="menu-item {{ request()->routeIs('fiscalyear') ? 'active' : '' }}">
+            <a href="{{ route('fiscalyear') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-calendar"></i>
+                <div>Fiscal Year SetUp</div>
+            </a>
+        </li>
+
         <!-- Home Tab -->
         <li class="menu-item {{ request()->routeIs('hometab') ? 'active' : '' }}">
             <a href="{{ route('hometab') }}" class="menu-link">
@@ -95,6 +103,13 @@
                 <div>Store</div>
             </a>
         </li>
+
+        <li class="menu-item {{ request()->routeIs('org-fiscalyear.*') ? 'active' : '' }}">
+    <a href="{{ route('org-fiscalyear.index') }}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-calendar-check"></i>
+        <div>Org Fiscal Years</div>
+    </a>
+</li>
 
         <!-- Vendor -->
         <li class="menu-item {{ request()->routeIs('vendor.*') ? 'active open' : '' }}">
@@ -198,13 +213,7 @@
             </ul>
         </li>
 
-        <!-- Fiscal Year -->
-        <li class="menu-item {{ request()->routeIs('fiscalyear') ? 'active' : '' }}">
-            <a href="{{ route('fiscalyear') }}" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-calendar"></i>
-                <div>Fiscal Year SetUp</div>
-            </a>
-        </li>
+        
 
         <!-- Inventory Management -->
         <li

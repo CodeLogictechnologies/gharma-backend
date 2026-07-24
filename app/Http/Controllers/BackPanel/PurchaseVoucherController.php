@@ -142,7 +142,7 @@ class PurchaseVoucherController extends Controller
 
             $rules = [
                 'voucher_date'    => 'required|date',
-                'voucher_no'      => 'required|string|max:255',
+                // 'voucher_no'      => 'required|string|max:255',
                 'purchase_type'   => 'required|in:trading,non_trading_capitalized,non_trading_non_capitalized',
                 'vendor_id'       => 'required',
                 'items'           => 'required|array|min:1',
@@ -154,7 +154,7 @@ class PurchaseVoucherController extends Controller
 
             $messages = [
                 'voucher_date.required'     => 'Date is required.',
-                'voucher_no.required'       => 'Bill / Voucher No. is required.',
+                // 'voucher_no.required'       => 'Bill / Voucher No. is required.',
                 'purchase_type.required'    => 'Purchase type is required.',
                 'vendor_id.required'        => 'Vendor is required.',
                 'items.required'            => 'At least one item is required.',
@@ -171,25 +171,32 @@ class PurchaseVoucherController extends Controller
                 ]);
             }
 
+            // $post           = $request->all();
+            // $post['orgid']  = session('orgid');
+            // $post['userid'] = session('userid');
+
+            // $isEdit = !empty($post['id']);
+
+            // $duplicate = DB::table('purchase_vouchers')
+            //     ->where('orgid', $post['orgid'])
+            //     ->where('voucher_no', $post['voucher_no'])
+            //     ->where('status', 'Y')
+            //     ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+            //     ->exists();
+
+            // if ($duplicate) {
+            //     return response()->json([
+            //         'type'    => 'error',
+            //         'message' => 'This Bill / Voucher No. already exists.',
+            //     ]);
+            // }
+
+            // PurchaseVoucher::saveData($post);
             $post           = $request->all();
             $post['orgid']  = session('orgid');
             $post['userid'] = session('userid');
 
             $isEdit = !empty($post['id']);
-
-            $duplicate = DB::table('purchase_vouchers')
-                ->where('orgid', $post['orgid'])
-                ->where('voucher_no', $post['voucher_no'])
-                ->where('status', 'Y')
-                ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-                ->exists();
-
-            if ($duplicate) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'This Bill / Voucher No. already exists.',
-                ]);
-            }
 
             PurchaseVoucher::saveData($post);
 

@@ -26,10 +26,10 @@
                 <div class="text-muted small">Date</div>
                 <div>{{ \Carbon\Carbon::parse($voucherDetail->return_date)->format('Y-m-d') }}</div>
             </div>
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
                 <div class="text-muted small">Credit Note No.</div>
                 <div>{{ $voucherDetail->credit_note_no }}</div>
-            </div>
+            </div> -->
             <div class="col-md-3">
                 <div class="text-muted small">Customer</div>
                 <div>{{ $voucherDetail->customer_name }}</div>

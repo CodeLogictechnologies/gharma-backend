@@ -239,7 +239,7 @@ class PurchaseReturnController extends Controller
         try {
             $rules = [
                 'return_date'       => 'required|date',
-                'debit_note_no'     => 'required|string|max:255',
+                // 'debit_note_no'     => 'required|string|max:255',
                 'vendor_id'         => 'required',
                 'items'             => 'required|array|min:1',
                 'items.*.item_id'   => 'required',
@@ -249,7 +249,7 @@ class PurchaseReturnController extends Controller
 
             $messages = [
                 'return_date.required'      => 'Date is required.',
-                'debit_note_no.required'    => 'Debit Note No. is required.',
+                // 'debit_note_no.required'    => 'Debit Note No. is required.',
                 'vendor_id.required'        => 'Vendor is required.',
                 'items.required'            => 'At least one item is required.',
                 'items.*.item_id.required'  => 'Item is required for each row.',
@@ -271,19 +271,19 @@ class PurchaseReturnController extends Controller
 
             $isEdit = !empty($post['id']);
 
-            $duplicate = DB::table('purchase_return_vouchers')
-                ->where('orgid', $post['orgid'])
-                ->where('debit_note_no', $post['debit_note_no'])
-                ->where('status', 'Y')
-                ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-                ->exists();
+            // $duplicate = DB::table('purchase_return_vouchers')
+            //     ->where('orgid', $post['orgid'])
+            //     ->where('debit_note_no', $post['debit_note_no'])
+            //     ->where('status', 'Y')
+            //     ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+            //     ->exists();
 
-            if ($duplicate) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => 'This Debit Note No. already exists.',
-                ]);
-            }
+            // if ($duplicate) {
+            //     return response()->json([
+            //         'type'    => 'error',
+            //         'message' => 'This Debit Note No. already exists.',
+            //     ]);
+            // }
 
             PurchaseReturnVoucher::saveData($post);
 

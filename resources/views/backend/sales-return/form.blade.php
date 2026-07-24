@@ -24,12 +24,12 @@
                 <div class="invalid-feedback">Date is required.</div>
             </div>
 
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
                 <label class="form-label">Credit Note No. <span class="text-danger">*</span></label>
                 <input type="text" name="credit_note_no" class="form-control" placeholder="e.g. CN-001"
                     value="{{ $credit_note_no ?? '' }}" data-required>
                 <div class="invalid-feedback">Credit Note No. is required.</div>
-            </div>
+            </div> -->
 
             <div class="col-md-3">
                 <label class="form-label">Against Voucher <span class="text-danger">*</span></label>

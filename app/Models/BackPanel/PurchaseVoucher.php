@@ -79,6 +79,205 @@ class PurchaseVoucher extends Model
         return $result;
     }
 
+    // public static function saveData($post)
+    // {
+    //     try {
+    //         DB::beginTransaction();
+
+    //         $items = $post['items'] ?? [];
+    //         if (empty($items)) {
+    //             throw new Exception('At least one item is required.');
+    //         }
+
+    //         $allowedVatRates = array_values(array_unique(array_merge(
+    //             [(float) config('vat.non-taxable')],
+    //             array_map('floatval', config('vat.taxable'))
+    //         )));
+
+    //         $subtotal = 0;
+    //         $lineData = [];
+
+    //         foreach ($items as $row) {
+    //             if (empty($row['item_id']) || empty($row['qty']) || !isset($row['unit_rate']) || $row['unit_rate'] === '') {
+    //                 continue;
+    //             }
+
+    //             $item = DB::table('items')->where('id', $row['item_id'])->first();
+    //             if (!$item) {
+    //                 throw new Exception('Selected item was not found.');
+    //             }
+
+    //             $qty      = (float) $row['qty'];
+    //             $unitRate = (float) $row['unit_rate'];
+    //             $amount   = round($qty * $unitRate, 2);
+
+    //             $rowVatTouched = !empty($row['vat_touched']) && $row['vat_touched'] != '0';
+    //             $rowVatPercent = isset($row['vat_percent']) && $row['vat_percent'] !== '' ? (float) $row['vat_percent'] : null;
+
+    //             if ($rowVatTouched && $rowVatPercent !== null && in_array($rowVatPercent, $allowedVatRates, true)) {
+    //                 $vatPercent = $rowVatPercent;
+
+    //                 DB::table('items')->where('id', $item->id)->update([
+    //                     'vat_status'  => $vatPercent > 0 ? 'Y' : 'N',
+    //                     'vat_percent' => $vatPercent,
+    //                     'updated_at'  => Carbon::now(),
+    //                 ]);
+    //             } else {
+    //                 $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
+    //             }
+
+    //             $exciseType       = $item->excise_status === 'Y' ? $item->excise_type : null;
+    //             $excisePercentage = $exciseType === 'percentage' ? (float) $item->excise_percentage : null;
+    //             $exciseValue      = $exciseType === 'fixed' ? (float) $item->excise_value : null;
+
+    //             $lineData[] = [
+    //                 'item_id'           => $row['item_id'],
+    //                 'variation_id'      => $row['variation_id'] ?? null,
+    //                 'unit'              => $row['unit'] ?? null,
+    //                 'qty'               => $qty,
+    //                 'unit_rate'         => $unitRate,
+    //                 'amount'            => $amount,
+    //                 'vat_percent'       => $vatPercent,
+    //                 'excise_type'       => $exciseType,
+    //                 'excise_percentage' => $excisePercentage,
+    //                 'excise_value'      => $exciseValue,
+    //             ];
+
+    //             $subtotal += $amount;
+    //         }
+
+    //         if (empty($lineData)) {
+    //             throw new Exception('At least one valid item is required.');
+    //         }
+
+    //         $billDiscountPercent = isset($post['bill_discount_percent']) ? (float) $post['bill_discount_percent'] : 0;
+    //         $billDiscountAmount  = round($subtotal * $billDiscountPercent / 100, 2);
+    //         $preVatBase          = $subtotal - $billDiscountAmount;
+
+    //         $totalVatAmount    = 0;
+    //         $totalExciseAmount = 0;
+
+    //         foreach ($lineData as &$line) {
+    //             $lineShare = $subtotal > 0 ? ($line['amount'] / $subtotal) * $preVatBase : 0;
+
+    //             $lineExciseAmount = 0;
+    //             if ($line['excise_type'] === 'percentage') {
+    //                 $lineExciseAmount = round($lineShare * $line['excise_percentage'] / 100, 2);
+    //             } elseif ($line['excise_type'] === 'fixed') {
+    //                 $lineExciseAmount = round($line['excise_value'] * $line['qty'], 2);
+    //             }
+
+    //             $lineTaxableForVat = $lineShare + $lineExciseAmount;
+    //             $lineVatAmount     = round($lineTaxableForVat * $line['vat_percent'] / 100, 2);
+
+    //             $line['taxable_share'] = round($lineTaxableForVat, 2);
+    //             $line['vat_amount']    = $lineVatAmount;
+    //             $line['excise_amount'] = $lineExciseAmount;
+    //             $line['net_amount']    = round($lineTaxableForVat + $lineVatAmount, 2);
+
+    //             $totalVatAmount    += $lineVatAmount;
+    //             $totalExciseAmount += $lineExciseAmount;
+    //         }
+    //         unset($line);
+
+    //         $taxableAmount = round($preVatBase + $totalExciseAmount, 2);
+    //         $totalAmount   = round($taxableAmount + $totalVatAmount, 2);
+
+    //         $vendor = DB::table('vendors')->where('id', $post['vendor_id'])->first();
+
+    //         // Auto generate voucher number in backpanel
+    //         if (!empty($post['id'])) {
+    //             // Editing an existing voucher — keep its original number
+    //             $post['voucher_no'] = DB::table('purchase_vouchers')
+    //                 ->where('id', $post['id'])
+    //                 ->value('voucher_no');
+    //         } else {
+    //             // New voucher — generate the next number automatically
+    //             $post['voucher_no'] = self::getVoucherNumber($post);
+    //         }
+
+    //         if (!$vendor) {
+    //             throw new Exception('Selected vendor was not found.');
+    //         }
+    //         $bsdate = new BsdateController;
+    //         $purchase_vouchers_date_eng = $bsdate->nep_to_eng($post['voucher_date']);
+
+    //         $orgFiscalYearId = DB::table('organizations')
+    //             ->where('id', $post['orgid'])
+    //             ->value('current_fiscal_year_id');
+
+
+    //         $header = [
+    //             'voucher_date'           => $post['voucher_date'],
+    //             'voucher_no'             => $post['voucher_no'],
+    //             'purchase_type'          => $post['purchase_type'],
+    //             'vendor_id'              => $post['vendor_id'],
+    //             'pan'                    => $vendor->tax_number,
+    //             'remarks'                => $post['remarks'] ?? null,
+    //             'subtotal'               => round($subtotal, 2),
+    //             'bill_discount_percent'  => $billDiscountPercent,
+    //             'bill_discount_amount'   => $billDiscountAmount,
+    //             'taxable_amount'         => round($taxableAmount, 2),
+    //             'vat_amount'             => round($totalVatAmount, 2),
+    //             'excise_amount'          => round($totalExciseAmount, 2),
+    //             'total_amount'           => $totalAmount,
+    //             'purchase_vouchers_date_eng'          => $purchase_vouchers_date_eng,
+    //             'orgid'                  => $post['orgid'],
+    //             'fiscal_year_id'         => $orgFiscalYearId,
+    //         ];
+
+    //         if (!empty($post['id'])) {
+    //             $voucherId = $post['id'];
+
+    //             $header['updatedby']  = $post['userid'];
+    //             $header['updated_at'] = Carbon::now();
+
+    //             DB::table('purchase_vouchers')->where('id', $voucherId)->update($header);
+    //             DB::table('purchase_voucher_items')->where('purchase_voucher_id', $voucherId)->delete();
+    //         } else {
+    //             $voucherId = (string) Str::uuid();
+
+    //             $header['id']         = $voucherId;
+    //             $header['postedby']   = $post['userid'];
+    //             $header['created_at'] = Carbon::now();
+    //             $header['updated_at'] = Carbon::now();
+
+    //             DB::table('purchase_vouchers')->insert($header);
+    //         }
+
+    //         $itemRows = [];
+    //         foreach ($lineData as $line) {
+    //             $itemRows[] = [
+    //                 'id'                   => (string) Str::uuid(),
+    //                 'orgid'                => $post['orgid'],
+    //                 'purchase_voucher_id'  => $voucherId,
+    //                 'item_id'              => $line['item_id'],
+    //                 'variation_id'         => $line['variation_id'],
+    //                 'unit'                 => $line['unit'],
+    //                 'qty'                  => $line['qty'],
+    //                 'unit_rate'            => $line['unit_rate'],
+    //                 'amount'               => $line['amount'],
+    //                 'vat_percent'          => $line['vat_percent'],
+    //                 'vat_amount'           => $line['vat_amount'],
+    //                 'excise_type'          => $line['excise_type'],
+    //                 'excise_percentage'    => $line['excise_percentage'],
+    //                 'excise_value'         => $line['excise_value'],
+    //                 'excise_amount'        => $line['excise_amount'],
+    //                 'net_amount'           => $line['net_amount'],
+    //                 'created_at'           => Carbon::now(),
+    //                 'updated_at'           => Carbon::now(),
+    //             ];
+    //         }
+    //         DB::table('purchase_voucher_items')->insert($itemRows);
+
+    //         DB::commit();
+    //         return true;
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         throw $e;
+    //     }
+    // }
+
     public static function saveData($post)
     {
         try {
@@ -184,11 +383,24 @@ class PurchaseVoucher extends Model
             $totalAmount   = round($taxableAmount + $totalVatAmount, 2);
 
             $vendor = DB::table('vendors')->where('id', $post['vendor_id'])->first();
+
+            // Auto generate voucher number in backpanel
+            if (!empty($post['id'])) {
+                // Editing an existing voucher — keep its original number
+                $post['voucher_no'] = DB::table('purchase_vouchers')
+                    ->where('id', $post['id'])
+                    ->value('voucher_no');
+            } else {
+                // New voucher — generate the next number automatically
+                $post['voucher_no'] = self::getVoucherNumber($post);
+            }
+
             if (!$vendor) {
                 throw new Exception('Selected vendor was not found.');
             }
             $bsdate = new BsdateController;
             $purchase_vouchers_date_eng = $bsdate->nep_to_eng($post['voucher_date']);
+
             $header = [
                 'voucher_date'           => $post['voucher_date'],
                 'voucher_no'             => $post['voucher_no'],
@@ -203,7 +415,7 @@ class PurchaseVoucher extends Model
                 'vat_amount'             => round($totalVatAmount, 2),
                 'excise_amount'          => round($totalExciseAmount, 2),
                 'total_amount'           => $totalAmount,
-                'purchase_vouchers_date_eng'          => $purchase_vouchers_date_eng,
+                'purchase_vouchers_date_eng' => $purchase_vouchers_date_eng,
                 'orgid'                  => $post['orgid'],
             ];
 
@@ -218,10 +430,15 @@ class PurchaseVoucher extends Model
             } else {
                 $voucherId = (string) Str::uuid();
 
-                $header['id']         = $voucherId;
-                $header['postedby']   = $post['userid'];
-                $header['created_at'] = Carbon::now();
-                $header['updated_at'] = Carbon::now();
+                $orgFiscalYearId = DB::table('organizations')
+                    ->where('id', $post['orgid'])
+                    ->value('current_fiscal_year_id');
+
+                $header['id']             = $voucherId;
+                $header['fiscal_year_id'] = $orgFiscalYearId;
+                $header['postedby']       = $post['userid'];
+                $header['created_at']     = Carbon::now();
+                $header['updated_at']     = Carbon::now();
 
                 DB::table('purchase_vouchers')->insert($header);
             }
@@ -341,21 +558,35 @@ class PurchaseVoucher extends Model
         }
     }
 
+    // public static function getVoucherNumber($post)
+    // {
+    //     try {
+
+    //         $lastVoucher = DB::table('purchase_vouchers')
+    //             ->where('orgid', $post['orgid'])
+    //             ->where('status', 'Y')
+    //             ->orderByDesc('voucher_no')
+    //             ->first();
+
+    //         if (!$lastVoucher) {
+    //             return 1;
+    //         }
+
+    //         return $lastVoucher->voucher_no + 1;
+    //     } catch (\Exception $e) {
+    //         throw $e;
+    //     }
+    // }
+
     public static function getVoucherNumber($post)
     {
         try {
-
-            $lastVoucher = DB::table('purchase_vouchers')
+            $max = DB::table('purchase_vouchers')
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
-                ->orderByDesc('voucher_no')
-                ->first();
+                ->max(DB::raw('voucher_no::integer'));
 
-            if (!$lastVoucher) {
-                return 1;
-            }
-
-            return $lastVoucher->voucher_no + 1;
+            return $max ? $max + 1 : 1;
         } catch (\Exception $e) {
             throw $e;
         }

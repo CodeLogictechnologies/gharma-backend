@@ -39,6 +39,7 @@ use App\Http\Controllers\DatabaseDumpController;
 use App\Http\Controllers\BackPanel\VendorController;
 use App\Http\Controllers\BackPanel\WholesalerPriceController;
 use App\Http\Controllers\BackPanel\ItemImageController;
+use App\Http\Controllers\BackPanel\OrgFiscalyearController;
 use App\Http\Controllers\BackPanel\HomeTabController;
 use App\Http\Controllers\BackPanel\VariationAttributeController;
 use App\Http\Controllers\BackPanel\InvoiceController;
@@ -246,7 +247,13 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save',   [VariationAttributeController::class, 'save'])->name('variation-attribute.save');
             Route::post('/delete', [VariationAttributeController::class, 'delete'])->name('variation-attribute.delete');
         });
-
+        
+                Route::group(['prefix' => 'org-fiscalyear'], function () {
+            Route::get('/',       [OrgFiscalyearController::class, 'index'])->name('org-fiscalyear.index');
+            Route::get('/list',   [OrgFiscalyearController::class, 'list'])->name('org-fiscalyear.list');
+            Route::post('/assign',[OrgFiscalyearController::class, 'assign'])->name('org-fiscalyear.assign');
+        });
+        
         Route::group(['prefix' => 'unit'], function () {
             Route::get('/',        [UnitController::class, 'index'])->name('unit');
             Route::post('/list',   [UnitController::class, 'list'])->name('unit.list');
