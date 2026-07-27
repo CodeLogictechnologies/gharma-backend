@@ -85,10 +85,12 @@ class SalesVoucher extends Model
     {
         try {
             $lastVoucher = DB::table('order_masters')
+                ->select('voucher_number')
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
                 ->orderByDesc('voucher_number')
                 ->first();
+
 
             if (!$lastVoucher) {
                 return 1;
@@ -388,14 +390,11 @@ class SalesVoucher extends Model
         try {
             DB::beginTransaction();
 
-            // Auto generate voucher number in backpanel
             if (!empty($post['id'])) {
-                // Editing an existing voucher — keep its original number
                 $post['voucher_no'] = DB::table('order_masters')
                     ->where('id', $post['id'])
                     ->value('voucher_number');
             } else {
-                // New voucher — generate the next number automatically
                 $post['voucher_no'] = self::generateUniqueVoucherNo($post);
             }
             $orderMasterId = (string) Str::uuid();

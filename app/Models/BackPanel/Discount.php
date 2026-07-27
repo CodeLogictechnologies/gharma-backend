@@ -28,7 +28,7 @@ class Discount extends Model
     public static function saveData($post)
     {
         try {
-
+            // dd($post);
             DB::beginTransaction();
             $bsdate = new BsdateController;
             $start_date_ad = $bsdate->nep_to_eng($post['starts_at']);
