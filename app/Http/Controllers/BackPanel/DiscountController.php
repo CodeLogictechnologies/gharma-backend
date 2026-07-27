@@ -131,6 +131,7 @@ class DiscountController extends Controller
                 $data['variation_id']         = $result->variation_id;
                 $data['min_requirement']      = $result->min_requirement;
                 $data['min_value']            = $result->min_value;
+                $data['max_value']            = $result->max_value;
                 $data['usage_limit_type']     = $result->usage_limit_type;
                 $data['usage_limit']          = $result->usage_limit;
                 $data['usage_limit_per_user'] = $result->usage_limit_per_user;

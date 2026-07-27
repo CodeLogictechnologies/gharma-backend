@@ -106,6 +106,12 @@ class DiscountRequest extends FormRequest
                 'required_if:min_requirement,quantity',
             ],
 
+            'max_value' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
             /*
             |--------------------------------------------------------------------------
             | Usage Limit
@@ -185,6 +191,17 @@ class DiscountRequest extends FormRequest
     {
         $validator->after(function ($validator) {
 
+            if (
+                !empty($this->min_requirement) && $this->min_requirement !== 'none'
+                && is_numeric($this->min_value) && is_numeric($this->max_value)
+                && (float) $this->max_value <= (float) $this->min_value
+            ) {
+                $validator->errors()->add(
+                    'max_value',
+                    'Maximum value must be greater than the minimum value.'
+                );
+            }
+
             if (empty($this->item_ids)) {
                 return;
             }
@@ -245,6 +262,8 @@ class DiscountRequest extends FormRequest
             'item_ids.*.distinct' => 'Duplicate items are not allowed.',
 
             'min_value.required_if' => 'Please enter the minimum value.',
+
+            'max_value.required_if' => 'Please enter the maximum value.',
 
             'usage_limit.required_if' => 'Please enter the usage limit.',
             'usage_limit.min' => 'Usage limit must be at least 1.',
