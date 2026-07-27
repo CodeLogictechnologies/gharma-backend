@@ -119,9 +119,6 @@
                         data: 'sno'
                     },
                     {
-                        // data: 'voucher_number'
-                    },
-                    {
                         data: 'created_at'
                     },
                     {
