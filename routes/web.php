@@ -10,6 +10,7 @@ use App\Http\Controllers\BackPanel\ForgotPasswordController;
 use App\Http\Controllers\BackPanel\HeatmapController;
 use App\Http\Controllers\BackPanel\HomeController;
 use App\Http\Controllers\BackPanel\InventoryController;
+use App\Http\Controllers\BackPanel\PushSubscriptionController;
 use App\Http\Controllers\BackPanel\FiscalyearController;
 use App\Http\Controllers\BackPanel\InventoryReportController;
 use App\Http\Controllers\BackPanel\PurchaseVoucherController;
@@ -289,6 +290,12 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save', [InventoryController::class, 'save'])->name('inventory.save');
             Route::get('/variations', [InventoryController::class, 'getVariations'])->name('inventory.variations');
             Route::get('/low-stock-alerts', [InventoryController::class, 'lowStockAlerts'])->name('inventory.low-stock-alerts');
+        });
+
+        Route::group(['prefix' => 'push'], function () {
+            Route::get('/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])->name('push.vapid-public-key');
+            Route::post('/subscribe', [PushSubscriptionController::class, 'subscribe'])->name('push.subscribe');
+            Route::post('/unsubscribe', [PushSubscriptionController::class, 'unsubscribe'])->name('push.unsubscribe');
 
             Route::post('/list', [InventoryController::class, 'list'])->name('inventory.list');
             Route::post('/view', [InventoryController::class, 'view'])->name('inventory.view');
