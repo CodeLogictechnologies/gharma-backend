@@ -151,14 +151,14 @@
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
-                <label class="form-label">Minimum Requirement</label>
+                <label class="form-label">Requirement Type</label>
                 <select name="min_requirement" id="minRequirement" class="form-select">
                     <option value="none" {{ (@$min_requirement ?? 'none') == 'none' ? 'selected' : '' }}>None
                     </option>
                     <option value="purchase" {{ (@$min_requirement ?? '') == 'purchase' ? 'selected' : '' }}>
-                        Minimum Purchase Amount</option>
+                        Purchase Amount</option>
                     <option value="quantity" {{ (@$min_requirement ?? '') == 'quantity' ? 'selected' : '' }}>
-                        Minimum Quantity</option>
+                        Quantity</option>
                 </select>
             </div>
 
@@ -167,6 +167,13 @@
                 <input type="number" name="min_value" class="form-control" placeholder="Enter minimum value"
                     min="0" value="{{ @$min_value ?? '' }}" />
                 <div class="invalid-feedback">Minimum value is required.</div>
+            </div>
+
+            <div class="col-md-4" id="maxValueField" style="display: none;">
+                <label class="form-label">Maximum Value</label>
+                <input type="number" name="max_value" class="form-control" placeholder="Enter maximum value (optional)"
+                    min="0" value="{{ @$max_value ?? '' }}" />
+                <div class="invalid-feedback">Maximum value must be greater than the minimum value.</div>
             </div>
 
         </div>
@@ -549,10 +556,10 @@
         ========================================================= */
         function applyMinRequirementToggle(val) {
             if (val === 'purchase' || val === 'quantity') {
-                $('#minValueField').show();
+                $('#minValueField, #maxValueField').show();
             } else {
-                $('#minValueField').hide();
-                $('#minValueField input').val('');
+                $('#minValueField, #maxValueField').hide();
+                $('#minValueField input, #maxValueField input').val('');
             }
         }
 
@@ -619,7 +626,7 @@
                 $('#itemField, #categoryField, #subCategoryField, #subSubCategoryField, #brandField').hide();
                 $('#itemChecklist').html(
                     '<div class="text-muted small">-- Select "Item" above to load items --</div>');
-                $('#minValueField, #totalUsageField, #perUserField').hide();
+                $('#minValueField, #maxValueField, #totalUsageField, #perUserField').hide();
                 editSelectedItemIds = [];
                 editCategoryTargetId = editSubCategoryTargetId = editSubSubCategoryTargetId =
                     editBrandTargetId = '';
@@ -675,12 +682,21 @@
 
                 // Min value
                 var minReq = $('#minRequirement').val();
+                var minVal = $form.find('[name="min_value"]').val();
                 if (minReq === 'purchase' || minReq === 'quantity') {
                     var $minVal = $form.find('[name="min_value"]');
-                    if (!$minVal.val()) {
+                    if (!minVal) {
                         $minVal.addClass('is-invalid');
                         valid = false;
                     }
+                }
+
+                // Max value (optional cap on the same min_requirement basis)
+                var maxVal = $form.find('[name="max_value"]').val();
+                if ((minReq === 'purchase' || minReq === 'quantity') && minVal && maxVal &&
+                    Number(maxVal) <= Number(minVal)) {
+                    $form.find('[name="max_value"]').addClass('is-invalid');
+                    valid = false;
                 }
 
                 // Usage limit fields

@@ -71,6 +71,7 @@ class Discount extends Model
                 'applies_to_id'         => $appliesToId,
                 'min_requirement'       => $post['min_requirement'] ?? 'none',
                 'min_value'             => $post['min_value'] ?? null,
+                'max_value'             => $post['max_value'] ?? null,
                 'usage_limit_type'      => $post['usage_limit_type'] ?? 'once',
                 'usage_limit'           => $post['usage_limit'] ?? null,
                 'usage_limit_per_user'  => $post['usage_limit_per_user'] ?? null,
