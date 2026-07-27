@@ -20,7 +20,7 @@ class DiscountController extends Controller
 
     public function save(DiscountRequest $request)
     {
-        try {
+        // try {
 
             $post = $request->validated();
 
@@ -36,16 +36,16 @@ class DiscountController extends Controller
                     ? 'Discount updated successfully.'
                     : 'Discount saved successfully.',
             ], 200);
-        } catch (\Exception $e) {
+        // } catch (\Exception $e) {
 
-            return response()->json([
-                'status'  => false,
-                'type'    => 'error',
-                'message' => config('app.debug')
-                    ? $e->getMessage()
-                    : 'Something went wrong. Please try again.',
-            ], 500);
-        }
+        //     return response()->json([
+        //         'status'  => false,
+        //         'type'    => 'error',
+        //         'message' => config('app.debug')
+        //             ? $e->getMessage()
+        //             : 'Something went wrong. Please try again.',
+        //     ], 500);
+        // }
     }
     public function list(Request $request)
     {

@@ -52,7 +52,7 @@ class CartController extends Controller
 
     public function getList(Request $request)
     {
-        try {
+        // try {
         $post = $request->all();
         $post['roleid']         = $request->header('roleid');
 
@@ -75,20 +75,20 @@ class CartController extends Controller
             'message' => 'Cart data fetched successfully.',
             'data' => $getData
         ], 200);
-        } catch (QueryException $e) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => 'Something went wrong',
-                'data' => []
-            ], 500);
-        } catch (\Exception $e) {
+        // } catch (QueryException $e) {
+        //     return response()->json([
+        //         'type'    => 'error',
+        //         'message' => 'Something went wrong',
+        //         'data' => []
+        //     ], 500);
+        // } catch (\Exception $e) {
 
-            return response()->json([
-                'type' => 'error',
-                'message' => $e->getMessage(),
-                'data' => []
-            ], 500);
-        }
+        //     return response()->json([
+        //         'type' => 'error',
+        //         'message' => $e->getMessage(),
+        //         'data' => []
+        //     ], 500);
+        // }
     }
 
     public function deleteCart(Request $request, $variationid)

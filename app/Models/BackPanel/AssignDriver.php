@@ -82,6 +82,8 @@ class AssignDriver extends Model
                     'd.created_at as assigned_at',
                     'd.order_status as order_status',
                     DB::raw('DATE(d.delivery_date) as delivery_date'),
+                    'm.payment_status as payment_status',
+                    'm.payment_method as payment_method',
                 )
                 ->where('m.orgid', $post['orgid']);
 
@@ -121,6 +123,8 @@ class AssignDriver extends Model
                     'assignorderid'  => $row->assignorderid,
                     'assigned_at'    => $row->assigned_at,
                     'order_status'   => $row->order_status,
+                    'payment_status'   => $row->payment_status,
+                    'payment_method'   => $row->payment_method,
                 ];
             }
 
@@ -169,6 +173,8 @@ class AssignDriver extends Model
                     'd.id as assignorderid',
                     'd.created_at as assigned_at',
                     'd.order_status as order_status',
+                    'm.payment_status as payment_status',
+                    'm.payment_method as payment_method',
                 )
                 ->where('m.orgid', $post['orgid'])
                 ->orderBy('m.created_at', 'desc')->get();

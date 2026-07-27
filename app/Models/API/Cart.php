@@ -252,74 +252,101 @@ class Cart extends Model
 
                 return $result;
             } else {
-                $result = DB::table('carts as c')
-                    ->select(
-                        'c.variation_id',
-                        'i.id as productid',
-                        DB::raw("CONCAT(i.title, ' ', it.value) as title"),
-                        'c.unit_price as productprice',
-                        'c.total_price as total_price',
-                        'c.quantity as total_quantity',
-
-                        // original price before discount
-                        'p.price as original_price_per_unit',
-
-                        // final price after discount applied
-                        // DB::raw("
-                        //     CASE
-                        //         WHEN d.id IS NULL THEN p.price
-                        //         WHEN d.type = 'percentage' THEN ROUND(p.price - (p.price * d.percentage / 100), 2)
-                        //         WHEN d.type = 'fixed'      THEN ROUND(p.price - d.value, 2)
-                        //         ELSE p.price
-                        //     END as discounted_price
-                        // "),
-
-                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.type       END as discount_type"),
-                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.value      END as discount_value_per_unit"),
-                        // DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.value      END as discount_value_per_unit"),
-                        DB::raw("CASE WHEN d.id IS NULL THEN NULL ELSE d.percentage END as discount_percentage_per_unit"),
-                    )
-                    ->join('itemvariations as it', 'it.id', '=', 'c.variation_id')
-                    ->join('retailer_prices as p', 'p.variation_id', '=', 'it.id')
-                    ->join('items as i', 'i.id', '=', 'it.item_id')
-                    ->leftJoin('discounts as d', function ($join) {
-                        $join->on(function ($q) {
-                            $q->where('d.applies_to', 'entire')
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        })->orOn(function ($q) {
-                            $q->where('d.applies_to', 'item')
-                                ->whereColumn('d.item_id', 'i.id')
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        })->orOn(function ($q) {
-                            $q->where('d.applies_to', 'variation')
-                                ->whereColumn('d.variation_id', 'it.id')
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        });
+                $activeDiscount = DB::table('discount_details as dd')
+                    ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
+                    ->where('dd.status', 'Y')
+                    ->where('dm.status', 'Y')
+                    ->where(function ($q) {
+                        $q->whereNull('dm.start_date_ad')
+                            ->orWhere('dm.start_date_ad', '<=', now()->toDateString());
                     })
-                    ->where('c.userid', $post['userid'])
-                    ->where('c.orgid', $post['orgid'])
-                    ->where('c.status', 'Y')
-                    ->whereNull('c.deleted_at')
-                    ->where('c.type', 'R')
-                    ->groupBy(
+                    ->where(function ($q) {
+                        $q->whereNull('dm.end_date_ad')
+                            ->orWhere('dm.end_date_ad', '>=', now()->toDateString());
+                    })
+                    ->select(
+                        'dd.variation_id',
+                        'dm.min_value',
+                        'dm.max_value',
+                        'dd.discount_type as campaign_discount_type',
+                        'dd.discount_value as campaign_discount_value',
+                        'dd.discount_amount as campaign_discount_amount',
+                        DB::raw('ROW_NUMBER() OVER (PARTITION BY dd.variation_id ORDER BY dd.created_at DESC) as rn')
+                    );
+
+                $result = DB::table('carts as c')
+                    ->join('itemvariations as iv', 'iv.id', '=', 'c.variation_id')
+                    ->join('items as i', 'i.id', '=', 'iv.item_id')
+                    ->leftJoinSub($activeDiscount, 'ad', function ($join) {
+                        $join->on('ad.variation_id', '=', 'iv.id')
+                            ->where('ad.rn', '=', 1); 
+                    })
+                    ->select([
+                        'c.id as cart_id',
                         'c.variation_id',
-                        'i.id',
-                        'i.title',
-                        'it.value',
-                        'p.price',
-                        'c.unit_price',
-                        'c.total_price',
                         'c.quantity',
-                        'd.id',
-                        'd.type',
-                        'd.value',
-                        'd.percentage',
-                    )
+                        'iv.item_id as productid',
+                        'i.title as item_title',
+                        'iv.attribute',
+                        'iv.value',
+                        'ad.min_value',
+                        'ad.max_value',
+                        'iv.threshold as min_qty_raw',
+                        DB::raw('CAST(iv.price AS numeric) as unit_price'),
+                        DB::raw('CAST(iv.price AS numeric) * c.quantity as subtotal_amount'),
+
+                        'iv.discount as variation_discount_value',
+                        'iv.discount_type as variation_discount_type',
+                        DB::raw("
+                                    CASE
+                                        WHEN iv.discount_type = 'percentage' THEN (CAST(iv.price AS numeric) * c.quantity) * (iv.discount / 100)
+                                        WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+                                        ELSE 0
+                                    END as variation_discount_amount
+                                "),
+
+                        'ad.campaign_discount_type',
+                        'ad.campaign_discount_value',
+                        DB::raw('COALESCE(ad.campaign_discount_amount, 0) as campaign_discount_amount'),
+
+                        DB::raw("
+                                    (CAST(iv.price AS numeric) * c.quantity)
+                                    - CASE
+                                        WHEN iv.discount_type = 'percentage' THEN (CAST(iv.price AS numeric) * c.quantity) * (iv.discount / 100)
+                                        WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+                                        ELSE 0
+                                    END
+                                    - COALESCE(ad.campaign_discount_amount, 0)
+                                    as price_after_discount
+                                "),
+
+                        'i.excise_status',
+                        'i.excise_type',
+                        'i.excise_percentage',
+                        'i.excise_value',
+                        DB::raw("
+                                    CASE
+                                        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN
+                                            (
+                                                (CAST(iv.price AS numeric) * c.quantity)
+                                                - CASE
+                                                    WHEN iv.discount_type = 'percentage' THEN (CAST(iv.price AS numeric) * c.quantity) * (iv.discount / 100)
+                                                    WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+                                                    ELSE 0
+                                                END
+                                                - COALESCE(ad.campaign_discount_amount, 0)
+                                            ) * (i.excise_percentage / 100)
+                                        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                                        ELSE 0
+                                    END as excise_amount
+                                "),
+
+                        'i.vat_percent',
+                    ])
                     ->get();
-                $result->map(function ($item) {
+
+
+                $result = $result->map(function ($item) {
 
                     $image = DB::table('item_images')
                         ->where('item_id', $item->productid)
@@ -328,8 +355,40 @@ class Cart extends Model
                     $item->image = $image
                         ? url('storage/items/' . $image)
                         : null;
-                    $item->min_qty      = null;
 
+                    $priceAfterExcise = $item->price_after_discount + $item->excise_amount;
+                    $vatAmount        = $priceAfterExcise * ($item->vat_percent / 100);
+                    $finalTotal       = $priceAfterExcise + $vatAmount;
+
+                    $item->price_after_excise = round($priceAfterExcise, 2);
+                    $item->vat_amount         = round($vatAmount, 2);
+                    $item->final_total        = round($finalTotal, 2);
+
+                    $item->variation_discount_label = 'No item discount';
+                    if ($item->variation_discount_type === 'percentage') {
+                        $item->variation_discount_label = $item->variation_discount_value . '% off (item)';
+                    } elseif ($item->variation_discount_type === 'fixed') {
+                        $item->variation_discount_label = 'Rs. ' . number_format($item->variation_discount_amount, 2) . ' off (item)';
+                    }
+
+                    $item->campaign_discount_label = 'No campaign discount';
+                    if ($item->campaign_discount_type === 'percentage') {
+                        $item->campaign_discount_label = $item->campaign_discount_value . '% off (campaign)';
+                    } elseif ($item->campaign_discount_type === 'amount') {
+                        $item->campaign_discount_label = 'Rs. ' . number_format($item->campaign_discount_amount, 2) . ' off (campaign)';
+                    }
+
+                    $item->excise_label = 'No excise';
+                    $item->pricebeforediscount = $item->subtotal_amount + $vatAmount + $priceAfterExcise + $vatAmount;
+
+                    $item->min_qty = $item->min_value ?? null;
+                    if ($item->excise_status === 'Y') {
+                        $item->excise_label = $item->excise_type === 'percentage'
+                            ? $item->excise_percentage . '% excise'
+                            : 'Rs. ' . number_format($item->excise_value, 2) . ' fixed excise';
+                    }
+
+                    $item->vat_label = $item->vat_percent . '% VAT';
 
                     return $item;
                 });

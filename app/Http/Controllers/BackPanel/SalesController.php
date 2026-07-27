@@ -103,7 +103,7 @@ class SalesController extends Controller
                     ])
                     : [];
             } else {
-                $data['voucher_no']     = SalesVoucher::generateUniqueVoucherNo($post);
+                // $data['voucher_no']     = SalesVoucher::generateUniqueVoucherNo($post);
                 $data['customerOrders'] = [];
             }
         } catch (QueryException $e) {
