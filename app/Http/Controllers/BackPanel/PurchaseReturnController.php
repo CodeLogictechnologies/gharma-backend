@@ -8,6 +8,7 @@ use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\PurchaseReturnVoucher;
 use App\Models\BackPanel\PurchaseVoucher;
 use App\Models\BackPanel\Vendor;
+use App\Services\WebPushNotifier;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -286,6 +287,8 @@ class PurchaseReturnController extends Controller
             // }
 
             PurchaseReturnVoucher::saveData($post);
+
+            WebPushNotifier::notifyLowStock($post['orgid']);
 
             return response()->json([
                 'type'    => 'success',

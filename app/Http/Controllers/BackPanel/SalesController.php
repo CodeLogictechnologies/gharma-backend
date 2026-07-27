@@ -7,6 +7,7 @@ use App\Models\BackPanel\Item;
 use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\SalesVoucher;
 use App\Models\User;
+use App\Services\WebPushNotifier;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -189,6 +190,8 @@ class SalesController extends Controller
             $post['userid'] = session('userid');
 
             SalesVoucher::saveData($post);
+
+            WebPushNotifier::notifyLowStock($post['orgid']);
 
             return response()->json([
                 'type'    => 'success',

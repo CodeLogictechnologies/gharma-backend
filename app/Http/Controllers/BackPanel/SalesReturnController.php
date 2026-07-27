@@ -9,6 +9,7 @@ use App\Models\BackPanel\Order;
 use App\Models\BackPanel\SalesReturnVoucher;
 use App\Models\BackPanel\SalesVoucher;
 use App\Models\User;
+use App\Services\WebPushNotifier;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -271,6 +272,8 @@ class SalesReturnController extends Controller
             // }
 
             SalesReturnVoucher::saveData($post);
+
+            WebPushNotifier::notifyLowStock($post['orgid']);
 
             return response()->json([
                 'type'    => 'success',

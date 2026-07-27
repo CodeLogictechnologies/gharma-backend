@@ -10,6 +10,7 @@ use App\Models\BackPanel\ItemImage;
 use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\Unit;
 use App\Models\BackPanel\VariationAttribute;
+use App\Services\WebPushNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -251,6 +252,8 @@ class ItemController extends Controller
             }
 
             DB::commit();
+
+            WebPushNotifier::notifyLowStock($post['orgid']);
 
             $item = DB::table('items')
                 ->select(

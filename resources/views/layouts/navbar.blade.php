@@ -188,9 +188,80 @@
 
         window.refreshLowStockAlerts = loadLowStockAlerts;
 
+        function urlBase64ToUint8Array(base64String) {
+            var padding = '='.repeat((4 - base64String.length % 4) % 4);
+            var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            var rawData = window.atob(base64);
+            var outputArray = new Uint8Array(rawData.length);
+            for (var i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        function setupPushNotifications() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                return;
+            }
+
+            navigator.serviceWorker.register('/sw.js').then(function (registration) {
+                navigator.serviceWorker.addEventListener('message', function (event) {
+                    if (event.data && event.data.type === 'low-stock-refresh') {
+                        loadLowStockAlerts();
+                    }
+                });
+
+                if (Notification.permission === 'denied') {
+                    return;
+                }
+
+                return Notification.requestPermission().then(function (permission) {
+                    if (permission !== 'granted') {
+                        return;
+                    }
+
+                    return fetch('{{ route('push.vapid-public-key') }}', {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) {
+                            if (!data.publicKey) {
+                                return;
+                            }
+
+                            return registration.pushManager.getSubscription().then(function (existing) {
+                                if (existing) {
+                                    return existing;
+                                }
+
+                                return registration.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+                                });
+                            });
+                        })
+                        .then(function (subscription) {
+                            if (!subscription) {
+                                return;
+                            }
+
+                            return fetch('{{ route('push.subscribe') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken(),
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify(subscription)
+                            });
+                        });
+                });
+            }).catch(function () {});
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             loadLowStockAlerts();
-            setInterval(loadLowStockAlerts, 60000);
+            setupPushNotifications();
         });
     })();
 </script>

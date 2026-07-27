@@ -7,6 +7,7 @@ use App\Models\BackPanel\Item;
 use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\PurchaseVoucher;
 use App\Models\BackPanel\Vendor;
+use App\Services\WebPushNotifier;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -199,6 +200,8 @@ class PurchaseVoucherController extends Controller
             $isEdit = !empty($post['id']);
 
             PurchaseVoucher::saveData($post);
+
+            WebPushNotifier::notifyLowStock($post['orgid']);
 
             return response()->json([
                 'type'    => 'success',
