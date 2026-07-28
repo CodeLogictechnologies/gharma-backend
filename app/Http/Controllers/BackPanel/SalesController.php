@@ -198,11 +198,13 @@ class SalesController extends Controller
                 'message' => 'Sales voucher saved successfully.',
             ]);
         } catch (QueryException $e) {
+            \Log::error('SalesController::save QueryException: ' . $e->getMessage());
             return response()->json([
                 'type'    => 'error',
                 'message' => $this->queryMessage,
             ]);
         } catch (Exception $e) {
+            \Log::error('SalesController::save Exception: ' . $e->getMessage());
             return response()->json([
                 'type'    => 'error',
                 'message' => $e->getMessage(),
