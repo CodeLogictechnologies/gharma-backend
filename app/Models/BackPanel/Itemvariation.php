@@ -29,7 +29,8 @@ class Itemvariation extends Model
                     'iv.product_code',
                     'iv.attribute',
                     'iv.value',
-                    'i.title as itemname'
+                    'i.title as itemname',
+                    'i.is_wholesale'
                 )
                 ->where('i.orgid', $post['orgid'])
                 ->where('i.status', 'Y')
