@@ -25,6 +25,8 @@ class OrderPlaceRequest extends FormRequest
             $this->merge([
                 'orgid'  => $profile['orgid'],
                 'userid' => $profile['userid'],
+                'roleid' => $this->header('roleid'),
+
             ]);
         } catch (\Exception $e) {
             throw new HttpResponseException(
