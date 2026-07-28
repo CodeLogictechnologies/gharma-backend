@@ -109,6 +109,7 @@ class SalesVoucher extends Model
 
         $retailer      = null;
         $wholesaleTiers = [];
+        $remaining     = 0;
 
         if ($itemId && $variationId) {
             $variation = DB::table('itemvariations')
@@ -151,11 +152,18 @@ class SalesVoucher extends Model
                     ->select('min_qty', 'max_qty', 'price')
                     ->get();
             }
+
+            $remaining = Itemvariation::remainingStock(
+                $variationId,
+                $post['orgid'],
+                $post['exclude_ordermasterid'] ?? null
+            );
         }
 
         return [
             'retailer'        => $retailer,
             'wholesale_tiers' => $wholesaleTiers,
+            'remaining'       => $remaining,
         ];
     }
 

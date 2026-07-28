@@ -58,4 +58,30 @@ class Itemvariation extends Model
             ->unique()
             ->values();
     }
+
+    /* ── Numeric remaining stock (stock - sold) for one variation, same basis as the Inventory > Stock page ──
+       When $excludeOrderMasterId is set (editing an existing voucher), that voucher's own already-recorded
+       qty for this variation is added back, since saveData() doesn't remove/replace old order_details on edit. */
+    public static function remainingStock($variationId, $orgid, $excludeOrderMasterId = null)
+    {
+        $row = Inventory::stockAggregateQuery()
+            ->where('i.orgid', $orgid)
+            ->where('iv.id', $variationId)
+            ->select(DB::raw('pvi.total_qty - COALESCE(o.total_sold, 0) as remaining'))
+            ->first();
+
+        $remaining = $row ? (float) $row->remaining : 0.0;
+
+        if ($excludeOrderMasterId) {
+            $ownQty = DB::table('order_details')
+                ->where('ordermasterid', $excludeOrderMasterId)
+                ->where('variation_id', $variationId)
+                ->where('status', 'Y')
+                ->whereNull('deleted_at')
+                ->sum('quantity');
+            $remaining += (float) $ownQty;
+        }
+
+        return $remaining;
+    }
 }
