@@ -257,6 +257,59 @@ class SalesReturnController extends Controller
 
             $isEdit = !empty($post['id']);
 
+            // Quantity being returned must not exceed what was actually sold on the referenced voucher
+            // (minus what's already been returned against it via other, non-rejected returns).
+            if (!empty($post['against_voucher_id'])) {
+                $qtyByLine = [];
+                foreach ($post['items'] as $it) {
+                    if (empty($it['item_id'])) {
+                        continue;
+                    }
+                    $key = $it['item_id'] . '|' . ($it['variation_id'] ?? '');
+                    $qtyByLine[$key] = ($qtyByLine[$key] ?? 0) + (float) $it['qty'];
+                }
+
+                $soldByKey = DB::table('order_details as od')
+                    ->where('od.ordermasterid', $post['against_voucher_id'])
+                    ->select('od.variation_id', 'od.quantity as qty')
+                    ->join('itemvariations as iv', 'iv.id', '=', 'od.variation_id')
+                    ->addSelect('iv.item_id')
+                    ->get()
+                    ->keyBy(fn($r) => $r->item_id . '|' . $r->variation_id);
+
+                $returnedQuery = DB::table('sales_return_voucher_items as srvi')
+                    ->join('sales_return_vouchers as srv', 'srv.id', '=', 'srvi.sales_return_voucher_id')
+                    ->where('srv.against_voucher_id', $post['against_voucher_id'])
+                    ->where('srv.orgid', $post['orgid'])
+                    ->where('srv.status', 'Y');
+
+                if ($isEdit) {
+                    $returnedQuery->where('srv.id', '!=', $post['id']);
+                }
+
+                $returnedByKey = $returnedQuery
+                    ->select('srvi.item_id', 'srvi.variation_id', DB::raw('SUM(srvi.qty) as returned_qty'))
+                    ->groupBy('srvi.item_id', 'srvi.variation_id')
+                    ->get()
+                    ->keyBy(fn($r) => $r->item_id . '|' . ($r->variation_id ?? ''));
+
+                foreach ($qtyByLine as $key => $qty) {
+                    $soldQty         = (float) ($soldByKey[$key]->qty ?? 0);
+                    $alreadyReturned = (float) ($returnedByKey[$key]->returned_qty ?? 0);
+                    $maxReturnable   = max(0, $soldQty - $alreadyReturned);
+
+                    if ($qty > $maxReturnable) {
+                        [$itemId] = explode('|', $key, 2);
+                        $itemTitle = DB::table('items')->where('id', $itemId)->value('title') ?? 'this item';
+
+                        return response()->json([
+                            'type'    => 'error',
+                            'message' => "Only {$maxReturnable} unit(s) of {$itemTitle} can be returned (requested {$qty}).",
+                        ]);
+                    }
+                }
+            }
+
             // $duplicate = DB::table('sales_return_vouchers')
             //     ->where('orgid', $post['orgid'])
             //     ->where('credit_note_no', $post['credit_note_no'])
@@ -337,7 +390,7 @@ class SalesReturnController extends Controller
 
     public function voucherCustomer(Request $request)
     {
-        // try {
+        try {
         // dd($request->all());
         $voucher = DB::table('order_masters')
             ->join('users', 'users.id', '=', 'order_masters.userid')
@@ -354,8 +407,8 @@ class SalesReturnController extends Controller
             'customer_id'   => $voucher->customer_id,
             'customer_name' => $voucher->customer_name,
         ]);
-        // } catch (\Exception $e) {
-        //     return response()->json(['customer_id' => null], 500);
-        // }
+        } catch (\Exception $e) {
+            return response()->json(['customer_id' => null], 500);
+        }
     }
 }
