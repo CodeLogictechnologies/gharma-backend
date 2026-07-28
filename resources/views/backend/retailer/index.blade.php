@@ -186,7 +186,7 @@
                                             <th>VAT Status</th>
                                             <th>Excise Duty</th>
                                             <th>SP After Discount</th>
-                                            <th>SP After Before</th>
+                                            <th>SP Before Discount</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
