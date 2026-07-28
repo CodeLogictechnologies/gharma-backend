@@ -50,14 +50,10 @@ class Itemvariation extends Model
     /* ── Variation ids with remaining stock > 0 (stock - sold), same basis as the Inventory > Stock page ── */
     public static function inStockVariationIds($orgid)
     {
-        return DB::table('items as i')
-            ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
-            ->join('purchase_voucher_items as pvi', 'pvi.variation_id', '=', 'iv.id')
-            ->leftJoin('order_details as o', 'o.variation_id', '=', 'iv.id')
+        return Inventory::stockAggregateQuery()
             ->where('i.orgid', $orgid)
             ->where('i.status', 'Y')
-            ->groupBy('iv.id', 'pvi.qty')
-            ->havingRaw('pvi.qty - COALESCE(SUM(o.quantity), 0) > 0')
+            ->whereRaw('(pvi.total_qty - COALESCE(o.total_sold, 0)) > 0')
             ->pluck('iv.id')
             ->unique()
             ->values();
