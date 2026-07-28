@@ -584,14 +584,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /* ── get user data (dropdown) ─────────────────────────────── */
-    public static function getUserData($post)
+    public static function getUserData($post, $customersOnly = false)
     {
         try {
-            return DB::table('users as u')
+            $rows = DB::table('users as u')
                 ->join('profiles as p', 'p.user_id', '=', 'u.id')
                 ->where('p.status', 'Y')
                 ->where('p.orgid', $post['orgid'])
-                ->select('u.id', DB::raw("CONCAT(p.first_name, ' ', p.middle_name, ' ', p.last_name) as username"))
+                ->select('u.id', DB::raw("CONCAT(p.first_name, ' ', p.middle_name, ' ', p.last_name) as username"), 'p.type as profile_type')
                 ->addSelect([
                     'customer_type' => DB::table('model_has_roles as mhr')
                         ->join('roles as r', 'r.id', '=', 'mhr.role_id')
@@ -603,6 +603,27 @@ class User extends Authenticatable implements JWTSubject
                         ->limit(1)
                 ])
                 ->get();
+
+            // Users self-registered via the mobile API (retailerRegister/wholesalerRegister) only get
+            // profiles.type set and are never assigned a Spatie role, so customer_type from the role
+            // subquery above is null for them — fall back to profiles.type in that case.
+            foreach ($rows as $row) {
+                if (empty($row->customer_type) && !empty($row->profile_type)) {
+                    $normalized = strtolower($row->profile_type);
+                    if (in_array($normalized, ['retailer', 'wholesaler'])) {
+                        $row->customer_type = ucfirst($normalized);
+                    }
+                }
+                unset($row->profile_type);
+            }
+
+            if ($customersOnly) {
+                $rows = $rows->filter(function ($row) {
+                    return !empty($row->customer_type);
+                })->values();
+            }
+
+            return $rows;
         } catch (Exception $e) {
             throw $e;
         }

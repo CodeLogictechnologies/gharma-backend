@@ -43,7 +43,7 @@
                         <option value="{{ $customer->id }}"
                             data-customer-type="{{ strtolower($customer->customer_type ?? '') }}"
                             {{ ($customer_id ?? '') == $customer->id ? 'selected' : '' }}>
-                            {{ $customer->username }}
+                            {{ $customer->username }} ({{ $customer->customer_type }})
                         </option>
                     @endforeach
                 </select>
@@ -93,7 +93,7 @@
                         <th>Item <span class="text-danger">*</span></th>
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
-                        <th>Rate with Discount <span class="text-danger">*</span></th>
+                        <th id="rateColHeader">Rate with Discount <span class="text-danger">*</span></th>
                         <th>Discount</th>
                         <th>Amount</th>
                         <th>VAT</th>
@@ -183,34 +183,48 @@
     (function($) {
 
         var itemsMeta = {};
+        var itemIdOrder = [];
         @foreach ($items as $item)
             itemsMeta['{{ $item->itemid }}'] = {
+                itemname: @json($item->itemname),
                 vat_status: '{{ $item->vat_status }}',
                 vat_percent: @json((float) ($item->vat_percent ?? config('vat.default'))),
                 excise_status: '{{ $item->excise_status }}',
                 excise_type: @json($item->excise_type),
                 excise_percentage: @json($item->excise_percentage),
-                excise_value: @json($item->excise_value)
+                excise_value: @json($item->excise_value),
+                is_wholesale: @json($item->is_wholesale)
             };
+            itemIdOrder.push('{{ $item->itemid }}');
         @endforeach
 
-        var itemOptionsHtml = '<option value="">-- Item --</option>';
-        itemOptionsHtml += '<option value="__add_new_item__">+ Add New Item</option>';
-        @foreach ($items as $item)
-            itemOptionsHtml += '<option value="{{ $item->itemid }}">{{ addslashes($item->itemname) }}</option>';
-        @endforeach
+        function buildItemOptionsHtml(wholesaleOnly) {
+            var html = '<option value="">-- Item --</option>';
+            html += '<option value="__add_new_item__">+ Add New Item</option>';
+            itemIdOrder.forEach(function(id) {
+                var meta = itemsMeta[id];
+                if (!meta) return;
+                if (wholesaleOnly && meta.is_wholesale !== 'Y') return;
+                html += '<option value="' + id + '">' + escapeHtml(meta.itemname) + '</option>';
+            });
+            return html;
+        }
 
         /* ── Product Code dropdown: items + itemvariations, keyed "i:<item_id>" / "v:<variation_id>" ── */
         var productCodeIndex = {};
-        var productCodeOptionsHtml = '<option value="">-- Product Code --</option>';
-        productCodeOptionsHtml += '<option value="__add_product_code__">+ Add Product Code</option>';
+        var productCodeMeta = {};
+        var productCodeOrder = [];
         @foreach ($items as $item)
             @if (!empty($item->product_code))
                 productCodeIndex['i:{{ $item->itemid }}'] = {
                     item_id: '{{ $item->itemid }}',
                     variation_id: null
                 };
-                productCodeOptionsHtml += '<option value="i:{{ $item->itemid }}">{{ addslashes($item->product_code) }}</option>';
+                productCodeMeta['i:{{ $item->itemid }}'] = {
+                    code: @json($item->product_code),
+                    is_wholesale: @json($item->is_wholesale)
+                };
+                productCodeOrder.push('i:{{ $item->itemid }}');
             @endif
         @endforeach
         @foreach ($itemVariations as $iv)
@@ -218,8 +232,24 @@
                 item_id: '{{ $iv->itemid }}',
                 variation_id: '{{ $iv->variationid }}'
             };
-            productCodeOptionsHtml += '<option value="v:{{ $iv->variationid }}">{{ addslashes($iv->product_code) }}</option>';
+            productCodeMeta['v:{{ $iv->variationid }}'] = {
+                code: @json($iv->product_code),
+                is_wholesale: @json($iv->is_wholesale)
+            };
+            productCodeOrder.push('v:{{ $iv->variationid }}');
         @endforeach
+
+        function buildProductCodeOptionsHtml(wholesaleOnly) {
+            var html = '<option value="">-- Product Code --</option>';
+            html += '<option value="__add_product_code__">+ Add Product Code</option>';
+            productCodeOrder.forEach(function(key) {
+                var meta = productCodeMeta[key];
+                if (!meta) return;
+                if (wholesaleOnly && meta.is_wholesale !== 'Y') return;
+                html += '<option value="' + key + '">' + escapeHtml(meta.code) + '</option>';
+            });
+            return html;
+        }
 
         function findProductCodeValue(itemId, variationId) {
             if (variationId && productCodeIndex['v:' + variationId]) {
@@ -243,43 +273,33 @@
         function addNewItemOption(item) {
             if (!item || !item.itemid) return;
 
+            if (!itemsMeta[item.itemid]) {
+                itemIdOrder.push(item.itemid);
+            }
             itemsMeta[item.itemid] = {
+                itemname: item.itemname,
                 vat_status: item.vat_status,
                 vat_percent: parseFloat(item.vat_percent) || 0,
                 excise_status: item.excise_status,
                 excise_type: item.excise_type,
                 excise_percentage: item.excise_percentage,
-                excise_value: item.excise_value
+                excise_value: item.excise_value,
+                is_wholesale: item.is_wholesale
             };
-
-            var alreadyListed = itemOptionsHtml.indexOf('value="' + item.itemid + '"') !== -1;
-            if (!alreadyListed) {
-                var optionHtml = '<option value="' + item.itemid + '">' + escapeHtml(item.itemname) +
-                    '</option>';
-                itemOptionsHtml = itemOptionsHtml.replace('<option value="__add_new_item__">+ Add New Item</option>',
-                    '<option value="__add_new_item__">+ Add New Item</option>' + optionHtml);
-
-                $('.item-select').each(function() {
-                    if ($(this).find('option[value="' + item.itemid + '"]').length === 0) {
-                        $(this).find('option[value="__add_new_item__"]').after(optionHtml);
-                    }
-                });
-            }
 
             if (item.product_code && !productCodeIndex['i:' + item.itemid]) {
                 productCodeIndex['i:' + item.itemid] = {
                     item_id: item.itemid,
                     variation_id: null
                 };
-                var pcOptionHtml = '<option value="i:' + item.itemid + '">' + escapeHtml(item.product_code) +
-                    '</option>';
-                productCodeOptionsHtml += pcOptionHtml;
-                $('.product-code-select').each(function() {
-                    if ($(this).find('option[value="i:' + item.itemid + '"]').length === 0) {
-                        $(this).append(pcOptionHtml);
-                    }
-                });
+                productCodeMeta['i:' + item.itemid] = {
+                    code: item.product_code,
+                    is_wholesale: item.is_wholesale
+                };
+                productCodeOrder.push('i:' + item.itemid);
             }
+
+            refreshItemFilterForAllRows();
         }
 
         function itemSelectMatcher(params, data) {
@@ -323,13 +343,14 @@
         }
 
         function rowTemplate(idx) {
+            var wholesaleOnly = getCustomerType() === 'wholesaler';
             return '' +
                 '<tr class="item-row align-middle" data-index="' + idx + '">' +
                 '<td class="row-no">' + (idx + 1) + '</td>' +
-                '<td><select class="form-select product-code-select">' + productCodeOptionsHtml + '</select></td>' +
+                '<td><select class="form-select product-code-select">' + buildProductCodeOptionsHtml(wholesaleOnly) + '</select></td>' +
                 '<td>' +
                 '<select name="items[' + idx + '][item_id]" class="form-select item-select" data-required>' +
-                itemOptionsHtml + '</select>' +
+                buildItemOptionsHtml(wholesaleOnly) + '</select>' +
                 '</td>' +
                 '<td><select name="items[' + idx +
                 '][variation_id]" class="form-select variation-select"><option value="">-- None --</option></select></td>' +
@@ -414,6 +435,55 @@
             return (selected.data('customerType') || '').toString().toLowerCase();
         }
 
+        function updateRateColumnHeader() {
+            var isWholesaler = getCustomerType() === 'wholesaler';
+            $('#rateColHeader').html(isWholesaler ?
+                'Rate <span class="text-danger">*</span>' :
+                'Rate with Discount <span class="text-danger">*</span>');
+        }
+
+        /* ── Restrict Item / Product Code dropdowns to wholesale-enabled items when a wholesaler customer is selected ── */
+        function refreshItemFilterForAllRows() {
+            var wholesaleOnly = getCustomerType() === 'wholesaler';
+
+            $('#itemRows tr.item-row').each(function() {
+                var $tr = $(this);
+                var $itemSelect = $tr.find('.item-select');
+                var $pcSelect = $tr.find('.product-code-select');
+                var currentItemId = $itemSelect.val();
+                var currentPcVal = $pcSelect.val();
+
+                var itemStillValid = !wholesaleOnly || !currentItemId ||
+                    (itemsMeta[currentItemId] && itemsMeta[currentItemId].is_wholesale === 'Y');
+                var pcStillValid = !wholesaleOnly || !currentPcVal ||
+                    (productCodeMeta[currentPcVal] && productCodeMeta[currentPcVal].is_wholesale === 'Y');
+
+                $itemSelect.select2('destroy').html(buildItemOptionsHtml(wholesaleOnly));
+                $pcSelect.select2('destroy').html(buildProductCodeOptionsHtml(wholesaleOnly));
+
+                if (itemStillValid && currentItemId) {
+                    $itemSelect.val(currentItemId);
+                }
+                if (pcStillValid && currentPcVal) {
+                    $pcSelect.val(currentPcVal);
+                }
+
+                initItemSelect($tr);
+                initProductCodeSelect($tr);
+
+                if (!itemStillValid) {
+                    $tr.data('lastItemId', '');
+                    $tr.data('lastProductCode', '');
+                    applyItemTaxInfo($tr, '');
+                    loadVariationsForRow($tr, '', null);
+                    $tr.find('.rate-input').val('');
+                    $tr.find('.discount-col').text('-');
+                }
+            });
+
+            recalcAll();
+        }
+
         function fetchPricing(itemId, variationId, callback) {
             var key = itemId + '|' + (variationId || '');
             if (priceCache[key]) {
@@ -455,12 +525,10 @@
                 }
             }
 
-            if (tier) {
-                $rows.each(function() {
-                    $(this).find('.rate-input').val(tier.price);
-                });
-                recalcAll();
-            }
+            $rows.each(function() {
+                $(this).find('.rate-input').val(tier ? tier.price : '');
+            });
+            recalcAll();
         }
 
         function formatDiscount(retailer) {
@@ -479,20 +547,20 @@
 
             $tr.find('.discount-col').text('-');
 
-            if (!itemId || !variationId || !customerType) {
+            if (!itemId || !variationId) {
                 return;
             }
 
             fetchPricing(itemId, variationId, function(pricing) {
                 if (!pricing) return;
 
-                if (customerType === 'retailer' && pricing.retailer) {
+                if (customerType === 'wholesaler') {
+                    $tr.find('.discount-col').text('-');
+                    applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
+                } else if (pricing.retailer) {
                     $tr.find('.rate-input').val(pricing.retailer.effective_price);
                     $tr.find('.discount-col').text(formatDiscount(pricing.retailer));
                     recalcAll();
-                } else if (customerType === 'wholesaler') {
-                    $tr.find('.discount-col').text('-');
-                    applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
                 }
             });
         }
@@ -716,6 +784,8 @@
                 $(document).trigger('sv:openAddCustomer', [lastCustomerSearchTerm]);
             }
 
+            updateRateColumnHeader();
+            refreshItemFilterForAllRows();
             $('#itemRows tr.item-row').each(function() {
                 applyAutoRate($(this));
             });
@@ -772,6 +842,8 @@
                     minimumResultsForSearch: 0,
                     matcher: customerMatcher
                 });
+
+                updateRateColumnHeader();
 
                 var initialLineItems = @json($lineItems ?? []);
                 if (initialLineItems.length > 0) {

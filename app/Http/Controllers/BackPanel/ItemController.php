@@ -265,7 +265,8 @@ class ItemController extends Controller
                     'excise_status',
                     'excise_type',
                     'excise_percentage',
-                    'excise_value'
+                    'excise_value',
+                    'is_wholesale'
                 )
                 ->where('id', $itemId)
                 ->first();

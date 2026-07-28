@@ -872,7 +872,8 @@ class Item extends Model
                     'excise_status',
                     'excise_type',
                     'excise_percentage',
-                    'excise_value'
+                    'excise_value',
+                    'is_wholesale'
                 )
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y');
