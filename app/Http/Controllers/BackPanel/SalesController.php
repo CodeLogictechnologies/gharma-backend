@@ -71,8 +71,8 @@ class SalesController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
-            $items          = Item::getItem($post);
-            $itemVariations = Itemvariation::getProductCodes($post);
+            $items          = Item::getItem($post, true);
+            $itemVariations = Itemvariation::getProductCodes($post, true);
             $customers      = User::getUserData($post, true);
 
             $data = [

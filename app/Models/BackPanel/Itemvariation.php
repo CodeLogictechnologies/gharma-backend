@@ -18,10 +18,10 @@ class Itemvariation extends Model
         }
     }
 
-    public static function getProductCodes($post)
+    public static function getProductCodes($post, $inStockOnly = false)
     {
         try {
-            return DB::table('itemvariations as iv')
+            $query = DB::table('itemvariations as iv')
                 ->join('items as i', 'i.id', '=', 'iv.item_id')
                 ->select(
                     'iv.id as variationid',
@@ -35,10 +35,31 @@ class Itemvariation extends Model
                 ->where('i.orgid', $post['orgid'])
                 ->where('i.status', 'Y')
                 ->whereNotNull('iv.product_code')
-                ->where('iv.product_code', '!=', '')
-                ->get();
+                ->where('iv.product_code', '!=', '');
+
+            if ($inStockOnly) {
+                $query->whereIn('iv.id', self::inStockVariationIds($post['orgid']));
+            }
+
+            return $query->get();
         } catch (Exception $e) {
             throw $e;
         }
+    }
+
+    /* ── Variation ids with remaining stock > 0 (stock - sold), same basis as the Inventory > Stock page ── */
+    public static function inStockVariationIds($orgid)
+    {
+        return DB::table('items as i')
+            ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+            ->join('purchase_voucher_items as pvi', 'pvi.variation_id', '=', 'iv.id')
+            ->leftJoin('order_details as o', 'o.variation_id', '=', 'iv.id')
+            ->where('i.orgid', $orgid)
+            ->where('i.status', 'Y')
+            ->groupBy('iv.id', 'pvi.qty')
+            ->havingRaw('pvi.qty - COALESCE(SUM(o.quantity), 0) > 0')
+            ->pluck('iv.id')
+            ->unique()
+            ->values();
     }
 }

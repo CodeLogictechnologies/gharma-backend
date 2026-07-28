@@ -401,6 +401,7 @@
             $varSelect.html('<option value="">Loading...</option>').prop('disabled', true);
             $.get('{{ route('inventory.variations') }}', {
                     item_id: itemId,
+                    in_stock_only: 1,
                     _token: '{{ csrf_token() }}'
                 })
                 .done(function(resp) {
