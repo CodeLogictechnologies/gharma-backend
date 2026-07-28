@@ -387,6 +387,63 @@ class ItemController extends Controller
                 )
                 ->orderBy('iv.created_at', 'asc');
         } else {
+            $activeDiscount = DB::table('discount_details as dd')
+                ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
+                ->where('dd.status', 'Y')
+                ->where('dm.status', 'Y')
+                ->where(function ($q) {
+                    $q->whereNull('dm.start_date_ad')
+                        ->orWhere('dm.start_date_ad', '<=', now()->toDateString());
+                })
+                ->where(function ($q) {
+                    $q->whereNull('dm.end_date_ad')
+                        ->orWhere('dm.end_date_ad', '>=', now()->toDateString());
+                })
+                ->select(
+                    'dd.variation_id',
+                    'dd.discount_type',
+                    'dd.discount_value',
+                    'dd.discount_amount',
+                    DB::raw('ROW_NUMBER() OVER (PARTITION BY dd.variation_id ORDER BY dd.created_at DESC) as rn')
+                );
+
+            // --- reusable SQL fragments ---
+            $variationDiscount = "
+    CASE
+        WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
+        WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+        ELSE 0
+    END
+";
+
+            $campaignDiscount = "
+    CASE
+        WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
+        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+        ELSE 0
+    END
+";
+
+            $priceAfterAllDiscounts = "(p.price - ($variationDiscount) - ($campaignDiscount))";
+
+            $exciseBefore = "
+    CASE
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+        ELSE 0
+    END
+";
+
+            $exciseAfter = "
+    CASE
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+        ELSE 0
+    END
+";
+
+            $vatBefore = "(p.price + ($exciseBefore)) * (i.vat_percent / 100)";
+            $vatAfter  = "(($priceAfterAllDiscounts) + ($exciseAfter)) * (i.vat_percent / 100)";
 
             $query = DB::table('items as i')
                 ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
@@ -400,24 +457,9 @@ class ItemController extends Controller
                     '=',
                     'i.id'
                 )
-                ->leftJoin('discounts as d', function ($join) {
-                    $join->where(function ($q) {
-                        $q->where('d.applies_to', 'entire')
-                            ->where('d.status', 'Y')
-                            ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                    })
-                        ->orWhere(function ($q) {
-                            $q->where('d.applies_to', 'item')
-                                ->whereColumn('d.item_id', 'i.id')
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        })
-                        ->orWhere(function ($q) {
-                            $q->where('d.applies_to', 'variation')
-                                ->whereColumn('d.variation_id', 'iv.id')
-                                ->where('d.status', 'Y')
-                                ->whereRaw('CURRENT_DATE BETWEEN d.starts_at AND d.ends_at');
-                        });
+                ->leftJoinSub($activeDiscount, 'ad', function ($join) {
+                    $join->on('ad.variation_id', '=', 'iv.id')
+                        ->where('ad.rn', '=', 1);
                 })
                 ->select(
                     'i.id as productid',
@@ -425,27 +467,32 @@ class ItemController extends Controller
                     'i.title as title',
                     'iv.value',
                     DB::raw("
-                    CASE
-                        WHEN MAX(d.id::text) IS NULL THEN p.price
-                        WHEN MAX(d.type) = 'percentage' THEN ROUND(CAST(p.price - (p.price * MAX(d.percentage) / 100) AS numeric), 2)
-                        WHEN MAX(d.type) = 'fixed' THEN ROUND(CAST(p.price - MAX(d.value) AS numeric), 2)
-                        ELSE p.price
-                    END as price
-                "),
+            CASE
+                WHEN ad.discount_type IS NULL THEN p.price
+                WHEN ad.discount_type = 'percentage' THEN ROUND(CAST(p.price - (p.price * ad.discount_value / 100) AS numeric), 2)
+                WHEN ad.discount_type = 'fixed' THEN ROUND(CAST(p.price - ad.discount_amount AS numeric), 2)
+                ELSE p.price
+            END as price
+        "),
                     'im.images',
-                    DB::raw("MAX(d.type) as discount_type"),
-                    DB::raw("MAX(d.value) as discount_value"),
-                    DB::raw("MAX(d.percentage) as discount_percentage"),
+                    'ad.discount_type as discount_type',
                     DB::raw("
-                    CASE
-                        WHEN MAX(d.id::text) IS NULL THEN NULL
-                        ELSE p.price
-                    END as original_price
-                ")
+            CASE
+                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                ELSE ad.discount_value
+            END as discount_value
+        "),
+                    DB::raw("
+            CASE
+                WHEN ad.discount_type = 'percentage' THEN ad.discount_value
+                ELSE NULL
+            END as discount_percentage
+        "),
+                    DB::raw("ROUND(CAST(p.price + ($exciseBefore) + ($vatBefore) AS numeric), 2) as price_before_discount"),
+                    DB::raw("ROUND(CAST(($priceAfterAllDiscounts) + ($exciseAfter) + ($vatAfter) AS numeric), 2) as price_after_discount")
                 )
                 ->whereRaw("p.status = 'Y'")
-                ->whereRaw("iv.status = 'Y'")
-                ->groupBy('i.id', 'i.title', 'iv.id', 'iv.value', 'im.images', 'p.price');
+                ->whereRaw("iv.status = 'Y'");
         }
 
         // ── Filter logic (shared for both) ──
@@ -500,9 +547,10 @@ class ItemController extends Controller
             ->where('p.status', 'Y')
             ->get()
             ->groupBy('productid');
-
         $wholesalerDetails = DB::table('wholesaler_price_details as wd')
             ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
+            ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
+            ->join('items as i', 'i.id', '=', 'iv.item_id')
             ->where('wd.status', 'Y')
             ->where('wp.status', 'Y')
             ->where('wp.orgid', $orgId)
@@ -510,17 +558,51 @@ class ItemController extends Controller
                 'wd.wholesalermasterid',
                 'wd.min_qty',
                 'wd.max_qty',
-                'wd.price'
+                'wd.price',
+                'i.excise_status',
+                'i.excise_type',
+                'i.excise_percentage',
+                'i.excise_value',
+                'i.vat_status',
+                'i.vat_percent'
             )
             ->orderBy('wd.min_qty', 'asc')
             ->get()
             ->groupBy('wholesalermasterid')
             ->map(function ($details) {
                 return $details->map(function ($detail) {
+
+                    $price = (float) $detail->price;
+
+                    $exciseAmount = 0;
+                    if ($detail->excise_status === 'Y') {
+                        $exciseAmount = $detail->excise_type === 'percentage'
+                            ? $price * ($detail->excise_percentage / 100)
+                            : (float) $detail->excise_value;
+                    }
+
+                    $priceAfterExcise = $price + $exciseAmount;
+
+                    $vatAmount = ($detail->vat_status === 'Y')
+                        ? $priceAfterExcise * ($detail->vat_percent / 100)
+                        : 0;
+
+                    $finalPrice = $priceAfterExcise + $vatAmount;
+
                     return [
-                        'price'   => $detail->price,
-                        'min_qty' => $detail->min_qty,
-                        'max_qty' => $detail->max_qty,
+                        'price'              => $detail->price,
+                        'min_qty'            => $detail->min_qty,
+                        'max_qty'            => $detail->max_qty,
+                        'excise_status'      => $detail->excise_status,
+                        'excise_type'        => $detail->excise_type,
+                        'excise_percentage'  => $detail->excise_percentage,
+                        'excise_value'       => $detail->excise_value,
+                        'excise_amount'      => round($exciseAmount, 2),
+                        'vat_status'         => $detail->vat_status,
+                        'vat_percent'        => $detail->vat_percent,
+                        'vat_amount'         => round($vatAmount, 2),
+                        'price_after_excise' => round($priceAfterExcise, 2),
+                        'final_price'        => round($finalPrice, 2),
                     ];
                 })->values();
             });
@@ -544,7 +626,6 @@ class ItemController extends Controller
                 ];
             });
         } else {
-
             $items = collect($data->items())->map(function ($row) use ($allVariations) {
                 return [
                     'productid'           => $row->productid,
@@ -556,6 +637,8 @@ class ItemController extends Controller
                     'discount_type'       => $row->discount_type ?? null,
                     'discount_value'      => $row->discount_value ?? null,
                     'discount_percentage' => $row->discount_percentage ?? null,
+                    'price_before_discount' => $row->price_before_discount ?? null,
+                    'price_after_discount' => $row->price_after_discount ?? null,
                     'images'              => $row->images
                         ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
                         : [],
@@ -828,14 +911,14 @@ class ItemController extends Controller
 
                 ->leftJoin(
                     DB::raw("
-            (
-                SELECT
-                    item_id,
-                    STRING_AGG(image::text, ',') AS images
-                FROM item_images
-                GROUP BY item_id
-            ) AS im
-        "),
+                        (
+                            SELECT
+                                item_id,
+                                STRING_AGG(image::text, ',') AS images
+                            FROM item_images
+                            GROUP BY item_id
+                        ) AS im
+                    "),
                     'im.item_id',
                     '=',
                     'i.id'
@@ -852,7 +935,7 @@ class ItemController extends Controller
                 )
 
                 ->where('iv.status', 'Y')
-
+                ->where('i.is_wholesale', 'Y')
                 ->groupBy(
                     'i.id',
                     'iv.id',
@@ -863,6 +946,63 @@ class ItemController extends Controller
                     'iv.created_at'
                 );
         } else {
+            $activeDiscount = DB::table('discount_details as dd')
+                ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
+                ->where('dd.status', 'Y')
+                ->where('dm.status', 'Y')
+                ->where(function ($q) {
+                    $q->whereNull('dm.start_date_ad')
+                        ->orWhere('dm.start_date_ad', '<=', now()->toDateString());
+                })
+                ->where(function ($q) {
+                    $q->whereNull('dm.end_date_ad')
+                        ->orWhere('dm.end_date_ad', '>=', now()->toDateString());
+                })
+                ->select(
+                    'dd.variation_id',
+                    'dd.discount_type',
+                    'dd.discount_value',
+                    'dd.discount_amount',
+                    DB::raw('ROW_NUMBER() OVER (PARTITION BY dd.variation_id ORDER BY dd.created_at DESC) as rn')
+                );
+
+            // --- reusable SQL fragments ---
+            $variationDiscount = "
+    CASE
+        WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
+        WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+        ELSE 0
+    END
+";
+
+            $campaignDiscount = "
+    CASE
+        WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
+        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+        ELSE 0
+    END
+";
+
+            $priceAfterAllDiscounts = "(p.price - ($variationDiscount) - ($campaignDiscount))";
+
+            $exciseBefore = "
+    CASE
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+        ELSE 0
+    END
+";
+
+            $exciseAfter = "
+    CASE
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
+        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+        ELSE 0
+    END
+";
+
+            $vatBefore = "(p.price + ($exciseBefore)) * (i.vat_percent / 100)";
+            $vatAfter  = "(($priceAfterAllDiscounts) + ($exciseAfter)) * (i.vat_percent / 100)";
             $query = DB::table('items as i')
                 ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
@@ -875,30 +1015,10 @@ class ItemController extends Controller
                     '=',
                     'i.id'
                 )
-                ->leftJoin(
-                    DB::raw('discounts as d'),
-                    function ($join) {
-                        $join->whereRaw("
-            (
-                d.applies_to = 'entire'
-                AND d.status = 'Y'
-                AND CURRENT_DATE BETWEEN d.starts_at AND d.ends_at
-            )
-            OR (
-                d.applies_to = 'item'
-                AND d.item_id = i.id
-                AND d.status = 'Y'
-                AND CURRENT_DATE BETWEEN d.starts_at AND d.ends_at
-            )
-            OR (
-                d.applies_to = 'variation'
-                AND d.variation_id = iv.id
-                AND d.status = 'Y'
-                AND CURRENT_DATE BETWEEN d.starts_at AND d.ends_at
-            )
-        ");
-                    }
-                )
+                ->leftJoinSub($activeDiscount, 'ad', function ($join) {
+                    $join->on('ad.variation_id', '=', 'iv.id')
+                        ->where('ad.rn', '=', 1);
+                })
                 ->select(
                     'i.id as productid',
                     'iv.id as variationid',
@@ -906,26 +1026,41 @@ class ItemController extends Controller
                     'i.brand_id as brand_id',
                     DB::raw("
             CASE
-                WHEN MAX(d.id::text) IS NULL THEN p.price
-                WHEN MAX(d.type) = 'percentage' THEN ROUND(CAST(p.price - (p.price * MAX(d.percentage) / 100) AS numeric), 2)
-                WHEN MAX(d.type) = 'fixed' THEN ROUND(CAST(p.price - MAX(d.value) AS numeric), 2)
+                WHEN ad.discount_type IS NULL THEN p.price
+                WHEN ad.discount_type = 'percentage' THEN ROUND(CAST(p.price - (p.price * ad.discount_value / 100) AS numeric), 2)
+                WHEN ad.discount_type = 'fixed' THEN ROUND(CAST(p.price - ad.discount_amount AS numeric), 2)
                 ELSE p.price
             END as price
         "),
                     'im.images',
-                    DB::raw("MAX(d.type) as discount_type"),
-                    DB::raw("MAX(d.value) as discount_value"),
-                    DB::raw("MAX(d.percentage) as discount_percentage"),
+                    'ad.discount_type as discount_type',
                     DB::raw("
             CASE
-                WHEN MAX(d.id::text) IS NULL THEN NULL
-                ELSE p.price
-            END as original_price
-        ")
+                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                ELSE ad.discount_value
+            END as discount_value
+        "),
+                    DB::raw("
+            CASE
+                WHEN ad.discount_type = 'percentage' THEN ad.discount_value
+                ELSE NULL
+            END as discount_percentage
+        "),
+                    DB::raw("ROUND(CAST(p.price + ($exciseBefore) + ($vatBefore) AS numeric), 2) as price_before_discount"),
+                    DB::raw("ROUND(CAST(($priceAfterAllDiscounts) + ($exciseAfter) + ($vatAfter) AS numeric), 2) as price_after_discount")
                 )
                 ->where('p.status', 'Y')
-                ->where('iv.status', 'Y')
-                ->groupBy('i.id', 'i.title', 'iv.id', 'iv.value', 'im.images', 'p.price');
+                ->where('iv.status', 'Y')->groupBy(
+                    'i.id',
+                    'i.title',
+                    'iv.id',
+                    'iv.value',
+                    'im.images',
+                    'p.price',
+                    'ad.discount_type',
+                    'ad.discount_value',
+                    'ad.discount_amount'
+                );
         }
         // dd($query);
         // ── Filter logic (shared for both) ──
@@ -1030,19 +1165,62 @@ class ItemController extends Controller
 
             $wholesalerDetails = DB::table('wholesaler_price_details as wd')
                 ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
+                ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
+                ->join('items as i', 'i.id', '=', 'iv.item_id')
                 ->where('wd.status', 'Y')
                 ->where('wp.status', 'Y')
                 ->whereIn('wd.wholesalermasterid', $wholesalerPriceIds)
-                ->select('wd.wholesalermasterid', 'wd.min_qty', 'wd.max_qty', 'wd.price')
+                ->select(
+                    'wd.wholesalermasterid',
+                    'wd.min_qty',
+                    'wd.max_qty',
+                    'wd.price',
+                    'i.excise_status',
+                    'i.excise_type',
+                    'i.excise_percentage',
+                    'i.excise_value',
+                    'i.vat_status',
+                    'i.vat_percent'
+                )
                 ->orderBy('wd.min_qty', 'asc')
                 ->get()
                 ->groupBy('wholesalermasterid')
                 ->map(function ($details) {
-                    return $details->map(fn($d) => [
-                        'price'   => $d->price,
-                        'min_qty' => $d->min_qty,
-                        'max_qty' => $d->max_qty,
-                    ])->values();
+                    return $details->map(function ($d) {
+
+                        $price = (float) $d->price;
+
+                        $exciseAmount = 0;
+                        if ($d->excise_status === 'Y') {
+                            $exciseAmount = $d->excise_type === 'percentage'
+                                ? $price * ($d->excise_percentage / 100)
+                                : (float) $d->excise_value;
+                        }
+
+                        $priceAfterExcise = $price + $exciseAmount;
+
+                        $vatAmount = ($d->vat_status === 'Y')
+                            ? $priceAfterExcise * ($d->vat_percent / 100)
+                            : 0;
+
+                        $finalPrice = $priceAfterExcise + $vatAmount;
+
+                        return [
+                            'price'              => $d->price,
+                            'min_qty'            => $d->min_qty,
+                            'max_qty'            => $d->max_qty,
+                            'excise_status'      => $d->excise_status,
+                            'excise_type'        => $d->excise_type,
+                            'excise_percentage'  => $d->excise_percentage,
+                            'excise_value'       => $d->excise_value,
+                            'excise_amount'      => round($exciseAmount, 2),
+                            'vat_status'         => $d->vat_status,
+                            'vat_percent'        => $d->vat_percent,
+                            'vat_amount'         => round($vatAmount, 2),
+                            'price_after_excise' => round($priceAfterExcise, 2),
+                            'final_price'        => round($finalPrice, 2),
+                        ];
+                    })->values();
                 });
         }
 
