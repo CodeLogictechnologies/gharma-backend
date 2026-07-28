@@ -73,7 +73,7 @@ class SalesController extends Controller
 
             $items          = Item::getItem($post);
             $itemVariations = Itemvariation::getProductCodes($post);
-            $customers      = User::getUserData($post);
+            $customers      = User::getUserData($post, true);
 
             $data = [
                 'items'          => $items,

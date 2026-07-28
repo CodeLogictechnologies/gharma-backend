@@ -43,7 +43,7 @@
                         <option value="{{ $customer->id }}"
                             data-customer-type="{{ strtolower($customer->customer_type ?? '') }}"
                             {{ ($customer_id ?? '') == $customer->id ? 'selected' : '' }}>
-                            {{ $customer->username }}
+                            {{ $customer->username }} ({{ $customer->customer_type }})
                         </option>
                     @endforeach
                 </select>
@@ -93,7 +93,7 @@
                         <th>Item <span class="text-danger">*</span></th>
                         <th>Variation</th>
                         <th>Qty <span class="text-danger">*</span></th>
-                        <th>Rate with Discount <span class="text-danger">*</span></th>
+                        <th id="rateColHeader">Rate with Discount <span class="text-danger">*</span></th>
                         <th>Discount</th>
                         <th>Amount</th>
                         <th>VAT</th>
@@ -414,6 +414,13 @@
             return (selected.data('customerType') || '').toString().toLowerCase();
         }
 
+        function updateRateColumnHeader() {
+            var isWholesaler = getCustomerType() === 'wholesaler';
+            $('#rateColHeader').html(isWholesaler ?
+                'Rate <span class="text-danger">*</span>' :
+                'Rate with Discount <span class="text-danger">*</span>');
+        }
+
         function fetchPricing(itemId, variationId, callback) {
             var key = itemId + '|' + (variationId || '');
             if (priceCache[key]) {
@@ -455,12 +462,10 @@
                 }
             }
 
-            if (tier) {
-                $rows.each(function() {
-                    $(this).find('.rate-input').val(tier.price);
-                });
-                recalcAll();
-            }
+            $rows.each(function() {
+                $(this).find('.rate-input').val(tier ? tier.price : '');
+            });
+            recalcAll();
         }
 
         function formatDiscount(retailer) {
@@ -479,20 +484,20 @@
 
             $tr.find('.discount-col').text('-');
 
-            if (!itemId || !variationId || !customerType) {
+            if (!itemId || !variationId) {
                 return;
             }
 
             fetchPricing(itemId, variationId, function(pricing) {
                 if (!pricing) return;
 
-                if (customerType === 'retailer' && pricing.retailer) {
+                if (customerType === 'wholesaler') {
+                    $tr.find('.discount-col').text('-');
+                    applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
+                } else if (pricing.retailer) {
                     $tr.find('.rate-input').val(pricing.retailer.effective_price);
                     $tr.find('.discount-col').text(formatDiscount(pricing.retailer));
                     recalcAll();
-                } else if (customerType === 'wholesaler') {
-                    $tr.find('.discount-col').text('-');
-                    applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
                 }
             });
         }
@@ -716,6 +721,7 @@
                 $(document).trigger('sv:openAddCustomer', [lastCustomerSearchTerm]);
             }
 
+            updateRateColumnHeader();
             $('#itemRows tr.item-row').each(function() {
                 applyAutoRate($(this));
             });
@@ -772,6 +778,8 @@
                     minimumResultsForSearch: 0,
                     matcher: customerMatcher
                 });
+
+                updateRateColumnHeader();
 
                 var initialLineItems = @json($lineItems ?? []);
                 if (initialLineItems.length > 0) {
