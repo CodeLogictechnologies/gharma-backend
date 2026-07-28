@@ -235,71 +235,187 @@ class PurchaseReturnController extends Controller
         }
     }
 
+    // public function save(Request $request)
+    // {
+    //     try {
+    //         $rules = [
+    //             'return_date'       => 'required|date',
+    //             // 'debit_note_no'     => 'required|string|max:255',
+    //             'vendor_id'         => 'required',
+    //             'items'             => 'required|array|min:1',
+    //             'items.*.item_id'   => 'required',
+    //             'items.*.qty'       => 'required|numeric|min:0.01',
+    //             'items.*.unit_rate' => 'required|numeric|min:0',
+    //         ];
+
+    //         $messages = [
+    //             'return_date.required'      => 'Date is required.',
+    //             // 'debit_note_no.required'    => 'Debit Note No. is required.',
+    //             'vendor_id.required'        => 'Vendor is required.',
+    //             'items.required'            => 'At least one item is required.',
+    //             'items.*.item_id.required'  => 'Item is required for each row.',
+    //             'items.*.qty.required'      => 'Quantity is required for each row.',
+    //             'items.*.unit_rate.required' => 'Rate is required for each row.',
+    //         ];
+
+    //         $validation = Validator::make($request->all(), $rules, $messages);
+    //         if ($validation->fails()) {
+    //             return response()->json([
+    //                 'type'    => 'error',
+    //                 'message' => $validation->errors()->first(),
+    //             ]);
+    //         }
+
+    //         $post           = $request->all();
+    //         $post['orgid']  = session('orgid');
+    //         $post['userid'] = session('userid');
+
+    //         $isEdit = !empty($post['id']);
+
+    //         // $duplicate = DB::table('purchase_return_vouchers')
+    //         //     ->where('orgid', $post['orgid'])
+    //         //     ->where('debit_note_no', $post['debit_note_no'])
+    //         //     ->where('status', 'Y')
+    //         //     ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+    //         //     ->exists();
+
+    //         // if ($duplicate) {
+    //         //     return response()->json([
+    //         //         'type'    => 'error',
+    //         //         'message' => 'This Debit Note No. already exists.',
+    //         //     ]);
+    //         // }
+
+    //         PurchaseReturnVoucher::saveData($post);
+
+    //         WebPushNotifier::notifyLowStock($post['orgid']);
+
+    //         return response()->json([
+    //             'type'    => 'success',
+    //             'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
+    //         ]);
+    //     } catch (QueryException $e) {
+    //         return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+    //     } catch (Exception $e) {
+    //         return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+    //     }
+    // }
+
     public function save(Request $request)
-    {
-        try {
-            $rules = [
-                'return_date'       => 'required|date',
-                // 'debit_note_no'     => 'required|string|max:255',
-                'vendor_id'         => 'required',
-                'items'             => 'required|array|min:1',
-                'items.*.item_id'   => 'required',
-                'items.*.qty'       => 'required|numeric|min:0.01',
-                'items.*.unit_rate' => 'required|numeric|min:0',
-            ];
+{
+    try {
+        $rules = [
+            'return_date'       => 'required|date',
+            // 'debit_note_no'     => 'required|string|max:255',
+            'vendor_id'         => 'required',
+            'items'             => 'required|array|min:1',
+            'items.*.item_id'   => 'required',
+            'items.*.qty'       => 'required|numeric|min:0.01',
+            'items.*.unit_rate' => 'required|numeric|min:0',
+        ];
 
-            $messages = [
-                'return_date.required'      => 'Date is required.',
-                // 'debit_note_no.required'    => 'Debit Note No. is required.',
-                'vendor_id.required'        => 'Vendor is required.',
-                'items.required'            => 'At least one item is required.',
-                'items.*.item_id.required'  => 'Item is required for each row.',
-                'items.*.qty.required'      => 'Quantity is required for each row.',
-                'items.*.unit_rate.required' => 'Rate is required for each row.',
-            ];
+        $messages = [
+            'return_date.required'      => 'Date is required.',
+            // 'debit_note_no.required'    => 'Debit Note No. is required.',
+            'vendor_id.required'        => 'Vendor is required.',
+            'items.required'            => 'At least one item is required.',
+            'items.*.item_id.required'  => 'Item is required for each row.',
+            'items.*.qty.required'      => 'Quantity is required for each row.',
+            'items.*.unit_rate.required' => 'Rate is required for each row.',
+        ];
 
-            $validation = Validator::make($request->all(), $rules, $messages);
-            if ($validation->fails()) {
-                return response()->json([
-                    'type'    => 'error',
-                    'message' => $validation->errors()->first(),
-                ]);
+        $validation = Validator::make($request->all(), $rules, $messages);
+        if ($validation->fails()) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $validation->errors()->first(),
+            ]);
+        }
+
+        $post           = $request->all();
+        $post['orgid']  = session('orgid');
+        $post['userid'] = session('userid');
+
+        $isEdit = !empty($post['id']);
+
+        // Quantity being returned must not exceed what was actually purchased (minus what's already been returned)
+        if (!empty($post['against_voucher_id'])) {
+            $qtyByLine = [];
+            foreach ($post['items'] as $it) {
+                if (empty($it['item_id'])) {
+                    continue;
+                }
+                $key = $it['item_id'] . '|' . ($it['variation_id'] ?? '');
+                $qtyByLine[$key] = ($qtyByLine[$key] ?? 0) + (float) $it['qty'];
             }
 
-            $post           = $request->all();
-            $post['orgid']  = session('orgid');
-            $post['userid'] = session('userid');
+            $purchasedByKey = DB::table('purchase_voucher_items')
+                ->where('purchase_voucher_id', $post['against_voucher_id'])
+                ->select('item_id', 'variation_id', 'qty')
+                ->get()
+                ->keyBy(fn($r) => $r->item_id . '|' . ($r->variation_id ?? ''));
 
-            $isEdit = !empty($post['id']);
+            $returnedQuery = DB::table('purchase_return_voucher_items as prvi')
+                ->join('purchase_return_vouchers as prv', 'prv.id', '=', 'prvi.purchase_return_voucher_id')
+                ->where('prv.against_voucher_id', $post['against_voucher_id'])
+                ->where('prv.orgid', $post['orgid'])
+                ->where('prv.status', 'Y');
 
-            // $duplicate = DB::table('purchase_return_vouchers')
-            //     ->where('orgid', $post['orgid'])
-            //     ->where('debit_note_no', $post['debit_note_no'])
-            //     ->where('status', 'Y')
-            //     ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
-            //     ->exists();
+            if ($isEdit) {
+                $returnedQuery->where('prv.id', '!=', $post['id']);
+            }
 
-            // if ($duplicate) {
-            //     return response()->json([
-            //         'type'    => 'error',
-            //         'message' => 'This Debit Note No. already exists.',
-            //     ]);
-            // }
+            $returnedByKey = $returnedQuery
+                ->select('prvi.item_id', 'prvi.variation_id', DB::raw('SUM(prvi.qty) as returned_qty'))
+                ->groupBy('prvi.item_id', 'prvi.variation_id')
+                ->get()
+                ->keyBy(fn($r) => $r->item_id . '|' . ($r->variation_id ?? ''));
 
-            PurchaseReturnVoucher::saveData($post);
+            foreach ($qtyByLine as $key => $qty) {
+                $purchasedQty    = (float) ($purchasedByKey[$key]->qty ?? 0);
+                $alreadyReturned = (float) ($returnedByKey[$key]->returned_qty ?? 0);
+                $maxReturnable   = max(0, $purchasedQty - $alreadyReturned);
 
-            WebPushNotifier::notifyLowStock($post['orgid']);
+                if ($qty > $maxReturnable) {
+                    [$itemId] = explode('|', $key, 2);
+                    $itemTitle = DB::table('items')->where('id', $itemId)->value('title') ?? 'this item';
 
-            return response()->json([
-                'type'    => 'success',
-                'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
-            ]);
-        } catch (QueryException $e) {
-            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
-        } catch (Exception $e) {
-            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+                    return response()->json([
+                        'type'    => 'error',
+                        'message' => "Only {$maxReturnable} unit(s) of {$itemTitle} can be returned (requested {$qty}).",
+                    ]);
+                }
+            }
         }
+
+        // $duplicate = DB::table('purchase_return_vouchers')
+        //     ->where('orgid', $post['orgid'])
+        //     ->where('debit_note_no', $post['debit_note_no'])
+        //     ->where('status', 'Y')
+        //     ->when($isEdit, fn($q) => $q->where('id', '!=', $post['id']))
+        //     ->exists();
+
+        // if ($duplicate) {
+        //     return response()->json([
+        //         'type'    => 'error',
+        //         'message' => 'This Debit Note No. already exists.',
+        //     ]);
+        // }
+
+        PurchaseReturnVoucher::saveData($post);
+
+        WebPushNotifier::notifyLowStock($post['orgid']);
+
+        return response()->json([
+            'type'    => 'success',
+            'message' => $isEdit ? 'Purchase return updated successfully.' : 'Purchase return saved successfully.',
+        ]);
+    } catch (QueryException $e) {
+        return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+    } catch (Exception $e) {
+        return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
     }
+}
 
     public function view(Request $request)
     {
