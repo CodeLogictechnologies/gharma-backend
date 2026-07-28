@@ -71,9 +71,9 @@ class SalesController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
-            $items          = Item::getItem($post);
-            $itemVariations = Itemvariation::getProductCodes($post);
-            $customers      = User::getUserData($post);
+            $items          = Item::getItem($post, true);
+            $itemVariations = Itemvariation::getProductCodes($post, true);
+            $customers      = User::getUserData($post, true);
 
             $data = [
                 'items'          => $items,
@@ -189,6 +189,37 @@ class SalesController extends Controller
             $post['orgid'] = session('orgid');
             $post['userid'] = session('userid');
 
+            // Multiple rows can reference the same variation (e.g. wholesale-tier rows), so
+            // qty needs to be combined per variation before comparing against remaining stock.
+            $qtyByVariation = [];
+            foreach ($post['items'] as $it) {
+                $vid = $it['variation_id'] ?? null;
+                if (!$vid) {
+                    continue;
+                }
+                $qtyByVariation[$vid] = ($qtyByVariation[$vid] ?? 0) + (float) $it['qty'];
+            }
+
+            foreach ($qtyByVariation as $variationId => $qty) {
+                $remaining = Itemvariation::remainingStock($variationId, $post['orgid'], $post['id'] ?? null);
+
+                if ($qty > $remaining) {
+                    $variation = DB::table('itemvariations as iv')
+                        ->join('items as i', 'i.id', '=', 'iv.item_id')
+                        ->where('iv.id', $variationId)
+                        ->select('i.title', 'iv.attribute', 'iv.value')
+                        ->first();
+                    $label = $variation
+                        ? trim($variation->title . ' (' . $variation->attribute . ': ' . $variation->value . ')')
+                        : 'this item';
+
+                    return response()->json([
+                        'type'    => 'error',
+                        'message' => "Only {$remaining} unit(s) of {$label} remaining in stock (requested {$qty}).",
+                    ]);
+                }
+            }
+
             SalesVoucher::saveData($post);
 
             WebPushNotifier::notifyLowStock($post['orgid']);
@@ -198,11 +229,13 @@ class SalesController extends Controller
                 'message' => 'Sales voucher saved successfully.',
             ]);
         } catch (QueryException $e) {
+            \Log::error('SalesController::save QueryException: ' . $e->getMessage());
             return response()->json([
                 'type'    => 'error',
                 'message' => $this->queryMessage,
             ]);
         } catch (Exception $e) {
+            \Log::error('SalesController::save Exception: ' . $e->getMessage());
             return response()->json([
                 'type'    => 'error',
                 'message' => $e->getMessage(),
