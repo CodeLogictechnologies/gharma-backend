@@ -691,6 +691,10 @@
                 $(this).val(existingItemId || '').trigger('change');
                 suppressItemChange = false;
 
+                window.prefillItemName = lastItemSearchTerm;   // ADD THIS
+    window.prefillProductCode = '';                // ADD THIS
+
+
                 if (typeof window.svOpenAddItemModal === 'function') {
                     window.svOpenAddItemModal(existingItemId || null);
                 }
@@ -725,6 +729,9 @@
                 suppressProductCodeChange = true;
                 $(this).val($tr.data('lastProductCode') || '').trigger('change');
                 suppressProductCodeChange = false;
+
+                window.prefillItemName = '';   // ADD THIS
+ window.prefillProductCode = lastProductCodeSearchTerm;  
 
                 if (typeof window.svOpenAddItemModal === 'function') {
                     window.svOpenAddItemModal(existingItemId || null);
@@ -769,11 +776,34 @@
             recalcAll();
         });
 
-        /* ── Track what the user typed while searching the customer dropdown ── */
-        var lastCustomerSearchTerm = '';
-        $(document).on('input', '#svModal .select2-search__field', function() {
-            lastCustomerSearchTerm = $(this).val();
-        });
+        // /* ── Track what the user typed while searching the customer dropdown ── */
+        // var lastCustomerSearchTerm = '';
+        // $(document).on('input', '#svModal .select2-search__field', function() {
+        //     lastCustomerSearchTerm = $(this).val();
+        // });
+
+        /* ── Track what the user typed while searching customer/item/product-code dropdowns ── */
+var lastCustomerSearchTerm = '';
+var lastItemSearchTerm = '';
+var lastProductCodeSearchTerm = '';
+var activeSearchField = null;
+
+$(document).on('select2:open', function(e) {
+    activeSearchField = $(e.target);
+});
+
+$(document).on('input', '#svModal .select2-search__field', function() {
+    var val = $(this).val();
+    if (!activeSearchField) return;
+
+    if (activeSearchField.is('#customerSelect')) {
+        lastCustomerSearchTerm = val;
+    } else if (activeSearchField.hasClass('item-select')) {
+        lastItemSearchTerm = val;
+    } else if (activeSearchField.hasClass('product-code-select')) {
+        lastProductCodeSearchTerm = val;
+    }
+});
 
         $('#customerSelect').on('change', function() {
             var val = $(this).val();
