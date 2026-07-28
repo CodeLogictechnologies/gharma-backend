@@ -433,27 +433,18 @@ class SalesVoucher extends Model
                     throw new \Exception("Item or variation not found for item_id: {$item['item_id']}");
                 }
                 $qty = (float) $item['qty'];
-                $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+                $unitPrice = (float) $item['unit_rate'];
 
                 $baseAmount = round($unitPrice * $qty, 2);
 
+                $listPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
                 $discountAmount = 0.00;
 
                 if (!empty($variation->discount_type)) {
-                    if ($variation->discount_type == 'percentage') {
-                        $discountAmount = round(
-                            $baseAmount * ((float) ($variation->discount_amount ?? 0) / 100),
-                            2
-                        );
-                    } elseif ($variation->discount_type == 'fixed') {
-                        $discountAmount = round(
-                            (float) ($variation->discount_amount ?? 0) * $qty,
-                            2
-                        );
-                    }
+                    $discountAmount = round(max(($listPrice - $unitPrice) * $qty, 0), 2);
                 }
 
-                $amountAfterDiscount = round($baseAmount - $discountAmount, 2);
+                $amountAfterDiscount = $baseAmount;
 
                 $exciseAmount = 0.00;
 
@@ -493,14 +484,14 @@ class SalesVoucher extends Model
                     'userid'                         => $customer_id,
                     'price'                          => $unitPrice,
                     'discount_type'                  => $variation->discount_type,
-                    'discount_amount'                => $variation->discount_amount ?? null,
+                    'discount_amount'                => $variation->discount_amount ?? 0,
                     'discount_amount_per_variation'  => $discountAmount,
                     'excise_type'                    => $variation->excise_status === 'Y'
                         ? $variation->excise_type
                         : null,
                     'excise_percent'                 => $variation->excise_type === 'percentage'
                         ? $variation->excise_percentage
-                        : null,
+                        : 0,
                     'excise_amount'                  => $exciseAmount,
                     'vat_percent'                    => $variation->vat_status === 'Y'
                         ? $vatRate
