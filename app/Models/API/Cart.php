@@ -192,6 +192,7 @@ class Cart extends Model
             if (!empty($post['roleid'] && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002')) {
                 $result = DB::table('carts as c')
                     ->select(
+                        'c.id as cart_id',
                         'c.variation_id',
                         'i.id as productid',
                         DB::raw("CONCAT(i.title, ' ', it.value) as title"),
@@ -199,13 +200,28 @@ class Cart extends Model
                         'c.total_price as total_price',
                         'c.quantity as total_quantity',
                         DB::raw('(
-                            SELECT MIN(wd2.min_qty)
-                            FROM wholesaler_price_details as wd2
-                            INNER JOIN wholesaler_prices as wp2 ON wp2.id = wd2.wholesalermasterid
-                            WHERE wp2.variation_id = c.variation_id
-                            AND wd2.status = \'Y\'
-                            AND wp2.status = \'Y\'
-                        ) as min_qty')
+                SELECT MIN(wd2.min_qty)
+                FROM wholesaler_price_details as wd2
+                INNER JOIN wholesaler_prices as wp2 ON wp2.id = wd2.wholesalermasterid
+                WHERE wp2.variation_id = c.variation_id
+                AND wd2.status = \'Y\'
+                AND wp2.status = \'Y\'
+            ) as min_qty'),
+
+                        'i.excise_status',
+                        'i.excise_type',
+                        'i.excise_percentage',
+                        'i.excise_value',
+                        DB::raw("
+                CASE
+                    WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN
+                        (CAST(c.total_price AS numeric)) * (i.excise_percentage / 100)
+                    WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                    ELSE 0
+                END as excise_amount
+            "),
+
+                        'i.vat_percent'
                     )
                     ->join('itemvariations as it', 'it.id', '=', 'c.variation_id')
                     ->join('items as i', 'i.id', '=', 'it.item_id')
@@ -215,17 +231,23 @@ class Cart extends Model
                     ->whereNull('c.deleted_at')
                     ->where('c.type', 'W')
                     ->groupBy(
+                        'c.id',
                         'c.variation_id',
                         'i.id',
                         'i.title',
                         'it.value',
                         'c.unit_price',
                         'c.total_price',
-                        'c.quantity'
+                        'c.quantity',
+                        'i.excise_status',
+                        'i.excise_type',
+                        'i.excise_percentage',
+                        'i.excise_value',
+                        'i.vat_percent'
                     )
                     ->get();
 
-                $result->map(function ($item) {
+                $result = $result->map(function ($item) {
 
                     $image = DB::table('item_images')
                         ->where('item_id', $item->productid)
@@ -239,13 +261,47 @@ class Cart extends Model
                         unset($item->min_qty);
                     }
 
+                    // no per-unit / campaign discount in this branch
                     $item->original_price_per_unit      = null;
+                    $item->discount_type                = null;
+                    $item->discount_value_per_unit      = null;
+                    $item->discount_percentage_per_unit = null;
 
-                    $item->discount_type                =  null;
+                    $item->variation_discount_value  = null;
+                    $item->variation_discount_type   = null;
+                    $item->variation_discount_amount = null;
+                    $item->variation_discount_label  = 'No item discount';
 
-                    $item->discount_value_per_unit      =  null;
+                    $item->campaign_discount_type    = null;
+                    $item->campaign_discount_value   = null;
+                    $item->campaign_discount_amount  = 0;
+                    $item->campaign_discount_label   = 'No campaign discount';
 
-                    $item->discount_percentage_per_unit =  null;
+                    $item->min_value = null;
+                    $item->max_value = null;
+                    $item->min_qty   = null;
+
+                    // price_after_discount = total_price since no discounts apply here
+                    $item->price_after_discount = round((float) $item->total_price, 2);
+
+                    $priceAfterExcise = $item->price_after_discount + $item->excise_amount;
+                    $vatAmount        = $priceAfterExcise * ($item->vat_percent / 100);
+                    $finalTotal       = $priceAfterExcise + $vatAmount;
+
+                    $item->price_after_excise = round($priceAfterExcise, 2);
+                    $item->vat_amount         = round($vatAmount, 2);
+                    $item->final_total        = round($finalTotal, 2);
+
+                    $item->excise_label = 'No excise';
+                    if ($item->excise_status === 'Y') {
+                        $item->excise_label = $item->excise_type === 'percentage'
+                            ? $item->excise_percentage . '% excise'
+                            : 'Rs. ' . number_format($item->excise_value, 2) . ' fixed excise';
+                    }
+
+                    $item->pricebeforediscount = $item->total_price + $vatAmount + $priceAfterExcise + $vatAmount;
+
+                    $item->vat_label = $item->vat_percent . '% VAT';
 
                     return $item;
                 });
@@ -279,16 +335,18 @@ class Cart extends Model
                     ->join('items as i', 'i.id', '=', 'iv.item_id')
                     ->leftJoinSub($activeDiscount, 'ad', function ($join) {
                         $join->on('ad.variation_id', '=', 'iv.id')
-                            ->where('ad.rn', '=', 1); 
+                            ->where('ad.rn', '=', 1);
                     })
                     ->select([
                         'c.id as cart_id',
                         'c.variation_id',
-                        'c.quantity',
+                        'c.quantity as total_quantity',
                         'iv.item_id as productid',
-                        'i.title as item_title',
-                        'iv.attribute',
-                        'iv.value',
+                        // 'i.title as item_title',
+                        // 'iv.attribute',
+                        // 'iv.value',
+                        DB::raw("CONCAT(i.title, ' ', iv.value) as title"),
+
                         'ad.min_value',
                         'ad.max_value',
                         'iv.threshold as min_qty_raw',
