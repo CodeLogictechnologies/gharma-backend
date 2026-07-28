@@ -355,7 +355,8 @@
                 '<td><select name="items[' + idx +
                 '][variation_id]" class="form-select variation-select"><option value="">-- None --</option></select></td>' +
                 '<td><input type="number" name="items[' + idx +
-                '][qty]" class="form-control qty-input" min="0.01" step="0.01" data-required></td>' +
+                '][qty]" class="form-control qty-input" min="0.01" step="0.01" data-required>' +
+                '<div class="invalid-feedback"></div></td>' +
                 '<td><input type="number" name="items[' + idx +
                 '][unit_rate]" class="form-control rate-input" min="0" step="0.01" data-required></td>' +
                 '<td class="text-center discount-col">-</td>' +
@@ -401,6 +402,7 @@
             $varSelect.html('<option value="">Loading...</option>').prop('disabled', true);
             $.get('{{ route('inventory.variations') }}', {
                     item_id: itemId,
+                    in_stock_only: 1,
                     _token: '{{ csrf_token() }}'
                 })
                 .done(function(resp) {
@@ -493,6 +495,7 @@
             $.get('{{ route('sales.item-price') }}', {
                     item_id: itemId,
                     variation_id: variationId || '',
+                    exclude_ordermasterid: $('#salesVoucherForm input[name="id"]').val() || '',
                     _token: '{{ csrf_token() }}'
                 })
                 .done(function(resp) {
@@ -531,6 +534,33 @@
             recalcAll();
         }
 
+        /* ── QTY must not exceed the variation's remaining stock (Inventory > Stock: stock - sold) ── */
+        function validateQtyAgainstStock($tr) {
+            var itemId = $tr.find('.item-select').val();
+            var variationId = $tr.find('.variation-select').val();
+            if (!itemId || !variationId) return true;
+
+            var remaining = $tr.data('remaining');
+            if (typeof remaining === 'undefined') return true; // not loaded yet; server is the real gate
+
+            var $rows = $('#itemRows tr.item-row').filter(function() {
+                return $(this).find('.item-select').val() === itemId &&
+                    $(this).find('.variation-select').val() === variationId;
+            });
+            var totalQty = 0;
+            $rows.each(function() {
+                totalQty += parseFloat($(this).find('.qty-input').val()) || 0;
+            });
+
+            var ok = totalQty <= remaining;
+            var $qtyInputs = $rows.find('.qty-input');
+            $qtyInputs.toggleClass('is-invalid', !ok);
+            $qtyInputs.siblings('.invalid-feedback')
+                .text('Only ' + remaining + ' unit(s) remaining in stock.')
+                .toggle(!ok);
+            return ok;
+        }
+
         function formatDiscount(retailer) {
             if (retailer.discount_type === 'percentage' && retailer.discount_percentage) {
                 return parseFloat(retailer.discount_percentage) + '%';
@@ -553,6 +583,9 @@
 
             fetchPricing(itemId, variationId, function(pricing) {
                 if (!pricing) return;
+
+                $tr.data('remaining', pricing.remaining);
+                validateQtyAgainstStock($tr);
 
                 if (customerType === 'wholesaler') {
                     $tr.find('.discount-col').text('-');
@@ -588,6 +621,16 @@
             }
             if (prefill.qty) $tr.find('.qty-input').val(prefill.qty);
             if (prefill.unit_rate) $tr.find('.rate-input').val(prefill.unit_rate);
+
+            if (prefill.item_id && prefill.variation_id) {
+                // Fetch remaining stock for live validation without overwriting the already-saved rate.
+                fetchPricing(prefill.item_id, prefill.variation_id, function(pricing) {
+                    if (pricing) {
+                        $tr.data('remaining', pricing.remaining);
+                        validateQtyAgainstStock($tr);
+                    }
+                });
+            }
 
             recalcAll();
         }
@@ -763,6 +806,7 @@
         $(document).on('input change', '.qty-input', function() {
             applyAutoRate($(this).closest('tr'));
             recalcAll();
+            validateQtyAgainstStock($(this).closest('tr'));
         });
 
         $(document).on('input change', '.rate-input, #billDiscountPercent', function() {
@@ -880,10 +924,14 @@
                 valid = false;
             }
 
+            $('#itemRows tr.item-row').each(function() {
+                if (!validateQtyAgainstStock($(this))) valid = false;
+            });
+
             return valid;
         };
 
-        $(document).on('input change', '#salesVoucherForm .form-control, #salesVoucherForm .form-select',
+        $(document).on('input change', '#salesVoucherForm .form-control:not(.qty-input), #salesVoucherForm .form-select',
             function() {
                 $(this).removeClass('is-invalid');
                 $(this).siblings('.invalid-feedback').hide();

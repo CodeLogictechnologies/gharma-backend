@@ -52,6 +52,38 @@ class Inventory extends Model
     }
 
 
+    /**
+     * Base query yielding exactly one row per (item_id, variation_id), with
+     * purchase quantity and sold quantity already summed per variation
+     * (pvi.total_qty, o.total_sold) — never per raw ledger/order row.
+     *
+     * purchase_voucher_items is an immutable purchase ledger (a new row is
+     * inserted per purchase), and order_details is an immutable sales ledger,
+     * so both must be pre-aggregated before joining, otherwise the join
+     * produces a cartesian product per variation (one row per purchase x
+     * per sale) with duplicated/incorrect totals.
+     */
+    public static function stockAggregateQuery()
+    {
+        $purchaseAgg = DB::table('purchase_voucher_items')
+            ->select('item_id', 'variation_id', DB::raw('SUM(qty) as total_qty'))
+            ->groupBy('item_id', 'variation_id');
+
+        $salesAgg = DB::table('order_details')
+            ->select('variation_id', DB::raw('SUM(quantity) as total_sold'))
+            ->where('status', 'Y')
+            ->whereNull('deleted_at')
+            ->groupBy('variation_id');
+
+        return DB::table('items as i')
+            ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+            ->joinSub($purchaseAgg, 'pvi', function ($join) {
+                $join->on('pvi.item_id', '=', 'i.id')
+                    ->on('pvi.variation_id', '=', 'iv.id');
+            })
+            ->leftJoinSub($salesAgg, 'o', 'o.variation_id', '=', 'iv.id');
+    }
+
     public static function list($post)
     {
         try {
@@ -74,50 +106,33 @@ class Inventory extends Model
 
             if (!empty($columns[3]['search']['value'])) {
                 $val        = strtolower(trim($columns[3]['search']['value']));
-                $cond      .= " and pvi.qty::text like ?";
+                $cond      .= " and pvi.total_qty::text like ?";
                 $bindings[] = "%{$val}%";
             }
 
             $limit  = isset($post['length']) ? (int) $post['length'] : 15;
             $offset = isset($post['start'])  ? (int) $post['start']  : 0;
 
-            $baseQuery = DB::table('items as i')
-                ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
-                ->join('purchase_voucher_items as pvi', 'pvi.variation_id', '=', 'iv.id')
-                ->leftJoin('order_details as o', 'o.variation_id', '=', 'iv.id')
-                ->where('i.orgid', $orgid);
+            $baseQuery = self::stockAggregateQuery()->where('i.orgid', $orgid);
 
-            // Total count (unfiltered) — count distinct variation rows, not summed/grouped rows
-            $totalrecs = (clone $baseQuery)
-                ->select('iv.id')
-                ->groupBy('iv.id')
-                ->get()
-                ->count();
+            // Total count (unfiltered) — one row per (item, variation) already
+            $totalrecs = (clone $baseQuery)->count();
 
             $query = (clone $baseQuery)
                 ->selectRaw("
                     i.id,
-                    pvi.qty as stock,
-                    pvi.qty - COALESCE(SUM(o.quantity), 0) AS remainingqty,
-                    COALESCE(SUM(o.quantity), 0) as soldqty,
+                    pvi.total_qty as stock,
+                    pvi.total_qty - COALESCE(o.total_sold, 0) AS remainingqty,
+                    COALESCE(o.total_sold, 0) as soldqty,
                     i.title,
                     iv.attribute,
                     iv.value as variation_value
                 ")
                 ->whereRaw($cond, $bindings)
-                ->groupBy(
-                    'i.id',
-                    'pvi.qty',
-                    'i.title',
-                    'iv.attribute',
-                    'iv.value'
-                )
                 ->orderBy('i.id', 'desc');
 
-            // Filtered count — wrap the grouped query in a subquery
-            $filteredCount = DB::query()
-                ->fromSub($query->clone(), 'grouped')
-                ->count();
+            $filteredCount = (clone $query)->count();
+
             $result = $limit > -1
                 ? $query->offset($offset)->limit($limit)->get()
                 : $query->get();
@@ -283,10 +298,7 @@ class Inventory extends Model
     public static function lowStockAlerts($orgid)
     {
         try {
-            $rows = DB::table('items as i')
-                ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
-                ->join('purchase_voucher_items as pvi', 'pvi.variation_id', '=', 'iv.id')
-                ->leftJoin('order_details as o', 'o.variation_id', '=', 'iv.id')
+            $rows = self::stockAggregateQuery()
                 ->where('i.orgid', $orgid)
                 ->selectRaw("
                     iv.id as variation_id,
@@ -295,11 +307,10 @@ class Inventory extends Model
                     iv.attribute,
                     iv.value as variation_value,
                     CAST(iv.threshold AS INTEGER) as threshold,
-                    pvi.qty - COALESCE(SUM(o.quantity), 0) AS remainingqty
+                    pvi.total_qty - COALESCE(o.total_sold, 0) AS remainingqty
                 ")
-                ->groupBy('iv.id', 'i.id', 'i.title', 'iv.attribute', 'iv.value', 'iv.threshold', 'pvi.qty')
-                ->havingRaw('(pvi.qty - COALESCE(SUM(o.quantity), 0)) < CAST(iv.threshold AS INTEGER)')
-                ->orderByRaw('(pvi.qty - COALESCE(SUM(o.quantity), 0)) asc')
+                ->whereRaw('(pvi.total_qty - COALESCE(o.total_sold, 0)) < CAST(iv.threshold AS INTEGER)')
+                ->orderByRaw('(pvi.total_qty - COALESCE(o.total_sold, 0)) asc')
                 ->get();
 
             return $rows;

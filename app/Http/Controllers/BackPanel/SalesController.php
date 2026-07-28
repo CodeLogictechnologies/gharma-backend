@@ -71,8 +71,8 @@ class SalesController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
-            $items          = Item::getItem($post);
-            $itemVariations = Itemvariation::getProductCodes($post);
+            $items          = Item::getItem($post, true);
+            $itemVariations = Itemvariation::getProductCodes($post, true);
             $customers      = User::getUserData($post, true);
 
             $data = [
@@ -188,6 +188,37 @@ class SalesController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
             $post['userid'] = session('userid');
+
+            // Multiple rows can reference the same variation (e.g. wholesale-tier rows), so
+            // qty needs to be combined per variation before comparing against remaining stock.
+            $qtyByVariation = [];
+            foreach ($post['items'] as $it) {
+                $vid = $it['variation_id'] ?? null;
+                if (!$vid) {
+                    continue;
+                }
+                $qtyByVariation[$vid] = ($qtyByVariation[$vid] ?? 0) + (float) $it['qty'];
+            }
+
+            foreach ($qtyByVariation as $variationId => $qty) {
+                $remaining = Itemvariation::remainingStock($variationId, $post['orgid'], $post['id'] ?? null);
+
+                if ($qty > $remaining) {
+                    $variation = DB::table('itemvariations as iv')
+                        ->join('items as i', 'i.id', '=', 'iv.item_id')
+                        ->where('iv.id', $variationId)
+                        ->select('i.title', 'iv.attribute', 'iv.value')
+                        ->first();
+                    $label = $variation
+                        ? trim($variation->title . ' (' . $variation->attribute . ': ' . $variation->value . ')')
+                        : 'this item';
+
+                    return response()->json([
+                        'type'    => 'error',
+                        'message' => "Only {$remaining} unit(s) of {$label} remaining in stock (requested {$qty}).",
+                    ]);
+                }
+            }
 
             SalesVoucher::saveData($post);
 
