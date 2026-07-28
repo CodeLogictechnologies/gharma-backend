@@ -39,10 +39,12 @@ class Order extends Model
             $grandVat      = 0;
             $grandTotal    = 0;
 
+
             foreach ($post['items'] as $item) {
 
                 // Only trust variation_id + quantity from frontend
                 $variationId = $item['variation_id'];
+
                 $qty         = (float) $item['quantity'];
 
                 if ($qty <= 0) {
@@ -74,7 +76,31 @@ class Order extends Model
                     throw new \Exception("Invalid item variation.");
                 }
 
-                $unitPrice  = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+                if (!empty($post['roleid']) && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002') {
+
+                    $wholesalerPrice = DB::table('wholesaler_prices as wp')
+                        ->join('wholesaler_price_details as wd', 'wd.wholesalermasterid', '=', 'wp.id')
+                        ->where('wp.variation_id', $variationId)
+                        ->where('wp.status', 'Y')
+                        ->where('wd.status', 'Y')
+                        ->where('wd.min_qty', '<=', $qty)
+                        ->where(function ($q) use ($qty) {
+                            $q->whereNull('wd.max_qty')
+                                ->orWhere('wd.max_qty', '>=', $qty);
+                        })
+                        ->orderBy('wd.min_qty', 'desc')
+                        ->value('wd.price');
+
+                    if ($wholesalerPrice === null) {
+                        throw new \Exception("No wholesaler price found for the given quantity.");
+                    }
+
+                    $unitPrice = (float) $wholesalerPrice;
+                } else {
+
+                    $unitPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+                }
+
                 $baseAmount = round($unitPrice * $qty, 2);
 
                 // ── Variation-level discount (from itemvariations) ──
@@ -186,6 +212,8 @@ class Order extends Model
                     $payment_status = 'Paid';
                 }
             }
+
+
 
             $insertOrderMaster = [
                 'id'                        => $orderMasterId,

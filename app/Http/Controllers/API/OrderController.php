@@ -20,12 +20,15 @@ class OrderController extends Controller
 {
     public function save(OrderPlaceRequest $request)
     {
-        try {
+        // try {
             $type = 'success';
             $message = 'Order placed successfully';
 
             DB::beginTransaction();
             $post = $request->all();
+
+            // $post['roleid'] = $request->header('roleid');
+            // dd($post);
 
             $invoiceInfo = APIOrder::saveData($post);
 
@@ -40,19 +43,19 @@ class OrderController extends Controller
                 'message' => $message,
                 'pdf_link'    => $invoiceInfo
             ], 200);
-        } catch (QueryException $e) {
-            DB::rollBack();
-            return response()->json([
-                'type'    => 'error',
-                'message' => 'Database error: ' . $e->getMessage()
-            ], 500);
-        } catch (Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'type'    => 'error',
-                'message' => $e->getMessage(),
-            ], 500);
-        }
+        // } catch (QueryException $e) {
+        //     DB::rollBack();
+        //     return response()->json([
+        //         'type'    => 'error',
+        //         'message' => 'Database error: ' . $e->getMessage()
+        //     ], 500);
+        // } catch (Exception $e) {
+        //     DB::rollBack();
+        //     return response()->json([
+        //         'type'    => 'error',
+        //         'message' => $e->getMessage(),
+        //     ], 500);
+        // }
     }
 
     public function orderStatus(Request $request)

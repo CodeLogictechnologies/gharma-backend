@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BackPanel\Category;
 use App\Models\BackPanel\Inventory;
 use App\Models\BackPanel\Item;
+use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\SubCategory;
 
 use Illuminate\Support\Facades\DB;
@@ -23,11 +24,16 @@ class InventoryController extends Controller
     } // InventoryController.php
     public function getVariations(Request $request)
     {
-        $variations = DB::table('itemvariations')
+        $query = DB::table('itemvariations')
             ->where('item_id', $request->item_id)
             // ->where('status', 'Y')
-            ->select('id', 'attribute', 'value')
-            ->get();
+            ->select('id', 'attribute', 'value');
+
+        if (!empty($request->in_stock_only)) {
+            $query->whereIn('id', Itemvariation::inStockVariationIds(session('orgid')));
+        }
+
+        $variations = $query->get();
 
         return response()->json($variations);
     }

@@ -859,7 +859,7 @@ class Item extends Model
         return $item;
     }
 
-    public static function getItem($post)
+    public static function getItem($post, $inStockOnly = false)
     {
         try {
             $query = DB::table('items')
@@ -880,6 +880,17 @@ class Item extends Model
 
             if (!empty($post['wholesale_only'])) {
                 $query->where('is_wholesale', 'Y');
+            }
+
+            if ($inStockOnly) {
+                // Items without any variation have no stock/remaining concept in this system
+                // (see Inventory > Stock, which is variation-based), so they're excluded here.
+                $inStockVariationIds = Itemvariation::inStockVariationIds($post['orgid']);
+                $eligibleItemIds = DB::table('itemvariations')
+                    ->whereIn('id', $inStockVariationIds)
+                    ->pluck('item_id')
+                    ->unique();
+                $query->whereIn('id', $eligibleItemIds);
             }
 
             return $query->get();
