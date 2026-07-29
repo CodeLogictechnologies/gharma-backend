@@ -34,6 +34,24 @@ class DriverController extends Controller
     {
         $orgid = session('orgid');
 
+        return view('backend.driver.assign.dashboard', [
+            'drivers'  => $this->getActiveDrivers($orgid),
+            'todayNep' => (new BsdateController())->eng_to_nep(date('Y-m-d')),
+            'stats'    => $this->computeAssignStats($orgid),
+        ]);
+    }
+
+    /**
+     * JSON stats used to refresh the dashboard's stat cards after an
+     * assign/reassign/bulk-assign action without a full page reload.
+     */
+    public function assignStats(Request $request)
+    {
+        return response()->json($this->computeAssignStats(session('orgid')));
+    }
+
+    private function computeAssignStats(?string $orgid): array
+    {
         $unassigned = DB::table('order_masters as om')
             ->where('om.orgid', $orgid)
             ->whereIn('om.order_status', ['Confirmed', 'Packed'])
@@ -57,15 +75,11 @@ class DriverController extends Controller
             ->where('order_status', 'Start')
             ->count();
 
-        return view('backend.driver.assign.dashboard', [
-            'drivers'  => $this->getActiveDrivers($orgid),
-            'todayNep' => (new BsdateController())->eng_to_nep(date('Y-m-d')),
-            'stats'    => [
-                'unassigned'     => $unassigned,
-                'assigned_today' => $assignedToday,
-                'in_transit'     => $inTransit,
-            ],
-        ]);
+        return [
+            'unassigned'     => $unassigned,
+            'assigned_today' => $assignedToday,
+            'in_transit'     => $inTransit,
+        ];
     }
 
     /**
@@ -110,7 +124,8 @@ class DriverController extends Controller
 
     /**
      * Server-side DataTable source for the Assign Drive dashboard.
-     * Tabs: unassigned (Confirmed/Packed orders with no active driver), assigned, all.
+     * Tabs: unassigned (Confirmed/Packed orders with no active driver), assigned,
+     * in_transit (driver has started delivery), all.
      */
     public function assignList(Request $request)
     {
@@ -134,6 +149,8 @@ class DriverController extends Controller
                 ->whereNull('ad.id');
         } elseif ($tab === 'assigned') {
             $query->whereNotNull('ad.id');
+        } elseif ($tab === 'in_transit') {
+            $query->where('ad.order_status', 'Start');
         }
 
         if (!empty($post['driver_id'])) {
