@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\BackPanel;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\BsdateController;
 use App\Http\Requests\Driver\AssignDriverRequest;
 use App\Models\BackPanel\AssignDriver;
 use App\Models\BackPanel\Driver;
@@ -26,12 +27,253 @@ class DriverController extends Controller
         return view('backend.driver.list.index');
     }
 
+    /**
+     * Standalone "Assign Drive" dashboard (Drive > Assign Drive in the sidebar).
+     */
     public function assignIndex(Request $request)
+    {
+        $orgid = session('orgid');
+
+        $unassigned = DB::table('order_masters as om')
+            ->where('om.orgid', $orgid)
+            ->whereIn('om.order_status', ['Confirmed', 'Packed'])
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('assign_drivers as ad')
+                    ->whereColumn('ad.ordermasterid', 'om.id')
+                    ->where('ad.status', 'Y');
+            })
+            ->count();
+
+        $assignedToday = DB::table('assign_drivers')
+            ->where('orgid', $orgid)
+            ->where('status', 'Y')
+            ->whereDate('delivery_date', date('Y-m-d'))
+            ->count();
+
+        $inTransit = DB::table('assign_drivers')
+            ->where('orgid', $orgid)
+            ->where('status', 'Y')
+            ->where('order_status', 'Start')
+            ->count();
+
+        return view('backend.driver.assign.dashboard', [
+            'drivers'  => $this->getActiveDrivers($orgid),
+            'todayNep' => (new BsdateController())->eng_to_nep(date('Y-m-d')),
+            'stats'    => [
+                'unassigned'     => $unassigned,
+                'assigned_today' => $assignedToday,
+                'in_transit'     => $inTransit,
+            ],
+        ]);
+    }
+
+    /**
+     * Single-order assign/reassign modal. Used both by the order list's
+     * per-row "Assign Driver" icon and by row actions on the Assign Drive dashboard.
+     */
+    public function assignModal(Request $request)
     {
         $ordermasterid = $request->input('id');
         $orgid = session('orgid');
 
-        $drivers = DB::table('users')
+        $order = DB::table('order_masters as om')
+            ->join('users as u', 'u.id', '=', 'om.userid')
+            ->leftJoin('user_addresses as ua', 'ua.id', '=', 'om.addressid')
+            ->where('om.id', $ordermasterid)
+            ->select('om.id', 'om.order_status', 'u.name as customer_name', 'u.phone as customer_phone', 'ua.address_name')
+            ->first();
+
+        $existing = DB::table('assign_drivers')
+            ->where('ordermasterid', $ordermasterid)
+            ->where('status', 'Y')
+            ->first();
+
+        $bsdate = new BsdateController();
+        if (!empty($existing->date_nep)) {
+            $assignedDateNep = $existing->date_nep;
+        } elseif (!empty($existing->delivery_date)) {
+            $assignedDateNep = $bsdate->eng_to_nep($existing->delivery_date);
+        } else {
+            $assignedDateNep = $bsdate->eng_to_nep(date('Y-m-d'));
+        }
+
+        return view('backend.order.assign_driver', [
+            'ordermasterid'   => $ordermasterid,
+            'order'           => $order,
+            'drivers'         => $this->getActiveDrivers($orgid),
+            'assigned_driver' => $existing->driverid ?? null,
+            'assigned_date'   => $assignedDateNep,
+            'is_assigned'     => !empty($existing),
+        ]);
+    }
+
+    /**
+     * Server-side DataTable source for the Assign Drive dashboard.
+     * Tabs: unassigned (Confirmed/Packed orders with no active driver), assigned, all.
+     */
+    public function assignList(Request $request)
+    {
+        $post   = $request->all();
+        $orgid  = session('orgid');
+        $tab    = $post['tab'] ?? 'unassigned';
+        $limit  = (int) ($post['iDisplayLength'] ?? 15);
+        $offset = (int) ($post['iDisplayStart']  ?? 0);
+
+        $query = DB::table('order_masters as om')
+            ->join('users as u', 'u.id', '=', 'om.userid')
+            ->leftJoin('user_addresses as ua', 'ua.id', '=', 'om.addressid')
+            ->leftJoin('assign_drivers as ad', function ($join) {
+                $join->on('ad.ordermasterid', '=', 'om.id')->where('ad.status', 'Y');
+            })
+            ->leftJoin('users as drv', 'drv.id', '=', 'ad.driverid')
+            ->where('om.orgid', $orgid);
+
+        if ($tab === 'unassigned') {
+            $query->whereIn('om.order_status', ['Confirmed', 'Packed'])
+                ->whereNull('ad.id');
+        } elseif ($tab === 'assigned') {
+            $query->whereNotNull('ad.id');
+        }
+
+        if (!empty($post['driver_id'])) {
+            $query->where('ad.driverid', $post['driver_id']);
+        }
+        if (!empty($post['delivery_date'])) {
+            $query->where('ad.date_nep', $post['delivery_date']);
+        }
+        if (!empty($post['sSearch_1'])) {
+            $val = strtolower(trim($post['sSearch_1']));
+            $query->whereRaw('LOWER(u.name) LIKE ?', ["%{$val}%"]);
+        }
+
+        $totalrecs = (clone $query)->count();
+
+        $results = $query
+            ->select(
+                'om.id',
+                'om.order_status',
+                'om.order_master_total_price',
+                'om.created_at as order_time',
+                'u.name as customer_name',
+                'u.phone as customer_phone',
+                'ua.address_name',
+                'ad.id as assignment_id',
+                'drv.name as driver_name',
+                'ad.delivery_date',
+                'ad.date_nep',
+                'ad.order_status as delivery_status'
+            )
+            ->orderBy('om.created_at', 'desc')
+            ->offset($offset)
+            ->limit($limit)
+            ->get();
+
+        $i     = 0;
+        $array = [];
+        foreach ($results as $row) {
+            $array[$i]['sno']           = $offset + $i + 1;
+            $array[$i]['checkbox']      = '<input type="checkbox" class="form-check-input rowCheckbox" value="' . $row->id . '">';
+            $array[$i]['customer_name'] = $row->customer_name . '<br><small class="text-muted">' . ($row->customer_phone ?? '-') . '</small>';
+            $array[$i]['address_name']  = $row->address_name ?? '-';
+            $array[$i]['order_time']    = $row->order_time;
+            $array[$i]['order_status']  = '<span class="badge bg-label-info">' . $row->order_status . '</span>';
+            $array[$i]['driver_name']   = $row->driver_name
+                ? '<span class="badge bg-label-success">' . $row->driver_name . '</span>'
+                : '<span class="badge bg-label-secondary">Unassigned</span>';
+            $array[$i]['delivery_date'] = $row->date_nep ?? $row->delivery_date ?? '-';
+
+            $label  = $row->assignment_id ? 'Reassign' : 'Assign';
+            $action = '<a href="javascript:;" title="' . $label . ' Driver" class="tooltipdiv assignRow" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-user-plus"></i> ' . $label . '</a>';
+
+            $array[$i]['action'] = $action;
+            $i++;
+        }
+
+        return response()->json([
+            'recordsFiltered' => $totalrecs,
+            'recordsTotal'    => $totalrecs,
+            'data'            => $array,
+        ]);
+    }
+
+    /**
+     * Assign the same driver/date to several orders at once.
+     */
+    public function bulkSave(Request $request)
+    {
+        try {
+            $post          = $request->all();
+            $post['orgid'] = session('orgid');
+
+            $rules = [
+                'driver_id'       => 'required',
+                'delivery_date'   => 'required|regex:/^\d{4}-\d{2}-\d{2}$/',
+                'ordermasterids'  => 'required|array|min:1',
+            ];
+            $message = [
+                'driver_id.required'      => 'Please select a driver.',
+                'delivery_date.required'  => 'Please select an assign date.',
+                'ordermasterids.required' => 'Please select at least one order.',
+            ];
+            $validation = Validator::make($post, $rules, $message);
+
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
+            }
+
+            DB::beginTransaction();
+            foreach ($post['ordermasterids'] as $ordermasterid) {
+                if (!FirebaseService::AssignDriverNotice([
+                    'orgid'         => $post['orgid'],
+                    'ordermasterid' => $ordermasterid,
+                    'driver_id'     => $post['driver_id'],
+                    'delivery_date' => $post['delivery_date'],
+                ])) {
+                    throw new Exception('Could not assign driver to order ' . $ordermasterid, 1);
+                }
+            }
+            DB::commit();
+
+            $type    = 'success';
+            $count   = count($post['ordermasterids']);
+            $message = $count . ' order' . ($count === 1 ? '' : 's') . ' assigned successfully';
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = 'Something went wrong';
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = $e->getMessage();
+        }
+
+        return json_encode(['type' => $type, 'message' => $message]);
+    }
+
+    /**
+     * Number of orders already assigned to each driver for a given delivery date.
+     * Lets the dispatcher pick a driver who still has capacity.
+     */
+    public function driverWorkload(Request $request)
+    {
+        $orgid = session('orgid');
+        $date  = $request->input('date') ?: (new BsdateController())->eng_to_nep(date('Y-m-d'));
+
+        $counts = DB::table('assign_drivers')
+            ->where('orgid', $orgid)
+            ->where('status', 'Y')
+            ->where('date_nep', $date)
+            ->groupBy('driverid')
+            ->selectRaw('driverid, count(*) as total')
+            ->pluck('total', 'driverid');
+
+        return response()->json($counts);
+    }
+
+    private function getActiveDrivers(?string $orgid)
+    {
+        return DB::table('users')
             ->join('profiles', 'profiles.user_id', '=', 'users.id')
             ->join('userorganizations as u', 'u.userid', '=', 'users.id')
             ->where('profiles.status', 'Y')
@@ -45,19 +287,8 @@ class DriverController extends Controller
                     ->whereRaw('LOWER(r.name) LIKE ?', ['%driver%']);
             })
             ->select('users.id', 'users.name')
+            ->orderBy('users.name')
             ->get();
-
-        $existing = DB::table('assign_drivers')
-            ->where('ordermasterid', $ordermasterid)
-            ->first();
-
-        return view('backend.order.assign_driver', [
-            'ordermasterid'   => $ordermasterid,
-            'drivers'         => $drivers,
-            'assigned_driver' => $existing->driverid ?? null,
-            'assigned_date'   => $existing->delivery_date ?? date('Y-m-d'),
-            'is_assigned'     => !empty($existing),
-        ]);
     }
 
     public function save(Request $request)

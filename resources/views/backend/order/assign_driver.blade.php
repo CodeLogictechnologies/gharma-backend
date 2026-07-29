@@ -1,5 +1,5 @@
 <div class="modal-header">
-    <h5 class="modal-title">Assign Driver</h5>
+    <h5 class="modal-title">{{ isset($is_assigned) && $is_assigned ? 'Reassign Driver' : 'Assign Driver' }}</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 
@@ -8,11 +8,22 @@
     <input type="hidden" name="ordermasterid" value="{{ $ordermasterid ?? '' }}">
 
     <div class="modal-body">
+        @isset($order)
+            <div class="d-flex align-items-start gap-2 border rounded p-2 mb-3 bg-body-tertiary">
+                <i class="bx bx-package fs-4 text-primary"></i>
+                <div>
+                    <div class="fw-semibold">{{ $order->customer_name ?? '-' }}</div>
+                    <small class="text-muted d-block">{{ $order->customer_phone ?? '-' }}</small>
+                    <small class="text-muted">{{ $order->address_name ?? 'No address on file' }}</small>
+                </div>
+            </div>
+        @endisset
+
         <div class="row g-3 mb-3">
 
-            <div class="col-md-4">
-                <label class="form-label">Select Driver</label>
-                <select name="driver_id" class="form-select" data-required>
+            <div class="col-md-6">
+                <label class="form-label" for="driverSelect">Select Driver</label>
+                <select name="driver_id" class="form-select" id="driverSelect" data-required>
                     <option value="">-- Select Driver --</option>
                     @foreach ($drivers as $driver)
                         <option value="{{ $driver->id }}"
@@ -23,10 +34,10 @@
                 </select>
             </div>
 
-            <div class="col-md-4">
-                <label class="form-label">Assign Date</label>
-                <input type="date" name="delivery_date" class="form-control" data-required
-                    value="{{ old('delivery_date', $assigned_date ?? date('Y-m-d')) }}">
+            <div class="col-md-6">
+                <label class="form-label" for="deliveryDateInput">Assign Date (B.S.)</label>
+                <input type="text" name="delivery_date" id="deliveryDateInput" class="form-control" autocomplete="off"
+                    data-required value="{{ old('delivery_date', $assigned_date ?? '') }}">
             </div>
 
         </div>

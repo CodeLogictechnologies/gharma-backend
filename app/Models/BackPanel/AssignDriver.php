@@ -18,6 +18,9 @@ use Locale;
 
 class AssignDriver extends Model
 {
+    public $incrementing = false;
+    protected $keyType   = 'string';
+
     public static function AssignDriver($post)
     {
         try {
