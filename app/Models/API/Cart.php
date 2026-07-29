@@ -290,7 +290,7 @@ class Cart extends Model
 
                     $item->price_after_excise = round($priceAfterExcise, 2);
                     $item->vat_amount         = round($vatAmount, 2);
-                    $item->final_total        = round($finalTotal, 2);
+                    $item->total_price        = round($finalTotal, 2);
 
                     $item->excise_label = 'No excise';
                     if ($item->excise_status === 'Y') {
@@ -299,7 +299,7 @@ class Cart extends Model
                             : 'Rs. ' . number_format($item->excise_value, 2) . ' fixed excise';
                     }
 
-                    $item->pricebeforediscount = $item->total_price + $vatAmount + $priceAfterExcise + $vatAmount;
+                    $item->pricebeforediscount = $item->total_price  + $priceAfterExcise + $vatAmount;
 
                     $item->vat_label = $item->vat_percent . '% VAT';
 
@@ -414,32 +414,70 @@ class Cart extends Model
                         ? url('storage/items/' . $image)
                         : null;
 
-                    $priceAfterExcise = $item->price_after_discount + $item->excise_amount;
-                    $vatAmount        = $priceAfterExcise * ($item->vat_percent / 100);
-                    $finalTotal       = $priceAfterExcise + $vatAmount;
+                    $beforeDiscountPrice = $item->subtotal_amount;
 
-                    $item->price_after_excise = round($priceAfterExcise, 2);
-                    $item->vat_amount         = round($vatAmount, 2);
-                    $item->final_total        = round($finalTotal, 2);
+                    if ($item->excise_status === 'Y') {
+                        if ($item->excise_type === 'percentage') {
+                            $beforeExcise = $beforeDiscountPrice * ($item->excise_percentage / 100);
+                        } else {
+                            $beforeExcise = $item->excise_value;
+                        }
+                    } else {
+                        $beforeExcise = 0;
+                    }
+
+                    $beforeVat = ($beforeDiscountPrice + $beforeExcise) * ($item->vat_percent / 100);
+
+                    $item->original_price_per_unit = round(
+                        $beforeDiscountPrice + $beforeExcise + $beforeVat,
+                        2
+                    );
+
+                    $afterDiscountPrice = $item->price_after_discount;
+
+                    if ($item->excise_status === 'Y') {
+                        if ($item->excise_type === 'percentage') {
+                            $afterExcise = $afterDiscountPrice * ($item->excise_percentage / 100);
+                        } else {
+                            $afterExcise = $item->excise_value;
+                        }
+                    } else {
+                        $afterExcise = 0;
+                    }
+
+                    $afterVat = ($afterDiscountPrice + $afterExcise) * ($item->vat_percent / 100);
+
+                    $item->price_after_excise = round($afterDiscountPrice + $afterExcise, 2);
+
+                    $item->vat_amount = round($afterVat, 2);
+
+                    $item->total_price = round(
+                        $afterDiscountPrice + $afterExcise + $afterVat,
+                        2
+                    );
 
                     $item->variation_discount_label = 'No item discount';
+
                     if ($item->variation_discount_type === 'percentage') {
-                        $item->variation_discount_label = $item->variation_discount_value . '% off (item)';
+                        $item->variation_discount_label =
+                            $item->variation_discount_value . '% off (item)';
                     } elseif ($item->variation_discount_type === 'fixed') {
-                        $item->variation_discount_label = 'Rs. ' . number_format($item->variation_discount_amount, 2) . ' off (item)';
+                        $item->variation_discount_label =
+                            'Rs. ' . number_format($item->variation_discount_amount, 2) . ' off (item)';
                     }
 
                     $item->campaign_discount_label = 'No campaign discount';
+
                     if ($item->campaign_discount_type === 'percentage') {
-                        $item->campaign_discount_label = $item->campaign_discount_value . '% off (campaign)';
+                        $item->campaign_discount_label =
+                            $item->campaign_discount_value . '% off (campaign)';
                     } elseif ($item->campaign_discount_type === 'amount') {
-                        $item->campaign_discount_label = 'Rs. ' . number_format($item->campaign_discount_amount, 2) . ' off (campaign)';
+                        $item->campaign_discount_label =
+                            'Rs. ' . number_format($item->campaign_discount_amount, 2) . ' off (campaign)';
                     }
 
                     $item->excise_label = 'No excise';
-                    $item->pricebeforediscount = $item->subtotal_amount + $vatAmount + $priceAfterExcise + $vatAmount;
 
-                    $item->min_qty = $item->min_value ?? null;
                     if ($item->excise_status === 'Y') {
                         $item->excise_label = $item->excise_type === 'percentage'
                             ? $item->excise_percentage . '% excise'
@@ -447,6 +485,8 @@ class Cart extends Model
                     }
 
                     $item->vat_label = $item->vat_percent . '% VAT';
+
+                    $item->min_qty = $item->min_value ?? null;
 
                     return $item;
                 });

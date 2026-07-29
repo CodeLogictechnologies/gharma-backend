@@ -253,13 +253,13 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save',   [VariationAttributeController::class, 'save'])->name('variation-attribute.save');
             Route::post('/delete', [VariationAttributeController::class, 'delete'])->name('variation-attribute.delete');
         });
-        
-                Route::group(['prefix' => 'org-fiscalyear'], function () {
+
+        Route::group(['prefix' => 'org-fiscalyear'], function () {
             Route::get('/',       [OrgFiscalyearController::class, 'index'])->name('org-fiscalyear.index');
             Route::get('/list',   [OrgFiscalyearController::class, 'list'])->name('org-fiscalyear.list');
-            Route::post('/assign',[OrgFiscalyearController::class, 'assign'])->name('org-fiscalyear.assign');
+            Route::post('/assign', [OrgFiscalyearController::class, 'assign'])->name('org-fiscalyear.assign');
         });
-        
+
         Route::group(['prefix' => 'unit'], function () {
             Route::get('/',        [UnitController::class, 'index'])->name('unit');
             Route::post('/list',   [UnitController::class, 'list'])->name('unit.list');
