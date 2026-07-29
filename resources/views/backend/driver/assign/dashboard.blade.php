@@ -405,6 +405,7 @@
                             showNotification(result.message, 'success');
                             bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
                             assignTable.fnDraw();
+                            refreshStats();
                         } else {
                             showNotification(result.message, 'error');
                             $btn.prop('disabled', false);
@@ -417,6 +418,15 @@
                     }
                 });
             });
+
+            // ── Stat cards ────────────────────────────────────────────────
+            function refreshStats() {
+                $.get('{{ route('assign.driver.stats') }}').done(function(stats) {
+                    $('#statUnassigned').text(stats.unassigned);
+                    $('#statAssignedToday').text(stats.assigned_today);
+                    $('#statInTransit').text(stats.in_transit);
+                });
+            }
 
             // ── Bulk assign modal ────────────────────────────────────────
             $('#bulkAssignBtn').on('click', function() {
@@ -480,6 +490,7 @@
                             selectedOrders.clear();
                             updateBulkBar();
                             assignTable.fnDraw();
+                            refreshStats();
                         } else {
                             showNotification(result.message, 'error');
                         }
