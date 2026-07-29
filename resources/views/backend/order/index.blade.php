@@ -123,6 +123,9 @@
 
                 req.done(function(response) {
                     $('#storeModelContainer').html(response);
+                    $('#deliveryDateInput').nepaliDatePicker({
+                        container: '#storeModel'
+                    });
 
                     // Destroy previous instance if any, then show fresh
                     var modalEl = document.getElementById('storeModel');
@@ -146,7 +149,7 @@
                 let id = $(this).data('id');
 
                 openOrgModal(
-                    '{{ route('assign.driver') }}', {
+                    '{{ route('assign.driver.modal') }}', {
                         id: id,
                         _token: '{{ csrf_token() }}'
                     },

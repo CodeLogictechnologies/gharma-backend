@@ -960,7 +960,15 @@
 
 <script>
     $(function() {
-
+ /* ── Prefill Name / Product Code coming from the Sales Voucher "+ Add" flow ── */
+    if (window.prefillItemName) {
+        $('[name="title"]').val(window.prefillItemName);
+        window.prefillItemName = '';
+    }
+    if (window.prefillProductCode) {
+        $('[name="product_code"]').val(window.prefillProductCode);
+        window.prefillProductCode = '';
+    }
         /* ─────────────────────────────────────────────
            QUICK-ADD CONFIG (must be before autoQuickSave)
         ───────────────────────────────────────────── */
