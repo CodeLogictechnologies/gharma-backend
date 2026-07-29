@@ -148,8 +148,12 @@ Route::group(['middleware' => ['auth']], function () {
             // Route::get('/delete', [DriverController::class, 'delete'])->name('driver.delete');
 
             Route::get('/assign', [DriverController::class, 'assignIndex'])->name('assign.driver');
-            Route::any('/form', [DriverController::class, 'form'])->name('driver.form');
+            Route::get('/assign/modal', [DriverController::class, 'assignModal'])->name('assign.driver.modal');
+            Route::get('/assign/list', [DriverController::class, 'assignList'])->name('assign.driver.list');
             Route::post('/assign/save', [DriverController::class, 'save'])->name('assign.driver.save');
+            Route::post('/assign/bulk-save', [DriverController::class, 'bulkSave'])->name('assign.driver.bulk-save');
+            Route::get('/assign/workload', [DriverController::class, 'driverWorkload'])->name('assign.driver.workload');
+            Route::any('/form', [DriverController::class, 'form'])->name('driver.form');
             Route::post('/view', [DriverController::class, 'view'])->name('driver.view');
             Route::post('/status-update', [DriverController::class, 'updateStatus'])->name('driver.status');
         });
@@ -248,13 +252,13 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/save',   [VariationAttributeController::class, 'save'])->name('variation-attribute.save');
             Route::post('/delete', [VariationAttributeController::class, 'delete'])->name('variation-attribute.delete');
         });
-        
-                Route::group(['prefix' => 'org-fiscalyear'], function () {
+
+        Route::group(['prefix' => 'org-fiscalyear'], function () {
             Route::get('/',       [OrgFiscalyearController::class, 'index'])->name('org-fiscalyear.index');
             Route::get('/list',   [OrgFiscalyearController::class, 'list'])->name('org-fiscalyear.list');
-            Route::post('/assign',[OrgFiscalyearController::class, 'assign'])->name('org-fiscalyear.assign');
+            Route::post('/assign', [OrgFiscalyearController::class, 'assign'])->name('org-fiscalyear.assign');
         });
-        
+
         Route::group(['prefix' => 'unit'], function () {
             Route::get('/',        [UnitController::class, 'index'])->name('unit');
             Route::post('/list',   [UnitController::class, 'list'])->name('unit.list');
