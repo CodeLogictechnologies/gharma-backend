@@ -124,7 +124,8 @@ class DriverController extends Controller
 
     /**
      * Server-side DataTable source for the Assign Drive dashboard.
-     * Tabs: unassigned (Confirmed/Packed orders with no active driver), assigned, all.
+     * Tabs: unassigned (Confirmed/Packed orders with no active driver), assigned,
+     * in_transit (driver has started delivery), all.
      */
     public function assignList(Request $request)
     {
@@ -148,6 +149,8 @@ class DriverController extends Controller
                 ->whereNull('ad.id');
         } elseif ($tab === 'assigned') {
             $query->whereNotNull('ad.id');
+        } elseif ($tab === 'in_transit') {
+            $query->where('ad.order_status', 'Start');
         }
 
         if (!empty($post['driver_id'])) {

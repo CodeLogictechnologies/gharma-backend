@@ -62,25 +62,34 @@
                         <a class="nav-link" href="javascript:;" data-tab="assigned">Assigned</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="javascript:;" data-tab="in_transit">In Transit</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="javascript:;" data-tab="all">All</a>
                     </li>
                 </ul>
             </div>
 
-            <div class="d-flex flex-wrap align-items-end gap-3 px-4 pb-3 border-bottom">
+            <div class="d-flex flex-wrap align-items-end gap-3 px-4 py-3 bg-body-tertiary border-bottom">
                 <div>
                     <label class="form-label small text-muted mb-1" for="filterDriver">Driver</label>
-                    <select id="filterDriver" class="form-select form-select-sm" style="min-width: 200px;">
-                        <option value="">All Drivers</option>
-                        @foreach ($drivers as $driver)
-                            <option value="{{ $driver->id }}">{{ $driver->name }}</option>
-                        @endforeach
-                    </select>
+                    <div class="input-group input-group-sm" style="min-width: 220px;">
+                        <span class="input-group-text"><i class="bx bx-car"></i></span>
+                        <select id="filterDriver" class="form-select">
+                            <option value="">All Drivers</option>
+                            @foreach ($drivers as $driver)
+                                <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label class="form-label small text-muted mb-1" for="filterDate">Assign Date (B.S.)</label>
-                    <input type="text" id="filterDate" class="form-control form-control-sm" autocomplete="off"
-                        placeholder="yyyy-mm-dd" style="min-width: 170px;">
+                    <div class="input-group input-group-sm" style="min-width: 190px;">
+                        <span class="input-group-text"><i class="bx bx-calendar"></i></span>
+                        <input type="text" id="filterDate" class="form-control" autocomplete="off"
+                            placeholder="yyyy-mm-dd">
+                    </div>
                 </div>
                 <button type="button" id="clearFilters" class="btn btn-sm btn-outline-secondary">
                     <i class="bx bx-x"></i> Clear Filters
