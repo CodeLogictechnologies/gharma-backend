@@ -1409,67 +1409,67 @@ class ItemController extends Controller
     // public function getDetails(ItemDetailRequest $request)
     public function getDetails(Request $request, $variationid)
     {
+        // try {
+
+        $type = 'success';
+        $message = 'Product detail fetched successfully.';
+
+        $profile = [
+            'userid' => null,
+            'orgid'  => null
+        ];
+
+        // 🔥 SAFE JWT HANDLING (IMPORTANT FIX)
         try {
-
-            $type = 'success';
-            $message = 'Product detail fetched successfully.';
-
+            if ($request->bearerToken()) {
+                $payload = JWTAuth::parseToken()->getPayload();
+                $profile = $payload->get('profile') ?? $profile;
+            }
+        } catch (Exception $e) {
+            // ❗ ignore token errors → treat as guest user
             $profile = [
                 'userid' => null,
                 'orgid'  => null
             ];
-
-            // 🔥 SAFE JWT HANDLING (IMPORTANT FIX)
-            try {
-                if ($request->bearerToken()) {
-                    $payload = JWTAuth::parseToken()->getPayload();
-                    $profile = $payload->get('profile') ?? $profile;
-                }
-            } catch (Exception $e) {
-                // ❗ ignore token errors → treat as guest user
-                $profile = [
-                    'userid' => null,
-                    'orgid'  => null
-                ];
-            }
-
-            $post = [
-                'variationid' => $variationid,
-                'orgid'       => $profile['orgid'],
-                'userid'      => $profile['userid'],
-            ];
-
-            $data = Item::getData($post);
-
-            // ✅ EMPTY CASE
-            if (!$data) {
-                return response()->json([
-                    'type' => 'error',
-                    'message' => 'Product not found',
-                    'details' => null
-                ], 404);
-            }
-
-            return response()->json([
-                'type' => 'success',
-                'message' => $message,
-                'details' => $data
-            ], 200);
-        } catch (QueryException $e) {
-
-            return response()->json([
-                'type' => 'error',
-                'message' => 'Database error occurred',
-                'details' => null
-            ], 500);
-        } catch (Exception $e) {
-
-            return response()->json([
-                'type' => 'error',
-                'message' => $e->getMessage(),
-                'details' => null
-            ], 400);
         }
+
+        $post = [
+            'variationid' => $variationid,
+            'orgid'       => $profile['orgid'],
+            'userid'      => $profile['userid'],
+        ];
+
+        $data = Item::getData($post);
+
+        // ✅ EMPTY CASE
+        if (!$data) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Product not found',
+                'details' => null
+            ], 404);
+        }
+
+        return response()->json([
+            'type' => 'success',
+            'message' => $message,
+            'details' => $data
+        ], 200);
+        // } catch (QueryException $e) {
+
+        //     return response()->json([
+        //         'type' => 'error',
+        //         'message' => 'Database error occurred',
+        //         'details' => null
+        //     ], 500);
+        // } catch (Exception $e) {
+
+        //     return response()->json([
+        //         'type' => 'error',
+        //         'message' => $e->getMessage(),
+        //         'details' => null
+        //     ], 400);
+        // }
     }
 
     public function getUserOrderHistory(Request $request)
