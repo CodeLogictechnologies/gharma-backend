@@ -148,8 +148,12 @@ Route::group(['middleware' => ['auth']], function () {
             // Route::get('/delete', [DriverController::class, 'delete'])->name('driver.delete');
 
             Route::get('/assign', [DriverController::class, 'assignIndex'])->name('assign.driver');
-            Route::any('/form', [DriverController::class, 'form'])->name('driver.form');
+            Route::get('/assign/modal', [DriverController::class, 'assignModal'])->name('assign.driver.modal');
+            Route::get('/assign/list', [DriverController::class, 'assignList'])->name('assign.driver.list');
             Route::post('/assign/save', [DriverController::class, 'save'])->name('assign.driver.save');
+            Route::post('/assign/bulk-save', [DriverController::class, 'bulkSave'])->name('assign.driver.bulk-save');
+            Route::get('/assign/workload', [DriverController::class, 'driverWorkload'])->name('assign.driver.workload');
+            Route::any('/form', [DriverController::class, 'form'])->name('driver.form');
             Route::post('/view', [DriverController::class, 'view'])->name('driver.view');
             Route::post('/status-update', [DriverController::class, 'updateStatus'])->name('driver.status');
         });
