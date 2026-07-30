@@ -113,7 +113,7 @@
 
             /* ── Helper: open modal via AJAX ─────────────────────── */
             function openVendorModal(url, data, method) {
-                var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
+             var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
                 req.done(function(response) {
                     $('#venforModel').html(response);
                     $('#venforModel').find('script').each(function() {

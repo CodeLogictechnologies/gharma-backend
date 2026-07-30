@@ -960,6 +960,8 @@
 
 <script>
     $(function() {
+                let varIdx = {{ count($data['variations'] ?? [['']]) }};
+
         /* ── Prefill Name / Product Code coming from the Sales Voucher "+ Add" flow ── */
         if (window.prefillItemName) {
             $('[name="title"]').val(window.prefillItemName);
@@ -976,23 +978,33 @@ if (window.prefillProductCode) {
     var isEditingExistingItem = !!$('#itemForm input[name="id"]').val();
 
     if (isEditingExistingItem) {
-        var $targetRow = $('#variationsContainer .variation-row').filter(function() {
-            return !$(this).find('input[name$="[value]"]').val().trim() &&
-                   !$(this).find('input[name$="[product_code]"]').val().trim();
-        }).first();
+        if (window.prefillVariationId) {
+            // A specific variation was already selected in the Sales row —
+            // the user wants to correct THAT variation's code, not add a new one.
+            var $targetRow = $('#variationsContainer .variation-row').filter(function() {
+                return $(this).find('input[name$="[variationid]"]').val() === window.prefillVariationId;
+            }).first();
 
-        if (!$targetRow.length) {
+            if (!$targetRow.length) {
+                // Fallback: couldn't find it (shouldn't normally happen) — add a new row instead.
+                $('#variationsContainer').append(newVariationRow(varIdx++));
+                $targetRow = $('#variationsContainer .variation-row').last();
+            }
+
+            $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
+        } else {
+            // Item selected but no specific variation — add a NEW variation row for the incoming code.
             $('#variationsContainer').append(newVariationRow(varIdx++));
-            $targetRow = $('#variationsContainer .variation-row').last();
+            var $targetRow = $('#variationsContainer .variation-row').last();
+            $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
         }
-
-        $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
     } else {
         // Brand new item, no variations yet — the item-level code is the right place.
         $('[name="product_code"]').val(window.prefillProductCode);
     }
 
     window.prefillProductCode = '';
+    window.prefillVariationId = '';
 }
 
         /* ─────────────────────────────────────────────
@@ -1692,10 +1704,7 @@ if (window.prefillProductCode) {
         /* ─────────────────────────────────────────────
            VARIATION ROWS
         ───────────────────────────────────────────── */
-        let varIdx = {{ count($data['variations'] ?? [['']]) }};
-
-const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
-
+               const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
 function buildAttributeOptions(selectedId) {
     if (!variationAttributeOptions.length) {
         return '<option value="">No attributes defined</option>';

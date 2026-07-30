@@ -416,7 +416,7 @@
             }
 
             var origHTML = $btn.html();
-            $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
+            // $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
             showLoader();
 
             $.ajax({
