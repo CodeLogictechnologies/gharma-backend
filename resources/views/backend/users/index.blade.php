@@ -145,8 +145,7 @@
             ],
             bProcessing: true,
             bServerSide: true,
-            sAjaxSource: '{{ route('
-            user.list ') }}',
+            sAjaxSource: '{{ route('user.list') }}',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>"
             },
@@ -252,15 +251,13 @@
 
         /* ── Add ─────────────────────────────────────────────────── */
         $(document).off('click.addOrg').on('click.addOrg', '#addOrg', function() {
-            openUserModal('{{ route('
-                user.form ') }}', {}, 'GET');
+            openUserModal('{{ route('user.form') }}', {}, 'GET');
         });
 
         /* ── Edit ────────────────────────────────────────────────── */
         $(document).off('click.editOrg').on('click.editOrg', '.editOrg', function(e) {
             e.preventDefault();
-            openUserModal('{{ route('
-                user.form ') }}', {
+            openUserModal('{{ route('user.form') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 }, 'POST');
@@ -269,8 +266,7 @@
         /* ── View ────────────────────────────────────────────────── */
         $(document).off('click.viewOrg').on('click.viewOrg', '.viewOrg', function(e) {
             e.preventDefault();
-            openUserModal('{{ route('
-                user.view ') }}', {
+            openUserModal('{{ route('user.view') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 }, 'POST');
@@ -309,8 +305,7 @@
                 origHtml = $btn.html();
             $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Deleting...');
 
-            $.post('{{ route('
-                    user.delete ') }}', {
+            $.post('{{ route('user.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })
@@ -374,8 +369,7 @@
             var s = pendingStatus;
             pendingStatus = null; // clear BEFORE ajax so hidden event won't revert
 
-            $.post('{{ route('
-                    user.status ') }}', {
+            $.post('{{ route('user.status') }}', {
                         user_id: s.id,
                         status: s.val,
                         remark: 'Status changed by admin',
