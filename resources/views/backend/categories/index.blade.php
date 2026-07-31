@@ -274,7 +274,7 @@ $(document).ready(function () {
             return;
         }
 
-        var $btn = $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+        var $btn = //$(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
         let formData = new FormData(document.getElementById('categoryForm'));
 

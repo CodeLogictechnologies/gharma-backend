@@ -960,15 +960,53 @@
 
 <script>
     $(function() {
- /* ── Prefill Name / Product Code coming from the Sales Voucher "+ Add" flow ── */
-    if (window.prefillItemName) {
-        $('[name="title"]').val(window.prefillItemName);
-        window.prefillItemName = '';
-    }
-    if (window.prefillProductCode) {
+                let varIdx = {{ count($data['variations'] ?? [['']]) }};
+
+        /* ── Prefill Name / Product Code coming from the Sales Voucher "+ Add" flow ── */
+        if (window.prefillItemName) {
+            $('[name="title"]').val(window.prefillItemName);
+            window.prefillItemName = '';
+        }
+        // if (window.prefillProductCode) {
+        //     $('[name="product_code"]').val(window.prefillProductCode);
+        //     window.prefillProductCode = '';
+        // }
+
+        /* ── Prefill Product Code into a Variation row instead of the item-level field ──
+   When editing an existing item, product codes belong to variations, not the item itself. */
+if (window.prefillProductCode) {
+    var isEditingExistingItem = !!$('#itemForm input[name="id"]').val();
+
+    if (isEditingExistingItem) {
+        if (window.prefillVariationId) {
+            // A specific variation was already selected in the Sales row —
+            // the user wants to correct THAT variation's code, not add a new one.
+            var $targetRow = $('#variationsContainer .variation-row').filter(function() {
+                return $(this).find('input[name$="[variationid]"]').val() === window.prefillVariationId;
+            }).first();
+
+            if (!$targetRow.length) {
+                // Fallback: couldn't find it (shouldn't normally happen) — add a new row instead.
+                $('#variationsContainer').append(newVariationRow(varIdx++));
+                $targetRow = $('#variationsContainer .variation-row').last();
+            }
+
+            $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
+        } else {
+            // Item selected but no specific variation — add a NEW variation row for the incoming code.
+            $('#variationsContainer').append(newVariationRow(varIdx++));
+            var $targetRow = $('#variationsContainer .variation-row').last();
+            $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
+        }
+    } else {
+        // Brand new item, no variations yet — the item-level code is the right place.
         $('[name="product_code"]').val(window.prefillProductCode);
-        window.prefillProductCode = '';
     }
+
+    window.prefillProductCode = '';
+    window.prefillVariationId = '';
+}
+
         /* ─────────────────────────────────────────────
            QUICK-ADD CONFIG (must be before autoQuickSave)
         ───────────────────────────────────────────── */
@@ -1666,23 +1704,20 @@
         /* ─────────────────────────────────────────────
            VARIATION ROWS
         ───────────────────────────────────────────── */
-        let varIdx = {{ count($data['variations'] ?? [['']]) }};
+               const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
+function buildAttributeOptions(selectedId) {
+    if (!variationAttributeOptions.length) {
+        return '<option value="">No attributes defined</option>';
+    }
+    return variationAttributeOptions.map(a => {
+        const sel = (selectedId && a.id === selectedId) ? ' selected' : '';
+        return `<option value="${a.id}"${sel}>${a.name}</option>`;
+    }).join('');
+}
 
-        const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
+const variationUnitOptions = @json($units->map(fn($u) => ['id' => $u->id, 'name' => $u->unit_name]));
 
-        function buildAttributeOptions(selectedId) {
-            if (!variationAttributeOptions.length) {
-                return '<option value="">No attributes defined</option>';
-            }
-            return variationAttributeOptions.map(a => {
-                const sel = (selectedId && a.id === selectedId) ? ' selected' : '';
-                return `<option value="${a.id}"${sel}>${a.name}</option>`;
-            }).join('');
-        }
-
-        const variationUnitOptions = @json($units->map(fn($u) => ['id' => $u->id, 'name' => $u->unit_name]));
-
-        function buildUnitOptions(selectedId) {
+function buildUnitOptions(selectedId) {
             if (!variationUnitOptions.length) {
                 return '<option value="">No units defined</option>';
             }
@@ -1924,8 +1959,34 @@
                             window.refreshLowStockAlerts();
                         }
 
+                        // if (result.item) {
+                        //     $(document).trigger('item:created', [result.item]);
+                        // }
+
                         if (result.item) {
-                            $(document).trigger('item:created', [result.item]);
+                            // Build variations (id + product_code + is_wholesale) straight from the form's
+                            // current rows, so the sales voucher's Product Code dropdown updates correctly
+                            // even if the server response doesn't echo full variation data.
+                            var isWholesale = $('#isWholesale').is(':checked') ? 'Y' : 'N';
+                            var variations = [];
+                            var lastVariationId = null;
+
+                            $('#variationsContainer .variation-row').each(function() {
+                                var vid = $(this).find('input[name$="[variationid]"]').val();
+                                var pc = $(this).find('input[name$="[product_code]"]').val();
+                                if (vid) {
+                                    variations.push({
+                                        id: vid,
+                                        product_code: pc,
+                                        is_wholesale: isWholesale
+                                    });
+                                    lastVariationId = vid;
+                                }
+                            });
+
+                            result.item.variations = result.item.variations || variations;
+
+                            $(document).trigger('item:created', [result.item, lastVariationId]);
                         }
 
                         var $modalEl = $('#itemForm').closest('.modal');

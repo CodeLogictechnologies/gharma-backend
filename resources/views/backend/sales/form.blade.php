@@ -760,27 +760,29 @@
         });
 
         $(document).on('change', '.product-code-select', function() {
-            if (suppressProductCodeChange) return;
+    if (suppressProductCodeChange) return;
 
-            var $tr = $(this).closest('tr');
-            var val = $(this).val();
+    var $tr = $(this).closest('tr');
+    var val = $(this).val();
 
-            if (val === '__add_product_code__') {
-                pendingItemRow = $tr;
-                var existingItemId = $tr.data('lastItemId');
+    if (val === '__add_product_code__') {
+        pendingItemRow = $tr;
+        var existingItemId = $tr.data('lastItemId');
+        var existingVariationId = $tr.find('.variation-select').val();
 
-                suppressProductCodeChange = true;
-                $(this).val($tr.data('lastProductCode') || '').trigger('change');
-                suppressProductCodeChange = false;
+        suppressProductCodeChange = true;
+        $(this).val($tr.data('lastProductCode') || '').trigger('change');
+        suppressProductCodeChange = false;
 
-                window.prefillItemName = '';   // ADD THIS
- window.prefillProductCode = lastProductCodeSearchTerm;  
+        window.prefillItemName = '';
+        window.prefillProductCode = lastProductCodeSearchTerm;
+        window.prefillVariationId = existingVariationId || '';
 
-                if (typeof window.svOpenAddItemModal === 'function') {
-                    window.svOpenAddItemModal(existingItemId || null);
-                }
-                return;
-            }
+        if (typeof window.svOpenAddItemModal === 'function') {
+            window.svOpenAddItemModal(existingItemId || null);
+        }
+        return;
+    }
 
             var ref = productCodeIndex[val];
             if (!ref) return;

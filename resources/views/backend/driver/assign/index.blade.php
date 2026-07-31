@@ -15,7 +15,7 @@
                 <table class="table" id="storeTable">
                     <thead class="table-light">
                         <tr class="align-middle">
-                            <th>ID</th>
+                            <th >ID</th>
                             <th>Store Name</th>
                             <th>Phone Number</th>
                             <th>Email</th>
@@ -210,7 +210,7 @@
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
-                            storeTable.fnDraw(); // ✅ old-style API
+                            storeTable.fnDraw(); //  old-style API
                         } else {
                             showNotification(result.message, 'error');
                         }

@@ -256,7 +256,7 @@ $(function () {
     $(document).on('click', '#saveCategoryBtn', function () {
         if (!validateCategoryForm()) return;
 
-        var $btn = $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+        // var $btn = $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
 
         $('#categoryForm').ajaxSubmit({
             contentType: false,

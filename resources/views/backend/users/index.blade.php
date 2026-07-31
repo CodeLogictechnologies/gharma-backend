@@ -9,9 +9,14 @@
         z-index: 1055 !important;
     }
 
-    .layout-menu,
-    .layout-navbar {
-        z-index: 1040 !important;
+    #deleteModalInactive,
+    #viewModalInactive,
+    #statusModalInactive {
+        z-index: 1060 !important;
+    }
+
+    .modal-backdrop {
+        z-index: 1055 !important;
     }
 </style>
 

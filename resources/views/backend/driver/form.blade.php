@@ -249,7 +249,7 @@
             if (!$('#userForm').valid()) return;
 
             var $btn = $(this);
-            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+            // $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
             showLoader();
 
             $.ajax({

@@ -268,7 +268,7 @@
                 var $btn = $form.find('[type=submit]');
                 var origText = isEdit ? 'Update' : 'Save';
 
-                $btn.prop('disabled', true).html('<i class="bx bx-loader bx-spin me-1"></i> Saving...');
+                // $btn.prop('disabled', true).html('<i class="bx bx-loader bx-spin me-1"></i> Saving...');
 
                 $.ajax({
                     url: $form.attr('action'),

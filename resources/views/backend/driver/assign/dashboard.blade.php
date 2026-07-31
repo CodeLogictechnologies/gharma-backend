@@ -2,6 +2,20 @@
 @section('title', 'Assign Drive')
 @section('content')
 
+<style>
+    #assignTable {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    #assignTable th,
+    #assignTable td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
     <div class="container-xxl flex-grow-1 container-p-y">
 
         {{-- Stat cards --}}
@@ -78,7 +92,7 @@
                         <select id="filterDriver" class="form-select">
                             <option value="">All Drivers</option>
                             @foreach ($drivers as $driver)
-                                <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                            <option value="{{ $driver->id }}">{{ $driver->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -113,13 +127,13 @@
                     <thead class="table-light">
                         <tr class="align-middle">
                             <th style="width: 3%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
-                            <th>Customer</th>
-                            <th>Delivery Address</th>
-                            <th>Order Time</th>
-                            <th>Order Status</th>
-                            <th>Driver</th>
-                            <th>Assign Date</th>
-                            <th>Actions</th>
+                            <th style="width: 12%;">Customer</th>
+                            <th style="width: 28%;">Delivery Address</th>
+                            <th style="width: 12%;">Order Time</th>
+                            <th style="width: 10%;">Order Status</th>
+                            <th style="width: 10%;">Driver</th>
+                            <th style="width: 12%;">Assign Date</th>
+                            <th style="width: 13%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -154,7 +168,7 @@
                                 <select name="driver_id" id="bulkDriverSelect" class="form-select" data-required>
                                     <option value="">-- Select Driver --</option>
                                     @foreach ($drivers as $driver)
-                                        <option value="{{ $driver->id }}">{{ $driver->name }}</option>
+                                    <option value="{{ $driver->id }}">{{ $driver->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -176,9 +190,9 @@
         </div>
     </div>
 
-@endsection
+    @endsection
 
-@section('main-scripts')
+    @section('main-scripts')
     <script>
         var assignTable;
         var currentTab = 'unassigned';
@@ -354,9 +368,9 @@
             // ── Single assign modal ──────────────────────────────────────
             function openAssignModal(orderId) {
                 $.get('{{ route('assign.driver.modal') }}', {
-                        id: orderId,
-                        _token: '{{ csrf_token() }}'
-                    })
+                            id: orderId,
+                            _token: '{{ csrf_token() }}'
+                        })
                     .done(function(response) {
                         $('#assignModalContainer').html(response);
                         $('#deliveryDateInput').nepaliDatePicker({
@@ -452,8 +466,8 @@
             function loadWorkload(date, selectId) {
                 if (!date) return;
                 $.get('{{ route('assign.driver.workload') }}', {
-                    date: date
-                }).done(function(counts) {
+                        date: date
+                    }).done(function(counts) {
                     $(selectId + ' option').each(function() {
                         var id = $(this).val();
                         if (!id) return;
@@ -518,4 +532,4 @@
             });
         });
     </script>
-@endsection
+    @endsection
