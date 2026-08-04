@@ -26,7 +26,7 @@ class OrganizationController extends Controller
     //function to save organizations
     public function save(Request $request)
     {
-        // try {
+        try {
             $rules = [
                 'name' => 'required|min:5|max:255',
                 'phone' => 'required|min:5|max:5000',
@@ -43,7 +43,7 @@ class OrganizationController extends Controller
             ];
 
             if (empty($request->id)) {
-                $rules['image'] = 'required:mimes:jpg,jpeg,png:max:2048';
+                $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
             }
 
             $message = [
@@ -72,15 +72,15 @@ class OrganizationController extends Controller
                 throw new Exception('Could not save record', 1);
             }
             DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 

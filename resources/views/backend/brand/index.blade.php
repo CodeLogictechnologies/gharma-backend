@@ -67,6 +67,7 @@
                 <div class="row g-4">
                     <div class="col-12 col-lg-4">
 
+                    @can('add.brand')
                         <h5 class="mb-3">Add Brand</h5>
                         <form action="{{ route('brand.save') }}" method="POST" id="brandForm"
                             enctype="multipart/form-data">
@@ -105,6 +106,7 @@
 
                             <button type="button" class="btn btn-primary saveBrand">Save</button>
                         </form>
+                    @endcan
 
                     </div>
                     <div class="col-12 col-lg-8" style="flex: 1;">

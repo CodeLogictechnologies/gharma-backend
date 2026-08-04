@@ -20,7 +20,10 @@ class DiscountController extends Controller
 
     public function save(DiscountRequest $request)
     {
-        // try {
+        if (!auth()->user()->can($request->id ? 'edit.discount' : 'add.discount')) {
+            return response()->json(['status' => false, 'type' => 'error', 'message' => 'Unauthorized.'], 403);
+        }
+        try {
 
             $post = $request->validated();
 
@@ -36,19 +39,22 @@ class DiscountController extends Controller
                     ? 'Discount updated successfully.'
                     : 'Discount saved successfully.',
             ], 200);
-        // } catch (\Exception $e) {
+        } catch (\Exception $e) {
 
-        //     return response()->json([
-        //         'status'  => false,
-        //         'type'    => 'error',
-        //         'message' => config('app.debug')
-        //             ? $e->getMessage()
-        //             : 'Something went wrong. Please try again.',
-        //     ], 500);
-        // }
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Something went wrong. Please try again.',
+            ], 500);
+        }
     }
     public function list(Request $request)
     {
+        if (!auth()->user()->can('view.discount')) {
+            return response()->json(['iTotalRecords' => 0, 'iTotalDisplayRecords' => 0, 'aaData' => []]);
+        }
         try {
             $get = $request->all();
 
@@ -80,9 +86,18 @@ class DiscountController extends Controller
 
             $rows = $result->map(function ($row, $i) use ($offset) {
                 $action  = '';
-                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewDiscount px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteDiscount px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
 
+                if (auth()->user()->can('view.discount')) {
+                    $action .= '<a href="javascript:;" title="View" class="tooltipdiv viewDiscount px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
+                }
+
+                if (auth()->user()->can('edit.discount')) {
+                    $action .= '<a href="javascript:;" title="Edit" class="tooltipdiv editDiscount px-2" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+
+                if (auth()->user()->can('delete.discount')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteDiscount px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
                 return [
                     'sno'             => $offset + $i + 1,
                     'applies_to'      => ucfirst($row->applies_to),
@@ -106,6 +121,9 @@ class DiscountController extends Controller
 
     public function form(Request $request)
     {
+        if (!auth()->user()->can($request->id ? 'edit.discount' : 'add.discount')) {
+            abort(403);
+        }
         try {
             $data = [];
 
@@ -151,6 +169,9 @@ class DiscountController extends Controller
 
     public function delete(Request $request)
     {
+        if (!auth()->user()->can('delete.discount')) {
+            return json_encode(['type' => 'error', 'message' => 'Unauthorized.']);
+        }
         try {
             $type    = 'success';
             $message = 'Record deleted successfully';
@@ -178,6 +199,12 @@ class DiscountController extends Controller
 
     public function view(Request $request)
     {
+        if (!auth()->user()->can('view.discount')) {
+            return view('backend.discount.view', [
+                'type' => 'error',
+                'message' => 'Unauthorized.',
+            ]);
+        }
         try {
             $discounts = DB::table('discount_details as dd')
                 ->join('itemvariations as iv', 'iv.id', '=', 'dd.variation_id')
@@ -218,13 +245,13 @@ class DiscountController extends Controller
 
     public function lists(Request $request)
     {
-            $orgid = session('orgid');
+        $orgid = session('orgid');
 
         $query = DB::table('itemvariations as iv')
             ->join('items as i', 'i.id', '=', 'iv.item_id')
             ->where('iv.orgid', $orgid)
-        ->where('i.orgid', $orgid)
-        ->where('i.status', 'Y')
+            ->where('i.orgid', $orgid)
+            ->where('i.status', 'Y')
             ->select(
                 'iv.id',
                 'i.title',
