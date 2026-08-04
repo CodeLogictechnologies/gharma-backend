@@ -26,7 +26,7 @@ class RoleController extends Controller
     public function index()
     {
         $roles       = Role::getRole();
-$permissions = Permission::getPermissionList();
+        $permissions = Permission::getPermissionList();
         $date = [
             'roles'       => $roles,
             'permissions' => $permissions,

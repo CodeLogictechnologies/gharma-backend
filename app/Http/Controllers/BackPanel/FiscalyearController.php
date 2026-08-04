@@ -172,20 +172,20 @@ class FiscalyearController extends Controller
 
             if (!$deleted) {
                 return response()->json([
-                    'status'  => false,
+                    'type'    => 'error',
                     'message' => 'Fiscal year not found.',
                 ], 404);
             }
 
             return response()->json([
-                'status'  => true,
+                'type'    => 'success',
                 'message' => 'Fiscal year deleted successfully.',
             ]);
         } catch (\Exception $e) {
             Log::error('Fiscalyear delete error: ' . $e->getMessage());
 
             return response()->json([
-                'status'  => false,
+                'type'    => 'error',
                 'message' => 'Unable to delete fiscal year. Please try again.',
             ], 500);
         }

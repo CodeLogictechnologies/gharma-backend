@@ -99,67 +99,70 @@ class CategoryController extends Controller
     //     }
     // }
     public function save(Request $request)
-{
-    try {
-        $isQuickAdd = $request->boolean('quick_add');
-
-        $rules = [
-            'name' => 'required|min:2|max:255',
-        ];
-        if (empty($request->id) && !$isQuickAdd) {
-            $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
+    {
+        if (!auth()->user()->can($request->id ? 'edit.category' : 'add.category')) {
+            return json_encode(['type' => 'error', 'message' => 'Unauthorized.']);
         }
+        try {
+            $isQuickAdd = $request->boolean('quick_add');
 
-        $validation = Validator::make($request->all(), $rules, [
-            'name.required'  => 'Please enter category name.',
-            'image.required' => 'Please select an image.',
-        ]);
+            $rules = [
+                'name' => 'required|min:2|max:255',
+            ];
+            if (empty($request->id) && !$isQuickAdd) {
+                $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
+            }
 
-        if ($validation->fails()) {
-            throw new Exception($validation->errors()->first(), 1);
+            $validation = Validator::make($request->all(), $rules, [
+                'name.required'  => 'Please enter category name.',
+                'image.required' => 'Please select an image.',
+            ]);
+
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
+            }
+
+            $categoryId    = $request->input('category_id') ?: null;
+            $subcategoryId = $request->input('subcategory_id') ?: null;
+
+            $post              = $request->all();
+            $post['image']     = $request->file('image');
+            $post['orgid']     = session('orgid');
+            $post['parent_id'] = $subcategoryId ?: $categoryId;
+
+            $type    = 'success';
+            $message = !empty($request->id) ? 'Category updated successfully.' : 'Category saved successfully.';
+
+
+            DB::beginTransaction();
+            $categoryId2 = Category::saveData($post);
+            if (!$categoryId2) {
+                throw new Exception('Could not save record.', 1);
+            }
+            DB::commit();
+
+            $categories = Category::getTopLevelCategories(session('orgid'));
+            $options = '<option value="">-- None (Top Level) --</option>';
+            foreach ($categories as $cat) {
+                $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
+            }
+
+            $created = DB::table('categories')->where('id', $categoryId2)->select('id', 'title')->first();
+
+            return json_encode([
+                'type'            => $type,
+                'message'         => $message,
+                'categoryOptions' => $options,
+                'category'        => $created,
+            ]);
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return json_encode(['type' => 'error', 'message' => $this->queryMessage]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return json_encode(['type' => 'error', 'message' => $e->getMessage()]);
         }
-
-        $categoryId    = $request->input('category_id') ?: null;
-        $subcategoryId = $request->input('subcategory_id') ?: null;
-
-        $post              = $request->all();
-        $post['image']     = $request->file('image');
-        $post['orgid']     = session('orgid');
-        $post['parent_id'] = $subcategoryId ?: $categoryId;
-
-        $type    = 'success';
-        $message = !empty($request->id) ? 'Category updated successfully.' : 'Category saved successfully.';
-
-
-        DB::beginTransaction();
-        $categoryId2 = Category::saveData($post);
-        if (!$categoryId2) {
-            throw new Exception('Could not save record.', 1);
-        }
-        DB::commit();
-
-        $categories = Category::getTopLevelCategories(session('orgid'));
-        $options = '<option value="">-- None (Top Level) --</option>';
-        foreach ($categories as $cat) {
-            $options .= '<option value="' . $cat->id . '">' . htmlspecialchars($cat->title) . '</option>';
-        }
-
-        $created = DB::table('categories')->where('id', $categoryId2)->select('id', 'title')->first();
-
-        return json_encode([
-            'type'            => $type,
-            'message'         => $message,
-            'categoryOptions' => $options,
-            'category'        => $created,
-        ]);
-    } catch (QueryException $e) {
-        DB::rollBack();
-        return json_encode(['type' => 'error', 'message' => $this->queryMessage]);
-    } catch (Exception $e) {
-        DB::rollBack();
-        return json_encode(['type' => 'error', 'message' => $e->getMessage()]);
     }
-}
 
     // ─────────────────────────────────────────────────────────────────
     // DataTable list
@@ -209,22 +212,30 @@ class CategoryController extends Controller
                     . htmlspecialchars($row->parent_name) . '</span>'
                     : '<span style="color:#bbb;font-size:12px;">—</span>';
 
-                $array[$i]['action'] =
-                    '<a href="javascript:;" class="editCategory me-2"
-                    data-id="'              . $row->id                              . '"
-                    data-title="'           . htmlspecialchars($row->title)         . '"
-                    data-image="'           . $row->image                           . '"
-                    data-parent_id="'       . ($row->parent_id ?? '')               . '"
-                    data-category_id="'     . ($row->top_category_id ?? '')         . '"
-                    data-subcategory_id="'  . ($row->sub_category_id ?? '')         . '"
-                    title="Edit">
-                    <i class="fa-solid fa-pen-to-square" style="color:#696cff;font-size:15px;"></i>
-                </a>
-                <a href="javascript:;" class="deleteCategory"
-                    data-id="' . $row->id . '"
-                    title="Delete">
-                    <i class="fa-solid fa-trash" style="color:#ff4d4f;font-size:15px;"></i>
-                </a>';
+                $action = '';
+
+                if (auth()->user()->can('edit.category')) {
+                    $action .= '<a href="javascript:;" class="editCategory me-2"
+                        data-id="'              . $row->id                              . '"
+                        data-title="'           . htmlspecialchars($row->title)         . '"
+                        data-image="'           . $row->image                           . '"
+                        data-parent_id="'       . ($row->parent_id ?? '')               . '"
+                        data-category_id="'     . ($row->top_category_id ?? '')         . '"
+                        data-subcategory_id="'  . ($row->sub_category_id ?? '')         . '"
+                        title="Edit">
+                        <i class="fa-solid fa-pen-to-square" style="color:#696cff;font-size:15px;"></i>
+                    </a>';
+                }
+
+                if (auth()->user()->can('delete.category')) {
+                    $action .= '<a href="javascript:;" class="deleteCategory"
+                        data-id="' . $row->id . '"
+                        title="Delete">
+                        <i class="fa-solid fa-trash" style="color:#ff4d4f;font-size:15px;"></i>
+                    </a>';
+                }
+
+                $array[$i]['action'] = $action;
 
                 $i++;
             }
@@ -246,6 +257,9 @@ class CategoryController extends Controller
     // ─────────────────────────────────────────────────────────────────
     public function delete(Request $request)
     {
+        if (!auth()->user()->can('delete.category')) {
+            return json_encode(['type' => 'error', 'message' => 'Unauthorized.']);
+        }
         try {
             $type    = 'success';
             $message = 'Category deleted successfully.';

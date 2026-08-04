@@ -90,7 +90,7 @@
 
         // ── Module definitions ──────────────────────────────────────────
         var modules = [
-            { label: 'Favicon', key: 'favicon' },
+            // { label: 'Favicon', key: 'favicon' },
             { label: 'Role', key: 'role' },
             { label: 'Home Tab', key: 'hometab' },
             { label: 'Store', key: 'store' },
