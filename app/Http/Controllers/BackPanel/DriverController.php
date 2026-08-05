@@ -461,7 +461,7 @@ class DriverController extends Controller
 
     public function saveDriver(Request $request)
     {
-        // try {
+        try {
         $post = $request->all();
         $rules = [
             'first_name' => 'required|min:3|max:255',
@@ -511,15 +511,15 @@ class DriverController extends Controller
             throw new Exception('Could not save record', 1);
         }
         DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type    = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type    = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type    = 'error';
+            $message = $e->getMessage();
+        }
 
         return json_encode(['type' => $type, 'message' => $message]);
     }

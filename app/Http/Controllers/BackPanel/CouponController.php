@@ -196,7 +196,7 @@ class CouponController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
             DB::beginTransaction();
-            $result = Coupon::deleteData($request->all());
+            $result = Coupon::deleteData($post);
             if (!$result) {
                 throw new Exception("Could not delete coupon.");
             }

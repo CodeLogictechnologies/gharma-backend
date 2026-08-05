@@ -129,6 +129,18 @@ class FiscalyearController extends Controller
             $post = $request->all();
             $post['code'] = $code;
 
+            // $exists = Fiscalyear::where('code', $code)
+            //     ->when($request->id, fn($q) => $q->where('id', '!=', $request->id))
+            //     ->exists();
+
+            // if ($exists) {
+            //     return response()->json([
+            //         'status'  => false,
+            //         'type'    => 'error',
+            //         'message' => "Fiscal year {$code} already exists.",
+            //     ], 422);
+            // }
+
             $exists = Fiscalyear::where('code', $code)
                 ->when($request->id, fn($q) => $q->where('id', '!=', $request->id))
                 ->exists();
@@ -138,6 +150,19 @@ class FiscalyearController extends Controller
                     'status'  => false,
                     'type'    => 'error',
                     'message' => "Fiscal year {$code} already exists.",
+                ], 422);
+            }
+
+            $dateExists = Fiscalyear::where('start_date', $request->start_date)
+                ->where('end_date', $request->end_date)
+                ->when($request->id, fn($q) => $q->where('id', '!=', $request->id))
+                ->exists();
+
+            if ($dateExists) {
+                return response()->json([
+                    'status'  => false,
+                    'type'    => 'error',
+                    'message' => 'A fiscal year with this start and end date already exists.',
                 ], 422);
             }
 

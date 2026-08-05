@@ -86,14 +86,14 @@
                 <label class="form-label text-muted" style="font-size:0.75rem;">Company Name</label>
                 <p class="mb-0">{{ $orgDetails->company_name ?? '-' }}</p>
             </div>
-            <div class="col-md-4">
+            <!-- <div class="col-md-4">
                 <label class="form-label text-muted" style="font-size:0.75rem;">Tax Number</label>
                 <p class="mb-0">{{ $orgDetails->tax_number ?? '-' }}</p>
-            </div>
-            <div class="col-md-4">
+            </div> -->
+            <!-- <div class="col-md-4">
                 <label class="form-label text-muted" style="font-size:0.75rem;">Registration Number</label>
                 <p class="mb-0">{{ $orgDetails->registration_number ?? '-' }}</p>
-            </div>
+            </div> -->
             <div class="col-md-4">
                 <label class="form-label text-muted" style="font-size:0.75rem;">PAN Number</label>
                 <p class="mb-0">{{ $orgDetails->pan_number ?? '-' }}</p>
