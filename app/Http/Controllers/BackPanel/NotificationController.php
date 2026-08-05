@@ -26,12 +26,12 @@ class NotificationController extends Controller
 
     public function save(Request $request)
     {
-        // try {
+        try {
             $rules = [
                 'type' => 'required',
                 'user_id' => 'required',
-                'title' => 'required|min:2|max:30',
-                'message' => 'required|min:2|max:255',
+                'title' => 'required|min:2|max:255',
+                'message' => 'required|min:2',
             ];
 
             $messages = [
@@ -39,10 +39,9 @@ class NotificationController extends Controller
                 'user_id.required' => 'Please select a user',
                 'title.required' => 'Title is required',
                 'title.min' => 'Title must be at least 2 characters',
-                'title.max' => 'Title must not exceed 30 characters',
+                'title.max' => 'Title must not exceed 255 characters',
                 'message.required' => 'Message is required',
                 'message.min' => 'Message must be at least 2 characters',
-                'message.max' => 'Message must not exceed 255 characters',
             ];
 
             $validate = Validator::make($request->all(), $rules, $messages);
@@ -64,15 +63,15 @@ class NotificationController extends Controller
                 throw new Exception('Could not save notice', 1);
             }
             DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -93,7 +92,9 @@ class NotificationController extends Controller
             $array[$i]["sno"] = $i + 1;
             $array[$i]["username"]    = $row->username;
             $array[$i]["title"]    = $row->title;
-            $array[$i]["message"]    = $row->message;
+            $array[$i]["message"] = '<span style="display:inline-block; max-width:280px; white-space:normal; word-wrap:break-word;">'
+                . \Illuminate\Support\Str::limit(strip_tags($row->message), 100, '...')
+                . '</span>';
             $array[$i]["type"]    = $row->type;
 
 
@@ -127,24 +128,24 @@ class NotificationController extends Controller
     public function form(Request $request)
     {
         // try {
-            $post = $request->all();
-            $post['orgid'] = session('orgid');
+        $post = $request->all();
+        $post['orgid'] = session('orgid');
 
-            $data = [];
-            $data['users'] = User::getUserData($post);
+        $data = [];
+        $data['users'] = User::getUserData($post);
 
-            if (!empty($request->id)) {
-                $result = Notification::getData($post);
-                if (!$result) {
-                    throw new Exception("Notification not found", 1);
-                }
-
-                $data['id']      = $result->id;
-                $data['type']    = $result->type;
-                $data['user_id'] = $result->user_id;
-                $data['title']   = $result->title;
-                $data['message'] = $result->message;
+        if (!empty($request->id)) {
+            $result = Notification::getData($post);
+            if (!$result) {
+                throw new Exception("Notification not found", 1);
             }
+
+            $data['id']      = $result->id;
+            $data['type']    = $result->type;
+            $data['user_id'] = $result->user_id;
+            $data['title']   = $result->title;
+            $data['message'] = $result->message;
+        }
         // } catch (QueryException $e) {
         //     $data['error'] = $this->queryMessage;
         // } catch (Exception $e) {

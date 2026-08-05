@@ -112,8 +112,7 @@
             ],
             bProcessing: true,
             bServerSide: true,
-            sAjaxSource: '{{ route('
-            coupon.list ') }}',
+            sAjaxSource: '{{ route('coupon.list') }}',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>"
             },
@@ -213,15 +212,13 @@
 
         // ── Add ───────────────────────────────────────────────────────
         $('#addCoupon').on('click', function() {
-            openCouponModal('{{ route('
-                coupon.form ') }}', {}, 'GET');
+            openCouponModal('{{ route('coupon.form') }}', {}, 'GET');
         });
 
         // ── Edit ──────────────────────────────────────────────────────
         $(document).on('click', '.editCoupon', function(e) {
             e.preventDefault();
-            openCouponModal('{{ route('
-                coupon.form ') }}', {
+            openCouponModal('{{ route('coupon.form') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 }, 'POST');
@@ -230,8 +227,7 @@
         // ── View ──────────────────────────────────────────────────────
         $(document).on('click', '.viewCoupon', function(e) {
             e.preventDefault();
-            openCouponModal('{{ route('
-                coupon.view ') }}', {
+            openCouponModal('{{ route('coupon.view') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 }, 'POST');
@@ -248,8 +244,7 @@
 
         $('#confirmDelete').on('click', function() {
             if (!deleteId) return;
-            $.post('{{ route('
-                    coupon.delete ') }}', {
+            $.post('{{ route('coupon.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })

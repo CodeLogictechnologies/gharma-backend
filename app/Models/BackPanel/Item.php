@@ -834,7 +834,7 @@ class Item extends Model
             ->leftJoin('category_items as ci',     'ci.itemid',  '=', 'i.id')
             ->leftJoin('categories as c',           'c.id',       '=', 'ci.categoryid')
             ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
-            ->leftJoin('sub_categories as s',       's.id',       '=', 'sci.subcategoryid')
+            ->leftJoin('categories as s',       's.id',       '=', 'sci.subcategoryid')
             ->leftJoin('brands as b',               'b.id',       '=', 'i.brand_id')
             ->where('i.id', $id)
             ->select('i.*', 'c.title as category_title', 's.title as subcategory_title', 'b.name as brand')

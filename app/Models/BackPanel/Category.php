@@ -172,7 +172,7 @@ class Category extends Model
                 'orgid'          => $post['orgid'],
                 'level'          => $level,
                 'parent_id'      => $parentId,
-                'subcategory_id' => $subcategoryId,           //  matches actual column
+                'sub_category_id' => $subcategoryId,           //  matches actual column
             ];
 
             if ($imageName) {
@@ -191,17 +191,17 @@ class Category extends Model
                 if (!Category::where('id', $post['id'])->update($dataArray)) {
                     throw new \Exception("Couldn't update record.");
                 }
-                return $post['id']; 
+                return $post['id'];
             } else {
-    $newId = (string) Str::uuid();
-    $dataArray['id']         = $newId;
-    $dataArray['created_at'] = Carbon::now();
-    if (!Category::insert($dataArray)) {
-        throw new \Exception("Couldn't save record.");
-    }
+                $newId = (string) Str::uuid();
+                $dataArray['id']         = $newId;
+                $dataArray['created_at'] = Carbon::now();
+                if (!Category::insert($dataArray)) {
+                    throw new \Exception("Couldn't save record.");
+                }
 
-    return $newId;                   // ← was: (nothing, fell through to `return true;` below)
-}
+                return $newId;                   // ← was: (nothing, fell through to `return true;` below)
+            }
         } catch (\Exception $e) {
             throw $e;
         }
@@ -240,7 +240,7 @@ class Category extends Model
                 ->leftJoin('categories as p1', 'p1.id', '=', 'c.parent_id')      // direct parent
                 ->leftJoin('categories as p2', 'p2.id', '=', 'p1.parent_id')     // grandparent
                 ->selectRaw("
-                    (SELECT COUNT(*) FROM categories WHERE {$cond}) AS totalrecs,
+    (SELECT COUNT(*) FROM categories AS cc WHERE " . str_replace('c.', 'cc.', $cond) . ") AS totalrecs,
                     c.id,
                     c.title,
                     c.image,
@@ -400,7 +400,7 @@ class Category extends Model
                 ->select('id', 'title')
                 ->where('orgid', $post['orgid'])
                 ->where('status', 'Y')
-                ->whereNull('parent_id') 
+                ->whereNull('parent_id')
                 ->orderBy('title')
                 ->get();
         } catch (Exception $e) {

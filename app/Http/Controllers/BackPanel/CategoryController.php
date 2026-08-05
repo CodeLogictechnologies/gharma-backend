@@ -189,7 +189,7 @@ class CategoryController extends Controller
             ];
 
             foreach ($data as $row) {
-                $array[$i]['sno'] = $i + 1;
+                $array[$i]['sno'] = (int) ($request->input('start', 0)) + $i + 1;
 
                 $array[$i]['title'] = '<span style="font-weight:600;color:#2d2d2d;">'
                     . htmlspecialchars($row->title) . '</span>';
@@ -267,7 +267,7 @@ class CategoryController extends Controller
             $post = $request->all();
             $post['orgid'] = session('orgid');
             DB::beginTransaction();
-            Category::deleteCategory($request->all());
+            Category::deleteCategory($post);
             DB::commit();
         } catch (QueryException $e) {
             DB::rollBack();

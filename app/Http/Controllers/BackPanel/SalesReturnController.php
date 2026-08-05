@@ -95,8 +95,12 @@ class SalesReturnController extends Controller
             $itemVariations = Itemvariation::getProductCodes($post);
             $customers      = User::getUserData($post);
 
-            $getVoucher = Order::getVoucher($post);
+            $allVouchers     = Order::getVoucher($post);
+            $excludeReturnId = $request->id ?? null;
 
+            $getVoucher = collect($allVouchers)
+                ->filter(fn($voucher) => SalesReturnVoucher::hasReturnableQty($voucher->id, $post['orgid'], $excludeReturnId))
+                ->values();
 
             $data = [
                 'items'          => $items,
@@ -391,22 +395,22 @@ class SalesReturnController extends Controller
     public function voucherCustomer(Request $request)
     {
         try {
-        // dd($request->all());
-        $voucher = DB::table('order_masters')
-            ->join('users', 'users.id', '=', 'order_masters.userid')
-            ->where('order_masters.id', $request->voucher_id)
-            ->select('users.id as customer_id', 'users.name as customer_name')
-            ->first();
+            // dd($request->all());
+            $voucher = DB::table('order_masters')
+                ->join('users', 'users.id', '=', 'order_masters.userid')
+                ->where('order_masters.id', $request->voucher_id)
+                ->select('users.id as customer_id', 'users.name as customer_name')
+                ->first();
 
-        if (!$voucher) {
-            return response()->json(['customer_id' => null]);
-        }
+            if (!$voucher) {
+                return response()->json(['customer_id' => null]);
+            }
 
 
-        return response()->json([
-            'customer_id'   => $voucher->customer_id,
-            'customer_name' => $voucher->customer_name,
-        ]);
+            return response()->json([
+                'customer_id'   => $voucher->customer_id,
+                'customer_name' => $voucher->customer_name,
+            ]);
         } catch (\Exception $e) {
             return response()->json(['customer_id' => null], 500);
         }
