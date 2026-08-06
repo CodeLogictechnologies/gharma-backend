@@ -98,11 +98,11 @@
                     </div>
                 </div>
                 <div>
-                    <label class="form-label small text-muted mb-1" for="filterDate">Assign Date (B.S.)</label>
-                    <div class="input-group input-group-sm" style="min-width: 190px;">
-                        <span class="input-group-text"><i class="bx bx-calendar"></i></span>
-                        <input type="text" id="filterDate" class="form-control" autocomplete="off"
-                            placeholder="yyyy-mm-dd">
+                    <label class="form-label small text-muted mb-1" for="filterDateRange">Assign Date (B.S.)</label>
+                    <div class="input-group input-group-sm" style="min-width: 240px;">
+                        <span class="input-group-text"><i class="bx bx-calendar-week"></i></span>
+                        <input type="text" id="filterDateRange" class="form-control" autocomplete="off"
+                            placeholder="Select date range">
                     </div>
                 </div>
                 <button type="button" id="clearFilters" class="btn btn-sm btn-outline-secondary">
@@ -206,10 +206,26 @@
                 }
             });
 
-            $('#filterDate').nepaliDatePicker();
+            // The plugin doesn't fire a native 'change' event on selection, so the
+            // filter is re-applied explicitly once the calendar closes.
+            $('#filterDateRange').nepaliDatePicker({
+                range: true,
+                onClose: function() {
+                    assignTable.fnDraw();
+                }
+            });
             $('#bulkDateInput').nepaliDatePicker({
                 container: '#bulkAssignModal'
             });
+
+            function getFilterDateRange() {
+                var val = $('#filterDateRange').val() || '';
+                var parts = val.split(' - ');
+                return {
+                    from: parts[0] || '',
+                    to: parts[1] || parts[0] || ''
+                };
+            }
 
             assignTable = $('#assignTable').dataTable({
                 sPaginationType: 'full_numbers',
@@ -241,9 +257,14 @@
                         name: 'driver_id',
                         value: $('#filterDriver').val()
                     });
+                    var dateRange = getFilterDateRange();
                     aoData.push({
-                        name: 'delivery_date',
-                        value: $('#filterDate').val()
+                        name: 'delivery_date_from',
+                        value: dateRange.from
+                    });
+                    aoData.push({
+                        name: 'delivery_date_to',
+                        value: dateRange.to
                     });
                     aoData.push({
                         name: 'sSearch_1',
@@ -311,13 +332,13 @@
             });
 
             // ── Filters ───────────────────────────────────────────────────
-            $('#filterDriver, #filterDate').on('change', function() {
+            $('#filterDriver').on('change', function() {
                 assignTable.fnDraw();
             });
 
             $('#clearFilters').on('click', function() {
                 $('#filterDriver').val('');
-                $('#filterDate').val('');
+                $('#filterDateRange').val('');
                 $('#assignTable thead th:eq(1) input').val('');
                 assignTable.fnDraw();
             });
