@@ -156,8 +156,11 @@ class DriverController extends Controller
         if (!empty($post['driver_id'])) {
             $query->where('ad.driverid', $post['driver_id']);
         }
-        if (!empty($post['delivery_date'])) {
-            $query->where('ad.date_nep', $post['delivery_date']);
+        if (!empty($post['delivery_date_from'])) {
+            $query->where('ad.date_nep', '>=', $post['delivery_date_from']);
+        }
+        if (!empty($post['delivery_date_to'])) {
+            $query->where('ad.date_nep', '<=', $post['delivery_date_to']);
         }
         if (!empty($post['sSearch_1'])) {
             $val = strtolower(trim($post['sSearch_1']));
@@ -186,6 +189,8 @@ class DriverController extends Controller
             ->limit($limit)
             ->get();
 
+        $bsdate = new BsdateController();
+
         $i     = 0;
         $array = [];
         foreach ($results as $row) {
@@ -193,15 +198,15 @@ class DriverController extends Controller
             $array[$i]['checkbox']      = '<input type="checkbox" class="form-check-input rowCheckbox" value="' . $row->id . '">';
             $array[$i]['customer_name'] = $row->customer_name . '<br><small class="text-muted">' . ($row->customer_phone ?? '-') . '</small>';
             $array[$i]['address_name']  = $row->address_name ?? '-';
-            $array[$i]['order_time']    = $row->order_time;
+            $array[$i]['order_time']    = $bsdate->eng_to_nep(substr($row->order_time, 0, 10)) . substr($row->order_time, 10);
             $array[$i]['order_status']  = '<span class="badge bg-label-info">' . $row->order_status . '</span>';
             $array[$i]['driver_name']   = $row->driver_name
                 ? '<span class="badge bg-label-success">' . $row->driver_name . '</span>'
                 : '<span class="badge bg-label-secondary">Unassigned</span>';
             $array[$i]['delivery_date'] = $row->date_nep ?? $row->delivery_date ?? '-';
 
-            $label  = $row->assignment_id ? 'Reassign' : 'Assign';
-            $action = '<a href="javascript:;" title="' . $label . ' Driver" class="tooltipdiv assignRow" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-user-plus"></i> ' . $label . '</a>';
+            $label  = $row->assignment_id ? 'Change Driver' : 'Assign Driver';
+            $action = '<a href="javascript:;" title="' . $label . '" class="tooltipdiv assignRow" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-user-plus"></i> ' . $label . '</a>';
 
             $array[$i]['action'] = $action;
             $i++;

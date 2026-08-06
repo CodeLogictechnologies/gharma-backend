@@ -1,5 +1,5 @@
 <div class="modal-header">
-    <h5 class="modal-title">{{ isset($is_assigned) && $is_assigned ? 'Reassign Driver' : 'Assign Driver' }}</h5>
+    <h5 class="modal-title">{{ isset($is_assigned) && $is_assigned ? 'Change Driver' : 'Assign Driver' }}</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 
