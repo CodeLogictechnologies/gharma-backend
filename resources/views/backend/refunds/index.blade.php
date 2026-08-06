@@ -64,14 +64,14 @@
         flex-shrink: 0 !important;
     }
 
-    #layout-menu,
-    #layout-navbar,
-    .layout-menu,
-    .layout-navbar,
-    .layout-overlay,
-    .layout-menu-toggle {
-        z-index: 1 !important;
-    }
+   body.note-fullscreen-active #layout-menu,
+body.note-fullscreen-active #layout-navbar,
+body.note-fullscreen-active .layout-menu,
+body.note-fullscreen-active .layout-navbar,
+body.note-fullscreen-active .layout-overlay,
+body.note-fullscreen-active .layout-menu-toggle {
+    z-index: 1 !important;
+}
 
     .note-modal,
     .note-popover,
@@ -200,7 +200,7 @@ $(function () {
         const $btn     = $(this);
         const origHtml = $btn.html();
         $btn.prop('disabled', true).html(
-            '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
+            // '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
         );
 
         $.ajax({

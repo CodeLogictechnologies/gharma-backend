@@ -89,10 +89,7 @@
         });
 
         // ── Module definitions (same as role permissions) ───────────────
-        var modules = [{
-                label: 'Favicon',
-                key: 'favicon'
-            },
+        var modules = [
             {
                 label: 'Role',
                 key: 'role'

@@ -9,18 +9,18 @@ return new class extends Migration
     public function up()
     {
         Schema::table('itemvariations', function (Blueprint $table) {
-            $table->uuid('unit_id')->nullable();
-            $table->string('unit')->nullable();
+            if (!Schema::hasColumn('itemvariations', 'unit_id')) {
+                $table->unsignedBigInteger('unit_id')->nullable(); // adjust type/constraints to match your original
+            }
         });
     }
 
     public function down()
     {
         Schema::table('itemvariations', function (Blueprint $table) {
-            $table->dropColumn([
-                'unit_id',
-                'unit',
-            ]);
+            if (Schema::hasColumn('itemvariations', 'unit_id')) {
+                $table->dropColumn('unit_id');
+            }
         });
     }
 };

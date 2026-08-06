@@ -242,7 +242,7 @@
                         var result = typeof response === 'string' ? JSON.parse(response) : response;
                         if (result.type === 'success') {
                             showNotification(result.message, 'success');
-                            itemTable.fnDraw(); // ✅ old-style API
+                            itemTable.fnDraw(); //  old-style API
                         } else {
                             showNotification(result.message, 'error');
                         }

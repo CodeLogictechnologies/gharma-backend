@@ -75,159 +75,159 @@ class SalesReturnVoucher extends Model
     }
 
     public static function saveData($post)
-{
-    try {
-        DB::beginTransaction();
+    {
+        try {
+            DB::beginTransaction();
 
-        $items = $post['items'] ?? [];
-        if (empty($items)) {
-            throw new Exception('At least one item is required.');
-        }
-
-        $subtotal = 0;
-        $lineData = [];
-
-        $bsdate = new BsdateController;
-        $sales_retrun_vouchers_date_eng = $bsdate->nep_to_eng($post['return_date']);
-
-        foreach ($items as $row) {
-            if (empty($row['item_id']) || empty($row['qty']) || !isset($row['unit_rate']) || $row['unit_rate'] === '') {
-                continue;
+            $items = $post['items'] ?? [];
+            if (empty($items)) {
+                throw new Exception('At least one item is required.');
             }
 
-            $item = DB::table('items')->where('id', $row['item_id'])->first();
-            if (!$item) {
-                throw new Exception('Selected item was not found.');
+            $subtotal = 0;
+            $lineData = [];
+
+            $bsdate = new BsdateController;
+            $sales_retrun_vouchers_date_eng = $bsdate->nep_to_eng($post['return_date']);
+
+            foreach ($items as $row) {
+                if (empty($row['item_id']) || empty($row['qty']) || !isset($row['unit_rate']) || $row['unit_rate'] === '') {
+                    continue;
+                }
+
+                $item = DB::table('items')->where('id', $row['item_id'])->first();
+                if (!$item) {
+                    throw new Exception('Selected item was not found.');
+                }
+
+                $qty      = (float) $row['qty'];
+                $unitRate = (float) $row['unit_rate'];
+                $amount   = round($qty * $unitRate, 2);
+
+                $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
+
+                $lineData[] = [
+                    'item_id'      => $row['item_id'],
+                    'variation_id' => $row['variation_id'] ?? null,
+                    'unit'         => $row['unit'] ?? null,
+                    'qty'          => $qty,
+                    'unit_rate'    => $unitRate,
+                    'amount'       => $amount,
+                    'vat_percent'  => $vatPercent,
+                ];
+
+                $subtotal += $amount;
             }
 
-            $qty      = (float) $row['qty'];
-            $unitRate = (float) $row['unit_rate'];
-            $amount   = round($qty * $unitRate, 2);
+            if (empty($lineData)) {
+                throw new Exception('At least one valid item is required.');
+            }
 
-            $vatPercent = ($item->vat_status ?? 'N') === 'Y' ? (float) ($item->vat_percent ?? config('vat.default')) : (float) config('vat.non-taxable');
+            $billDiscountPercent = isset($post['bill_discount_percent']) ? (float) $post['bill_discount_percent'] : 0;
+            $billDiscountAmount  = round($subtotal * $billDiscountPercent / 100, 2);
+            $preVatBase          = $subtotal - $billDiscountAmount;
 
-            $lineData[] = [
-                'item_id'      => $row['item_id'],
-                'variation_id' => $row['variation_id'] ?? null,
-                'unit'         => $row['unit'] ?? null,
-                'qty'          => $qty,
-                'unit_rate'    => $unitRate,
-                'amount'       => $amount,
-                'vat_percent'  => $vatPercent,
+            $totalVatAmount = 0;
+
+            foreach ($lineData as &$line) {
+                $lineShare = $subtotal > 0 ? ($line['amount'] / $subtotal) * $preVatBase : 0;
+                $lineVatAmount = round($lineShare * $line['vat_percent'] / 100, 2);
+
+                $line['vat_amount'] = $lineVatAmount;
+                $line['net_amount'] = round($lineShare + $lineVatAmount, 2);
+
+                $totalVatAmount += $lineVatAmount;
+            }
+            unset($line);
+
+            $taxableAmount = round($preVatBase, 2);
+            $totalAmount   = round($taxableAmount + $totalVatAmount, 2);
+
+            $customer = DB::table('users')->where('id', $post['customer_id'])->first();
+            if (!$customer) {
+                throw new Exception('Selected customer was not found.');
+            }
+
+            // Auto generate credit note number, same pattern as PurchaseVoucher::voucher_no
+            if (!empty($post['id'])) {
+                // Editing an existing return — keep its original number
+                $post['credit_note_no'] = DB::table('sales_return_vouchers')
+                    ->where('id', $post['id'])
+                    ->value('credit_note_no');
+            } else {
+                // New return — generate the next number automatically
+                $post['credit_note_no'] = self::generateUniqueVoucherNo($post);
+            }
+
+            $header = [
+                'return_date'           => $post['return_date'],
+                'credit_note_no'        => $post['credit_note_no'],
+                'customer_id'           => $post['customer_id'],
+                'against_voucher_id'    => $post['against_voucher_id'] ?? null,
+                'remarks'               => $post['remarks'] ?? null,
+                'subtotal'              => round($subtotal, 2),
+                'bill_discount_percent' => $billDiscountPercent,
+                'bill_discount_amount'  => $billDiscountAmount,
+                'sales_retrun_vouchers_date_eng'  => $sales_retrun_vouchers_date_eng,
+                'taxable_amount'        => $taxableAmount,
+                'vat_amount'            => round($totalVatAmount, 2),
+                'total_amount'          => $totalAmount,
+                'orgid'                 => $post['orgid'],
             ];
 
-            $subtotal += $amount;
+            if (!empty($post['id'])) {
+                $voucherId = $post['id'];
+
+                $header['updatedby']  = $post['userid'];
+                $header['updated_at'] = Carbon::now();
+
+                DB::table('sales_return_vouchers')->where('id', $voucherId)->update($header);
+                DB::table('sales_return_voucher_items')->where('sales_return_voucher_id', $voucherId)->delete();
+            } else {
+                $voucherId = (string) Str::uuid();
+
+                $orgFiscalYearId = DB::table('organizations')
+                    ->where('id', $post['orgid'])
+                    ->value('current_fiscal_year_id');
+
+                $header['id']             = $voucherId;
+                $header['fiscal_year_id'] = $orgFiscalYearId;
+                $header['return_status']  = 'Pending';
+                $header['postedby']       = $post['userid'];
+                $header['created_at']     = Carbon::now();
+                $header['updated_at']     = Carbon::now();
+
+                DB::table('sales_return_vouchers')->insert($header);
+            }
+
+            $itemRows = [];
+            foreach ($lineData as $line) {
+                $itemRows[] = [
+                    'id'                       => (string) Str::uuid(),
+                    'orgid'                    => $post['orgid'],
+                    'sales_return_voucher_id'  => $voucherId,
+                    'item_id'                  => $line['item_id'],
+                    'variation_id'             => $line['variation_id'],
+                    'unit'                     => $line['unit'],
+                    'qty'                      => $line['qty'],
+                    'unit_rate'                => $line['unit_rate'],
+                    'amount'                   => $line['amount'],
+                    'vat_percent'              => $line['vat_percent'] ?? null,
+                    'vat_amount'               => $line['vat_amount'] ?? null,
+                    'net_amount'               => $line['net_amount'] ?? null,
+                    'created_at'               => Carbon::now(),
+                    'updated_at'               => Carbon::now(),
+                ];
+            }
+            DB::table('sales_return_voucher_items')->insert($itemRows);
+
+            DB::commit();
+            return true;
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        if (empty($lineData)) {
-            throw new Exception('At least one valid item is required.');
-        }
-
-        $billDiscountPercent = isset($post['bill_discount_percent']) ? (float) $post['bill_discount_percent'] : 0;
-        $billDiscountAmount  = round($subtotal * $billDiscountPercent / 100, 2);
-        $preVatBase          = $subtotal - $billDiscountAmount;
-
-        $totalVatAmount = 0;
-
-        foreach ($lineData as &$line) {
-            $lineShare = $subtotal > 0 ? ($line['amount'] / $subtotal) * $preVatBase : 0;
-            $lineVatAmount = round($lineShare * $line['vat_percent'] / 100, 2);
-
-            $line['vat_amount'] = $lineVatAmount;
-            $line['net_amount'] = round($lineShare + $lineVatAmount, 2);
-
-            $totalVatAmount += $lineVatAmount;
-        }
-        unset($line);
-
-        $taxableAmount = round($preVatBase, 2);
-        $totalAmount   = round($taxableAmount + $totalVatAmount, 2);
-
-        $customer = DB::table('users')->where('id', $post['customer_id'])->first();
-        if (!$customer) {
-            throw new Exception('Selected customer was not found.');
-        }
-
-        // Auto generate credit note number, same pattern as PurchaseVoucher::voucher_no
-        if (!empty($post['id'])) {
-            // Editing an existing return — keep its original number
-            $post['credit_note_no'] = DB::table('sales_return_vouchers')
-                ->where('id', $post['id'])
-                ->value('credit_note_no');
-        } else {
-            // New return — generate the next number automatically
-            $post['credit_note_no'] = self::generateUniqueVoucherNo($post);
-        }
-
-        $header = [
-            'return_date'           => $post['return_date'],
-            'credit_note_no'        => $post['credit_note_no'],
-            'customer_id'           => $post['customer_id'],
-            'against_voucher_id'    => $post['against_voucher_id'] ?? null,
-            'remarks'               => $post['remarks'] ?? null,
-            'subtotal'              => round($subtotal, 2),
-            'bill_discount_percent' => $billDiscountPercent,
-            'bill_discount_amount'  => $billDiscountAmount,
-            'sales_retrun_vouchers_date_eng'  => $sales_retrun_vouchers_date_eng,
-            'taxable_amount'        => $taxableAmount,
-            'vat_amount'            => round($totalVatAmount, 2),
-            'total_amount'          => $totalAmount,
-            'orgid'                 => $post['orgid'],
-        ];
-
-        if (!empty($post['id'])) {
-            $voucherId = $post['id'];
-
-            $header['updatedby']  = $post['userid'];
-            $header['updated_at'] = Carbon::now();
-
-            DB::table('sales_return_vouchers')->where('id', $voucherId)->update($header);
-            DB::table('sales_return_voucher_items')->where('sales_return_voucher_id', $voucherId)->delete();
-        } else {
-            $voucherId = (string) Str::uuid();
-
-            $orgFiscalYearId = DB::table('organizations')
-                ->where('id', $post['orgid'])
-                ->value('current_fiscal_year_id');
-
-            $header['id']             = $voucherId;
-            $header['fiscal_year_id'] = $orgFiscalYearId;
-            $header['return_status']  = 'Pending';
-            $header['postedby']       = $post['userid'];
-            $header['created_at']     = Carbon::now();
-            $header['updated_at']     = Carbon::now();
-
-            DB::table('sales_return_vouchers')->insert($header);
-        }
-
-        $itemRows = [];
-        foreach ($lineData as $line) {
-            $itemRows[] = [
-                'id'                       => (string) Str::uuid(),
-                'orgid'                    => $post['orgid'],
-                'sales_return_voucher_id'  => $voucherId,
-                'item_id'                  => $line['item_id'],
-                'variation_id'             => $line['variation_id'],
-                'unit'                     => $line['unit'],
-                'qty'                      => $line['qty'],
-                'unit_rate'                => $line['unit_rate'],
-                'amount'                   => $line['amount'],
-                'vat_percent'              => $line['vat_percent'] ?? null,
-                'vat_amount'               => $line['vat_amount'] ?? null,
-                'net_amount'               => $line['net_amount'] ?? null,
-                'created_at'               => Carbon::now(),
-                'updated_at'               => Carbon::now(),
-            ];
-        }
-        DB::table('sales_return_voucher_items')->insert($itemRows);
-
-        DB::commit();
-        return true;
-    } catch (Exception $e) {
-        DB::rollBack();
-        throw $e;
     }
-}
 
     public static function getData($post)
     {
@@ -343,6 +343,49 @@ class SalesReturnVoucher extends Model
     //         throw $e;
     //     }
     // }
+
+    public static function hasReturnableQty($voucherId, $orgid, $excludeReturnId = null)
+    {
+        $sold = DB::table('order_details as od')
+            ->join('itemvariations as iv', 'iv.id', '=', 'od.variation_id')
+            ->where('od.ordermasterid', $voucherId)
+            ->select('iv.item_id', 'od.variation_id', DB::raw('SUM(od.quantity) as qty'))
+            ->groupBy('iv.item_id', 'od.variation_id')
+            ->get();
+
+        if ($sold->isEmpty()) {
+            return false;
+        }
+
+        $returnedQuery = DB::table('sales_return_voucher_items as srvi')
+            ->join('sales_return_vouchers as srv', 'srv.id', '=', 'srvi.sales_return_voucher_id')
+            ->where('srv.against_voucher_id', $voucherId)
+            ->where('srv.orgid', $orgid)
+            ->where('srv.status', 'Y');
+
+        if ($excludeReturnId) {
+            $returnedQuery->where('srv.id', '!=', $excludeReturnId);
+        }
+
+        $returnedByKey = $returnedQuery
+            ->select('srvi.item_id', 'srvi.variation_id', DB::raw('SUM(srvi.qty) as returned_qty'))
+            ->groupBy('srvi.item_id', 'srvi.variation_id')
+            ->get()
+            ->keyBy(fn($r) => $r->item_id . '|' . ($r->variation_id ?? ''));
+
+        foreach ($sold as $line) {
+            $key         = $line->item_id . '|' . ($line->variation_id ?? '');
+            $soldQty     = (float) $line->qty;
+            $returnedQty = (float) ($returnedByKey[$key]->returned_qty ?? 0);
+
+            if ($soldQty - $returnedQty > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function generateUniqueVoucherNo($post)
     {
         try {

@@ -80,6 +80,9 @@ class BrandController extends Controller
     // }
     public function save(Request $request)
     {
+        if (!auth()->user()->can($request->id ? 'edit.brand' : 'add.brand')) {
+            return json_encode(['type' => 'error', 'message' => 'Unauthorized.']);
+        }
         try {
             $isQuickAdd = $request->boolean('quick_add');
 
@@ -161,16 +164,20 @@ class BrandController extends Controller
                 $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
                 $action = '';
 
-                $action .= '<a href="javascript:;" 
-                                title="Edit Data" class="tooltipdiv 
-                                editBrand" style="color:blue;" 
-                                data-id="' . $row->id . '" 
-                                                    data-name="' . $row->name . '" 
-                                                    data-description="' . $row->description . '" 
-                                                    data-image="' . $row->logo . '">
-                                <i class="bx bx-edit-alt"></i></a>';
+                if (auth()->user()->can('edit.brand')) {
+                    $action .= '<a href="javascript:;" 
+                    title="Edit Data" class="tooltipdiv 
+                    editBrand" style="color:blue;" 
+                    data-id="' . $row->id . '" 
+                                        data-name="' . $row->name . '" 
+                                        data-description="' . $row->description . '" 
+                                        data-image="' . $row->logo . '">
+                    <i class="bx bx-edit-alt"></i></a>';
+                }
 
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteBrand px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+                if (auth()->user()->can('delete.brand')) {
+                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteBrand px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+                }
 
                 $array[$i]["action"]  = $action;
                 $i++;
@@ -194,6 +201,9 @@ class BrandController extends Controller
     //function to delete team category
     public function delete(Request $request)
     {
+        if (!auth()->user()->can('delete.brand')) {
+            return json_encode(['type' => 'error', 'message' => 'Unauthorized.']);
+        }
         try {
             $type = 'success';
             $message = "Record deleted successfully";

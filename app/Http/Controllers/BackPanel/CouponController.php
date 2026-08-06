@@ -18,6 +18,9 @@ class CouponController extends Controller
 
     public function save(Request $request)
     {
+        if (!auth()->user()->can($request->id ? 'edit.coupon' : 'add.coupon')) {
+            return response()->json(['type' => 'error', 'message' => 'Unauthorized.'], 403);
+        }
         $request->validate([
             'coupon_code'          => 'required|string|max:100',
             'discount_type'        => 'required|in:percentage,fixed',
@@ -56,6 +59,9 @@ class CouponController extends Controller
 
     public function list(Request $request)
     {
+        if (!auth()->user()->can('view.coupon')) {
+            return response()->json(['sEcho' => 1, 'iTotalRecords' => 0, 'iTotalDisplayRecords' => 0, 'aaData' => []]);
+        }
         try {
             $get   = $request->all();
             $cond  = "status = 'Y' AND orgid = ?";
@@ -95,9 +101,18 @@ class CouponController extends Controller
                     : number_format($row->percentage, 2) . '% off';
 
                 $action  = '';
-                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewCoupon   px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editCoupon   px-2" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteCoupon px-2" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+
+                if (auth()->user()->can('view.coupon')) {
+                    $action .= '<a href="javascript:;" title="View" class="tooltipdiv viewCoupon px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
+                }
+
+                if (auth()->user()->can('edit.coupon')) {
+                    $action .= '<a href="javascript:;" title="Edit" class="tooltipdiv editCoupon px-2" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+
+                if (auth()->user()->can('delete.coupon')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteCoupon px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
 
                 return [
                     'sno'              => $offset + $i + 1,
@@ -128,6 +143,9 @@ class CouponController extends Controller
 
     public function form(Request $request)
     {
+        if (!auth()->user()->can($request->id ? 'edit.coupon' : 'add.coupon')) {
+            abort(403);
+        }
         try {
             $data = [];
 
@@ -169,13 +187,16 @@ class CouponController extends Controller
 
     public function delete(Request $request)
     {
+        if (!auth()->user()->can('delete.coupon')) {
+            return json_encode(['type' => 'error', 'message' => 'Unauthorized.']);
+        }
         try {
             $type    = 'success';
             $message = 'Coupon deleted successfully.';
             $post = $request->all();
             $post['orgid'] = session('orgid');
             DB::beginTransaction();
-            $result = Coupon::deleteData($request->all());
+            $result = Coupon::deleteData($post);
             if (!$result) {
                 throw new Exception("Could not delete coupon.");
             }
@@ -195,6 +216,12 @@ class CouponController extends Controller
 
     public function view(Request $request)
     {
+        if (!auth()->user()->can('view.coupon')) {
+            return view('backend.coupon.view', [
+                'type'    => 'error',
+                'message' => 'Unauthorized.',
+            ]);
+        }
         try {
             $coupon = DB::table('coupons')
                 ->where('id', $request->id)

@@ -271,7 +271,7 @@ $(function () {
     // ── Save / Update ─────────────────────────────────────────────────
     $(document).on('click', '#saveSubCatBtn', function () {
         if (!validateSubCatForm()) return;
-        var $btn = $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+        // var $btn = $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
 
         $('#subCategoryForm').ajaxSubmit({
             contentType: false,
