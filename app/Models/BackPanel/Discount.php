@@ -11,6 +11,7 @@ use App\Http\Controllers\BsdateController;
 
 class Discount extends Model
 {
+    protected $table = 'discount_masters';
     public $incrementing = false;
     protected $keyType   = 'string';
 
@@ -31,8 +32,13 @@ class Discount extends Model
             // dd($post);
             DB::beginTransaction();
             $bsdate = new BsdateController;
-            $start_date_ad = $bsdate->nep_to_eng($post['starts_at']);
-            $end_date_ad = $bsdate->nep_to_eng($post['ends_at']);
+
+            $startsTime = !empty($post['starts_time']) ? $post['starts_time'] : '00:00';
+            $endsTime   = !empty($post['ends_time'])   ? $post['ends_time']   : '23:59';
+
+            $start_date_ad = $bsdate->nep_to_eng($post['starts_at']) . ' ' . $startsTime . ':00';
+            $end_date_ad   = $bsdate->nep_to_eng($post['ends_at'])   . ' ' . $endsTime   . ':00';
+
             $appliesToId = null;
 
             switch ($post['applies_to']) {
@@ -63,10 +69,10 @@ class Discount extends Model
                 throw new Exception('Please select Applies To.');
             }
 
-            $discountMasterId = (string) Str::uuid();
+            $isEdit = !empty($post['id']);
+            $discountMasterId = $isEdit ? $post['id'] : (string) Str::uuid();
 
             $masterData = [
-                'id'                    => $discountMasterId,
                 'applies_to'            => $post['applies_to'],
                 'applies_to_id'         => $appliesToId,
                 'min_requirement'       => $post['min_requirement'] ?? 'none',
@@ -77,16 +83,34 @@ class Discount extends Model
                 'usage_limit_per_user'  => $post['usage_limit_per_user'] ?? null,
                 'start_date_bs'            => $post['starts_at'],
                 'end_date_bs'              => $post['ends_at'],
+                'starts_time'              => $startsTime,
+                'ends_time'                => $endsTime,
                 'start_date_ad'            => $start_date_ad,
                 'end_date_ad'              => $end_date_ad,
                 'orgid'                 => $post['orgid'],
                 'status'                => 'Y',
-                'used_count'            => 0,
-                'created_at'            => now(),
                 'updated_at'            => now(),
             ];
 
-            DB::table('discount_masters')->insert($masterData);
+            if ($isEdit) {
+
+                DB::table('discount_masters')
+                    ->where('id', $discountMasterId)
+                    ->where('orgid', $post['orgid'])
+                    ->update($masterData);
+
+                // Clear old line items so they can be recalculated fresh below
+                DB::table('discount_details')
+                    ->where('discount_master_id', $discountMasterId)
+                    ->delete();
+            } else {
+
+                $masterData['id']         = $discountMasterId;
+                $masterData['used_count'] = 0;
+                $masterData['created_at'] = now();
+
+                DB::table('discount_masters')->insert($masterData);
+            }
 
             $details = [];
 

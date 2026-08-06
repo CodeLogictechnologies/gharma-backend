@@ -20,8 +20,10 @@
                     <tr class="align-middle">
                         <th>ID</th>
                         <th>Apply to</th>
-                        <th>Start At</th>
-                        <th>End At</th>
+                        <th>Start Date</th>
+                        <th>Start Time</th>
+                        <th>End Date</th>
+                        <th>End Time</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -103,8 +105,20 @@
                     aTargets: [0]
                 },
                 {
+                    sWidth: '13%',
+                    aTargets: [2]
+                },
+                {
                     sWidth: '10%',
                     aTargets: [3]
+                },
+                {
+                    sWidth: '13%',
+                    aTargets: [4]
+                },
+                {
+                    sWidth: '10%',
+                    aTargets: [5]
                 }
             ],
             aoColumns: [{
@@ -114,10 +128,16 @@
                     data: 'applies_to'
                 },
                 {
-                    data: 'starts_at'
+                    data: 'start_date'
                 },
                 {
-                    data: 'ends_at'
+                    data: 'start_time'
+                },
+                {
+                    data: 'end_date'
+                },
+                {
+                    data: 'end_time'
                 },
                 {
                     data: 'action'
@@ -125,7 +145,7 @@
             ],
 
             initComplete: function() {
-                this.api().columns([1, 2, 3]).every(function() {
+                this.api().columns([1, 2, 3, 4, 5]).every(function() {
                     var column = this;
                     var header = $(column.header()).text()
                         .trim(); // ← gets column header name
@@ -246,7 +266,7 @@
 
 
         // ── Clear invalid state on input ──────────────────────────────
-        $(document).on('input change', '#orgForm .form-control', function() {
+        $(document).on('input change', '#orgForm .form-control, #orgForm .form-select', function() {
             $(this).removeClass('is-invalid');
         });
         $(document).on('click', '.viewDiscount', function(e) {

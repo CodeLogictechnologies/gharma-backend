@@ -411,7 +411,7 @@
                 </li>
                 @endcan
 
-                @can('view.loyalty')
+                <!-- @can('view.loyalty')
                 <li class="menu-item {{ request()->routeIs('loyalty') ? 'active' : '' }}">
                     <a href="{{ route('loyalty') }}" class="menu-link">
                         <i class="bx bx-package me-2"></i>
@@ -427,7 +427,7 @@
                         <div>Coupon</div>
                     </a>
                 </li>
-                @endcan
+                @endcan -->
 
 
             </ul>
@@ -454,14 +454,14 @@
         </li> --}}
 
         <!-- Refund -->
-        @can('view.refund')
+        <!-- @can('view.refund')
         <li class="menu-item {{ request()->routeIs('refund') || request()->routeIs('refund.*') ? 'active' : '' }}">
             <a href="{{ route('refund') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-revision"></i>
                 <div>Refund</div>
             </a>
         </li>
-        @endcan
+        @endcan -->
 
         <!-- Report -->
         @canany(['view.report-sales', 'view.inventory-report'])
@@ -509,14 +509,14 @@
 
 
         <!-- Notification -->
-        @can('view.notification')
+        <!-- @can('view.notification')
         <li class="menu-item {{ request()->routeIs('notification') ? 'active' : '' }}">
             <a href="{{ route('notification') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-bell"></i>
                 <div>Notification</div>
             </a>
         </li>
-        @endcan
+        @endcan -->
 
     </ul>
 </aside>

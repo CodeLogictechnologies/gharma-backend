@@ -209,19 +209,37 @@
 
         </div>
 
-        {{-- ── Row 5: Dates ─────────────────────────────────────── --}}
+        {{-- ── Row 5: Dates & Times ─────────────────────────────── --}}
         <div class="row g-3 mb-3">
 
-            <div class="col-md-4">
+           <div class="col-md-3">
                 <label class="form-label">Active Date <span class="text-danger">*</span></label>
                 <input type="text" name="starts_at" id="start_date_np" class="form-control" autocomplete="off"
-                    readonly>
+                    readonly value="{{ @$starts_at ?? '' }}">
+                <div class="invalid-feedback">Active date is required.</div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label class="form-label">Active Time <span class="text-danger">*</span></label>
+                <input type="text" id="starts_time_np" class="form-control nptp-display" autocomplete="off"
+                    readonly placeholder="04:04 PM">
+                <input type="hidden" name="starts_time" id="starts_time" value="{{ @$starts_time ?? '00:00' }}">
+                <div class="invalid-feedback">Active time is required.</div>
+            </div>
+
+          <div class="col-md-3">
                 <label class="form-label">End Date <span class="text-danger">*</span></label>
                 <input type="text" name="ends_at" id="end_date_np" class="form-control" autocomplete="off"
-                    readonly>
+                    readonly value="{{ @$ends_at ?? '' }}">
+                <div class="invalid-feedback">End date is required.</div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">End Time <span class="text-danger">*</span></label>
+                <input type="text" id="ends_time_np" class="form-control nptp-display" autocomplete="off"
+                    readonly placeholder="11:59 PM">
+                <input type="hidden" name="ends_time" id="ends_time" value="{{ @$ends_time ?? '23:59' }}">
+                <div class="invalid-feedback">End time is required.</div>
             </div>
 
         </div>
@@ -236,6 +254,70 @@
         </button>
     </div>
 </form>
+
+<style>
+    .nptp-popover {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 2000;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .15);
+        padding: 10px;
+        width: 210px;
+    }
+
+    .nptp-selected {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+
+    .nptp-box {
+        flex: 1;
+        text-align: center;
+        border: 1px solid #0d6efd;
+        border-radius: 6px;
+        padding: 5px 2px;
+        font-weight: 600;
+        background: #eaf2ff;
+        font-size: .85rem;
+    }
+
+    .nptp-columns {
+        display: flex;
+        gap: 6px;
+        border-top: 1px solid #eee;
+        padding-top: 6px;
+    }
+
+    .nptp-col {
+        flex: 1;
+        max-height: 170px;
+        overflow-y: auto;
+        text-align: center;
+    }
+
+    .nptp-item {
+        padding: 5px 0;
+        cursor: pointer;
+        color: #0d6efd;
+        font-size: .9rem;
+        border-radius: 4px;
+    }
+
+    .nptp-item:hover {
+        background: #e8f0fe;
+    }
+
+    .nptp-item.active {
+        font-weight: 700;
+        color: #fff;
+        background: #0d6efd;
+    }
+</style>
 
 <script>
     (function() {
@@ -253,6 +335,157 @@
         var editSubCategoryTargetId = '{{ @$sub_category_target_id ?? '' }}';
         var editSubSubCategoryTargetId = '{{ @$sub_sub_category_target_id ?? '' }}';
         var editBrandTargetId = '{{ @$brand_target_id ?? '' }}';
+
+        /* =========================================================
+           NEPALI TIME PICKER (wheel-style, Devanagari numerals)
+        ========================================================= */
+        var nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+
+        function toNepaliNum(n) {
+            return String(n).split('').map(function(d) {
+                return /[0-9]/.test(d) ? nepaliDigits[+d] : d;
+            }).join('');
+        }
+
+        function pad2(n) {
+            return (n < 10 ? '0' : '') + n;
+        }
+
+        function buildTimePickerColumn($col, type) {
+            var html = '';
+            if (type === 'hour') {
+                for (var h = 1; h <= 12; h++) {
+                    html += '<div class="nptp-item" data-val="' + pad2(h) + '">' + toNepaliNum(pad2(
+                        h)) + '</div>';
+                }
+            } else if (type === 'minute') {
+                for (var m = 0; m < 60; m++) {
+                    html += '<div class="nptp-item" data-val="' + pad2(m) + '">' + toNepaliNum(pad2(
+                        m)) + '</div>';
+                }
+            } else if (type === 'ampm') {
+                html += '<div class="nptp-item" data-val="AM">AM</div>';
+                html += '<div class="nptp-item" data-val="PM">PM</div>';
+            }
+            $col.html(html);
+        }
+
+        var activeTimePickers = [];
+
+        function initNepaliTimePicker(displayId, hiddenId) {
+            var $display = $('#' + displayId);
+            var $hidden = $('#' + hiddenId);
+
+            if (!$display.length || !$hidden.length) return;
+
+            var $wrap = $display.parent();
+            $wrap.css('position', 'relative');
+
+            var $picker = $(
+                '<div class="nptp-popover" style="display:none;">' +
+                '<div class="nptp-selected">' +
+                '<span class="nptp-box" data-col="hour"></span>' +
+                '<span class="nptp-box" data-col="minute"></span>' +
+                '<span class="nptp-box" data-col="ampm"></span>' +
+                '</div>' +
+                '<div class="nptp-columns">' +
+                '<div class="nptp-col" data-col="hour"></div>' +
+                '<div class="nptp-col" data-col="minute"></div>' +
+                '<div class="nptp-col" data-col="ampm"></div>' +
+                '</div>' +
+                '</div>'
+            );
+            $wrap.append($picker);
+
+            buildTimePickerColumn($picker.find('.nptp-col[data-col="hour"]'), 'hour');
+            buildTimePickerColumn($picker.find('.nptp-col[data-col="minute"]'), 'minute');
+            buildTimePickerColumn($picker.find('.nptp-col[data-col="ampm"]'), 'ampm');
+
+            var state = {
+                hour: '12',
+                minute: '00',
+                ampm: 'AM'
+            };
+
+            function setFromValue24(val24) {
+                var parts = (val24 || '00:00').split(':');
+                var h24 = parseInt(parts[0], 10) || 0;
+                var m = parseInt(parts[1], 10) || 0;
+                var ampm = h24 >= 12 ? 'PM' : 'AM';
+                var h12 = h24 % 12;
+                if (h12 === 0) h12 = 12;
+                state.hour = pad2(h12);
+                state.minute = pad2(m);
+                state.ampm = ampm;
+                refreshUI();
+            }
+
+            function to24() {
+                var h = parseInt(state.hour, 10);
+                if (state.ampm === 'AM') {
+                    if (h === 12) h = 0;
+                } else {
+                    if (h !== 12) h += 12;
+                }
+                return pad2(h) + ':' + state.minute;
+            }
+
+            function refreshUI() {
+                $picker.find('.nptp-box[data-col="hour"]').text(toNepaliNum(state.hour));
+                $picker.find('.nptp-box[data-col="minute"]').text(toNepaliNum(state.minute));
+                $picker.find('.nptp-box[data-col="ampm"]').text(state.ampm);
+
+                $picker.find('.nptp-col[data-col="hour"] .nptp-item').removeClass('active');
+                $picker.find('.nptp-col[data-col="hour"] .nptp-item[data-val="' + state.hour +
+                    '"]').addClass('active');
+
+                $picker.find('.nptp-col[data-col="minute"] .nptp-item').removeClass('active');
+                $picker.find('.nptp-col[data-col="minute"] .nptp-item[data-val="' + state.minute +
+                    '"]').addClass('active');
+
+                $picker.find('.nptp-col[data-col="ampm"] .nptp-item').removeClass('active');
+                $picker.find('.nptp-col[data-col="ampm"] .nptp-item[data-val="' + state.ampm +
+                    '"]').addClass('active');
+
+                $display.val(state.hour + ':' + state.minute + ' ' + state.ampm);
+                $hidden.val(to24());
+                $display.removeClass('is-invalid');
+            }
+
+            $picker.on('click', '.nptp-item', function() {
+                var $item = $(this);
+                var col = $item.parent().data('col');
+                state[col] = $item.data('val');
+                refreshUI();
+                $hidden.trigger('change');
+            });
+
+            $display.off('click.nptp').on('click.nptp', function(e) {
+                e.stopPropagation();
+                $('.nptp-popover').not($picker).hide();
+                $picker.toggle();
+                if ($picker.is(':visible')) {
+                    $picker.find('.nptp-col').each(function() {
+                        var $active = $(this).find('.active');
+                        if ($active.length) {
+                            this.scrollTop = $active[0].offsetTop - 60;
+                        }
+                    });
+                }
+            });
+
+            setFromValue24($hidden.val());
+
+            activeTimePickers.push($picker);
+        }
+
+        $(document).off('click.nptpOutside').on('click.nptpOutside', function(e) {
+            $('.nptp-popover').each(function() {
+                if (!$(e.target).closest(this).length && !$(e.target).hasClass('nptp-display')) {
+                    $(this).hide();
+                }
+            });
+        });
 
         /* =========================================================
            DISCOUNT TYPE → show % or fixed field
@@ -368,7 +601,7 @@
            - sub_category     -> Category -> Sub Category
            - sub_sub_category -> Category -> Sub Category -> Sub Sub Category
         ========================================================= */
-        function applyAppliesToToggle(val) {
+       function applyAppliesToToggle(val) {
 
             // Hide everything first
             $('#itemField,#categoryField,#subCategoryField,#subSubCategoryField,#brandField').hide();
@@ -388,6 +621,11 @@
                     editCategoryTargetId,
                     '-- Select Category --'
                 );
+
+                if (editCategoryTargetId) {
+                    $('#itemField').show();
+                    loadItemChecklist(editSelectedItemIds, { category_id: editCategoryTargetId });
+                }
 
             } else if (val === 'sub_category') {
 
@@ -411,6 +649,11 @@
                     );
                 } else {
                     $('#subCategorySelect').html('<option value="">-- Select Category first --</option>');
+                }
+
+                if (editSubCategoryTargetId) {
+                    $('#itemField').show();
+                    loadItemChecklist(editSelectedItemIds, { sub_category_id: editSubCategoryTargetId });
                 }
 
             } else if (val === 'sub_sub_category') {
@@ -451,11 +694,21 @@
                         '<option value="">-- Select Sub Category first --</option>');
                 }
 
+                if (editSubSubCategoryTargetId) {
+                    $('#itemField').show();
+                    loadItemChecklist(editSelectedItemIds, { sub_sub_category_id: editSubSubCategoryTargetId });
+                }
+
             } else if (val === 'brand') {
 
                 $('#brandField').show();
 
                 loadBrands(editBrandTargetId);
+
+                if (editBrandTargetId) {
+                    $('#itemField').show();
+                    loadItemChecklist(editSelectedItemIds, { brand_id: editBrandTargetId });
+                }
 
             }
         }
@@ -611,6 +864,9 @@
 
                 applyMinRequirementToggle($('#minRequirement').val());
                 applyUsageLimitToggle($('#usageLimitType').val());
+
+                initNepaliTimePicker('starts_time_np', 'starts_time');
+                initNepaliTimePicker('ends_time_np', 'ends_time');
             });
 
         /* =========================================================
@@ -630,6 +886,8 @@
                 editSelectedItemIds = [];
                 editCategoryTargetId = editSubCategoryTargetId = editSubSubCategoryTargetId =
                     editBrandTargetId = '';
+                activeTimePickers = [];
+                $(document).off('click.nptpOutside');
                 window._discountModalInitialized = false;
             });
 
@@ -719,8 +977,33 @@
                 // Date validation
                 var startsAt = $('[name="starts_at"]').val();
                 var endsAt = $('[name="ends_at"]').val();
+                if (!startsAt) {
+                    $('[name="starts_at"]').addClass('is-invalid');
+                    valid = false;
+                }
+                if (!endsAt) {
+                    $('[name="ends_at"]').addClass('is-invalid');
+                    valid = false;
+                }
                 if (startsAt && endsAt && endsAt < startsAt) {
                     $('[name="ends_at"]').addClass('is-invalid');
+                    valid = false;
+                }
+
+                // Time validation
+                var startsTime = $('#starts_time').val();
+                var endsTime = $('#ends_time').val();
+                if (!startsTime) {
+                    $('#starts_time_np').addClass('is-invalid');
+                    valid = false;
+                }
+                if (!endsTime) {
+                    $('#ends_time_np').addClass('is-invalid');
+                    valid = false;
+                }
+                if (startsAt && endsAt && startsAt === endsAt && startsTime && endsTime && endsTime <=
+                    startsTime) {
+                    $('#ends_time_np').addClass('is-invalid');
                     valid = false;
                 }
 
