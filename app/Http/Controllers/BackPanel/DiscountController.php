@@ -74,7 +74,7 @@ class DiscountController extends Controller
             $totalrecs = DB::table('discount_masters')->whereRaw($cond, $binds)->count();
 
             $query = DB::table('discount_masters')
-                ->selectRaw("id, applies_to, start_date_bs as starts_at, end_date_bs as ends_at, starts_time, ends_time")
+                ->selectRaw("id,title,applies_to, start_date_bs as starts_at, end_date_bs as ends_at, starts_time, ends_time")
                 ->whereRaw($cond, $binds)
                 ->orderBy('created_at', 'desc');
 
@@ -100,6 +100,7 @@ class DiscountController extends Controller
                 }
                 return [
                     'sno'             => $offset + $i + 1,
+                    'discount_title'  => $row->title,
                     'applies_to'      => ucfirst($row->applies_to),
                     'start_date'      => $row->starts_at
                         ? \Carbon\Carbon::parse($row->starts_at)->format('d M Y') : '-',
@@ -141,6 +142,7 @@ class DiscountController extends Controller
                 }
 
                 $data['id']                   = $result->id;
+                $data['title']                = $result->title;
                 $data['applies_to']           = $result->applies_to;
                 $data['min_requirement']      = $result->min_requirement;
                 $data['min_value']            = $result->min_value;
@@ -257,6 +259,7 @@ class DiscountController extends Controller
             $discounts = DB::table('discount_details as dd')
                 ->join('itemvariations as iv', 'iv.id', '=', 'dd.variation_id')
                 ->join('items as i', 'i.id', '=', 'iv.item_id')
+                ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
                 ->select(
                     'iv.id as variation_id',
                     'i.title',
@@ -270,7 +273,14 @@ class DiscountController extends Controller
                 ->where('dd.orgid', session('orgid'))
                 ->where('iv.orgid', session('orgid'))
                 ->where('i.orgid', session('orgid'))
+                ->where('dm.orgid', session('orgid'))
                 ->get();
+
+            // Fetch the discount master title separately since it's one value shared by all rows
+            $discountTitle = DB::table('discount_masters')
+                ->where('id', $request->id)
+                ->where('orgid', session('orgid'))
+                ->value('title');
 
             if (!$discounts) {
                 return view('backend.discount.view', [
@@ -281,6 +291,7 @@ class DiscountController extends Controller
 
             return view('backend.discount.view', [
                 'type' => 'success',
+                'discount_title' => $discountTitle,
                 'discounts' => $discounts
             ]);
         } catch (\Exception $e) {

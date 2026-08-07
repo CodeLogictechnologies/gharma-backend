@@ -35,6 +35,13 @@
         <div class="row g-3 mb-3">
 
             <div class="col-md-4">
+                <label class="form-label">Discount Title <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control" data-required
+                    placeholder="e.g. Dashain Offer" value="{{ @$title ?? '' }}" />
+                <div class="invalid-feedback">Discount title is required.</div>
+            </div>
+
+            <div class="col-md-4">
                 <label class="form-label">Discount Type <span class="text-danger">*</span></label>
                 <select name="type" id="discountType" class="form-select" data-required>
                     <option value="">-- Select Type --</option>
@@ -212,7 +219,7 @@
         {{-- ── Row 5: Dates & Times ─────────────────────────────── --}}
         <div class="row g-3 mb-3">
 
-           <div class="col-md-3">
+            <div class="col-md-3">
                 <label class="form-label">Active Date <span class="text-danger">*</span></label>
                 <input type="text" name="starts_at" id="start_date_np" class="form-control" autocomplete="off"
                     readonly value="{{ @$starts_at ?? '' }}">
@@ -227,7 +234,7 @@
                 <div class="invalid-feedback">Active time is required.</div>
             </div>
 
-          <div class="col-md-3">
+            <div class="col-md-3">
                 <label class="form-label">End Date <span class="text-danger">*</span></label>
                 <input type="text" name="ends_at" id="end_date_np" class="form-control" autocomplete="off"
                     readonly value="{{ @$ends_at ?? '' }}">
@@ -585,7 +592,7 @@
                     var options = '<option value="">-- Select Brand --</option>';
                     $.each(response.data, function(i, b) {
                         var sel = (String(b.id) === String(selectedId)) ? 'selected' : '';
-                        options += '<option value="' + b.id + '" ' + sel + '>' + b.name  + '</option>';
+                        options += '<option value="' + b.id + '" ' + sel + '>' + b.name + '</option>';
                     });
                     $('#brandSelect').html(options);
                 })
@@ -601,7 +608,7 @@
            - sub_category     -> Category -> Sub Category
            - sub_sub_category -> Category -> Sub Category -> Sub Sub Category
         ========================================================= */
-       function applyAppliesToToggle(val) {
+        function applyAppliesToToggle(val) {
 
             // Hide everything first
             $('#itemField,#categoryField,#subCategoryField,#subSubCategoryField,#brandField').hide();
@@ -624,7 +631,9 @@
 
                 if (editCategoryTargetId) {
                     $('#itemField').show();
-                    loadItemChecklist(editSelectedItemIds, { category_id: editCategoryTargetId });
+                    loadItemChecklist(editSelectedItemIds, {
+                        category_id: editCategoryTargetId
+                    });
                 }
 
             } else if (val === 'sub_category') {
@@ -653,7 +662,9 @@
 
                 if (editSubCategoryTargetId) {
                     $('#itemField').show();
-                    loadItemChecklist(editSelectedItemIds, { sub_category_id: editSubCategoryTargetId });
+                    loadItemChecklist(editSelectedItemIds, {
+                        sub_category_id: editSubCategoryTargetId
+                    });
                 }
 
             } else if (val === 'sub_sub_category') {
@@ -696,7 +707,9 @@
 
                 if (editSubSubCategoryTargetId) {
                     $('#itemField').show();
-                    loadItemChecklist(editSelectedItemIds, { sub_sub_category_id: editSubSubCategoryTargetId });
+                    loadItemChecklist(editSelectedItemIds, {
+                        sub_sub_category_id: editSubSubCategoryTargetId
+                    });
                 }
 
             } else if (val === 'brand') {
@@ -707,7 +720,9 @@
 
                 if (editBrandTargetId) {
                     $('#itemField').show();
-                    loadItemChecklist(editSelectedItemIds, { brand_id: editBrandTargetId });
+                    loadItemChecklist(editSelectedItemIds, {
+                        brand_id: editBrandTargetId
+                    });
                 }
 
             }

@@ -13,6 +13,7 @@
     </div>
 
     <div class="modal-body">
+         <h6 class="mb-3">{{ $discount_title ?? '-' }}</h6>
         <div class="card-inner">
             <div class="nk-block">
                 <table class="table table-bordered">

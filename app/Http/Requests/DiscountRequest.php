@@ -17,9 +17,9 @@ class DiscountRequest extends FormRequest
     public function rules(): array
     {
         return [
-
+            
             'id' => ['nullable', 'string'],
-
+            'title' => 'required|string|max:255',
             /*
             |--------------------------------------------------------------------------
             | Discount Type
@@ -245,7 +245,7 @@ class DiscountRequest extends FormRequest
     public function messages(): array
     {
         return [
-
+            'title.required' => 'Please enter a discount title.',
             'type.required' => 'Please select a discount type.',
             'type.in' => 'Invalid discount type.',
 
@@ -300,6 +300,7 @@ class DiscountRequest extends FormRequest
                 'status'  => false,
                 'type'    => 'validation',
                 'message' => 'Validation failed.',
+                 'message' => $validator->errors()->first(),
                 'errors'  => $validator->errors(),
             ], 422)
         );

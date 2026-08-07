@@ -73,6 +73,7 @@ class Discount extends Model
             $discountMasterId = $isEdit ? $post['id'] : (string) Str::uuid();
 
             $masterData = [
+                'title'                 => $post['title'],
                 'applies_to'            => $post['applies_to'],
                 'applies_to_id'         => $appliesToId,
                 'min_requirement'       => $post['min_requirement'] ?? 'none',
@@ -103,6 +104,7 @@ class Discount extends Model
                 DB::table('discount_details')
                     ->where('discount_master_id', $discountMasterId)
                     ->delete();
+
             } else {
 
                 $masterData['id']         = $discountMasterId;
