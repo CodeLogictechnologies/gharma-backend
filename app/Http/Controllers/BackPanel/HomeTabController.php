@@ -27,6 +27,7 @@ class HomeTabController extends Controller
         $data          = [
             'id'           => null,
             'tab_name'     => '',
+            'tab_order'    => '',
             'category_ids' => [],
             'icon_name'    => '',
             'bg_color'     => '#ffffff',
@@ -37,6 +38,7 @@ class HomeTabController extends Controller
             $data = [
                 'id'           => $row->id,
                 'tab_name'     => $row->tab_name,
+                'tab_order'    => $row->tab_order ?? '',
                 'category_ids' => $row->category_ids ?? [],
                 'icon_name'    => $row->icon_name ?? '',
                 'bg_color'     => $row->bg_color ?? '#ffffff',
@@ -56,12 +58,15 @@ class HomeTabController extends Controller
 
             $validation = Validator::make($request->all(), [
                 'tab_name'       => 'required|string|max:255',
+                'tab_order'      => 'required|integer|min:0',
                 'category_ids'   => 'required|array|min:1',
                 'category_ids.*' => 'exists:categories,id',
                 'icon_name'      => 'required|string|max:100',
                 'bg_color'       => ['required', 'string', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
             ], [
-                'bg_color.regex' => 'The background color must be a valid hex color code (e.g. #FF5733).',
+                'bg_color.regex'    => 'The background color must be a valid hex color code (e.g. #FF5733).',
+                'tab_order.integer' => 'Order must be a whole number.',
+                'tab_order.min'     => 'Order cannot be negative.',
             ]);
 
             if ($validation->fails()) {
@@ -98,6 +103,7 @@ class HomeTabController extends Controller
             $action = '';
             $array[$i]['sno']            = $request->input('start', 0) + $i + 1;
             $array[$i]['tab_name']       = $row->tab_name       ?? '—';
+            $array[$i]['tab_order']      = $row->tab_order      ?? 0;
             $array[$i]['category_names'] = '—';
 
             if (!empty($row->category_names)) {

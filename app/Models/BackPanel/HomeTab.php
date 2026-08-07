@@ -16,6 +16,7 @@ class HomeTab extends Model
     protected $fillable = [
         'id',
         'tab_name',
+        'tab_order',
         'icon_name',
         'bg_color',
         'category_id',
@@ -32,7 +33,7 @@ class HomeTab extends Model
         $orgid  = session('orgid');
 
         $query = DB::table('home_tabs as ht')
-            ->select('ht.id', 'ht.tab_name', 'ht.icon_name', 'ht.bg_color', 'ht.status', 'ht.created_at')
+            ->select('ht.id', 'ht.tab_name', 'ht.tab_order', 'ht.icon_name', 'ht.bg_color', 'ht.status', 'ht.created_at')
             ->where('ht.status', 'Y')
             ->where('ht.orgid', $orgid);
 
@@ -42,7 +43,8 @@ class HomeTab extends Model
             ->count();
         $filteredCount = (clone $query)->count();
 
-        $query->orderBy('ht.created_at', 'desc');
+        $query->orderBy('ht.tab_order', 'asc')
+              ->orderBy('ht.created_at', 'desc');
 
         if ($limit > -1) {
             $query->offset($offset)->limit($limit);
@@ -89,6 +91,7 @@ class HomeTab extends Model
                     ->where('orgid', $orgid)
                     ->update([
                         'tab_name'   => $post['tab_name'],
+                        'tab_order'  => $post['tab_order'] ?? 0,
                         'icon_name'  => $post['icon_name'] ?? null,
                         'bg_color'   => $post['bg_color']  ?? null,
                         'updatedby'  => $post['userid'],
@@ -100,6 +103,7 @@ class HomeTab extends Model
                 DB::table('home_tabs')->insert([
                     'id'         => $tabId,
                     'tab_name'   => $post['tab_name'],
+                    'tab_order'  => $post['tab_order'] ?? 0,
                     'icon_name'  => $post['icon_name'] ?? null,
                     'bg_color'   => $post['bg_color']  ?? null,
                     'status'     => 'Y',
