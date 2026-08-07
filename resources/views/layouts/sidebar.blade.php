@@ -390,6 +390,16 @@
             </a>
         </li> -->
 
+        <!-- Promotional Banners -->
+        @can('view.promotion')
+        <li class="menu-item {{ request()->routeIs('promotion') ? 'active' : '' }}">
+            <a href="{{ route('promotion') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-purchase-tag-alt"></i>
+                <div>Promotional Banners</div>
+            </a>
+        </li>
+        @endcan
+
 
         <!-- Discount / Loyalty -->
         @canany(['view.discount', 'view.loyalty', 'view.coupon'])

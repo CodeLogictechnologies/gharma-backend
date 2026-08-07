@@ -15,6 +15,7 @@ use App\Http\Controllers\API\GetCustomerOrderStatus;
 use App\Http\Controllers\API\InvoiceController;
 use App\Http\Controllers\API\RecentlyViewedController;
 use App\Http\Controllers\API\HomeTabController;
+use App\Http\Controllers\API\PromotionController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -83,6 +84,8 @@ Route::get('/categories/list', [CategoryListController::class, 'getCategoryList'
 Route::get('/subcategories/list', [CategoryListController::class, 'getSubCategoryList']);
 // Home tab list with categories
 Route::get('/home', [HomeTabController::class, 'index']);
+// Promotional banners for mobile home screen
+Route::get('/promotions', [PromotionController::class, 'index']);
 
 Route::middleware('auth:api')->group(function () {
     Route::post('/items/search/save', [SearchHistoryController::class, 'searchSave']);
