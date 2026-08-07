@@ -28,6 +28,7 @@ class PermissionSeeder extends Seeder
             'add.permission', 'view.permission', 'edit.permission', 'delete.permission',
 
             'add.hometab', 'view.hometab', 'edit.hometab', 'delete.hometab',
+            'add.promotion', 'view.promotion', 'edit.promotion', 'delete.promotion',
             'add.store', 'view.store', 'edit.store', 'delete.store',
             'add.category', 'view.category', 'edit.category', 'delete.category',
             'add.brand', 'view.brand', 'edit.brand', 'delete.brand',

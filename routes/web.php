@@ -42,6 +42,7 @@ use App\Http\Controllers\BackPanel\WholesalerPriceController;
 use App\Http\Controllers\BackPanel\ItemImageController;
 use App\Http\Controllers\BackPanel\OrgFiscalyearController;
 use App\Http\Controllers\BackPanel\HomeTabController;
+use App\Http\Controllers\BackPanel\PromotionController;
 use App\Http\Controllers\BackPanel\VariationAttributeController;
 use App\Http\Controllers\BackPanel\InvoiceController;
 use App\Http\Controllers\BackPanel\LoyaltySetupController;
@@ -235,6 +236,15 @@ Route::group(['middleware' => ['auth']], function () {
             Route::any('/form',    [HomeTabController::class, 'form'])->name('hometab.form');
             Route::post('/save',   [HomeTabController::class, 'save'])->name('hometab.save');
             Route::post('/delete', [HomeTabController::class, 'delete'])->name('hometab.delete');
+        });
+
+        Route::group(['prefix' => 'promotion'], function () {
+            Route::get('/',               [PromotionController::class, 'index'])->name('promotion');
+            Route::get('/list',           [PromotionController::class, 'list'])->name('promotion.list');
+            Route::any('/form',           [PromotionController::class, 'form'])->name('promotion.form');
+            Route::post('/save',          [PromotionController::class, 'save'])->name('promotion.save');
+            Route::post('/delete',        [PromotionController::class, 'delete'])->name('promotion.delete');
+            Route::post('/toggle-status', [PromotionController::class, 'toggleStatus'])->name('promotion.toggle-status');
         });
 
 
