@@ -40,7 +40,7 @@ class InventoryController extends Controller
 
     public function save(Request $request)
     {
-        // try {
+        try {
         $rules = [
             'itemid'             => 'required',
             'variationid'        => 'required',
@@ -91,13 +91,13 @@ class InventoryController extends Controller
             'type'    => 'success',
             'message' => 'Inventory saved successfully.'
         ]);
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
-        // }
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     public function list(Request $request)
@@ -116,6 +116,7 @@ class InventoryController extends Controller
         foreach ($data as $row) {
             $array[$i]["sno"] = $i + 1;
             $array[$i]["stock"]          = $row->stock;
+            $array[$i]["returnqty"]    = $row->returnqty ?? 0;
             $array[$i]["remainingqty"] = $row->remainingqty;
             $array[$i]["soldqty"]   = $row->soldqty ?? 0;
             $array[$i]["title"]        = $row->title;

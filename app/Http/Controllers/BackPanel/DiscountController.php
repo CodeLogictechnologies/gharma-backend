@@ -74,7 +74,7 @@ class DiscountController extends Controller
             $totalrecs = DB::table('discount_masters')->whereRaw($cond, $binds)->count();
 
             $query = DB::table('discount_masters')
-                ->selectRaw("id,title,applies_to, start_date_bs as starts_at, end_date_bs as ends_at, starts_time, ends_time")
+                ->selectRaw("id,title,applies_to, start_date_ad as starts_at, end_date_ad as ends_at, starts_time, ends_time")
                 ->whereRaw($cond, $binds)
                 ->orderBy('created_at', 'desc');
 

@@ -126,12 +126,12 @@
 
                     <tr>
                         <th colspan="8" class="text-end">Discount</th>
-                        <th>- {{ number_format($discountTotal, 2) }}</th>
+                        <th> {{ number_format($discountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
                         <th colspan="8" class="text-end">Extra Discount</th>
-                        <th>- {{ number_format($extraDiscountTotal, 2) }}</th>
+                        <th> {{ number_format($extraDiscountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
