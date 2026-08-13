@@ -19,12 +19,20 @@ class SalesController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.sales')) {
+            abort(403);
+        }
+
         return view('backend.sales.index');
     }
 
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.sales')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -45,7 +53,9 @@ class SalesController extends Controller
                 $array[$i]["voucher_number"]     = $row->voucher_number;
                 $array[$i]["created_at"]     = $row->created_at;
                 $action  = '';
-                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewSalesVoucher   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                if (auth()->user()->can('view.sales')) {
+                    $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewSalesVoucher   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                }
                 $array[$i]["action"] = $action;
                 $i++;
             }
@@ -68,6 +78,12 @@ class SalesController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.sales' : 'add.sales';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -117,6 +133,11 @@ class SalesController extends Controller
 
     public function customerOrders(Request $request)
     {
+
+        if (!auth()->user()->can('view.sales')) {
+            return response()->json([]);
+        }
+
         $post = $request->all();
         $post['orgid'] = session('orgid');
         $post['exclude_voucher_id'] = $request->exclude_voucher_id;
@@ -128,6 +149,9 @@ class SalesController extends Controller
 
     public function itemPrice(Request $request)
     {
+        if (!auth()->user()->can('view.sales')) {
+            return response()->json([]);
+        }
         $post = $request->all();
         $post['orgid'] = session('orgid');
 
@@ -138,6 +162,9 @@ class SalesController extends Controller
 
     public function orderItems(Request $request)
     {
+        if (!auth()->user()->can('view.sales')) {
+            return response()->json(['items' => []]);
+        }
         $orgid = session('orgid');
 
         if (empty($request->order_id)) {
@@ -155,6 +182,11 @@ class SalesController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.sales' : 'add.sales';
+
+            if (!auth()->user()->can($action)) {
+                return response()->json(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
 
             $rules = [
                 'voucher_date'       => 'required|date',
@@ -246,6 +278,10 @@ class SalesController extends Controller
     public function view(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.sales')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -273,6 +309,10 @@ class SalesController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.sales')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+
             $type = 'success';
             $message = 'Sales voucher deleted successfully';
 

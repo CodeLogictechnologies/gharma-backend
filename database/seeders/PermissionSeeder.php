@@ -24,6 +24,9 @@ class PermissionSeeder extends Seeder
             // Organization Roles
             'add.organization-role', 'view.organization-role', 'edit.organization-role', 'delete.organization-role',
 
+            // Promotion
+            'add.promotion', 'view.promotion', 'edit.promotion', 'delete.promotion',
+
             // Permission
             'add.permission', 'view.permission', 'edit.permission', 'delete.permission',
 

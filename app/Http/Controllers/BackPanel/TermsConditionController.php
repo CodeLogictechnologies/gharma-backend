@@ -12,6 +12,10 @@ class TermsConditionController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.terms-conditions')) {
+            abort(403);
+        }
+
         $orgid = session('orgid');
 
         $termsPolicy   = TermsPrivacy::getPolicy($orgid, 'terms');
@@ -23,6 +27,10 @@ class TermsConditionController extends Controller
     public function savePolicy(Request $request)
     {
         try {
+            if (!auth()->user()->can('edit.terms-conditions')) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $type    = 'success';
             $message = 'Policy updated successfully.';
 
@@ -35,7 +43,6 @@ class TermsConditionController extends Controller
             }
 
             TermsPrivacy::savePolicy($post);
-
         } catch (QueryException $e) {
             $type    = 'error';
             $message = $this->queryMessage;

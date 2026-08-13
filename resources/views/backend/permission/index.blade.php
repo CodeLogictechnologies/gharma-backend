@@ -29,6 +29,7 @@
             <div class="row g-4">
                 <div class="col-12 col-lg-4">
 
+                    @canany(['add.permission', 'edit.permission'])
                     <h5 class="mb-3">Add Permssion</h5>
                     <form action="{{ route('permission.save') }}" method="POST" id="permissionForm"
                         enctype="multipart/form-data">
@@ -39,11 +40,9 @@
                             <input type="text" class="form-control" name="name" id="name"
                                 placeholder="Example: user.view" />
                         </div>
-
-
                         <button type="button" class="btn btn-primary savePermission">Save</button>
                     </form>
-
+                    @endcan
                 </div>
                 <div class="col-12 col-lg-8" style="flex: 1;">
                     <div class="table-header mb-3 d-flex justify-content-between align-items-center">

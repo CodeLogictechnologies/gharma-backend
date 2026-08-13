@@ -407,7 +407,9 @@
             class="menu-item {{ request()->routeIs('loyalty') || request()->routeIs('discount') || request()->routeIs('coupon') ? 'active open' : '' }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-purchase-tag"></i>
-                <div>Discount / Loyalty/</div>
+                <div>Discount 
+                    <!-- / Loyalty/ -->
+                </div>
             </a>
 
             <ul class="menu-sub">
@@ -421,7 +423,7 @@
                 </li>
                 @endcan
 
-                <!-- @can('view.loyalty')
+                @can('view.loyalty')
                 <li class="menu-item {{ request()->routeIs('loyalty') ? 'active' : '' }}">
                     <a href="{{ route('loyalty') }}" class="menu-link">
                         <i class="bx bx-package me-2"></i>
@@ -437,7 +439,7 @@
                         <div>Coupon</div>
                     </a>
                 </li>
-                @endcan -->
+                @endcan
 
 
             </ul>

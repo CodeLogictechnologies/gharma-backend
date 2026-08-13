@@ -16,6 +16,9 @@ class FiscalyearController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.fiscalyear')) {
+            abort(403);
+        }
         return view('backend.fiscalyrs.index');
     }
 
@@ -39,8 +42,12 @@ class FiscalyearController extends Controller
                 $array[$i]["is_current"]   = $row->is_current ?? '-';
 
                 $action  = '';
-                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editfiscalyear  btn-edit-fy " style="color:#696cff;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a> ';
-                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deletefiscalyear btn-delete-fy" style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                if (auth()->user()->can('edit.fiscalyear')) {
+                    $action .= '<a href="javascript:;" title="Edit" class="tooltipdiv editfiscalyear btn-edit-fy px-2" style="color:#696cff;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.fiscalyear')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deletefiscalyear btn-delete-fy px-2" style="color:red;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
                 $array[$i]["action"] = $action;
 
                 $i++;
@@ -68,6 +75,11 @@ class FiscalyearController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = $request->id ? 'edit.fiscalyear' : 'add.fiscalyear';
+
+            if (!auth()->user()->can($action)) {
+                abort(403);
+            }
             $fiscalyear = $request->id ? Fiscalyear::findOrFail($request->id) : null;
 
             return view('backend.fiscalyrs.form', compact('fiscalyear'));
@@ -89,6 +101,15 @@ class FiscalyearController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = $request->id ? 'edit.fiscalyear' : 'add.fiscalyear';
+
+        if (!auth()->user()->can($action)) {
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => 'You do not have permission to perform this action.',
+            ], 403);
+        }
             $request->validate([
                 'start_date' => 'required|string',
                 'end_date'   => 'required|string',
@@ -193,6 +214,12 @@ class FiscalyearController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.fiscalyear')) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'You do not have permission to delete this record.',
+            ], 403);
+        }
             $deleted = Fiscalyear::where('id', $request->id)->delete();
 
             if (!$deleted) {

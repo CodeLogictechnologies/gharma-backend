@@ -15,11 +15,20 @@ class PromotionController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.promotion')) {
+            abort(403);
+        }
         return view('backend.promotion.index');
     }
 
     public function form(Request $request)
     {
+        $action = !empty($request->id) ? 'edit.promotion' : 'add.promotion';
+
+        if (!auth()->user()->can($action)) {
+            abort(403);
+        }
+        
         $post          = $request->all();
         $post['orgid'] = session('orgid');
 

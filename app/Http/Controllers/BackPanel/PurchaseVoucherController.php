@@ -20,12 +20,20 @@ class PurchaseVoucherController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.purchase-voucher')) {
+            abort(403);
+        }
+
         return view('backend.purchase-voucher.index');
     }
 
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.purchase-voucher')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -66,8 +74,12 @@ class PurchaseVoucherController extends Controller
                 $array[$i]["total"]        = number_format($row->total_amount, 2);
 
                 $action  = '<a href="javascript:;" title="View Data" class="tooltipdiv viewPurchaseVoucher" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editPurchaseVoucher" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseVoucher" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                if (auth()->user()->can('edit.purchase-voucher')) {
+                    $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editPurchaseVoucher" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.purchase-voucher')) {
+                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseVoucher" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
 
                 $array[$i]["action"] = $action;
                 $i++;
@@ -91,6 +103,12 @@ class PurchaseVoucherController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.purchase-voucher' : 'add.purchase-voucher';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -136,6 +154,12 @@ class PurchaseVoucherController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.purchase-voucher' : 'add.purchase-voucher';
+
+            if (!auth()->user()->can($action)) {
+                return response()->json(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $allowedVatRates = array_values(array_unique(array_merge(
                 [(float) config('vat.non-taxable')],
                 array_map('floatval', config('vat.taxable'))
@@ -217,6 +241,10 @@ class PurchaseVoucherController extends Controller
     public function view(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.purchase-voucher')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -239,6 +267,10 @@ class PurchaseVoucherController extends Controller
     public function delete(Request $request)
     {
         try {
+             if (!auth()->user()->can('delete.purchase-voucher')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+            
             $type = 'success';
             $message = 'Purchase voucher deleted successfully';
 

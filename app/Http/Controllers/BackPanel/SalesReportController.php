@@ -12,12 +12,20 @@ class SalesReportController extends Controller
     // ── Main view (shell only — no data loaded here) ───────────
     public function index()
     {
+        if (!auth()->user()->can('view.report-sales')) {
+            abort(403);
+        }
+
         return view('backend.report.sales.index');
     }
 
     // ── AJAX data endpoint ─────────────────────────────────────
     public function data(Request $request)
     {
+        if (!auth()->user()->can('view.report-sales')) {
+            return response()->json(['type' => 'error', 'message' => 'You do not have permission to view this data.'], 403);
+        }
+
         $post               = $request->all();
         $post['orgid']      = session('orgid');
         $post['filter']     = $request->input('filter', 'month');
@@ -41,6 +49,10 @@ class SalesReportController extends Controller
     // ── Export CSV (controller streams file) ───────────────────
     public function exportExcel(Request $request)
     {
+        if (!auth()->user()->can('view.report-sales')) {
+            abort(403);
+        }
+
         $post               = $this->buildPost($request);
         $result             = Sales::salesReport($post);
         $rows               = $result['rows'];
@@ -90,6 +102,9 @@ class SalesReportController extends Controller
     // ── Export PDF (renders print blade, returned as HTML page) ─
     public function exportPdf(Request $request)
     {
+        if (!auth()->user()->can('view.report-sales')) {
+            abort(403);
+        }
         $post   = $this->buildPost($request);
         $result = Sales::salesReport($post);
 

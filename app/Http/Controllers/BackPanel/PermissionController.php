@@ -24,14 +24,10 @@ class PermissionController extends Controller
     //function to redirect to permission page
     public function index()
     {
-        // dd(auth()->user()->id);
-        $permissions = Permission::all()->mapWithKeys(function ($permission) {
-            return [
-                $permission->name => auth()->user()->can($permission->name),
-            ];
-        });
+        if (!auth()->user()->can('view.permission')) {
+            abort(403);
+        }
 
-        // dd($permissions);
         return view('backend.permission.index');
     }
 
@@ -39,6 +35,11 @@ class PermissionController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.permission' : 'add.permission';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
             $rules = [
                 'name' => [
                     'required',
@@ -83,6 +84,10 @@ class PermissionController extends Controller
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.permission')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post = $request->all();
             $data = Permission::list($post);
             $i = 0;
@@ -96,9 +101,12 @@ class PermissionController extends Controller
                 $array[$i]["sno"] = $i + 1;
                 $array[$i]["name"]    = $row->name;
                 $action = '';
-                $action .= '<a href="javascript:;" class="editPermission" name="Edit Data" data-id="' . $row->id . '" data-name="' . $row->name . '"><i class="fa-solid fa-pen-to-square text-primary"></i></a> ';
-
-                $action .= '| <a href="javascript:;" class="deletePermission" name="Delete Data" data-id="' . $row->id . '"><i class="fa fa-trash text-danger"></i></a>';
+                if (auth()->user()->can('edit.permission')) {
+                    $action .= '<a href="javascript:;" class="editPermission" name="Edit Data" data-id="' . $row->id . '" data-name="' . $row->name . '"><i class="fa-solid fa-pen-to-square text-primary"></i></a> ';
+                }
+                if (auth()->user()->can('delete.permission')) {
+                    $action .= '| <a href="javascript:;" class="deletePermission" name="Delete Data" data-id="' . $row->id . '"><i class="fa fa-trash text-danger"></i></a>';
+                }
 
                 $array[$i]["action"]  = $action;
                 $i++;
@@ -122,6 +130,10 @@ class PermissionController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.permission')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+
             $type = 'success';
             $message = "Record deleted successfully";
 

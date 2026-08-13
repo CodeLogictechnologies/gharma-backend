@@ -27,6 +27,10 @@ class SubCategoryController extends Controller
     //function to redirect to team category page
     public function index()
     {
+        if (!auth()->user()->can('view.subcategory')) {
+            abort(403);
+        }
+
         $categories = Category::getCategory();
         $data = [
             'categories' => $categories
@@ -81,57 +85,68 @@ class SubCategoryController extends Controller
     //     return json_encode(['type' => $type, 'message' => $message]);
     // }
     public function save(Request $request)
-{
-    try {
-        $isQuickAdd = $request->boolean('quick_add');
+    {
+        try {
+            $action = !empty($request->id) ? 'edit.subcategory' : 'add.subcategory';
 
-        $rules = [
-            'title' => 'required|min:3|max:255',
-        ];
-        if (empty($request->id) && !$isQuickAdd) {
-            $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
+            $isQuickAdd = $request->boolean('quick_add');
+
+            $rules = [
+                'title' => 'required|min:3|max:255',
+            ];
+
+            if (empty($request->id) && !$isQuickAdd) {
+                $rules['image'] = 'required|mimes:jpg,jpeg,png|max:2048';
+            }
+
+            $message = [
+                'title.required' => 'Please enter sub category title.',
+            ];
+
+            $validation = Validator::make($request->all(), $rules, $message);
+
+            if ($validation->fails()) {
+                throw new Exception($validation->errors()->first(), 1);
+            }
+
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+
+            $type = 'success';
+            $message = 'Records saved successfully';
+            DB::beginTransaction();
+
+            $subCategoryId = SubCategory::saveData($post);
+            if (!$subCategoryId) {
+                throw new Exception('Could not save record', 1);
+            }
+            DB::commit();
+
+            $created = DB::table('sub_categories')->where('id', $subCategoryId)->select('id', 'title')->first();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
-
-        $message = [
-            'title.required' => 'Please enter sub category title.',
-        ];
-
-        $validation = Validator::make($request->all(), $rules, $message);
-
-        if ($validation->fails()) {
-            throw new Exception($validation->errors()->first(), 1);
-        }
-
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-
-        $type = 'success';
-        $message = 'Records saved successfully';
-        DB::beginTransaction();
-
-        $subCategoryId = SubCategory::saveData($post);
-        if (!$subCategoryId) {
-            throw new Exception('Could not save record', 1);
-        }
-        DB::commit();
-
-        $created = DB::table('sub_categories')->where('id', $subCategoryId)->select('id', 'title')->first();
-    } catch (QueryException $e) {
-        DB::rollBack();
-        $type = 'error';
-        $message = $this->queryMessage;
-    } catch (Exception $e) {
-        DB::rollBack();
-        $type = 'error';
-        $message = $e->getMessage();
+        return json_encode(['type' => $type, 'message' => $message, 'subCategory' => $created ?? null]);
     }
-    return json_encode(['type' => $type, 'message' => $message, 'subCategory' => $created ?? null]);
-}
 
     //function to list team category
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.subcategory')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post = $request->all();
             $data = SubCategory::list($post);
             $i = 0;
@@ -157,15 +172,19 @@ class SubCategoryController extends Controller
                 }
                 $array[$i]["image"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
                 $action = '';
-                $action .= '<a href="javascript:;" 
-                                class="editSubCategory" 
-                                data-id="' . $row->id . '" 
-                                data-title="' . $row->title . '" 
-                                data-image="' . $row->image . '"
-                                data-category="' . $row->category_id . '">
-                                <i class="fa-solid fa-pen-to-square text-primary"></i>
-                            </a>';
-                $action .= '| <a href="javascript:;" class="deleteSubCategory" name="Delete Data" data-id="' . $row->id . '"><i class="fa fa-trash text-danger"></i></a>';
+                if (auth()->user()->can('edit.subcategory')) {
+                    $action .= '<a href="javascript:;" 
+                                    class="editSubCategory" 
+                                    data-id="' . $row->id . '" 
+                                    data-title="' . $row->title . '" 
+                                    data-image="' . $row->image . '"
+                                    data-category="' . $row->category_id . '">
+                                    <i class="fa-solid fa-pen-to-square text-primary"></i>
+                                </a>';
+                }
+                if (auth()->user()->can('delete.subcategory')) {
+                    $action .= '| <a href="javascript:;" class="deleteSubCategory" name="Delete Data" data-id="' . $row->id . '"><i class="fa fa-trash text-danger"></i></a>';
+                }
 
                 $array[$i]["action"]  = $action;
                 $i++;
@@ -190,6 +209,9 @@ class SubCategoryController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.subcategory')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
             $type = 'success';
             $message = "Record deleted successfully";
 
@@ -217,6 +239,9 @@ class SubCategoryController extends Controller
     public function restore(Request $request)
     {
         try {
+            if (!auth()->user()->can('edit.subcategory')) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
             $post = $request->all();
             $type = 'success';
             $message = "Team Category restored successfully";

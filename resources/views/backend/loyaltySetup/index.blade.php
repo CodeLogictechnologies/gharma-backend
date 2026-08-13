@@ -45,87 +45,88 @@
 <!-- jQuery Validate -->
 @section('content')
 
-    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Delete Loyalty</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">Are you sure? You won't be able to revert this.</div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
-                </div>
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" data-bs-backdrop="static" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Loyalty</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Are you sure? You won't be able to revert this.</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
             </div>
         </div>
     </div>
-    <div class="container-xxl flex-grow-1 container-p-y">
-        <div class="nav-align-top mb-4">
+</div>
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="nav-align-top mb-4">
 
-            <div class="tab-content mt-4" id="nav-tabContent">
-                <div class="row g-4">
-                    <div class="col-12 col-lg-4">
+        <div class="tab-content mt-4" id="nav-tabContent">
+            <div class="row g-4">
+                <div class="col-12 col-lg-4">
 
-                        <h5 class="mb-3">Loyalty Setup</h5>
-                        <form action="{{ route('loyalty.save') }}" method="POST" id="loyaltyForm"
-                            enctype="multipart/form-data">
+                    <h5 class="mb-3">Loyalty Setup</h5>
+                    @canany(['add.loyalty', 'edit.loyalty'])
+                    <form action="{{ route('loyalty.save') }}" method="POST" id="loyaltyForm"
+                        enctype="multipart/form-data">
 
-                            <div class="mb-3">
-                                <input type="hidden" name="id" value="" id="id">
-                                <label class="form-label" for="minprice">Min Order Price<span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="minprice" id="minprice"
-                                    placeholder="Example: 1000 " />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="maxprice">Max Order Price<span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="maxprice" id="maxprice"
-                                    placeholder="Example: 2000" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="percentage">Percentage<span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="percentage" id="percentage"
-                                    placeholder="Example: 2 " />
-                            </div>
-
-                            <button type="button" class="btn btn-primary saveLoyalty">Save</button>
-                        </form>
-
-                    </div>
-                    <div class="col-12 col-lg-8" style="flex: 1;">
-                        <div class="table-header mb-3 d-flex justify-content-between align-items-center">
-                            <div class="dt-length">
-                                <label class="d-flex align-items-center gap-2">
-
-                                </label>
-                            </div>
+                        <div class="mb-3">
+                            <input type="hidden" name="id" value="" id="id">
+                            <label class="form-label" for="minprice">Min Order Price<span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="minprice" id="minprice"
+                                placeholder="Example: 1000 " />
                         </div>
-                        <div class="table-responsive text-nowrap">
-                            <div id="datatable-basic_wrapper" class="dataTables_wrapper dt-bootstrap5 no-footer">
+                        <div class="mb-3">
+                            <label class="form-label" for="maxprice">Max Order Price<span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="maxprice" id="maxprice"
+                                placeholder="Example: 2000" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="percentage">Percentage<span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="percentage" id="percentage"
+                                placeholder="Example: 2 " />
+                        </div>
 
-                                <div class="dataTables_length" id="datatable-basic_length">
+                        <button type="button" class="btn btn-primary saveLoyalty">Save</button>
+                    </form>
+                    @endcan
 
-                                    <table class="table" id="loyaltyTable" aria-describedby="datatable-basic_info">
-                                        <thead class="table-light">
-                                            <tr class="align-middle">
-                                                <th width="5%">
-                                                    S.No
-                                                </th>
+                </div>
+                <div class="col-12 col-lg-8" style="flex: 1;">
+                    <div class="table-header mb-3 d-flex justify-content-between align-items-center">
+                        <div class="dt-length">
+                            <label class="d-flex align-items-center gap-2">
 
-                                                <th width="28%">Min Order Price</th>
-                                                <th width="28%"">Max Order Price</th>
-                                                <th width="28"">Percentage</th>
-                                                <th width="15%"">Actions</th>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="table-responsive text-nowrap">
+                        <div id="datatable-basic_wrapper" class="dataTables_wrapper dt-bootstrap5 no-footer">
+
+                            <div class="dataTables_length" id="datatable-basic_length">
+
+                                <table class="table" id="loyaltyTable" aria-describedby="datatable-basic_info">
+                                    <thead class="table-light">
+                                        <tr class="align-middle">
+                                            <th width="5%">
+                                                S.No
+                                            </th>
+
+                                            <th width="28%">Min Order Price</th>
+                                            <th width="28%"">Max Order Price</th>
+                                                <th width=" 28"">Percentage</th>
+                                            <th width="15%"">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="table-border-bottom-0">
+                                        <tbody class=" table-border-bottom-0">
 
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -133,7 +134,8 @@
             </div>
         </div>
     </div>
-    <!-- delete -->
+</div>
+<!-- delete -->
 @endsection
 <script>
     var loyaltyTable;
@@ -322,9 +324,9 @@
             if (!deleteId) return;
 
             $.post('{{ route('loyalty.delete') }}', {
-                    id: deleteId,
-                    _token: '{{ csrf_token() }}'
-                })
+                        id: deleteId,
+                        _token: '{{ csrf_token() }}'
+                    })
                 .done(function(response) {
                     var result = typeof response === 'string' ? JSON.parse(response) : response;
                     if (result.type === 'success') {

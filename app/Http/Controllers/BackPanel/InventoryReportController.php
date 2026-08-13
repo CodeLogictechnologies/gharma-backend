@@ -11,12 +11,21 @@ class InventoryReportController extends Controller
     // ── Main view (shell only) ─────────────────────────────────
     public function index()
     {
+        if (!auth()->user()->can('view.inventory-report')) {
+            abort(403);
+        }
         return view('backend.report.inventory.index');
     }
 
     // ── AJAX data endpoint ─────────────────────────────────────
     public function data(Request $request)
     {
+        if (!auth()->user()->can('view.inventory-report')) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'You do not have permission to view this report.',
+            ], 403);
+        }
         $post          = $request->all();
         $post['orgid'] = session('orgid');
 
@@ -53,6 +62,13 @@ class InventoryReportController extends Controller
     // ── Export CSV ─────────────────────────────────────────────
     public function exportExcel(Request $request)
     {
+        if (!auth()->user()->can('view.inventory-report')) {
+            abort(403);
+        }
+        if (!auth()->user()->can('view.inventory-report')) {
+            abort(403);
+        }
+
         $post = $this->buildPost($request);
         $rows = Inventory::getData($post);
 
@@ -100,6 +116,10 @@ class InventoryReportController extends Controller
     // ── Export PDF (print blade) ───────────────────────────────
     public function exportPdf(Request $request)
     {
+        if (!auth()->user()->can('view.inventory-report')) {
+            abort(403);
+        }
+
         $post   = $this->buildPost($request);
         $rows   = Inventory::getData($post);
 

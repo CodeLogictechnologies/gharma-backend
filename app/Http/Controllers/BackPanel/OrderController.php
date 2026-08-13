@@ -19,6 +19,9 @@ class OrderController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.order')) {
+            abort(403);
+        }
         return view('backend.order.index', [
             'statuses' => EnumType::orderStatuses(),
         ]);
@@ -26,6 +29,13 @@ class OrderController extends Controller
 
     public function list(Request $request)
     {
+        if (!auth()->user()->can('view.order')) {
+            return response()->json([
+                'recordsFiltered' => 0,
+                'recordsTotal'    => 0,
+                'data'            => [],
+            ]);
+        }
         $post   = $request->all();
         $post['orgid'] = session('orgid');
 
@@ -61,7 +71,11 @@ class OrderController extends Controller
             </select>";
 
             $action  = '<a href="javascript:;" title="View Order" class="tooltipdiv viewOrder" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-            $action .= ' &nbsp;<a href="javascript:;" title="Assign Driver" class="tooltipdiv assignDriver" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-user-plus"></i></a>';
+
+            if (auth()->user()->can('view.assign-driver')) {
+                $action .= ' &nbsp;<a href="javascript:;" title="Assign Driver" class="tooltipdiv assignDriver" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-user-plus"></i></a>';
+            }
+
             $action .= ' &nbsp;<a href="javascript:;" title="Invoice" class="tooltipdiv viewInvoice" style="color:#e67e22;" data-id="' . $row->id . '"><i class="bx bx-receipt"></i></a>';
 
             $array[$i]['action'] = $action;
@@ -77,11 +91,17 @@ class OrderController extends Controller
 
     public function statusCounts()
     {
+        if (!auth()->user()->can('view.order')) {
+            return response()->json([]);
+        }
         return response()->json(Order::statusCounts(session('orgid')));
     }
 
     public function view(Request $request)
     {
+        if (!auth()->user()->can('view.order')) {
+            abort(403);
+        }
         try {
             $post = $request->all();
             $post['orgid'] = session('orgid');
@@ -107,6 +127,12 @@ class OrderController extends Controller
 
     public function updateStatus(Request $request, FirebaseService $firebase)
     {
+        if (!auth()->user()->can('edit.order')) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'You do not have permission to update order status.',
+            ], 403);
+        }
         $request->validate([
             'id'     => 'required',
             'status' => 'required'
@@ -173,6 +199,12 @@ class OrderController extends Controller
 
     public function generateInvoice(Request $request)
     {
+        if (!auth()->user()->can('view.order')) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'You do not have permission to view invoices.',
+            ], 403);
+        }
         try {
             $post = $request->all();
             $post['id'] = $post['order_id'];

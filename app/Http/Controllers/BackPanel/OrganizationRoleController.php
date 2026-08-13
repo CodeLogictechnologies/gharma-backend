@@ -15,6 +15,10 @@ class OrganizationRoleController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.organization-role')) {
+            abort(403);
+        }
+
         $organizations = Organization::where('status', 'Y')->orderBy('name')->get();
         $roles         = Role::orderBy('name')->get();
         $permissions   = Permission::select('id', 'name')->get();
@@ -24,6 +28,10 @@ class OrganizationRoleController extends Controller
 
     public function getUsers(Request $request)
     {
+        if (!auth()->user()->can('view.organization-role')) {
+            return response()->json(['success' => false, 'message' => 'You do not have permission to view this data.']);
+        }
+        
         $request->validate([
             'organization_id' => 'required|uuid|exists:organizations,id',
             'role_id'          => 'required|uuid|exists:roles,id',
@@ -78,6 +86,10 @@ class OrganizationRoleController extends Controller
     // AJAX: save permissions for a user
     public function saveUserPermissions(Request $request)
     {
+        if (!auth()->user()->can('edit.organization-role')) {
+            return response()->json(['success' => false, 'message' => 'You do not have permission to perform this action.']);
+        }
+        
         $request->validate([
             'user_id'    => 'required|uuid|exists:users,id',
             'perm_names' => 'array',

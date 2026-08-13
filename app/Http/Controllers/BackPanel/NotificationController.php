@@ -21,12 +21,21 @@ class NotificationController extends Controller
 {
     public function index()
     {
+
+        if (!auth()->user()->can('view.notification')) {
+            abort(403);
+        }
         return view('backend.notification.index');
     }
 
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.notification' : 'add.notification';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
             $rules = [
                 'type' => 'required',
                 'user_id' => 'required',
@@ -101,14 +110,20 @@ class NotificationController extends Controller
 
             $action = '';
 
-            // for edit
-            // for delete
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteNotice px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
-            // for show
-            $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewNotice" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
+            if (auth()->user()->can('delete.notification')) {
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteNotice px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            }
 
-            $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editNotice" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
+            if (auth()->user()->can('view.notification')) {
+                $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewNotice" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+            }
+
+            if (auth()->user()->can('edit.notification')) {
+                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editNotice" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            }
+
             $array[$i]["action"]  = $action;
+
             $i++;
         }
         if (!$filtereddata) $filtereddata = 0;
@@ -127,30 +142,36 @@ class NotificationController extends Controller
 
     public function form(Request $request)
     {
-        // try {
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
+        $action = !empty($request->id) ? 'edit.notification' : 'add.notification';
 
-        $data = [];
-        $data['users'] = User::getUserData($post);
-
-        if (!empty($request->id)) {
-            $result = Notification::getData($post);
-            if (!$result) {
-                throw new Exception("Notification not found", 1);
-            }
-
-            $data['id']      = $result->id;
-            $data['type']    = $result->type;
-            $data['user_id'] = $result->user_id;
-            $data['title']   = $result->title;
-            $data['message'] = $result->message;
+        if (!auth()->user()->can($action)) {
+            abort(403);
         }
-        // } catch (QueryException $e) {
-        //     $data['error'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['error'] = $e->getMessage();
-        // }
+        try {
+
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+
+            $data = [];
+            $data['users'] = User::getUserData($post);
+
+            if (!empty($request->id)) {
+                $result = Notification::getData($post);
+                if (!$result) {
+                    throw new Exception("Notification not found", 1);
+                }
+
+                $data['id']      = $result->id;
+                $data['type']    = $result->type;
+                $data['user_id'] = $result->user_id;
+                $data['title']   = $result->title;
+                $data['message'] = $result->message;
+            }
+        } catch (QueryException $e) {
+            $data['error'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['error'] = $e->getMessage();
+        }
 
         return view('backend.notification.form', $data);
     }
@@ -159,35 +180,42 @@ class NotificationController extends Controller
     // Delete
     public function delete(Request $request)
     {
-        // try {
-        $type = 'success';
-        $message = "Record deleted successfully";
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $post['userid'] = session('userid');
+        try {
+            if (!auth()->user()->can('delete.notification')) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to delete this record.']);
+            }
 
-        DB::beginTransaction();
-        $result = Notification::deleteDate($post);
-        if (!$result) {
-            throw new Exception("Vendor not delete", 1);
+            $type = 'success';
+            $message = "Record deleted successfully";
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+            $post['userid'] = session('userid');
+
+            DB::beginTransaction();
+            $result = Notification::deleteDate($post);
+            if (!$result) {
+                throw new Exception("Vendor not delete", 1);
+            }
+
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
         }
-
-        DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
     //view
     public function view(Request $request)
     {
+        if (!auth()->user()->can('view.notification')) {
+            abort(403);
+        }
         try {
             $post = $request->all();
             $post['orgid'] = session('orgid');

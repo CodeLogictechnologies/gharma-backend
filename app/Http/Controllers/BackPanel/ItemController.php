@@ -24,6 +24,10 @@ class ItemController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.item')) {
+            abort(403);
+        }
+
         $post['orgid'] = session('orgid');
         $categories = Category::getCategory($post); // top-level only
 
@@ -36,6 +40,11 @@ class ItemController extends Controller
     public function form(Request $request)
     {
         $id   = $request->id ?? null;
+        $action = $id ? 'edit.item' : 'add.item';
+
+        if (!auth()->user()->can($action)) {
+            abort(403);
+        }
         $post = $request->all();
         $post['orgid'] = session('orgid');
 
@@ -202,6 +211,11 @@ class ItemController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.item' : 'add.item';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
             $type = 'success';
             $rules = [
                 'title'                => 'required|string|max:255',
@@ -288,6 +302,10 @@ class ItemController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.item')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+
             $type    = 'success';
             $message = "Record deleted successfully";
 
@@ -331,9 +349,17 @@ class ItemController extends Controller
             $array[$i]['type']        = $row->type          ?? '—';
             $array[$i]['brand']       = $row->brand         ?? '—';
 
-            $action = '<a href="javascript:;" title="View Data"   class="tooltipdiv viewItem"  style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-            $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editItem"  style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteItem" style="color:red;" data-id="'  . $row->id . '"><i class="bx bx-trash"></i></a>';
+            $action = '';
+
+            if (auth()->user()->can('view.item')) {
+                $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewItem" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+            }
+            if (auth()->user()->can('edit.item')) {
+                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editItem" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            }
+            if (auth()->user()->can('delete.item')) {
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteItem" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            }
 
             $array[$i]['action'] = $action;
             $i++;
@@ -351,6 +377,10 @@ class ItemController extends Controller
 
     public function view(Request $request)
     {
+        if (!auth()->user()->can('view.item')) {
+            abort(403);
+        }
+
         try {
             $post        = $request->all();
             $itemDetails = Item::getData($post);

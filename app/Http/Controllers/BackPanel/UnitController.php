@@ -27,6 +27,9 @@ class UnitController extends Controller
      */
     public function index()
     {
+        if (!auth()->user()->can('view.unit')) {
+            abort(403);
+        }
         return view('backend.unit.index');
     }
 
@@ -39,6 +42,12 @@ class UnitController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.unit' : 'add.unit';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $orgid = session('orgid');
             $id    = $request->input('id');
 
@@ -103,6 +112,9 @@ class UnitController extends Controller
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.unit')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
             $post = $request->all();
             $post['orgid'] = session('orgid');
             $data = Unit::list($post);
@@ -119,14 +131,20 @@ class UnitController extends Controller
                 $array[$i]['sno']  = $i + 1;
                 $array[$i]['name'] = $row->name;
 
-                $action  = '<a href="javascript:;" title="Edit" class="editUnit px-2" style="color:blue;" ';
-                $action .= 'data-id="' . $row->id . '" ';
-                $action .= 'data-name="' . htmlspecialchars($row->name, ENT_QUOTES) . '">';
-                $action .= '<i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete" class="deleteUnit px-2" style="color:red;" data-id="' . $row->id . '">';
-                $action .= '<i class="bx bx-trash"></i></a>';
+                $action  = '';
+                if (auth()->user()->can('edit.unit')) {
+                    $action .= '<a href="javascript:;" title="Edit" class="editUnit px-2" style="color:blue;" ';
+                    $action .= 'data-id="' . $row->id . '" ';
+                    $action .= 'data-name="' . htmlspecialchars($row->name, ENT_QUOTES) . '">';
+                    $action .= '<i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.unit')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="deleteUnit px-2" style="color:red;" data-id="' . $row->id . '">';
+                    $action .= '<i class="bx bx-trash"></i></a>';
+                }
 
                 $array[$i]['action'] = $action;
+
                 $i++;
             }
 
@@ -158,6 +176,10 @@ class UnitController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.unit')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+
             $type    = 'success';
             $message = 'Record deleted successfully';
 
