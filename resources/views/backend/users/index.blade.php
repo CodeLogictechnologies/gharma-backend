@@ -124,7 +124,7 @@
             $('#userTable').DataTable().destroy();
         }
 
-        var userTable = $('#userTable').dataTable({
+        window.userTable = $('#userTable').dataTable({
             sPaginationType: 'full_numbers',
             bSearchable: false,
             language: {
