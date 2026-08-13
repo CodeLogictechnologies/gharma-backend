@@ -26,7 +26,7 @@ class BrandController extends Controller
             //     ], 400);
             // }
 
-            $orgid = 1;
+            $orgid = '6589f6ac-c6d1-419d-8c15-bc49f06e72f8';
 
             $params = ['orgid' => $orgid];
 

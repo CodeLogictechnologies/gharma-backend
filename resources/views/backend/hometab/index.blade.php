@@ -17,9 +17,10 @@
                         <tr class="align-middle">
                             <th style="width: 5%">S.N</th>
                             <th style="width: 20%">Tab Name</th>
+                            <th style="width: 5%">Order</th>
                             <th style="width: 10%">Icon</th>
                             <th style="width: 10%">Color</th>
-                            <th style="width: 50%">Category</th>
+                            <th style="width: 45%">Category</th>
                             <th style="width: 5%">Actions</th>
                         </tr>
                     </thead>
@@ -94,6 +95,9 @@
                     },
                     {
                         data: 'tab_name'
+                    },
+                    {
+                        data: 'tab_order'
                     },
                     {
                         data: 'icon_name'

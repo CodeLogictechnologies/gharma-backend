@@ -258,9 +258,11 @@ class SalesController extends Controller
             $data['type']    = 'success';
             $data['message'] = 'Successfully fetched sales voucher.';
         } catch (QueryException $e) {
+            \Log::error('SalesController::view QueryException: ' . $e->getMessage());
             $data['type'] = 'error';
             $data['message'] = $this->queryMessage;
         } catch (Exception $e) {
+            \Log::error('SalesController::view Exception: ' . $e->getMessage());
             $data['type'] = 'error';
             $data['message'] = $e->getMessage();
         }

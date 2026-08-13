@@ -74,7 +74,7 @@ class DiscountController extends Controller
             $totalrecs = DB::table('discount_masters')->whereRaw($cond, $binds)->count();
 
             $query = DB::table('discount_masters')
-                ->selectRaw("id, applies_to, start_date_bs as starts_at, end_date_bs as ends_at")
+                ->selectRaw("id,title,applies_to, start_date_ad as starts_at, end_date_ad as ends_at, starts_time, ends_time")
                 ->whereRaw($cond, $binds)
                 ->orderBy('created_at', 'desc');
 
@@ -100,11 +100,16 @@ class DiscountController extends Controller
                 }
                 return [
                     'sno'             => $offset + $i + 1,
+                    'discount_title'  => $row->title,
                     'applies_to'      => ucfirst($row->applies_to),
-                    'starts_at'       => $row->starts_at
+                    'start_date'      => $row->starts_at
                         ? \Carbon\Carbon::parse($row->starts_at)->format('d M Y') : '-',
-                    'ends_at'         => $row->ends_at
+                    'start_time'      => $row->starts_time
+                        ? \Carbon\Carbon::createFromFormat('H:i', $row->starts_time)->format('h:i A') : '-',
+                    'end_date'        => $row->ends_at
                         ? \Carbon\Carbon::parse($row->ends_at)->format('d M Y') : '-',
+                    'end_time'        => $row->ends_time
+                        ? \Carbon\Carbon::createFromFormat('H:i', $row->ends_time)->format('h:i A') : '-',
                     'action'          => $action,
                 ];
             });
@@ -130,7 +135,6 @@ class DiscountController extends Controller
             if (!empty($request->id)) {
                 $result = Discount::where('id', $request->id)
                     ->where('orgid', session('orgid'))
-                    ->where('type', '!=', 'coupon')
                     ->first();
 
                 if (!$result) {
@@ -138,25 +142,71 @@ class DiscountController extends Controller
                 }
 
                 $data['id']                   = $result->id;
-                $data['userid']               = $result->postedby;
                 $data['title']                = $result->title;
-                $data['type']                 = $result->type;
-                $data['percentage']           = $result->percentage;
-                $data['value']                = $result->value;
-                $data['discount_type']        = $result->discount_type;
                 $data['applies_to']           = $result->applies_to;
-                $data['item_id']              = $result->item_id;
-                $data['variation_id']         = $result->variation_id;
                 $data['min_requirement']      = $result->min_requirement;
                 $data['min_value']            = $result->min_value;
                 $data['max_value']            = $result->max_value;
                 $data['usage_limit_type']     = $result->usage_limit_type;
                 $data['usage_limit']          = $result->usage_limit;
                 $data['usage_limit_per_user'] = $result->usage_limit_per_user;
-                $data['starts_at']            = $result->starts_at;
-                $data['ends_at']              = $result->ends_at;
+                $data['starts_at']            = $result->start_date_bs;
+                $data['ends_at']               = $result->end_date_bs;
+                $data['starts_time']          = $result->starts_time;
+                $data['ends_time']            = $result->ends_time;
                 $data['orgid']                = $result->orgid;
                 $data['status']               = $result->status;
+
+                // "Applies to" target dropdowns, based on applies_to_id.
+                // Only the leaf category id is stored, so walk parent_id up
+                // the categories table to reconstruct the full chain for the cascading dropdowns.
+                if ($result->applies_to === 'category') {
+
+                    $data['category_target_id'] = $result->applies_to_id;
+                } elseif ($result->applies_to === 'sub_category') {
+
+                    $data['sub_category_target_id'] = $result->applies_to_id;
+
+                    $subCat = DB::table('categories')->where('id', $result->applies_to_id)->first();
+                    $data['category_target_id'] = $subCat->parent_id ?? null;
+                } elseif ($result->applies_to === 'sub_sub_category') {
+
+                    $data['sub_sub_category_target_id'] = $result->applies_to_id;
+
+                    $subSubCat = DB::table('categories')->where('id', $result->applies_to_id)->first();
+
+                    if ($subSubCat) {
+                        $data['sub_category_target_id'] = $subSubCat->parent_id;
+
+                        $subCat = DB::table('categories')->where('id', $subSubCat->parent_id)->first();
+                        $data['category_target_id'] = $subCat->parent_id ?? null;
+                    }
+                } elseif ($result->applies_to === 'brand') {
+
+                    $data['brand_target_id'] = $result->applies_to_id;
+                }
+
+                // Pre-check items for applies_to = item
+                $data['selected_item_ids'] = DB::table('discount_details')
+                    ->where('discount_master_id', $result->id)
+                    ->where('orgid', session('orgid'))
+                    ->pluck('variation_id')
+                    ->toArray();
+
+                // Grab discount type/value from the first detail row (item-level discounts only)
+                $firstDetail = DB::table('discount_details')
+                    ->where('discount_master_id', $result->id)
+                    ->where('orgid', session('orgid'))
+                    ->first();
+
+                if ($firstDetail) {
+                    $data['type']  = $firstDetail->discount_type === 'percentage' ? 'percentage' : 'fixed';
+                    if ($firstDetail->discount_type === 'percentage') {
+                        $data['percentage'] = $firstDetail->discount_value;
+                    } else {
+                        $data['value'] = $firstDetail->discount_value;
+                    }
+                }
             }
         } catch (\Illuminate\Database\QueryException $e) {
             $data['error'] = 'Database error: ' . $e->getMessage();
@@ -209,6 +259,7 @@ class DiscountController extends Controller
             $discounts = DB::table('discount_details as dd')
                 ->join('itemvariations as iv', 'iv.id', '=', 'dd.variation_id')
                 ->join('items as i', 'i.id', '=', 'iv.item_id')
+                ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
                 ->select(
                     'iv.id as variation_id',
                     'i.title',
@@ -222,7 +273,14 @@ class DiscountController extends Controller
                 ->where('dd.orgid', session('orgid'))
                 ->where('iv.orgid', session('orgid'))
                 ->where('i.orgid', session('orgid'))
+                ->where('dm.orgid', session('orgid'))
                 ->get();
+
+            // Fetch the discount master title separately since it's one value shared by all rows
+            $discountTitle = DB::table('discount_masters')
+                ->where('id', $request->id)
+                ->where('orgid', session('orgid'))
+                ->value('title');
 
             if (!$discounts) {
                 return view('backend.discount.view', [
@@ -233,6 +291,7 @@ class DiscountController extends Controller
 
             return view('backend.discount.view', [
                 'type' => 'success',
+                'discount_title' => $discountTitle,
                 'discounts' => $discounts
             ]);
         } catch (\Exception $e) {

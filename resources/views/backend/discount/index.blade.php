@@ -19,9 +19,12 @@
                 <thead class="table-light">
                     <tr class="align-middle">
                         <th>ID</th>
+                        <th>Discount Title</th>
                         <th>Apply to</th>
-                        <th>Start At</th>
-                        <th>End At</th>
+                        <th>Start Date</th>
+                        <th>Start Time</th>
+                        <th>End Date</th>
+                        <th>End Time</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -103,21 +106,42 @@
                     aTargets: [0]
                 },
                 {
+                    sWidth: '13%',
+                    aTargets: [2]
+                },
+                {
                     sWidth: '10%',
                     aTargets: [3]
+                },
+                {
+                    sWidth: '13%',
+                    aTargets: [4]
+                },
+                {
+                    sWidth: '10%',
+                    aTargets: [5]
                 }
             ],
             aoColumns: [{
                     data: 'sno'
                 },
                 {
+                    data: 'discount_title'
+                },
+                {
                     data: 'applies_to'
                 },
                 {
-                    data: 'starts_at'
+                    data: 'start_date'
                 },
                 {
-                    data: 'ends_at'
+                    data: 'start_time'
+                },
+                {
+                    data: 'end_date'
+                },
+                {
+                    data: 'end_time'
                 },
                 {
                     data: 'action'
@@ -125,7 +149,7 @@
             ],
 
             initComplete: function() {
-                this.api().columns([1, 2, 3]).every(function() {
+                this.api().columns([1, 2, 3, 4, 5, 6]).every(function() {
                     var column = this;
                     var header = $(column.header()).text()
                         .trim(); // ← gets column header name
@@ -143,30 +167,62 @@
         });
 
         // ── Helper: open modal via AJAX ───────────────────────────────
+        // function openOrgModal(url, data, method) {
+        //     var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
+
+        //     req.done(function(response) {
+        //         $('#discountModelContent').html(response);
+
+
+        //         $('#start_date_np').nepaliDatePicker({
+        //             container: '#discountModel'
+        //         });
+
+        //         $('#end_date_np').nepaliDatePicker({
+        //             container: '#discountModel'
+        //         });
+
+        //         // Destroy previous instance if any, then show fresh
+        //         var modalEl = document.getElementById('discountModel');
+        //         var existing = bootstrap.Modal.getInstance(modalEl);
+        //         if (existing) existing.dispose();
+
+        //         new bootstrap.Modal(modalEl, {
+        //             backdrop: 'static',
+        //             keyboard: false
+        //         }).show();
+
+        //     }).fail(function() {
+        //         showNotification('Failed to load form. Please try again.', 'error');
+        //     });
+        // }
+
+        // WITH THIS:
         function openOrgModal(url, data, method) {
             var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
 
             req.done(function(response) {
                 $('#discountModelContent').html(response);
 
-
-                $('#start_date_np').nepaliDatePicker({
-                    container: '#discountModel'
-                });
-
-                $('#end_date_np').nepaliDatePicker({
-                    container: '#discountModel'
-                });
-
-                // Destroy previous instance if any, then show fresh
                 var modalEl = document.getElementById('discountModel');
                 var existing = bootstrap.Modal.getInstance(modalEl);
                 if (existing) existing.dispose();
 
-                new bootstrap.Modal(modalEl, {
+                var modalInstance = new bootstrap.Modal(modalEl, {
                     backdrop: 'static',
                     keyboard: false
-                }).show();
+                });
+
+                $(modalEl).one('shown.bs.modal', function() {
+                    $('#start_date_np').nepaliDatePicker({
+                        container: '#discountModel'
+                    });
+                    $('#end_date_np').nepaliDatePicker({
+                        container: '#discountModel'
+                    });
+                });
+
+                modalInstance.show();
 
             }).fail(function() {
                 showNotification('Failed to load form. Please try again.', 'error');
@@ -246,7 +302,7 @@
 
 
         // ── Clear invalid state on input ──────────────────────────────
-        $(document).on('input change', '#orgForm .form-control', function() {
+        $(document).on('input change', '#orgForm .form-control, #orgForm .form-select', function() {
             $(this).removeClass('is-invalid');
         });
         $(document).on('click', '.viewDiscount', function(e) {

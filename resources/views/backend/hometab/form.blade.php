@@ -58,16 +58,28 @@
         @csrf
         <input type="hidden" name="id" value="{{ $data['id'] ?? '' }}">
 
-        {{-- Tab Name --}}
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                Tab Name <span class="text-danger">*</span>
-            </label>
-            <input type="text" name="tab_name" id="tabNameInput" class="form-control"
-                placeholder="Enter tab name..."
-                value="{{ $data['tab_name'] ?? '' }}">
-            <div class="invalid-feedback" id="tabNameError">Please enter tab name.</div>
+        {{-- Tab Name + Order --}}
+        <div class="row mb-3">
+            <div class="col-8">
+                <label class="form-label fw-semibold">
+                    Tab Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="tab_name" id="tabNameInput" class="form-control"
+                    placeholder="Enter tab name..."
+                    value="{{ $data['tab_name'] ?? '' }}">
+                <div class="invalid-feedback" id="tabNameError">Please enter tab name.</div>
+            </div>
+            <div class="col-4">
+                <label class="form-label fw-semibold">
+                    Order <span class="text-danger">*</span>
+                </label>
+                <input type="number" name="tab_order" id="tabOrderInput" class="form-control"
+                    placeholder="0" min="0" step="1"
+                    value="{{ $data['tab_order'] ?? '' }}">
+                <div class="invalid-feedback" id="tabOrderError">Please enter a valid order (0 or above).</div>
+            </div>
         </div>
+
         {{-- Icon Name --}}
         <div class="mb-3">
             <label class="form-label fw-semibold">
@@ -168,6 +180,11 @@
             $(this).removeClass('is-invalid');
         });
 
+        // ── Order live validation ───────────────────────────────────────────
+        $('#tabOrderInput').on('input', function() {
+            $(this).removeClass('is-invalid');
+        });
+
         // ── Icon live preview ───────────────────────────────────────────────
         $('#iconNameInput').on('input', function() {
             $('#iconPreview').attr('class', $(this).val().trim() || 'bx bx-smile');
@@ -192,9 +209,10 @@
         $('#saveHomeTab').on('click', function() {
             var valid = true;
             var tabName = $('#tabNameInput').val().trim();
-            var iconName = $('#iconNameInput').val().trim(); // ← missing
-            var bgColor = $('#bgColorHex').val().trim(); // ← missing
-            var hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/; // ← missing
+            var tabOrder = $('#tabOrderInput').val().trim();
+            var iconName = $('#iconNameInput').val().trim();
+            var bgColor = $('#bgColorHex').val().trim();
+            var hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
             var catChecked = $('.cat-checkbox:checked').length;
 
             // Tab name
@@ -203,6 +221,14 @@
                 valid = false;
             } else {
                 $('#tabNameInput').removeClass('is-invalid');
+            }
+
+            // Order — required, whole number, 0 or above
+            if (tabOrder === '' || isNaN(tabOrder) || !Number.isInteger(Number(tabOrder)) || Number(tabOrder) < 0) {
+                $('#tabOrderInput').addClass('is-invalid');
+                valid = false;
+            } else {
+                $('#tabOrderInput').removeClass('is-invalid');
             }
 
             // Icon name
