@@ -28,6 +28,6 @@ class ForgotPasswordMail extends Mailable
      */
     public function build()
     {
-        return $this->markdown('emails.sendotp');
+        return $this->markdown('emails.otp');
     }
 }

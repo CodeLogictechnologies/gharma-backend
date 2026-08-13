@@ -12,23 +12,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-
 class OtpController extends Controller
 {
     public function index()
     {
-
         return view('backend.auth.otp');
     }
+
     public function indexChangePassword()
     {
-
         return view('backend.auth.change_password');
     }
+
     public function isValidOtp(Request $request)
     {
-        try {
-
+        // try {
             $rules = [
                 'otp' => 'required|min:4|max:4',
             ];
@@ -40,45 +38,47 @@ class OtpController extends Controller
             if ($validate->fails()) {
                 throw new Exception($validate->errors()->first(), 1);
             }
+
             $post = $request->all();
-            $type = 'success';
-            $message = 'Please reset password';
+
+            $userId = session('pwd_reset_user_id');
+            \Log::info('READ pwd_reset_user_id: ' . $userId . ' | session id: ' . session()->getId());
+            if (is_null($userId)) {
+                throw new Exception('Session expired. Please try again.', 1);
+            }
+
+            $user = \App\Models\User::find($userId);
+            if (!$user) {
+                throw new Exception('User not found', 1);
+            }
+            $post['email'] = $user->email;
 
             DB::beginTransaction();
             if (!Otp::checkOtp($post)) {
                 throw new Exception('Record does not found', 1);
             }
             DB::commit();
-        } catch (QueryException $e) {
-            $type = 'error';
+        // } catch (QueryException $e) {
+        //     DB::rollBack();
+        //     return redirect()->back()->with('error', 'Something went wrong: ')->withInput();
+        // } catch (Exception $e) {
+        //     DB::rollBack();
+        //     return redirect()->back()->with('error', $e->getMessage())->withInput();
+        // }
 
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Something went wrong: ')->withInput();
-        } catch (Exception $e) {
-            $type = 'error';
-
-            DB::rollBack();
-            return redirect()->back()->with('error', $e->getMessage())->withInput();
-        }
-        return redirect('/admin/changepassword')->with('id', $request->id);
+        return redirect('/admin/changepassword');
     }
-
 
     public function sendOrderOtp(Request $request)
     {
         try {
             $post = $request->json()->all();
 
-            // ── Decode JWT token ───────────────────────────────────────
             $payload = JWTAuth::parseToken()->getPayload();
             $profile = $payload->get('profile');
 
-            $orgid  = $profile['orgid'];
-            $userid = $profile['userid'];
-
-            // ── Merge into post data ───────────────────────────────────
-            $post['orgid']  = $orgid;
-            $post['userid'] = $userid;
+            $post['orgid']  = $profile['orgid'];
+            $post['userid'] = $profile['userid'];
 
             $type    = 'success';
             $message = 'OTP send successfully';
@@ -106,16 +106,11 @@ class OtpController extends Controller
     {
         try {
             $post = $request->json()->all();
-            // ── Decode JWT token ───────────────────────────────────────
             $payload = JWTAuth::parseToken()->getPayload();
             $profile = $payload->get('profile');
 
-            $orgid  = $profile['orgid'];
-            $userid = $profile['userid'];
-
-            // ── Merge into post data ───────────────────────────────────
-            $post['orgid']  = $orgid;
-            $post['userid'] = $userid;
+            $post['orgid']  = $profile['orgid'];
+            $post['userid'] = $profile['userid'];
 
             $type    = 'success';
             $message = 'OTP Match';

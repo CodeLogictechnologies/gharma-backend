@@ -1,4 +1,4 @@
-@extends('backend.layouts.external')
+@extends('layouts.external')
 
 @section('title')
     Reset Password
