@@ -56,6 +56,11 @@
         .input-group-text i {
             pointer-events: none;
         }
+
+        .input-group.is-invalid-group .form-control,
+        .input-group.is-invalid-group .input-group-text {
+            border-color: #dc3545 !important;
+        }
     </style>
 </head>
 
@@ -93,14 +98,14 @@
                                 <input type="text" class="form-control" id="email" name="email"
                                     placeholder="Enter your email or username" autofocus />
                                 @error('email')
-                                    <p class="text-danger small">Please input email or username.</p>
+                                <p class="text-danger small">Please input email or username.</p>
                                 @enderror
                             </div>
 
                             <div class="mb-3 form-password-toggle">
                                 <div class="d-flex justify-content-between">
                                     <label class="form-label" for="password">Password</label>
-                                    <a href="#"><small>Forgot Password?</small></a>
+                                    <a href="{{ route('admin.forgotpassword') }}"><small>Forgot Password?</small></a>
                                 </div>
                                 <div class="input-group input-group-merge">
                                     <input type="password" id="password" class="form-control" name="password"
@@ -110,7 +115,7 @@
                                     </span>
                                 </div>
                                 @error('password')
-                                    <p class="text-danger small">Please input password.</p>
+                                <p class="text-danger small">Please input password.</p>
                                 @enderror
                             </div>
 
@@ -180,11 +185,28 @@
                     }
                 },
                 errorClass: 'text-danger small',
+
+                errorPlacement: function(error, element) {
+                    if (element.closest('.input-group').length) {
+                        error.insertAfter(element.closest('.input-group'));
+                    } else {
+                        error.insertAfter(element);
+                    }
+                },
+
                 highlight: function(el) {
-                    $(el).addClass('is-invalid');
+                    var $el = $(el);
+                    if ($el.closest('.input-group').length) {
+                        $el.closest('.input-group').addClass('is-invalid-group');
+                    }
+                    $el.addClass('is-invalid');
                 },
                 unhighlight: function(el) {
-                    $(el).removeClass('is-invalid');
+                    var $el = $(el);
+                    if ($el.closest('.input-group').length) {
+                        $el.closest('.input-group').removeClass('is-invalid-group');
+                    }
+                    $el.removeClass('is-invalid');
                 },
 
                 // ✅ submitHandler fires on valid form submit (button click OR Enter key)
