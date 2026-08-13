@@ -24,6 +24,14 @@ class PermissionController extends Controller
     //function to redirect to permission page
     public function index()
     {
+        // dd(auth()->user()->id);
+        $permissions = Permission::all()->mapWithKeys(function ($permission) {
+            return [
+                $permission->name => auth()->user()->can($permission->name),
+            ];
+        });
+
+        // dd($permissions);
         return view('backend.permission.index');
     }
 

@@ -61,9 +61,9 @@ class PromotionController extends Controller
 
     public function save(Request $request)
     {
-        if (!auth()->user()->can($request->id ? 'edit.promotion' : 'add.promotion')) {
-            return response()->json(['type' => 'error', 'message' => 'Unauthorized.'], 403);
-        }
+        // if (!auth()->user()->can($request->id ? 'edit.promotion' : 'add.promotion')) {
+        //     return response()->json(['type' => 'error', 'message' => 'Unauthorized.'], 403);
+        // }
 
         try {
             $type    = 'success';
