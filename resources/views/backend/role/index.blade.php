@@ -212,6 +212,11 @@
                 key: 'loyalty'
             },
             {
+                label: 'Coupon',
+                key: 'coupon'
+            },
+
+            {
                 label: 'Order',
                 key: 'order'
             },
@@ -226,11 +231,11 @@
             {
                 label: 'Report Sales',
                 key: 'report-sales'
-            }, // 👈 missing (sidebar uses view.report-sales, not view.report)
+            }, //  missing (sidebar uses view.report-sales, not view.report)
             {
                 label: 'Inventory Report',
                 key: 'inventory-report'
-            }, // 👈 missing
+            }, //  missing
             {
                 label: 'Heatmap',
                 key: 'heatmap'

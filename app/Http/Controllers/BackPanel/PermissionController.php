@@ -133,7 +133,7 @@ class PermissionController extends Controller
             if (!auth()->user()->can('delete.permission')) {
                 throw new Exception('You do not have permission to delete this record.');
             }
-            
+
             $type = 'success';
             $message = "Record deleted successfully";
 
