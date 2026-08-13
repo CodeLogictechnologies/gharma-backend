@@ -20,6 +20,9 @@ class OrganizationController extends Controller
     //function to redirect to organization list page
     public function index()
     {
+        if (!auth()->user()->can('view.organization')) {
+            abort(403);
+        }
         return view('backend.organization.index');
     }
 
@@ -27,6 +30,11 @@ class OrganizationController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.organization' : 'add.organization';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
             $rules = [
                 'name' => 'required|min:5|max:255',
                 'phone' => 'required|min:5|max:5000',
@@ -36,7 +44,7 @@ class OrganizationController extends Controller
                     'email',
                     'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/',
                     Rule::unique('organizations', 'email')->ignore($request->id, 'id'),
-                    Rule::unique('users', 'email')->ignore($request->userid, 'id'), 
+                    Rule::unique('users', 'email')->ignore($request->userid, 'id'),
 
                 ],
                 'username' => 'required',
@@ -148,6 +156,9 @@ class OrganizationController extends Controller
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.organization')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
             $post = $request->all();
             $data = Organization::list($post);
             $i    = 0;
@@ -179,9 +190,15 @@ class OrganizationController extends Controller
                 }
                 $array[$i]["logo"] = '<img src="' . $imageUrl . '" height="30px" width="30px" alt="image"/>';
 
-                $action  = '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg"        style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                $action = '';
+                if (auth()->user()->can('edit.organization')) {
+                    $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg"        style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.organization')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
                 $array[$i]["action"] = $action;
+
                 $i++;
             }
 
@@ -208,6 +225,12 @@ class OrganizationController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.organization' : 'add.organization';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $data = [];
 
             if (!empty($request->id)) {
@@ -243,6 +266,9 @@ class OrganizationController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.organization')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
             $type = 'success';
             $message = "Record deleted successfully";
             $post = $request->all();
@@ -270,6 +296,10 @@ class OrganizationController extends Controller
     public function view(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.organization')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+            
             $post = $request->all();
 
             $orgDetails = Organization::getData($post);

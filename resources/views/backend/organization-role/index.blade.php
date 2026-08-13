@@ -101,11 +101,14 @@
                         <tbody id="permissionBody"></tbody>
                     </table>
                 </div>
+                
+                @can('edit.organization-role')
                 <div class="mt-3">
                     <button type="button" class="btn btn-primary" id="savePermissionsBtn">
                         <i class="bx bx-save me-1"></i> Save Permissions
                     </button>
                 </div>
+                @endcan
             </div>
 
         </div>

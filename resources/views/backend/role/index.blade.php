@@ -61,11 +61,13 @@
                     </table>
                 </div>
 
+                @can('edit.role')
                 <div class="mt-3">
                     <button type="button" class="btn btn-primary" id="savePermissionsBtn">
                         <i class="fa fa-save me-1"></i> Save Permissions
                     </button>
                 </div>
+                @endcan
             </div>
 
             <div id="noRoleMsg" class="text-muted mt-2" style="display:none;">
@@ -89,45 +91,155 @@
         });
 
         // ── Module definitions ──────────────────────────────────────────
-        var modules = [
-    { label: 'Organization', key: 'organization' },              //  missing
-    { label: 'Organization Access', key: 'organization-access' }, //  missing
-    { label: 'Organization Roles', key: 'organization-role' },    //  missing
-    { label: 'Permission', key: 'permission' },                   //  missing
-    { label: 'Role', key: 'role' },
-    { label: 'Fiscal Year', key: 'fiscalyear' },                  //  missing (your current question)
-    { label: 'Home Tab', key: 'hometab' },
-    { label: 'Store', key: 'store' },
-    { label: 'Org Fiscal Years', key: 'org-fiscalyear' },         //  missing
-    { label: 'Vendor', key: 'vendor' },
-    { label: 'Category', key: 'category' },
-    { label: 'Brand', key: 'brand' },
-    { label: 'Variation Attribute', key: 'variation-attribute' }, //  missing
-    { label: 'Unit', key: 'unit' },                                //  missing
-    { label: 'Item', key: 'item' },
-    { label: 'Users', key: 'user' },
-    { label: 'Driver', key: 'driver' },                            //  missing (sidebar uses 'driver', not 'driverlist')
-    { label: 'Assign Driver', key: 'assign-driver' },              //  missing (view-only permission)
-    { label: 'Inventory', key: 'inventory' },
-    { label: 'Purchase Voucher', key: 'purchase-voucher' },        //  missing
-    { label: 'Purchase Return', key: 'purchase-return' },          //  missing
-    { label: 'Sales', key: 'sales' },                               //  missing
-    { label: 'Sales Return', key: 'sales-return' },                 //  missing
-    { label: 'Retailer', key: 'retailer' },
-    { label: 'Wholesaler', key: 'wholesaler' },
-    { label: 'Refunds Policy', key: 'refunds-policy' },            //  missing (view-only)
-    { label: 'Terms Conditions', key: 'terms-conditions' },        //  missing (view-only)
-    { label: 'Promotion', key: 'promotion' },
-    { label: 'Discount', key: 'discount' },
-    { label: 'Loyalty', key: 'loyalty' },
-    { label: 'Order', key: 'order' },
-    { label: 'Invoice', key: 'invoice' },
-    { label: 'Refund', key: 'refund' },
-    { label: 'Report Sales', key: 'report-sales' },                // 👈 missing (sidebar uses view.report-sales, not view.report)
-    { label: 'Inventory Report', key: 'inventory-report' },        // 👈 missing
-    { label: 'Heatmap', key: 'heatmap' },
-    { label: 'Notification', key: 'notification' },
-];
+        var modules = [{
+                label: 'Organization',
+                key: 'organization'
+            }, //  missing
+            {
+                label: 'Organization Access',
+                key: 'organization-access'
+            }, //  missing
+            {
+                label: 'Organization Roles',
+                key: 'organization-role'
+            }, //  missing
+            {
+                label: 'Permission',
+                key: 'permission'
+            }, //  missing
+            {
+                label: 'Role',
+                key: 'role'
+            },
+            {
+                label: 'Fiscal Year',
+                key: 'fiscalyear'
+            }, //  missing (your current question)
+            {
+                label: 'Home Tab',
+                key: 'hometab'
+            },
+            {
+                label: 'Store',
+                key: 'store'
+            },
+            {
+                label: 'Org Fiscal Years',
+                key: 'org-fiscalyear'
+            }, //  missing
+            {
+                label: 'Vendor',
+                key: 'vendor'
+            },
+            {
+                label: 'Category',
+                key: 'category'
+            },
+            {
+                label: 'Brand',
+                key: 'brand'
+            },
+            {
+                label: 'Variation Attribute',
+                key: 'variation-attribute'
+            }, //  missing
+            {
+                label: 'Unit',
+                key: 'unit'
+            }, //  missing
+            {
+                label: 'Item',
+                key: 'item'
+            },
+            {
+                label: 'Users',
+                key: 'user'
+            },
+            {
+                label: 'Driver',
+                key: 'driver'
+            }, //  missing (sidebar uses 'driver', not 'driverlist')
+            {
+                label: 'Assign Driver',
+                key: 'assign-driver'
+            }, //  missing (view-only permission)
+            {
+                label: 'Inventory',
+                key: 'inventory'
+            },
+            {
+                label: 'Purchase Voucher',
+                key: 'purchase-voucher'
+            }, //  missing
+            {
+                label: 'Purchase Return',
+                key: 'purchase-return'
+            }, //  missing
+            {
+                label: 'Sales',
+                key: 'sales'
+            }, //  missing
+            {
+                label: 'Sales Return',
+                key: 'sales-return'
+            }, //  missing
+            {
+                label: 'Retailer',
+                key: 'retailer'
+            },
+            {
+                label: 'Wholesaler',
+                key: 'wholesaler'
+            },
+            {
+                label: 'Refunds Policy',
+                key: 'refunds-policy'
+            }, //  missing (view-only)
+            {
+                label: 'Terms Conditions',
+                key: 'terms-conditions'
+            }, //  missing (view-only)
+            {
+                label: 'Promotion',
+                key: 'promotion'
+            },
+            {
+                label: 'Discount',
+                key: 'discount'
+            },
+            {
+                label: 'Loyalty',
+                key: 'loyalty'
+            },
+            {
+                label: 'Order',
+                key: 'order'
+            },
+            {
+                label: 'Invoice',
+                key: 'invoice'
+            },
+            {
+                label: 'Refund',
+                key: 'refund'
+            },
+            {
+                label: 'Report Sales',
+                key: 'report-sales'
+            }, // 👈 missing (sidebar uses view.report-sales, not view.report)
+            {
+                label: 'Inventory Report',
+                key: 'inventory-report'
+            }, // 👈 missing
+            {
+                label: 'Heatmap',
+                key: 'heatmap'
+            },
+            {
+                label: 'Notification',
+                key: 'notification'
+            },
+        ];
 
         var allPermissions = Object.values(@json($permissions)); // All permissions from backend
         var rolePermissions = []; // IDs assigned to selected role

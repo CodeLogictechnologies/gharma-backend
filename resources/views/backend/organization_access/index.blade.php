@@ -61,11 +61,13 @@
                     </table>
                 </div>
 
+                @can('edit.organization-access')
                 <div class="mt-3">
                     <button type="button" class="btn btn-primary" id="savePermissionsBtn">
                         <i class="fa fa-save me-1"></i> Save Permissions
                     </button>
                 </div>
+                @endcan
             </div>
 
             <div id="noOrgMsg" class="text-muted mt-2" style="display:none;">

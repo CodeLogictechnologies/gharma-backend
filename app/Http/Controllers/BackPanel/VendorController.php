@@ -21,12 +21,22 @@ class VendorController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.vendor')) {
+            abort(403);
+        }
+
         return view('backend.vendor.info.index');
     }
 
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.vendor' : 'add.vendor';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $rules = [
                 'name'                => 'required|min:5|max:255',
                 'phone'               => 'required|min:5|max:20',
@@ -166,6 +176,10 @@ class VendorController extends Controller
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.vendor')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post   = $request->all();
             $post['orgid'] = session('orgid');
             $offset = (int) ($request->input('iDisplayStart', 0)); // ← add
@@ -189,10 +203,15 @@ class VendorController extends Controller
                 $array[$i]["company_name"]        = $row->company_name;
 
                 $action = '<a href="javascript:;" title="View Data" class="tooltipdiv viewVendor" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editVendor" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action  .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteVendor px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>'; 
+                if (auth()->user()->can('edit.vendor')) {
+                    $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editVendor" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.vendor')) {
+                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteVendor px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
 
                 $array[$i]["action"] = $action;
+
                 $i++;
             }
 
@@ -214,6 +233,12 @@ class VendorController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.vendor' : 'add.vendor';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $data = [];
             if (!empty($request->id)) {
                 $post = $request->all();
@@ -248,29 +273,33 @@ class VendorController extends Controller
     // Delete
     public function delete(Request $request)
     {
-        // try {
-        $type = 'success';
-        $message = "Record deleted successfully";
-        $post = $request->all();
-        $post['orgid'] = session('orgid');
-        $post['userid'] = session('userid');
-
-        DB::beginTransaction();
-        $result = Vendor::deleteDate($post);
-        if (!$result) {
-            throw new Exception("Vendor not delete", 1);
+        if (!auth()->user()->can('delete.vendor')) {
+            return json_encode(['type' => 'error', 'message' => 'You do not have permission to delete this record.']);
         }
 
-        DB::commit();
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     $type = 'error';
-        //     $message = $e->getMessage();
-        // }
+        try {
+            $type = 'success';
+            $message = "Record deleted successfully";
+            $post = $request->all();
+            $post['orgid'] = session('orgid');
+            $post['userid'] = session('userid');
+
+            DB::beginTransaction();
+            $result = Vendor::deleteDate($post);
+            if (!$result) {
+                throw new Exception("Vendor not delete", 1);
+            }
+
+            DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $this->queryMessage;
+        } catch (Exception $e) {
+            DB::rollBack();
+            $type = 'error';
+            $message = $e->getMessage();
+        }
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
@@ -278,6 +307,10 @@ class VendorController extends Controller
     public function view(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.vendor')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
             $vendorDetail = Vendor::getData($post);

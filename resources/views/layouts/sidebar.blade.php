@@ -421,7 +421,7 @@
                 </li>
                 @endcan
 
-                <!-- @can('view.loyalty')
+                @can('view.loyalty')
                 <li class="menu-item {{ request()->routeIs('loyalty') ? 'active' : '' }}">
                     <a href="{{ route('loyalty') }}" class="menu-link">
                         <i class="bx bx-package me-2"></i>
@@ -437,7 +437,7 @@
                         <div>Coupon</div>
                     </a>
                 </li>
-                @endcan -->
+                @endcan
 
 
             </ul>

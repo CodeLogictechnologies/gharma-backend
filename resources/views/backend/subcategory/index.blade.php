@@ -23,6 +23,7 @@ Sub Category
 
 <!-- Start::row-1 -->
 <div class="row">
+    @canany(['add.subcategory', 'edit.subcategory'])
     <div class="col-xl-4">
         <div class="card custom-card">
             <form action="{{ route('subcategory.save') }}" method="POST" id="subcategoryForm"
@@ -67,6 +68,8 @@ Sub Category
             </form>
         </div>
     </div>
+    @endcan
+    
     <div class="col-xl-8">
         <div class="card custom-card">
             <div class="card-header justify-content-between">
@@ -152,7 +155,8 @@ Sub Category
                 },
             ],
             "ajax": {
-                "url": '{{ route('subcategory.list') }}',
+                "url": '{{ route('
+                subcategory.list ') }}',
                 "type": "POST",
                 "data": function(d) {
                     var type = $('#trashed_file').is(':checked') == true ? 'trashed' :
@@ -231,13 +235,13 @@ Sub Category
                         var result = typeof response === 'string' ? JSON.parse(response) :
                             response;
                         if (result.type === 'success') {
-    $('.saveData').html('<i class="fa fa-save"></i> Save');
-    showNotification(result.message, 'success');
-    categoryTable.ajax.reload(null, true);  // ✅ true = jump to page 1 so the new row is visible
-    $('#subcategoryForm')[0].reset();
-    $('#id').val('');
-    $('#img_preview').attr('src', '/no-image.jpg');
-} else {
+                            $('.saveData').html('<i class="fa fa-save"></i> Save');
+                            showNotification(result.message, 'success');
+                            categoryTable.ajax.reload(null, true); // ✅ true = jump to page 1 so the new row is visible
+                            $('#subcategoryForm')[0].reset();
+                            $('#id').val('');
+                            $('#img_preview').attr('src', '/no-image.jpg');
+                        } else {
                             showNotification(result.message, 'error');
                         }
                     }
@@ -297,16 +301,17 @@ Sub Category
                         id: id,
                         type: type,
                     };
-                    var url = '{{ route('subcategory.delete') }}';
+                    var url = '{{ route('
+                    subcategory.delete ') }}';
                     $.post(url, data, function(response) {
                         var rep = JSON.parse(response);
                         if (rep) {
                             showNotification(rep.message, rep.type);
                             if (rep.type === 'success') {
-    categoryTable.ajax.reload(null, true);  // ✅
-    $('#subcategoryForm')[0].reset();
-    $('#id').val('');
-}
+                                categoryTable.ajax.reload(null, true); // ✅
+                                $('#subcategoryForm')[0].reset();
+                                $('#id').val('');
+                            }
                         }
                     });
                     $('#img_preview').attr('src', '/no-image.jpg');

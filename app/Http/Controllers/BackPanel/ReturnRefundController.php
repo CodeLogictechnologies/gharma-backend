@@ -12,6 +12,10 @@ class ReturnRefundController extends Controller
 {
     public function index()
     {
+         if (!auth()->user()->can('view.return-refund')) {
+            abort(403);
+        }
+
         $orgid = session('orgid');
 
         $returnPolicy = ReturnRefund::getPolicy($orgid, 'return');
@@ -23,6 +27,10 @@ class ReturnRefundController extends Controller
     public function savePolicy(Request $request)
     {
         try {
+            if (!auth()->user()->can('edit.return-refund')) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+            
             $type    = 'success';
             $message = 'Policy updated successfully.';
 

@@ -25,6 +25,10 @@ class RoleController extends Controller
     //function to redirect to role page
     public function index()
     {
+        if (!auth()->user()->can('view.role')) {
+            abort(403);
+        }
+
         $roles       = Role::getRole();
         $permissions = Permission::getPermissionList();
         $date = [
@@ -39,6 +43,11 @@ class RoleController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.role' : 'add.role';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
 
             $rules = [
                 'name' => 'required|min:3|max:255',
@@ -79,6 +88,10 @@ class RoleController extends Controller
     //function to list role
     public function list(Request $request)
     {
+        if (!auth()->user()->can('view.role')) {
+            return response()->json(['recordsFiltered' => 0, 'recordsTotal' => 0, 'data' => []]);
+        }
+
         $post = $request->all();
         $data = Role::list($post);
         $i    = 0;
@@ -98,17 +111,21 @@ class RoleController extends Controller
             $permissionIds = $row->permissions->pluck('id')->toArray();
 
             $action  = '';
-            $action .= '<a href="javascript:;" class="editRole"
-                        data-id="'          . $row->id   . '"
-                        data-name="'        . $row->name . '"
-                        data-permissions=\'' . json_encode($permissionIds) . '\'>
-                        <i class="fa-solid fa-pen-to-square text-primary"></i>
-                    </a>';
+            if (auth()->user()->can('edit.role')) {
+                $action .= '<a href="javascript:;" class="editRole"
+                            data-id="'          . $row->id   . '"
+                            data-name="'        . $row->name . '"
+                            data-permissions=\'' . json_encode($permissionIds) . '\'>
+                            <i class="fa-solid fa-pen-to-square text-primary"></i>
+                        </a>';
+            }
 
-            $action .= ' | <a href="javascript:;" class="deleteRole"
-                        data-id="' . $row->id . '">
-                        <i class="fa fa-trash text-danger"></i>
-                    </a>';
+            if (auth()->user()->can('delete.role')) {
+                $action .= ' | <a href="javascript:;" class="deleteRole"
+                            data-id="' . $row->id . '">
+                            <i class="fa fa-trash text-danger"></i>
+                        </a>';
+            }
 
             $array[$i]["action"] = $action;
             $i++;
@@ -127,6 +144,10 @@ class RoleController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.role')) {
+                return response()->json(['type' => 'error', 'message' => 'You do not have permission to delete this record.']);
+            }
+
             $post = $request->all();
 
             if (empty($post['id'])) {
@@ -169,6 +190,10 @@ class RoleController extends Controller
     public function getPermissions(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.role')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $roleId = $request->id;
 
             $role = \App\Models\BackPanel\Role::findOrFail($roleId);
@@ -193,6 +218,10 @@ class RoleController extends Controller
     public function savePermissions(Request $request)
     {
         try {
+            if (!auth()->user()->can('edit.role')) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             if (empty($request->id)) {
                 throw new Exception('Role ID is required.', 1);
             }

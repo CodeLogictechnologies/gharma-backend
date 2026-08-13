@@ -18,7 +18,9 @@ class LoyaltySetupController extends Controller
     //function to redirect page
     public function index()
     {
-
+        if (!auth()->user()->can('view.loyalty')) {
+            abort(403);
+        }
         return view('backend.loyaltySetup.index');
     }
 
@@ -26,6 +28,11 @@ class LoyaltySetupController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.loyalty' : 'add.loyalty';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
             $rules = [
                 'minprice'   => 'required|integer|min:1',
                 'maxprice'   => 'required|integer|gte:minprice',
@@ -95,18 +102,22 @@ class LoyaltySetupController extends Controller
                 $array[$i]["maxprice"]    = $row->maxprice;
                 $array[$i]["percentage"]    = $row->percentage;
                 $action = '';
-                $action .= '<a href="javascript:void(0)" 
-                            title="Edit Data" 
-                            class="tooltipdiv editLoyalty" 
-                            style="color:blue;" 
-                            data-id="' . $row->id . '" 
-                            data-minprice="' . $row->minprice . '" 
-                            data-maxprice="' . $row->maxprice . '" 
-                            data-percentage="' . $row->percentage . '">
-                            <i class="bx bx-edit-alt"></i>
-                        </a>|';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteLoyalty px-2" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+                if (auth()->user()->can('edit.loyalty')) {
+                    $action .= '<a href="javascript:void(0)" 
+                    title="Edit Data" 
+                    class="tooltipdiv editLoyalty" 
+                    style="color:blue;" 
+                    data-id="' . $row->id . '" 
+                    data-minprice="' . $row->minprice . '" 
+                    data-maxprice="' . $row->maxprice . '" 
+                    data-percentage="' . $row->percentage . '">
+                    <i class="bx bx-edit-alt"></i>
+                </a>|';
+                }
 
+                if (auth()->user()->can('delete.loyalty')) {
+                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteLoyalty px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
 
                 $array[$i]["action"]  = $action;
                 $i++;
@@ -130,6 +141,9 @@ class LoyaltySetupController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.loyalty')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
             $type = 'success';
             $message = "Record deleted successfully";
 

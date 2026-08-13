@@ -26,6 +26,10 @@ class VariationAttributeController extends Controller
      */
     public function index()
     {
+        if (!auth()->user()->can('view.variation-attribute')) {
+            abort(403);
+        }
+
         return view('backend.variation-attribute.index');
     }
 
@@ -38,6 +42,12 @@ class VariationAttributeController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.variation-attribute' : 'add.variation-attribute';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $orgid = session('orgid');
             $id    = $request->input('id');
 
@@ -72,8 +82,8 @@ class VariationAttributeController extends Controller
 
             $type    = 'success';
             $message        = !empty($post['id'])
-            ? 'Store updated successfully'
-            : 'Store saved successfully';
+                ? 'Store updated successfully'
+                : 'Store saved successfully';
 
             DB::beginTransaction();
 
@@ -104,6 +114,10 @@ class VariationAttributeController extends Controller
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.variation-attribute')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
             $data = VariationAttribute::list($post);
@@ -120,14 +134,20 @@ class VariationAttributeController extends Controller
                 $array[$i]['sno']  = $i + 1;
                 $array[$i]['name'] = $row->name;
 
-                $action  = '<a href="javascript:;" title="Edit" class="editAttribute px-2" style="color:blue;" ';
-                $action .= 'data-id="' . $row->id . '" ';
-                $action .= 'data-name="' . htmlspecialchars($row->name, ENT_QUOTES) . '">';
-                $action .= '<i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete" class="deleteAttribute px-2" style="color:red;" data-id="' . $row->id . '">';
-                $action .= '<i class="bx bx-trash"></i></a>';
+                $action  = '';
+                if (auth()->user()->can('edit.variation-attribute')) {
+                    $action .= '<a href="javascript:;" title="Edit" class="editAttribute px-2" style="color:blue;" ';
+                    $action .= 'data-id="' . $row->id . '" ';
+                    $action .= 'data-name="' . htmlspecialchars($row->name, ENT_QUOTES) . '">';
+                    $action .= '<i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.variation-attribute')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="deleteAttribute px-2" style="color:red;" data-id="' . $row->id . '">';
+                    $action .= '<i class="bx bx-trash"></i></a>';
+                }
 
                 $array[$i]['action'] = $action;
+
                 $i++;
             }
 
@@ -159,6 +179,9 @@ class VariationAttributeController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.variation-attribute')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
             $type    = 'success';
             $message = 'Record deleted successfully';
 

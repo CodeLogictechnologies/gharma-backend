@@ -21,6 +21,9 @@ class OrganizationAccessController extends Controller
     // GET admin/organization.access
     public function index()
     {
+        if (!auth()->user()->can('view.organization-access')) {
+            abort(403);
+        }
         $organizations = Organization::where('status', 'Y')->get();
         $permissions   = Permission::select('id', 'name')->get();
 
@@ -36,6 +39,10 @@ class OrganizationAccessController extends Controller
     public function getPermissions(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.organization-access')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $orgId = $request->id;
 
             if (empty($orgId)) {
@@ -59,36 +66,43 @@ class OrganizationAccessController extends Controller
     }
 
     // POST admin/organization.access/save-permissions
-public function savePermissions(Request $request)
-{
-    try {
-        \Log::info('savePermissions payload', $request->all());
-        if (empty($request->id)) {
-            throw new Exception('Organization ID is required.', 1);
+    public function savePermissions(Request $request)
+    {
+        try {
+            if (!auth()->user()->can('edit.organization-access')) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+            \Log::info('savePermissions payload', $request->all());
+            if (empty($request->id)) {
+                throw new Exception('Organization ID is required.', 1);
+            }
+
+            OrganizationAccess::saveData($request->all());
+
+            return response()->json([
+                'type'    => 'success',
+                'message' => 'Permissions saved successfully.',
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => $e->getMessage(),
+            ]);
         }
-
-        OrganizationAccess::saveData($request->all());
-
-        return response()->json([
-            'type'    => 'success',
-            'message' => 'Permissions saved successfully.',
-        ]);
-    } catch (QueryException $e) {
-        return response()->json([
-            'type'    => 'error',
-            'message' => $e->getMessage(),
-        ]);
-    } catch (Exception $e) {
-        return response()->json([
-            'type'    => 'error',
-            'message' => $e->getMessage(),
-        ]);
     }
-}
 
     // POST admin/organization.access/list
     public function list(Request $request)
     {
+        if (!auth()->user()->can('view.organization-access')) {
+            return response()->json([]);
+        }
+
         $organizations = Organization::select('id', 'name')->get();
 
         return response()->json($organizations);
@@ -98,6 +112,10 @@ public function savePermissions(Request $request)
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.organization-access')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+
             if (empty($request->id)) {
                 throw new Exception('Organization ID is required.', 1);
             }
@@ -119,6 +137,13 @@ public function savePermissions(Request $request)
     // POST admin/organization.access/save
     public function save(Request $request)
     {
+        if (!auth()->user()->can('add.organization-access')) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'You do not have permission to perform this action.',
+            ]);
+        }
+
         return response()->json([
             'type'    => 'error',
             'message' => 'Not implemented.',

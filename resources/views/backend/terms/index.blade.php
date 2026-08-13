@@ -117,9 +117,11 @@ body.note-fullscreen-active .layout-menu-toggle {
                             <label class="form-label fw-semibold">Terms & Conditions Description<span class="text-danger">*</span></label>
                             <textarea name="description" id="termsEditor" class="form-control">{!! $termsPolicy->description ?? '' !!}</textarea>
                         </div>
+                         @can('edit.terms-conditions')
                         <button type="button" class="btn btn-primary savePolicy" data-type="terms">
                             <i class="bx bx-save me-1"></i> Update Terms & Conditions
                         </button>
+                        @endcan
                     </form>
                 </div>
 
@@ -132,9 +134,11 @@ body.note-fullscreen-active .layout-menu-toggle {
                             <label class="form-label fw-semibold">Privacy Policy Description<span class="text-danger">*</span></label>
                             <textarea name="description" id="privacyEditor" class="form-control">{!! $privacyPolicy->description ?? '' !!}</textarea>
                         </div>
+                        @can('edit.terms-conditions')
                         <button type="button" class="btn btn-primary savePolicy" data-type="privacy">
                             <i class="bx bx-save me-1"></i> Update Privacy Policy
                         </button>
+                        @endcan
                     </form>
                 </div>
 

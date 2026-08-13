@@ -15,12 +15,20 @@ class OrgFiscalYearController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.org-fiscalyear')) {
+            abort(403);
+        }
+
         return view('backend.orgfiscalyrs.index');
     }
 
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.org-fiscalyear')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post          = $request->all();
             $post['orgid'] = session('orgid');
             $data          = OrgFiscalYear::listFiscalYears($post);
@@ -113,6 +121,10 @@ class OrgFiscalYearController extends Controller
     public function assign(Request $request)
     {
         try {
+            if (!auth()->user()->can('edit.org-fiscalyear')) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $request->validate([
                 'fiscal_year_id' => 'nullable|string|exists:fiscal_years,id',
             ]);

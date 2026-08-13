@@ -14,6 +14,9 @@ class HomeTabController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.hometab')) {
+            abort(403);
+        }
         $post['orgid'] = session('orgid');
         $categories    = Category::getCategory($post);
         return view('backend.hometab.index', compact('categories'));
@@ -21,6 +24,12 @@ class HomeTabController extends Controller
 
     public function form(Request $request)
     {
+        $action = $request->id ? 'edit.hometab' : 'add.hometab';
+
+        if (!auth()->user()->can($action)) {
+            abort(403);
+        }
+
         $post          = $request->all();
         $post['orgid'] = session('orgid');
         $categories    = Category::getCategory($post);
@@ -51,6 +60,12 @@ class HomeTabController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.hometab' : 'add.hometab';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $type    = !empty($request->id) ? 'success' : 'success';
             $message = !empty($request->id)
                 ? 'Record updated successfully.'
@@ -120,8 +135,16 @@ class HomeTabController extends Controller
                 ? '<span style="display:inline-block;width:20px;height:20px;background:' . e($row->bg_color) . ';border-radius:4px;border:1px solid #ccc;" title="' . e($row->bg_color) . '"></span> ' . e($row->bg_color)
                 : '—';
 
-           $action .= '<a href="javascript:;" class="editHomeTab"         style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-$action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            if (auth()->user()->can('edit.hometab')) {
+                $action .= '<a href="javascript:;" class="editHomeTab px-2" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            }
+
+            if (auth()->user()->can('delete.hometab')) {
+                $action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            }
+
+            // $action .= '<a href="javascript:;" class="editHomeTab"         style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            // $action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
             $array[$i]['action'] = $action;
             $i++;
         }
@@ -136,6 +159,9 @@ $action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.hometab')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
             $type    = 'success';
             $message = 'Record deleted successfully.';
             HomeTab::deleteData($request->all());

@@ -30,6 +30,9 @@ class WholesalerPriceController extends Controller
 
     public function index()
     {
+        if (!auth()->user()->can('view.wholesaler-price')) {
+            abort(403);
+        }
         $post['orgid'] = session('orgid');
         $categories = Category::getCategory($post);
         $subCategories = SubCategory::getSubCategory($post);
@@ -43,6 +46,9 @@ class WholesalerPriceController extends Controller
     public function form(Request $request)
     {
         $id   = $request->id ?? null;
+        if (!auth()->user()->can(!empty($id) ? 'edit.wholesaler-price' : 'add.wholesaler-price')) {
+            abort(403);
+        }
         $post = $request->all();
         $post['orgid']          = session('orgid');
         $post['wholesale_only'] = true;
@@ -98,6 +104,12 @@ class WholesalerPriceController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.wholesaler-price' : 'add.wholesaler-price';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $type = 'success';
             $rules = [
                 'itemid'          => 'required',
@@ -148,6 +160,10 @@ class WholesalerPriceController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.wholesaler-price')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+
             $type    = 'success';
             $message = "Record deleted successfully";
 
@@ -201,6 +217,10 @@ class WholesalerPriceController extends Controller
 
     public function list(Request $request)
     {
+        if (!auth()->user()->can('view.wholesaler-price')) {
+            return response()->json(['recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
+        }
+
         $post = $request->all();
         $post['orgid'] = session('orgid');
         $data = BackPanelWholesalerPrice::list($post);
@@ -220,12 +240,18 @@ class WholesalerPriceController extends Controller
             $array[$i]['price'] = $row->price ?? '—';
             $array[$i]['min_qty'] = $row->min_qty ?? '—';
             $array[$i]['max_qty'] = $row->max_qty ?? '—';
+
             $action = '';
 
-            // for show
-            $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewWholesaleprice" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
-            $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editWholesaleprice" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
-            $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteWholesaleprice" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+            if (auth()->user()->can('view.wholesaler-price')) {
+                $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewWholesaleprice" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
+            }
+            if (auth()->user()->can('edit.wholesaler-price')) {
+                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editWholesaleprice" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
+            }
+            if (auth()->user()->can('delete.wholesaler-price')) {
+                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteWholesaleprice" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
+            }
             $array[$i]["action"]  = $action;
 
             $i++;
@@ -245,6 +271,10 @@ class WholesalerPriceController extends Controller
     public function view(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.wholesaler-price')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+
             if (empty($request->id)) {
                 throw new Exception('ID is required.');
             }
