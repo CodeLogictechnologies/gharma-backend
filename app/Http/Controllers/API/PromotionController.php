@@ -31,6 +31,9 @@ class PromotionController extends Controller
     public function index()
     {
         try {
+            $promotionBaseUrl = url('storage/promotions'); // adjust to match your actual promotion-image storage path
+            $itemBaseUrl       = url('storage/items');
+
             $promotions = DB::table('promotions')
                 ->where('status', 'Y')
                 ->whereNull('deleted_at')
@@ -162,7 +165,7 @@ class PromotionController extends Controller
             };
 
             // ── Build item-id list per promotion, fetch rows, group into productid → variations ──
-            $result = $promotions->map(function ($promo) use ($buildBaseQuery) {
+            $result = $promotions->map(function ($promo) use ($buildBaseQuery, $promotionBaseUrl, $itemBaseUrl) {
                 if ($promo->applies_to === 'item') {
                     $itemIds = DB::table('promotion_items')
                         ->where('promotion_id', $promo->id)
@@ -184,20 +187,20 @@ class PromotionController extends Controller
                 $items = collect();
 
                 if ($itemIds->isNotEmpty()) {
-                    // Fetch enough variation rows to cover up to 6 distinct products,
-                    // then trim to exactly 6 products after grouping.
                     $rows = $buildBaseQuery()
                         ->whereIn('i.id', $itemIds)
                         ->get();
 
-                    // ── Group variation rows by productid ──
                     $grouped = $rows->groupBy('productid');
 
-                    $items = $grouped->take(6)->map(function ($variationRows) {
+                    $items = $grouped->take(6)->map(function ($variationRows) use ($itemBaseUrl) {
                         $first = $variationRows->first();
 
                         $imagesArray = !empty($first->images)
-                            ? array_values(array_filter(explode(',', $first->images)))
+                            ? array_map(
+                                fn($img) => $itemBaseUrl . '/' . trim($img),
+                                array_values(array_filter(explode(',', $first->images)))
+                            )
                             : [];
 
                         return [
@@ -227,7 +230,7 @@ class PromotionController extends Controller
                 return [
                     'id'         => $promo->id,
                     'name'       => $promo->name,
-                    'image'      => $promo->image,
+                    'image'      => $promo->image ? $promotionBaseUrl . '/' . trim($promo->image) : null,
                     'bg_color'   => $promo->bg_color,
                     'applies_to' => $promo->applies_to,
                     'items'      => $items,
@@ -248,7 +251,6 @@ class PromotionController extends Controller
     }
     public function getPromotionItem(Request $request, $id, $applies_to)
     {
-   
         $validator = Validator::make(
             [
                 'id'          => $id,
@@ -272,7 +274,6 @@ class PromotionController extends Controller
 
         $perPage = $request->input('perPage', 10);
 
-        // try {
         if ($applies_to === 'item') {
             $itemIds = DB::table('promotion_items')
                 ->where('promotion_id', $id)
@@ -317,38 +318,38 @@ class PromotionController extends Controller
             );
 
         $variationDiscount = "
-                    CASE
-                        WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
-                        WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
-                        ELSE 0
-                    END
-                ";
+        CASE
+            WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
+            WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+            ELSE 0
+        END
+    ";
 
         $campaignDiscount = "
-                    CASE
-                        WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
-                        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
-                        ELSE 0
-                    END
-                ";
+        CASE
+            WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
+            WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+            ELSE 0
+        END
+    ";
 
         $priceAfterAllDiscounts = "(p.price - ($variationDiscount) - ($campaignDiscount))";
 
         $exciseBefore = "
-                    CASE
-                        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
-                        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-                        ELSE 0
-                    END
-                ";
+        CASE
+            WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
+            WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+            ELSE 0
+        END
+    ";
 
         $exciseAfter = "
-                    CASE
-                        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
-                        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-                        ELSE 0
-                    END
-                ";
+        CASE
+            WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
+            WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+            ELSE 0
+        END
+    ";
 
         $vatBefore = "(p.price + ($exciseBefore)) * (i.vat_percent / 100)";
         $vatAfter  = "(($priceAfterAllDiscounts) + ($exciseAfter)) * (i.vat_percent / 100)";
@@ -358,7 +359,7 @@ class PromotionController extends Controller
             ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
             ->leftJoinSub(
                 DB::table('item_images')
-                    ->select('item_id', DB::raw("STRING_AGG(image::text, ',') as images"))
+                    ->select('item_id', DB::raw("COALESCE(STRING_AGG(image::text, ','), '') as images"))
                     ->groupBy('item_id'),
                 'im',
                 'im.item_id',
@@ -375,27 +376,27 @@ class PromotionController extends Controller
                 'i.title as title',
                 'i.brand_id as brand_id',
                 DB::raw("
-                    CASE
-                        WHEN ad.discount_type IS NULL THEN p.price
-                        WHEN ad.discount_type = 'percentage' THEN ROUND(CAST(p.price - (p.price * ad.discount_value / 100) AS numeric), 2)
-                        WHEN ad.discount_type = 'fixed' THEN ROUND(CAST(p.price - ad.discount_amount AS numeric), 2)
-                        ELSE p.price
-                    END as price
-                "),
+                CASE
+                    WHEN ad.discount_type IS NULL THEN p.price
+                    WHEN ad.discount_type = 'percentage' THEN ROUND(CAST(p.price - (p.price * ad.discount_value / 100) AS numeric), 2)
+                    WHEN ad.discount_type = 'fixed' THEN ROUND(CAST(p.price - ad.discount_amount AS numeric), 2)
+                    ELSE p.price
+                END as price
+            "),
                 'im.images',
                 'ad.discount_type as discount_type',
                 DB::raw("
-                    CASE
-                        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
-                        ELSE ad.discount_value
-                    END as discount_value
-                "),
+                CASE
+                    WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                    ELSE ad.discount_value
+                END as discount_value
+            "),
                 DB::raw("
-                    CASE
-                        WHEN ad.discount_type = 'percentage' THEN ad.discount_value
-                        ELSE NULL
-                    END as discount_percentage
-                "),
+                CASE
+                    WHEN ad.discount_type = 'percentage' THEN ad.discount_value
+                    ELSE NULL
+                END as discount_percentage
+            "),
                 DB::raw("ROUND(CAST(p.price + ($exciseBefore) + ($vatBefore) AS numeric), 2) as price_before_discount"),
                 DB::raw("ROUND(CAST(($priceAfterAllDiscounts) + ($exciseAfter) + ($vatAfter) AS numeric), 2) as price_after_discount")
             )
@@ -425,7 +426,9 @@ class PromotionController extends Controller
             ]);
         }
 
-        $baseUrl    = url('storage/items');
+        // Use asset() helper for better URL generation
+        $baseUrl = asset('storage/items');
+
         $productIds = collect($items->items())->pluck('productid')->unique()->toArray();
 
         $allVariations = DB::table('itemvariations as iv')
@@ -443,11 +446,31 @@ class PromotionController extends Controller
             ->groupBy('productid');
 
         $isWholesaler      = $request->boolean('is_wholesaler');
-        $wholesalerDetails = collect(); 
+        $wholesalerDetails = collect();
+
         $items->getCollection()->transform(function ($item) use ($baseUrl, $allVariations, $wholesalerDetails, $isWholesaler) {
-            $item->images     = $item->images
-                ? array_map(fn($img) => $baseUrl . '/' . trim($img), explode(',', $item->images))
-                : [];
+            // Transform images to full URLs
+            if (!empty($item->images)) {
+                $imageArray = explode(',', $item->images);
+                $item->images = array_map(function ($img) use ($baseUrl) {
+                    $img = trim($img);
+                    // Skip if empty
+                    if (empty($img)) {
+                        return null;
+                    }
+                    // If already a full URL, return as is
+                    if (filter_var($img, FILTER_VALIDATE_URL)) {
+                        return $img;
+                    }
+                    // Otherwise, prepend base URL
+                    return $baseUrl . '/' . ltrim($img, '/');
+                }, $imageArray);
+                // Remove any null values
+                $item->images = array_values(array_filter($item->images));
+            } else {
+                $item->images = [];
+            }
+
             $item->variations = $allVariations[$item->productid] ?? collect();
 
             if ($isWholesaler) {
@@ -465,18 +488,5 @@ class PromotionController extends Controller
             'message' => 'Items fetched successfully.',
             'result'  => $this->paginateResponse($items)
         ]);
-        // } catch (\Illuminate\Database\QueryException $e) {
-        //     Log::error('getPromotionItem DB error: ' . $e->getMessage());
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => 'A database error occurred while fetching items.',
-        //     ], 500);
-        // } catch (\Throwable $e) {
-        //     Log::error('getPromotionItem error: ' . $e->getMessage());
-        //     return response()->json([
-        //         'type'    => 'error',
-        //         'message' => 'Something went wrong while fetching items.',
-        //     ], 500);
-        // }
     }
 }
