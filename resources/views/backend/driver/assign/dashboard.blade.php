@@ -14,6 +14,12 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
+    #assignTable th:first-child,
+    #assignTable td:first-child {
+        overflow: visible;
+        text-overflow: clip;
+    }
 </style>
 
     <div class="container-xxl flex-grow-1 container-p-y">
@@ -126,13 +132,13 @@
                 <table class="table" id="assignTable">
                     <thead class="table-light">
                         <tr class="align-middle">
-                            <th style="width: 3%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
-                            <th style="width: 12%;">Customer</th>
-                            <th style="width: 28%;">Delivery Address</th>
+                            <th style="width: 4%;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
+                            <th style="width: 15%;">Customer</th>
+                            <th style="width: 21%;">Delivery Address</th>
                             <th style="width: 12%;">Order Time</th>
-                            <th style="width: 10%;">Order Status</th>
-                            <th style="width: 10%;">Driver</th>
-                            <th style="width: 12%;">Assign Date</th>
+                            <th style="width: 13%;">Order Status</th>
+                            <th style="width: 12%;">Driver</th>
+                            <th style="width: 10%;">Assign Date</th>
                             <th style="width: 13%;">Actions</th>
                         </tr>
                     </thead>
@@ -314,7 +320,7 @@
                         var column = this;
                         var header = $(column.header()).text().trim();
                         $('<input type="text" class="form-control form-control-sm" placeholder="Search ' +
-                                header + '..." style="width:100%;" />')
+                                header + '" style="width:100%;" />')
                             .appendTo($(column.header()).empty())
                             .on('keyup change', function() {
                                 assignTable.fnDraw();
