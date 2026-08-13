@@ -20,8 +20,13 @@ class InventoryController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.inventory')) {
+            abort(403);
+        }
         return view('backend.inventory.index');
-    } // InventoryController.php
+    }
+
+    // InventoryController.php
     public function getVariations(Request $request)
     {
         $query = DB::table('itemvariations')
@@ -40,64 +45,72 @@ class InventoryController extends Controller
 
     public function save(Request $request)
     {
-        // try {
-        $rules = [
-            'itemid'             => 'required',
-            'variationid'        => 'required',
-            'vendorid'           => 'required',
-            'quantity_available' => 'required|numeric|min:0',
-            'reorder_level'      => 'required|numeric|min:0',
-            'unit_cost'          => 'required|numeric|min:0',
-            'selling_price'      => 'required|numeric|min:0',
-            'manufacturedatead'  => 'required|date',
-            'expirydatead'       => 'required|date|after:manufacturedatead',
-        ];
+        try {
+            $action = !empty($request->id) ? 'edit.inventory' : 'add.inventory';
 
-        $messages = [
-            'itemid.required'             => 'Please select a product.',
-            'variationid.required'        => 'Please select a variation.',
-            'vendorid.required'           => 'Please select a vendor.',
-            'quantity_available.required' => 'Quantity is required.',
-            'quantity_available.numeric'  => 'Quantity must be a number.',
-            'reorder_level.required'      => 'Threshold is required.',
-            'unit_cost.required'          => 'Unit cost is required.',
-            'selling_price.required'      => 'Selling price is required.',
-            'manufacturedatead.required'  => 'Manufacture date is required.',
-            'expirydatead.required'       => 'Expiry date is required.',
-            'expirydatead.after'          => 'Expiry date must be after manufacture date.',
-        ];
+            if (!auth()->user()->can($action)) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => 'You do not have permission to perform this action.'
+                ]);
+            }
+            $rules = [
+                'itemid'             => 'required',
+                'variationid'        => 'required',
+                'vendorid'           => 'required',
+                'quantity_available' => 'required|numeric|min:0',
+                'reorder_level'      => 'required|numeric|min:0',
+                'unit_cost'          => 'required|numeric|min:0',
+                'selling_price'      => 'required|numeric|min:0',
+                'manufacturedatead'  => 'required|date',
+                'expirydatead'       => 'required|date|after:manufacturedatead',
+            ];
 
-        $validation = Validator::make($request->all(), $rules, $messages);
+            $messages = [
+                'itemid.required'             => 'Please select a product.',
+                'variationid.required'        => 'Please select a variation.',
+                'vendorid.required'           => 'Please select a vendor.',
+                'quantity_available.required' => 'Quantity is required.',
+                'quantity_available.numeric'  => 'Quantity must be a number.',
+                'reorder_level.required'      => 'Threshold is required.',
+                'unit_cost.required'          => 'Unit cost is required.',
+                'selling_price.required'      => 'Selling price is required.',
+                'manufacturedatead.required'  => 'Manufacture date is required.',
+                'expirydatead.required'       => 'Expiry date is required.',
+                'expirydatead.after'          => 'Expiry date must be after manufacture date.',
+            ];
 
-        if ($validation->fails()) {
+            $validation = Validator::make($request->all(), $rules, $messages);
+
+            if ($validation->fails()) {
+                return response()->json([
+                    'type'    => 'error',
+                    'message' => $validation->errors()->first()
+                ]);
+            }
+
+            $post          = $request->all();
+            $post['orgid'] = session('orgid');
+
+            DB::beginTransaction();
+
+            if (!Inventory::saveData($post)) {
+                throw new Exception('Could not save inventory.');
+            }
+
+            DB::commit();
+
             return response()->json([
-                'type'    => 'error',
-                'message' => $validation->errors()->first()
+                'type'    => 'success',
+                'message' => 'Inventory saved successfully.'
             ]);
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
         }
-
-        $post          = $request->all();
-        $post['orgid'] = session('orgid');
-
-        DB::beginTransaction();
-
-        if (!Inventory::saveData($post)) {
-            throw new Exception('Could not save inventory.');
-        }
-
-        DB::commit();
-
-        return response()->json([
-            'type'    => 'success',
-            'message' => 'Inventory saved successfully.'
-        ]);
-        // } catch (QueryException $e) {
-        //     DB::rollBack();
-        //     return response()->json(['type' => 'error', 'message' => $this->queryMessage]);
-        // } catch (Exception $e) {
-        //     DB::rollBack();
-        //     return response()->json(['type' => 'error', 'message' => $e->getMessage()]);
-        // }
     }
 
     public function list(Request $request)
@@ -116,10 +129,24 @@ class InventoryController extends Controller
         foreach ($data as $row) {
             $array[$i]["sno"] = $i + 1;
             $array[$i]["stock"]          = $row->stock;
+            $array[$i]["returnqty"]    = $row->returnqty ?? 0;
             $array[$i]["remainingqty"] = $row->remainingqty;
             $array[$i]["soldqty"]   = $row->soldqty ?? 0;
             $array[$i]["title"]        = $row->title;
             $array[$i]["attribute"] = ($row->attribute ?? '-') . ': ' . ($row->variation_value ?? '-');
+
+            $action = '';
+            if (auth()->user()->can('view.inventory')) {
+                $action .= '<a href="javascript:;" class="viewInventory px-2" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
+            }
+            if (auth()->user()->can('edit.inventory')) {
+                $action .= '<a href="javascript:;" class="editInventory px-2" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            }
+            if (auth()->user()->can('delete.inventory')) {
+                $action .= '<a href="javascript:;" class="deleteInventory px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            }
+            $array[$i]["action"] = $action;
+
 
             $i++;
         }
@@ -164,7 +191,11 @@ class InventoryController extends Controller
 
     public function view(Request $request)
     {
+        if (!auth()->user()->can('view.inventory')) {
+            abort(403);
+        }
         try {
+
             $post = $request->all();
 
             $inventoryDetails = Inventory::getData($post);
@@ -185,41 +216,47 @@ class InventoryController extends Controller
 
     public function form(Request $request)
     {
-        // try {
-        $post            = $request->all();
-        $post['orgid']   = session('orgid');
+        $action = !empty($request->id) ? 'edit.inventory' : 'add.inventory';
 
-        $items   = Item::getItem($post);
-        $vendors = Vendor::getVendor($post);
-
-        $data = [
-            'items'   => $items,
-            'vendors' => $vendors,
-        ];
-
-        if (!empty($request->id)) {
-            $result = Inventory::getData($post);
-            if (!$result) {
-                throw new Exception("Inventory not found", 1);
-            }
-
-            $data['id']               = $result->id;
-            $data['itemid']           = $result->item_id;
-            $data['expirymonth']           = $result->expirymonth;
-            $data['variationid']      = $result->variation_id;
-            $data['vendorid']         = $result->vendor_id;
-            $data['quantity_available'] = $result->quantity_available;
-            $data['reorder_level']    = $result->reorder_level;
-            $data['unit_cost']        = $result->unit_cost;
-            $data['selling_price']    = $result->selling_price;
-            $data['manufacturedatead'] = $result->manufacturedatead ?? '';
-            $data['expirydatead']     = $result->expirydatead ?? '';
+        if (!auth()->user()->can($action)) {
+            abort(403);
         }
-        // } catch (QueryException $e) {
-        //     $data['error'] = $this->queryMessage;
-        // } catch (Exception $e) {
-        //     $data['error'] = $e->getMessage();
-        // }
+
+        try {
+            $post            = $request->all();
+            $post['orgid']   = session('orgid');
+
+            $items   = Item::getItem($post);
+            $vendors = Vendor::getVendor($post);
+
+            $data = [
+                'items'   => $items,
+                'vendors' => $vendors,
+            ];
+
+            if (!empty($request->id)) {
+                $result = Inventory::getData($post);
+                if (!$result) {
+                    throw new Exception("Inventory not found", 1);
+                }
+
+                $data['id']               = $result->id;
+                $data['itemid']           = $result->item_id;
+                $data['expirymonth']           = $result->expirymonth;
+                $data['variationid']      = $result->variation_id;
+                $data['vendorid']         = $result->vendor_id;
+                $data['quantity_available'] = $result->quantity_available;
+                $data['reorder_level']    = $result->reorder_level;
+                $data['unit_cost']        = $result->unit_cost;
+                $data['selling_price']    = $result->selling_price;
+                $data['manufacturedatead'] = $result->manufacturedatead ?? '';
+                $data['expirydatead']     = $result->expirydatead ?? '';
+            }
+        } catch (QueryException $e) {
+            $data['error'] = $this->queryMessage;
+        } catch (Exception $e) {
+            $data['error'] = $e->getMessage();
+        }
 
         return view('backend.inventory.form', $data);
     }

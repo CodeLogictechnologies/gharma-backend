@@ -86,6 +86,7 @@ Route::get('/subcategories/list', [CategoryListController::class, 'getSubCategor
 Route::get('/home', [HomeTabController::class, 'index']);
 // Promotional banners for mobile home screen
 Route::get('/promotions', [PromotionController::class, 'index']);
+Route::get('/promotions/{id}/{applies_to}', [PromotionController::class, 'getPromotionItem']);
 
 Route::middleware('auth:api')->group(function () {
     Route::post('/items/search/save', [SearchHistoryController::class, 'searchSave']);

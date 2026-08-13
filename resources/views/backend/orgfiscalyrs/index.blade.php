@@ -6,9 +6,11 @@
         <div class="card">
             <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
                 <h5 class="mb-0">Assign Fiscal Year</h5>
+                @can('edit.org-fiscalyear')
                 <button type="button" class="btn btn-primary" id="btnSaveFy">
                     <i class="bx bx-save"></i> Update
                 </button>
+                @endcan
             </div>
 
             <div class="mx-4 mb-4">

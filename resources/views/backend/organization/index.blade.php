@@ -6,9 +6,11 @@
     <div class="card">
         <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
             <h5 class="mb-0">Organization List</h5>
+            @can('add.organization')
             <button type="button" id="addOrg" class="btn btn-primary">
                 <i class="bx bx-plus me-1"></i> Add Organization
             </button>
+             @endcan
         </div>
 
         <div class="table-responsive text-nowrap mx-4 mb-4">

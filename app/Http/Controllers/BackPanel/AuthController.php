@@ -60,7 +60,7 @@ class AuthController extends SessionController
         if (!Auth::attempt($credentials)) {
             throw new Exception('Invalid email/username or password.');
         }
-
+        // dd(auth()->user()->getRoleNames());
         $org = DB::table('userorganizations')
             ->where('userid', $user->id)
             ->first();
@@ -364,7 +364,6 @@ class AuthController extends SessionController
     public function success(Request $request)
     {
         $decoded = base64_decode($request->data);
-        dd($decoded);
 
         $verified = $this->verifyEsewa($txn);
 

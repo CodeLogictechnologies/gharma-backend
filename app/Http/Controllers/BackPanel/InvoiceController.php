@@ -17,6 +17,9 @@ class InvoiceController extends Controller
 
     public function index()
     {
+        if (!auth()->user()->can('view.invoice')) {
+            abort(403);
+        }
         return view('backend.invoice.index');
     }
 
@@ -46,17 +49,13 @@ class InvoiceController extends Controller
             $array[$i]["order_status"] = $row->order_status;
 
 
-            $action = '
-                        <a href="javascript:;" title="View Order" class="tooltipdiv viewOrder" style="color:green;" data-id="' . $row->id . '">
-                        <i class="bx bx-show-alt"></i>
-                        </a>
-                        <a href="' . route('invoice.download', $row->id) . '" title="Download Invoice" class="tooltipdiv" style="color:#6366f1;" target="_blank">
-                        <i class="bx bx-download"></i>
-                        </a>
-                        <a href="' . route('invoice.preview', $row->id) . '" title="Preview Invoice" class="tooltipdiv" style="color:#f59e0b;" target="_blank">
-                        <i class="bx bx-file"></i>
-                        </a>
-                    ';
+            $action = '';
+
+            if (auth()->user()->can('view.invoice')) {
+                $action .= '<a href="javascript:;" title="View Order" class="tooltipdiv viewOrder" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+                $action .= '<a href="' . route('invoice.download', $row->id) . '" title="Download Invoice" class="tooltipdiv" style="color:#6366f1;" target="_blank"><i class="bx bx-download"></i></a>';
+                $action .= '<a href="' . route('invoice.preview', $row->id) . '" title="Preview Invoice" class="tooltipdiv" style="color:#f59e0b;" target="_blank"><i class="bx bx-file"></i></a>';
+            }
 
             $array[$i]["action"] = $action;
             $i++;
@@ -74,11 +73,17 @@ class InvoiceController extends Controller
 
     public function download(string $id)
     {
+        if (!auth()->user()->can('view.invoice')) {
+            abort(403);
+        }
         return $this->resolveInvoicePdf($id, 'attachment');
     }
 
     public function preview(string $id)
     {
+        if (!auth()->user()->can('view.invoice')) {
+            abort(403);
+        }
         return $this->resolveInvoicePdf($id, 'inline');
     }
 

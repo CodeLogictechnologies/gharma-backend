@@ -17,9 +17,9 @@ class DiscountRequest extends FormRequest
     public function rules(): array
     {
         return [
-
+            
             'id' => ['nullable', 'string'],
-
+            'title' => 'required|string|max:255',
             /*
             |--------------------------------------------------------------------------
             | Discount Type
@@ -141,7 +141,7 @@ class DiscountRequest extends FormRequest
             | Dates
             |--------------------------------------------------------------------------
             */
-            'starts_at' => [
+           'starts_at' => [
                 'required',
                 'date',
             ],
@@ -150,6 +150,16 @@ class DiscountRequest extends FormRequest
                 'required',
                 'date',
                 'after_or_equal:starts_at',
+            ],
+
+            'starts_time' => [
+                'nullable',
+                'date_format:H:i',
+            ],
+
+            'ends_time' => [
+                'nullable',
+                'date_format:H:i',
             ],
         ];
     }
@@ -235,7 +245,7 @@ class DiscountRequest extends FormRequest
     public function messages(): array
     {
         return [
-
+            'title.required' => 'Please enter a discount title.',
             'type.required' => 'Please select a discount type.',
             'type.in' => 'Invalid discount type.',
 
@@ -277,9 +287,12 @@ class DiscountRequest extends FormRequest
             'ends_at.required' => 'Please select the end date.',
             'ends_at.date' => 'Invalid end date.',
             'ends_at.after_or_equal' => 'End date must be after or equal to the start date.',
+
+            'starts_time.date_format' => 'Invalid active time.',
+            'ends_time.date_format'   => 'Invalid end time.',
         ];
     }
-
+        
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(
@@ -287,6 +300,7 @@ class DiscountRequest extends FormRequest
                 'status'  => false,
                 'type'    => 'validation',
                 'message' => 'Validation failed.',
+                 'message' => $validator->errors()->first(),
                 'errors'  => $validator->errors(),
             ], 422)
         );

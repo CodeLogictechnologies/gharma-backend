@@ -14,6 +14,9 @@ class HomeTabController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.hometab')) {
+            abort(403);
+        }
         $post['orgid'] = session('orgid');
         $categories    = Category::getCategory($post);
         return view('backend.hometab.index', compact('categories'));
@@ -21,12 +24,19 @@ class HomeTabController extends Controller
 
     public function form(Request $request)
     {
+        $action = $request->id ? 'edit.hometab' : 'add.hometab';
+
+        if (!auth()->user()->can($action)) {
+            abort(403);
+        }
+
         $post          = $request->all();
         $post['orgid'] = session('orgid');
         $categories    = Category::getCategory($post);
         $data          = [
             'id'           => null,
             'tab_name'     => '',
+            'tab_order'    => '',
             'category_ids' => [],
             'icon_name'    => '',
             'bg_color'     => '#ffffff',
@@ -37,6 +47,7 @@ class HomeTabController extends Controller
             $data = [
                 'id'           => $row->id,
                 'tab_name'     => $row->tab_name,
+                'tab_order'    => $row->tab_order ?? '',
                 'category_ids' => $row->category_ids ?? [],
                 'icon_name'    => $row->icon_name ?? '',
                 'bg_color'     => $row->bg_color ?? '#ffffff',
@@ -49,6 +60,12 @@ class HomeTabController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.hometab' : 'add.hometab';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $type    = !empty($request->id) ? 'success' : 'success';
             $message = !empty($request->id)
                 ? 'Record updated successfully.'
@@ -56,12 +73,15 @@ class HomeTabController extends Controller
 
             $validation = Validator::make($request->all(), [
                 'tab_name'       => 'required|string|max:255',
+                'tab_order'      => 'required|integer|min:0',
                 'category_ids'   => 'required|array|min:1',
                 'category_ids.*' => 'exists:categories,id',
                 'icon_name'      => 'required|string|max:100',
                 'bg_color'       => ['required', 'string', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
             ], [
-                'bg_color.regex' => 'The background color must be a valid hex color code (e.g. #FF5733).',
+                'bg_color.regex'    => 'The background color must be a valid hex color code (e.g. #FF5733).',
+                'tab_order.integer' => 'Order must be a whole number.',
+                'tab_order.min'     => 'Order cannot be negative.',
             ]);
 
             if ($validation->fails()) {
@@ -98,6 +118,7 @@ class HomeTabController extends Controller
             $action = '';
             $array[$i]['sno']            = $request->input('start', 0) + $i + 1;
             $array[$i]['tab_name']       = $row->tab_name       ?? '—';
+            $array[$i]['tab_order']      = $row->tab_order      ?? 0;
             $array[$i]['category_names'] = '—';
 
             if (!empty($row->category_names)) {
@@ -114,8 +135,16 @@ class HomeTabController extends Controller
                 ? '<span style="display:inline-block;width:20px;height:20px;background:' . e($row->bg_color) . ';border-radius:4px;border:1px solid #ccc;" title="' . e($row->bg_color) . '"></span> ' . e($row->bg_color)
                 : '—';
 
-           $action .= '<a href="javascript:;" class="editHomeTab"         style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-$action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            if (auth()->user()->can('edit.hometab')) {
+                $action .= '<a href="javascript:;" class="editHomeTab px-2" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            }
+
+            if (auth()->user()->can('delete.hometab')) {
+                $action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+            }
+
+            // $action .= '<a href="javascript:;" class="editHomeTab"         style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+            // $action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"  data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
             $array[$i]['action'] = $action;
             $i++;
         }
@@ -130,6 +159,9 @@ $action .= '<a href="javascript:;" class="deleteHomeTab px-2" style="color:red;"
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.hometab')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
             $type    = 'success';
             $message = 'Record deleted successfully.';
             HomeTab::deleteData($request->all());

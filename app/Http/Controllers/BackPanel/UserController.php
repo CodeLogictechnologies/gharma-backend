@@ -18,6 +18,10 @@ class UserController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.user')) {
+            abort(403);
+        }
+
         return view('backend.users.main');
     }
 
@@ -25,6 +29,10 @@ class UserController extends Controller
     {
         try {
             $isEdit = !empty($request->id);
+
+            if (!auth()->user()->can($isEdit ? 'edit.user' : 'add.user')) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
 
             $isWholesaler = false;
             if (!empty($request->roles)) {
@@ -167,12 +175,19 @@ class UserController extends Controller
 
     public function customerForm(Request $request)
     {
+        if (!auth()->user()->can('add.user')) {
+            abort(403);
+        }
         return view('backend.users.customer_form');
     }
 
     public function customerSave(Request $request)
     {
         try {
+            if (!auth()->user()->can('add.user')) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $isWholesaler = $request->role_type === 'Wholesaler';
 
             $rules = [
@@ -261,6 +276,10 @@ class UserController extends Controller
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.user')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post          = $request->all();
             $post['orgid'] = session('orgid');
             $data          = User::list($post);
@@ -285,11 +304,16 @@ class UserController extends Controller
                 </select>';
 
                 $action  = '';
-                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrg   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
-                $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg   " style="color:#696cff;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a> ';
-                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg " style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                if (auth()->user()->can('view.user')) {
+                    $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrg   " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                }
+                if (auth()->user()->can('edit.user')) {
+                    $action .= '<a href="javascript:;" title="Edit"   class="tooltipdiv editOrg   " style="color:#696cff;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a> ';
+                }
+                if (auth()->user()->can('delete.user')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrg " style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
                 $array[$i]["action"] = $action;
-
                 $i++;
             }
 
@@ -315,6 +339,9 @@ class UserController extends Controller
     public function inActivelist(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.user')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
             $post                 = $request->all();
             $post['orgid']        = session('orgid');
             $post['inactiveuser'] = 'Y';
@@ -340,9 +367,13 @@ class UserController extends Controller
                     <option value="Reject"  ' . ($row->user_status == "Reject"  ? "selected" : "") . '>Reject</option>
                 </select>';
 
-                $action  = '';
-                $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrgInactive  " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
-                $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrgInactive" style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+               $action  = '';
+                if (auth()->user()->can('view.user')) {
+                    $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrgInactive  " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
+                }
+                if (auth()->user()->can('delete.user')) {
+                    $action .= '<a href="javascript:;" title="Delete" class="tooltipdiv deleteOrgInactive" style="color:red;font-size:18px;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
                 $array[$i]["action"] = $action;
 
                 $i++;
@@ -370,6 +401,12 @@ class UserController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.user' : 'add.user';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $data              = [];
             $data['rolesList'] = Role::getRole();
             if (!empty($request->id)) {
@@ -432,6 +469,9 @@ class UserController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.user')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
             $type    = 'success';
             $message = "Record deleted successfully";
             $post    = $request->all();
@@ -472,6 +512,10 @@ class UserController extends Controller
     public function view(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.user')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+
             if (empty($request->id)) throw new Exception("No ID provided");
 
             $userDetails = DB::table('users as u')
@@ -533,6 +577,10 @@ class UserController extends Controller
     public function updateStatus(Request $request)
     {
         try {
+            if (!auth()->user()->can('edit.user')) {
+                return response()->json(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $user = User::find($request->user_id);
             if (!$user) return response()->json(['type' => 'error', 'message' => 'User not found']);
 
@@ -554,6 +602,10 @@ class UserController extends Controller
 
     public function tabs(Request $request)
     {
+        if (!auth()->user()->can('view.user')) {
+            return '<div class="alert alert-danger">You do not have permission to view this data.</div>';
+        }
+        
         switch ($request->input('tabid')) {
             case 'active':
                 return view('backend.users.index');

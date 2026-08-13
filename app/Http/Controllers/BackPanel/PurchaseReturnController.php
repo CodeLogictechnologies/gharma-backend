@@ -20,12 +20,20 @@ class PurchaseReturnController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.purchase-return')) {
+            abort(403);
+        }
+
         return view('backend.purchase-return.index');
     }
 
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.purchase-return')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -67,13 +75,17 @@ class PurchaseReturnController extends Controller
                 $array[$i]["status"] = $statusBadges[$row->return_status] ?? $row->return_status;
 
                 $action = '';
-                if ($row->return_status === 'Pending') {
+                if ($row->return_status === 'Pending' && auth()->user()->can('edit.purchase-return')) {
                     $action .= '<a href="javascript:;" title="Approve" class="tooltipdiv approvePurchaseReturn" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-check-circle"></i></a>';
                     $action .= '<a href="javascript:;" title="Reject" class="tooltipdiv rejectPurchaseReturn" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-x-circle"></i></a>';
                 }
                 $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewPurchaseReturn" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editPurchaseReturn" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseReturn" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                if (auth()->user()->can('edit.purchase-return')) {
+                    $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editPurchaseReturn" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.purchase-return')) {
+                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deletePurchaseReturn" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
 
                 $array[$i]["action"] = $action;
                 $i++;
@@ -97,6 +109,12 @@ class PurchaseReturnController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.purchase-return' : 'add.purchase-return';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -150,6 +168,10 @@ class PurchaseReturnController extends Controller
 
     public function vendorVouchers(Request $request)
     {
+        if (!auth()->user()->can('view.purchase-return')) {
+            return response()->json([]);
+        }
+
         $post = $request->all();
         $post['orgid'] = session('orgid');
         $post['exclude_return_id'] = $request->exclude_return_id;
@@ -161,6 +183,10 @@ class PurchaseReturnController extends Controller
 
     public function voucherItems(Request $request)
     {
+        if (!auth()->user()->can('view.purchase-return')) {
+            return response()->json(['bill_discount_percent' => 0, 'items' => []]);
+        }
+
         $orgid = session('orgid');
 
         if (empty($request->voucher_id)) {
@@ -205,6 +231,10 @@ class PurchaseReturnController extends Controller
     public function updateStatus(Request $request)
     {
         try {
+            if (!auth()->user()->can('edit.purchase-return')) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $rules = [
                 'id'            => 'required',
                 'return_status' => 'required|in:Approved,Rejected',
@@ -304,6 +334,12 @@ class PurchaseReturnController extends Controller
     public function save(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.purchase-return' : 'add.purchase-return';
+
+            if (!auth()->user()->can($action)) {
+                return response()->json(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $rules = [
                 'return_date'       => 'required|date',
                 // 'debit_note_no'     => 'required|string|max:255',
@@ -420,6 +456,11 @@ class PurchaseReturnController extends Controller
     public function view(Request $request)
     {
         try {
+
+            if (!auth()->user()->can('view.purchase-return')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+            
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -442,6 +483,10 @@ class PurchaseReturnController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.purchase-return')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+            
             $type = 'success';
             $message = 'Purchase return voucher deleted successfully';
 

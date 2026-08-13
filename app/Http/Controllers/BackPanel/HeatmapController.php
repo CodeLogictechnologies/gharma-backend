@@ -124,6 +124,10 @@ class HeatmapController extends Controller
     // ── Page load ────────────────────────────────────────────────────
     public function index(Request $request)
     {
+        if (!auth()->user()->can('view.heatmap')) {
+            abort(403);
+        }
+
         $orderStatus = $request->get('order_status', 'all');
         $dateFrom    = $request->get('date_from', now()->subYear()->toDateString());
         $dateTo      = $request->get('date_to', now()->toDateString());
@@ -143,6 +147,11 @@ class HeatmapController extends Controller
     // ── AJAX data endpoint ───────────────────────────────────────────
     public function data(Request $request)
     {
+        if (!auth()->user()->can('view.heatmap')) {
+            return response()->json([
+                'message' => 'You do not have permission to view this data.',
+            ], 403);
+        }
         $orderStatus = $request->get('order_status', 'all');
         $dateFrom    = $request->get('date_from', now()->subYear()->toDateString());
         $dateTo      = $request->get('date_to', now()->toDateString());

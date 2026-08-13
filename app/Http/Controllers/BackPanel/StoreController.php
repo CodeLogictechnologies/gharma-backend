@@ -23,6 +23,9 @@ class StoreController extends Controller
     //function to redirect to store page
     public function index()
     {
+        if (!auth()->user()->can('view.store')) {
+            abort(403);
+        }
         return view('backend.store.index');
     }
 
@@ -58,6 +61,12 @@ class StoreController extends Controller
     public function save(SaveStoreRequest $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.store' : 'add.store';
+
+            if (!auth()->user()->can($action)) {
+                return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
+            }
+
             $post           = $request->all();
             $post['userid'] = session('userid');
             $post['orgid']  = session('orgid');
@@ -90,6 +99,10 @@ class StoreController extends Controller
     public function list(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.store')) {
+                throw new Exception('You do not have permission to view this data.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
 
@@ -116,8 +129,12 @@ class StoreController extends Controller
 
                 $action  = '';
                 $action .= '<a href="javascript:;" title="View Data"   class="tooltipdiv viewStore" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a>';
-                $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editStore" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
-                $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                if (auth()->user()->can('edit.store')) {
+                    $action .= '<a href="javascript:;" title="Edit Data"   class="tooltipdiv editStore" style="color:blue;"  data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                }
+                if (auth()->user()->can('delete.store')) {
+                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteStore" style="color:red;"   data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                }
                 $array[$i]["action"]  = $action;
                 $i++;
             }
@@ -141,6 +158,12 @@ class StoreController extends Controller
     public function form(Request $request)
     {
         try {
+            $action = !empty($request->id) ? 'edit.store' : 'add.store';
+
+            if (!auth()->user()->can($action)) {
+                throw new Exception('You do not have permission to perform this action.');
+            }
+
             $data = [];
             if (!empty($request->id)) {
                 $post = $request->all();
@@ -175,6 +198,10 @@ class StoreController extends Controller
     public function delete(Request $request)
     {
         try {
+            if (!auth()->user()->can('delete.store')) {
+                throw new Exception('You do not have permission to delete this record.');
+            }
+
             $type = 'success';
             $message = "Store deleted successfully";
             $post = $request->all();
@@ -201,6 +228,10 @@ class StoreController extends Controller
     public function view(Request $request)
     {
         try {
+            if (!auth()->user()->can('view.store')) {
+                throw new Exception('You do not have permission to view this record.');
+            }
+
             $post = $request->all();
             $post['orgid'] = session('orgid');
             $orgDetails = Store::getData($post);

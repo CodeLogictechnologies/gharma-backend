@@ -16,11 +16,20 @@ class PromotionController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('view.promotion')) {
+            abort(403);
+        }
         return view('backend.promotion.index');
     }
 
     public function form(Request $request)
     {
+        $action = !empty($request->id) ? 'edit.promotion' : 'add.promotion';
+
+        if (!auth()->user()->can($action)) {
+            abort(403);
+        }
+        
         $post          = $request->all();
         $post['orgid'] = session('orgid');
 
@@ -62,9 +71,9 @@ class PromotionController extends Controller
 
     public function save(Request $request)
     {
-        if (!auth()->user()->can($request->id ? 'edit.promotion' : 'add.promotion')) {
-            return response()->json(['type' => 'error', 'message' => 'Unauthorized.'], 403);
-        }
+        // if (!auth()->user()->can($request->id ? 'edit.promotion' : 'add.promotion')) {
+        //     return response()->json(['type' => 'error', 'message' => 'Unauthorized.'], 403);
+        // }
 
         try {
             $type    = 'success';

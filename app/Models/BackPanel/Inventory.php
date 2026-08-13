@@ -74,6 +74,13 @@ class Inventory extends Model
             ->where('status', 'Y')
             ->whereNull('deleted_at')
             ->groupBy('variation_id');
+        
+        $returnAgg = DB::table('purchase_return_voucher_items as prvi')
+            ->join('purchase_return_vouchers as prv', 'prv.id', '=', 'prvi.purchase_return_voucher_id')
+            ->select('prvi.variation_id', DB::raw('SUM(prvi.qty) as total_returned'))
+            ->where('prv.status', 'Y')
+            ->where('prv.return_status', 'Approved')
+            ->groupBy('prvi.variation_id');
 
         return DB::table('items as i')
             ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
@@ -81,7 +88,9 @@ class Inventory extends Model
                 $join->on('pvi.item_id', '=', 'i.id')
                     ->on('pvi.variation_id', '=', 'iv.id');
             })
-            ->leftJoinSub($salesAgg, 'o', 'o.variation_id', '=', 'iv.id');
+            ->leftJoinSub($salesAgg, 'o', 'o.variation_id', '=', 'iv.id')
+            ->leftJoinSub($returnAgg, 'pr', 'pr.variation_id', '=', 'iv.id');
+
     }
 
     public static function list($post)
@@ -122,7 +131,8 @@ class Inventory extends Model
                 ->selectRaw("
                     i.id,
                     pvi.total_qty as stock,
-                    pvi.total_qty - COALESCE(o.total_sold, 0) AS remainingqty,
+                    COALESCE(pr.total_returned, 0) as returnqty,
+                    pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0) AS remainingqty,
                     COALESCE(o.total_sold, 0) as soldqty,
                     i.title,
                     iv.attribute,
@@ -307,10 +317,11 @@ class Inventory extends Model
                     iv.attribute,
                     iv.value as variation_value,
                     CAST(iv.threshold AS INTEGER) as threshold,
-                    pvi.total_qty - COALESCE(o.total_sold, 0) AS remainingqty
+                    pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0) AS remainingqty
+
                 ")
-                ->whereRaw('(pvi.total_qty - COALESCE(o.total_sold, 0)) < CAST(iv.threshold AS INTEGER)')
-                ->orderByRaw('(pvi.total_qty - COALESCE(o.total_sold, 0)) asc')
+                ->whereRaw('(pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0)) < CAST(iv.threshold AS INTEGER)')
+                ->orderByRaw('(pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0)) asc')
                 ->get();
 
             return $rows;

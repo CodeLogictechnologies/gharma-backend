@@ -116,9 +116,12 @@ body.note-fullscreen-active .layout-menu-toggle {
                             <label class="form-label fw-semibold">Return Policy Description<span class="text-danger">*</span></label>
                             <textarea name="description" id="returnEditor" class="form-control">{!! $returnPolicy->description ?? '' !!}</textarea>
                         </div>
+
+                        @can('edit.return-refund')
                         <button type="button" class="btn btn-primary savePolicy" data-type="return">
                             <i class="bx bx-save me-1"></i> Update Return Policy
                         </button>
+                        @endcan
                     </form>
                 </div>
 
@@ -131,9 +134,12 @@ body.note-fullscreen-active .layout-menu-toggle {
                             <label class="form-label fw-semibold">Refund Policy Description<span class="text-danger">*</span></label>
                             <textarea name="description" id="refundEditor" class="form-control">{!! $refundPolicy->description ?? '' !!}</textarea>
                         </div>
+                                               
+                        @can('edit.return-refund')
                         <button type="button" class="btn btn-primary savePolicy" data-type="refund">
                             <i class="bx bx-save me-1"></i> Update Refund Policy
                         </button>
+                        @endcan
                     </form>
                 </div>
 
