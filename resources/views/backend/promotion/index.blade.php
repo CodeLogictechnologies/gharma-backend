@@ -13,11 +13,11 @@
         <div class="card">
             <div class="card-header d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
                 <h5 class="mb-0">Promotional Banners</h5>
-                @can('add.promotion')
+                {{-- @can('add.promotion') --}}
                 <button type="button" id="addPromotion" class="btn btn-primary">
                     <i class="bx bx-plus me-1"></i> Add Promotion
                 </button>
-                @endcan
+                {{-- @endcan --}}
             </div>
 
             <div class="mx-4 mb-4">

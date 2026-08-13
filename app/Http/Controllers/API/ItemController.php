@@ -968,38 +968,38 @@ class ItemController extends Controller
 
             // --- reusable SQL fragments ---
             $variationDiscount = "
-    CASE
-        WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
-        WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
-        ELSE 0
-    END
-";
+                            CASE
+                                WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
+                                WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+                                ELSE 0
+                            END
+                        ";
 
-            $campaignDiscount = "
-    CASE
-        WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
-        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
-        ELSE 0
-    END
-";
+                                    $campaignDiscount = "
+                            CASE
+                                WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
+                                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                                ELSE 0
+                            END
+                        ";
 
-            $priceAfterAllDiscounts = "(p.price - ($variationDiscount) - ($campaignDiscount))";
+                                    $priceAfterAllDiscounts = "(p.price - ($variationDiscount) - ($campaignDiscount))";
 
-            $exciseBefore = "
-    CASE
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-        ELSE 0
-    END
-";
+                                    $exciseBefore = "
+                            CASE
+                                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
+                                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                                ELSE 0
+                            END
+                        ";
 
-            $exciseAfter = "
-    CASE
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-        ELSE 0
-    END
-";
+                                    $exciseAfter = "
+                            CASE
+                                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
+                                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                                ELSE 0
+                            END
+                        ";
 
             $vatBefore = "(p.price + ($exciseBefore)) * (i.vat_percent / 100)";
             $vatAfter  = "(($priceAfterAllDiscounts) + ($exciseAfter)) * (i.vat_percent / 100)";
