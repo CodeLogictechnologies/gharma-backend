@@ -72,24 +72,24 @@
 
         {{-- Driver --}}
         <!-- Permission -->
-        @can('view.permission')
+        {{-- @can('view.permission') --}}
         <li class="menu-item {{ request()->routeIs('permission') ? 'active' : '' }}">
             <a href="{{ route('permission') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-lock-alt"></i>
                 <div>Permission</div>
             </a>
         </li>
-        @endcan
+        {{-- @endcan --}}
 
         <!-- Role -->
-        @can('view.role')
+        {{-- @can('view.role') --}}
         <li class="menu-item {{ request()->routeIs('role') ? 'active' : '' }}">
             <a href="{{ route('role') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-shield"></i>
                 <div>Role</div>
             </a>
         </li>
-        @endcan
+        {{-- @endcan --}}
 
         <!-- Fiscal Year -->
         @can('view.fiscalyear')
@@ -210,14 +210,14 @@
         @endcanany
 
         <!-- Users -->
-        @can('view.user')
+        {{-- @can('view.user') --}}
         <li class="menu-item {{ request()->routeIs('user') ? 'active' : '' }}">
             <a href="{{ route('user') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-user"></i>
                 <div>Users</div>
             </a>
         </li>
-        @endcan
+        {{-- @endcan --}}
 
         <!-- Assign Drive -->
         @canany(['view.driver', 'view.assign-driver'])
@@ -391,14 +391,14 @@
         </li> -->
 
         <!-- Promotional Banners -->
-        @can('view.promotion')
+        {{-- @can('view.promotion') --}}
         <li class="menu-item {{ request()->routeIs('promotion') ? 'active' : '' }}">
             <a href="{{ route('promotion') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-purchase-tag-alt"></i>
                 <div>Promotional Banners</div>
             </a>
         </li>
-        @endcan
+        {{-- @endcan --}}
 
 
         <!-- Discount / Loyalty -->
