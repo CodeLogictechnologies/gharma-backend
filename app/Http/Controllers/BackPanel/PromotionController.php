@@ -10,6 +10,7 @@ use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PromotionController extends Controller
 {
@@ -78,21 +79,29 @@ class PromotionController extends Controller
             $type    = 'success';
             $message = !empty($request->id) ? 'Promotion updated successfully.' : 'Promotion saved successfully.';
 
+            $orgid = session('orgid');
+
             $validation = Validator::make($request->all(), [
                 'name'           => 'required|string|max:255',
                 'applies_to'     => 'required|in:item,category',
                 'item_ids'       => 'required_if:applies_to,item|array|min:1',
-                'item_ids.*'     => 'exists:items,id',
+                'item_ids.*'     => [
+                    Rule::exists('items', 'id')->where(fn ($query) => $query->where('orgid', $orgid)),
+                ],
                 'category_ids'   => 'required_if:applies_to,category|array|min:1',
-                'category_ids.*' => 'exists:categories,id',
+                'category_ids.*' => [
+                    Rule::exists('categories', 'id')->where(fn ($query) => $query->where('orgid', $orgid)),
+                ],
                 'bg_color'       => ['nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
                 'sort_order'     => 'nullable|integer|min:0|max:9999',
                 'image'          => 'nullable|mimes:jpg,jpeg,png|max:2048',
             ], [
-                'bg_color.regex'    => 'The background color must be a valid hex color code (e.g. #FF5733).',
-                'sort_order.integer' => 'Sort order must be a whole number.',
-                'sort_order.min'     => 'Sort order cannot be negative.',
-                'sort_order.max'     => 'Sort order cannot exceed 9999.',
+                'bg_color.regex'      => 'The background color must be a valid hex color code (e.g. #FF5733).',
+                'sort_order.integer'  => 'Sort order must be a whole number.',
+                'sort_order.min'      => 'Sort order cannot be negative.',
+                'sort_order.max'      => 'Sort order cannot exceed 9999.',
+                'item_ids.*.exists'     => 'One or more selected items are invalid.',
+                'category_ids.*.exists' => 'One or more selected categories are invalid.',
             ]);
 
             if ($validation->fails()) {

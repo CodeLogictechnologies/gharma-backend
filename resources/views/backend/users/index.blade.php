@@ -124,7 +124,7 @@
             $('#userTable').DataTable().destroy();
         }
 
-        var userTable = $('#userTable').dataTable({
+        window.userTable = $('#userTable').dataTable({
             sPaginationType: 'full_numbers',
             bSearchable: false,
             language: {
@@ -213,8 +213,17 @@
             var existing = bootstrap.Modal.getInstance(userModelEl);
 
             if (existing) {
-                // Don't dispose a modal that may still be visible/transitioning —
-                // wait for it to fully hide first, THEN dispose and reload.
+                if (!userModelEl.classList.contains('show')) {
+                    // Already hidden (e.g. a prior Close click) — hide() is a
+                    // no-op here and 'hidden.bs.modal' would never fire again,
+                    // so dispose immediately instead of waiting for it.
+                    existing.dispose();
+                    loadUserModalContent(url, data, method);
+                    return;
+                }
+
+                // Still visible/transitioning — wait for it to fully hide
+                // first, THEN dispose and reload.
                 userModelEl.addEventListener('hidden.bs.modal', function onceHidden() {
                     userModelEl.removeEventListener('hidden.bs.modal', onceHidden);
                     existing.dispose();
