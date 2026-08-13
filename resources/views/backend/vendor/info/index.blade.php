@@ -94,8 +94,7 @@
             ],
             bProcessing: true,
             bServerSide: true,
-            sAjaxSource: '{{ route('
-            vendor.info.list ') }}',
+            sAjaxSource: '{{ route('vendor.info.list') }}',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>"
             },
@@ -165,16 +164,14 @@
 
         /* ── Add ─────────────────────────────────────────────── */
         $('#addVendor').on('click', function() {
-            openVendorModal('{{ route('
-                vendor.info.form ') }}', {}, 'GET');
+            openVendorModal('{{ route('vendor.info.form') }}', {}, 'GET');
         });
 
         /* ── Edit ────────────────────────────────────────────── */
         $(document).on('click', '.editVendor', function(e) {
             e.preventDefault();
             openVendorModal(
-                '{{ route('
-                vendor.info.form ') }}', {
+                '{{ route('vendor.info.form') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 },
@@ -186,8 +183,7 @@
         $(document).on('click', '.viewVendor', function(e) {
             e.preventDefault();
             openVendorModal(
-                '{{ route('
-                vendor.info.view ') }}', {
+                '{{ route('vendor.info.view') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 },
@@ -206,8 +202,7 @@
 
         $('#confirmDelete').on('click', function() {
             if (!deleteId) return;
-            $.post('{{ route('
-                    vendor.info.delete ') }}', {
+            $.post('{{ route('vendor.info.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })
