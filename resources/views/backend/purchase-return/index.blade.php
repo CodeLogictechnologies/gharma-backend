@@ -1,5 +1,74 @@
 @extends('layouts.main')
 @section('title', 'Purchase Return (Dr. Note)')
+
+<style>
+    .pr-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .pr-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 17px;
+        line-height: 1;
+        text-decoration: none;
+        background-color: transparent;
+        transition: background-color .15s ease, transform .1s ease;
+    }
+
+    .pr-action-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .pr-action-btn:active {
+        transform: translateY(0);
+    }
+
+    .pr-action-approve {
+        color: #71dd37;
+    }
+
+    .pr-action-approve:hover {
+        color: #71dd37;
+        background-color: rgba(113, 221, 55, .14);
+    }
+
+    .pr-action-reject,
+    .pr-action-delete {
+        color: #ff3e1d;
+    }
+
+    .pr-action-reject:hover,
+    .pr-action-delete:hover {
+        color: #ff3e1d;
+        background-color: rgba(255, 62, 29, .14);
+    }
+
+    .pr-action-view {
+        color: #03c3ec;
+    }
+
+    .pr-action-view:hover {
+        color: #03c3ec;
+        background-color: rgba(3, 195, 236, .14);
+    }
+
+    .pr-action-edit {
+        color: #696cff;
+    }
+
+    .pr-action-edit:hover {
+        color: #696cff;
+        background-color: rgba(105, 108, 255, .14);
+    }
+</style>
+
 @section('content')
 
 <div class="container-xxl flex-grow-1 container-p-y">
