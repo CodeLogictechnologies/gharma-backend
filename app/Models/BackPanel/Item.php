@@ -107,7 +107,7 @@ class Item extends Model
             ->leftJoin('category_items as ci',     'ci.itemid',  '=', 'items.id')
             ->leftJoin('categories as c',           'c.id',       '=', 'ci.categoryid')
             ->leftJoin('sub_category_items as sci', 'sci.itemid', '=', 'items.id')
-            ->leftJoin('sub_categories as s',       's.id',       '=', 'sci.subcategoryid')
+            ->leftJoin('categories as s',            's.id',       '=', 'sci.subcategoryid')
             ->selectRaw("
                 items.id,
                 items.title,
@@ -155,7 +155,7 @@ class Item extends Model
             ->groupBy('itemid');
 
         $subcategories = DB::table('sub_category_items as sci')
-            ->join('sub_categories as s', 's.id', '=', 'sci.subcategoryid')
+            ->join('categories as s', 's.id', '=', 'sci.subcategoryid')
             ->whereIn('sci.itemid', $itemIds)
             ->select('sci.itemid', 's.title')
             ->get()
