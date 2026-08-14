@@ -155,8 +155,7 @@ Sub Category
                 },
             ],
             "ajax": {
-                "url": '{{ route('
-                subcategory.list ') }}',
+                "url": '{{ route('subcategory.list') }}',
                 "type": "POST",
                 "data": function(d) {
                     var type = $('#trashed_file').is(':checked') == true ? 'trashed' :
@@ -301,8 +300,7 @@ Sub Category
                         id: id,
                         type: type,
                     };
-                    var url = '{{ route('
-                    subcategory.delete ') }}';
+                    var url = '{{ route('subcategory.delete') }}';
                     $.post(url, data, function(response) {
                         var rep = JSON.parse(response);
                         if (rep) {
