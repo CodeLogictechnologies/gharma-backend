@@ -39,9 +39,18 @@ class VendorController extends Controller
 
             $rules = [
                 'name'                => 'required|min:5|max:255',
-                'phone'               => 'required|min:5|max:20',
+                'phone'               => [
+                    'required',
+                    'min:5',
+                    'max:20',
+                    Rule::unique('vendors', 'phone')->where('orgid', session('orgid'))->ignore($request->id),
+                ],
                 'address'             => 'required',
-                'email'               => 'required|email',
+                'email'               => [
+                    'required',
+                    'email',
+                    Rule::unique('vendors', 'email')->where('orgid', session('orgid'))->ignore($request->id),
+                ],
                 'company'             => 'required',
                 'pan'                 => 'required',
                 'registration_number' => 'required',
@@ -58,9 +67,11 @@ class VendorController extends Controller
             $messages = [
                 'name.required'                      => 'Please enter vendor name',
                 'phone.required'                     => 'Phone number is required',
+                'phone.unique'                       => 'This phone number is already registered with another vendor',
                 'address.required'                   => 'Address is required',
                 'email.required'                     => 'Email is required',
                 'email.email'                        => 'Please enter a valid email',
+                'email.unique'                       => 'This email is already registered with another vendor',
                 'company.required'                   => 'Company is required',
                 'pan.required'                       => 'PAN is required',
                 'registration_number.required'       => 'Registration number is required',
