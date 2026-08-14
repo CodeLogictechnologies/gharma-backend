@@ -211,7 +211,16 @@ class ApiAuthController extends Controller
             ], 500);
         }
 
-        $user           = auth()->user();
+        $user = auth()->user();
+
+        if ($user->user_status !== 'Approve') {
+            JWTAuth::invalidate($token);
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Your account is ' . strtolower($user->user_status) . '. Please contact the administrator.',
+            ], 403);
+        }
+
         $post['userid'] = $user->id;
 
         // ── Get Spatie roles ───────────────────────────────────────────
