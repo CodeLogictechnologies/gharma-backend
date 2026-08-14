@@ -1951,8 +1951,20 @@ function buildUnitOptions(selectedId) {
                     if (result.type === 'success') {
                         showNotification(result.message, 'success');
 
-                        if (typeof itemTable !== 'undefined' && itemTable.ajax) {
+                        // if (typeof itemTable !== 'undefined' && itemTable.ajax) {
+                        //     itemTable.ajax.reload(null, false);
+                        // }
+
+                        if (typeof itemTable !== 'undefined') {
+                            if (itemTable.fnDraw) {
+                            // old-style .dataTable() init (matches this app's usual pattern)
+                                itemTable.fnDraw();
+                                } else if (itemTable.ajax) {
+                            // new-style .DataTable() init
                             itemTable.ajax.reload(null, false);
+                        } else if (itemTable.api) {
+                            itemTable.api().ajax.reload(null, false);
+                        }
                         }
 
                         if (typeof window.refreshLowStockAlerts === 'function') {
