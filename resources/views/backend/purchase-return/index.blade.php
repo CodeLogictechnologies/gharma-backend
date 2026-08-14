@@ -95,9 +95,7 @@
             ],
             bProcessing: true,
             bServerSide: true,
-            sAjaxSource: '{{ route('
-            purchase -
-            return.list ') }}',
+            sAjaxSource: '{{ route('purchase-return.list') }}',
             sServerMethod: 'POST',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>"
@@ -170,18 +168,14 @@
 
         /* ── Add ─────────────────────────────────────────────── */
         $('#addPurchaseReturn').on('click', function() {
-            openPrModal('{{ route('
-                purchase -
-                return.form ') }}', {}, 'GET');
+            openPrModal('{{ route('purchase-return.form') }}', {}, 'GET');
         });
 
         /* ── Edit ────────────────────────────────────────────── */
         $(document).on('click', '.editPurchaseReturn', function(e) {
             e.preventDefault();
             openPrModal(
-                '{{ route('
-                purchase -
-                return.form ') }}', {
+                '{{ route('purchase-return.form') }}', {
                         id: $(this).data('id'),
                         _token: '{{ csrf_token() }}'
                     },
@@ -193,9 +187,7 @@
         $(document).on('click', '.viewPurchaseReturn', function(e) {
             e.preventDefault();
             openPrModal(
-                '{{ route('
-                purchase -
-                return.view ') }}', {
+                '{{ route('purchase-return.view') }}', {
                         id: $(this).data('id'),
                         _token: '{{ csrf_token() }}'
                     },
@@ -214,9 +206,7 @@
 
         $('#confirmDelete').on('click', function() {
             if (!deleteId) return;
-            $.post('{{ route('
-                    purchase -
-                    return.delete ') }}', {
+            $.post('{{ route('purchase-return.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })
@@ -240,9 +230,7 @@
 
         /* ── Approve / Reject ─────────────────────────────────── */
         function updatePurchaseReturnStatus(id, status) {
-            $.post('{{ route('
-                    purchase -
-                    return.status ') }}', {
+            $.post('{{ route('purchase-return.status') }}', {
                         id: id,
                         return_status: status,
                         _token: '{{ csrf_token() }}'
