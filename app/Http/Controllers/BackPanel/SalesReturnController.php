@@ -63,18 +63,19 @@ class SalesReturnController extends Controller
                 ];
                 $array[$i]["status"] = $statusBadges[$row->return_status] ?? $row->return_status;
 
-                $action = '';
+                $action = '<div class="pr-actions">';
                 if ($row->return_status === 'Pending' && auth()->user()->can('edit.sales-return')) {
-                    $action .= '<a href="javascript:;" title="Approve" class="tooltipdiv approveSalesReturn" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-check-circle"></i></a>';
-                    $action .= '<a href="javascript:;" title="Reject" class="tooltipdiv rejectSalesReturn" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-x-circle"></i></a>';
+                    $action .= '<a href="javascript:;" title="Approve" class="tooltipdiv pr-action-btn pr-action-approve approveSalesReturn" data-id="' . $row->id . '"><i class="bx bx-check-circle"></i></a>';
+                    $action .= '<a href="javascript:;" title="Reject" class="tooltipdiv pr-action-btn pr-action-reject rejectSalesReturn" data-id="' . $row->id . '"><i class="bx bx-x-circle"></i></a>';
                 }
-                $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewSalesReturn" style="color:green;" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
+                $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv pr-action-btn pr-action-view viewSalesReturn" data-id="' . $row->id . '"><i class="bx bx-show-alt"></i></a>';
                 if (auth()->user()->can('edit.sales-return')) {
-                    $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editSalesReturn" style="color:blue;" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
+                    $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv pr-action-btn pr-action-edit editSalesReturn" data-id="' . $row->id . '"><i class="bx bx-edit-alt"></i></a>';
                 }
                 if (auth()->user()->can('delete.sales-return')) {
-                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteSalesReturn" style="color:red;" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
+                    $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv pr-action-btn pr-action-delete deleteSalesReturn" data-id="' . $row->id . '"><i class="bx bx-trash"></i></a>';
                 }
+                $action .= '</div>';
 
                 $array[$i]["action"] = $action;
                 $i++;
