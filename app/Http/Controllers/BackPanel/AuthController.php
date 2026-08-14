@@ -60,6 +60,11 @@ class AuthController extends SessionController
         if (!Auth::attempt($credentials)) {
             throw new Exception('Invalid email/username or password.');
         }
+
+        if ($user->user_status !== 'Approve') {
+            Auth::logout();
+            throw new Exception('Your account is ' . strtolower($user->user_status) . '. Please contact the administrator.');
+        }
         // dd(auth()->user()->getRoleNames());
         $org = DB::table('userorganizations')
             ->where('userid', $user->id)
