@@ -11,6 +11,7 @@ use App\Models\User;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
@@ -588,10 +589,14 @@ class UserController extends Controller
             $user->remarks     = $request->remark;
             $user->save();
 
-            if ($request->status == 'Approve') {
-                Mail::to($user->email)->queue(new UserApprovedMail($user));
-            } elseif ($request->status == 'Reject') {
-                Mail::to($user->email)->send(new UserRejectedMail($user));
+            try {
+                if ($request->status == 'Approve') {
+                    Mail::to($user->email)->queue(new UserApprovedMail($user));
+                } elseif ($request->status == 'Reject') {
+                    Mail::to($user->email)->queue(new UserRejectedMail($user));
+                }
+            } catch (Exception $e) {
+                Log::error('Failed to queue user status notification email: ' . $e->getMessage());
             }
 
             return response()->json(['type' => 'success', 'message' => 'Status updated successfully']);
