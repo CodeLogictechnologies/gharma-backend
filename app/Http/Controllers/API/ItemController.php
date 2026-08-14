@@ -303,6 +303,7 @@ class ItemController extends Controller
         $subcategory_id = $request->input('subcategory_id');
         $categoryIds    = [];
         $post['roleid'] = $request->header('roleid');
+        $isWholesaler   = !empty($post['roleid']) && $post['roleid'] == "550e8400-e29b-41d4-a716-446655440002";
 
         // ── Resolve tab by id OR tab_name ──
         if (!empty($tabId) && empty($categoryId)) {
@@ -323,19 +324,19 @@ class ItemController extends Controller
             }
 
             if (strtolower($tab->tab_name) !== 'all') {
-                $categoryIds = DB::table('home_tab_categories')
+                $tabCategoryIds = DB::table('home_tab_categories')
                     ->where('home_tab_id', $tab->id)
                     ->pluck('category_id')
                     ->toArray();
 
-                if (empty($categoryIds)) {
+                if (empty($tabCategoryIds)) {
                     return response()->json([
                         'type'    => 'error',
                         'message' => 'No categories assigned to this tab.',
                         'result'  => []
                     ]);
                 }
-                $categoryIds = $this->expandCategoryIds($categoryIds); // ✅ expand parent → children
+                $categoryIds = $this->expandCategoryIds($tabCategoryIds); // ✅ expand parent → children
             }
         }
 
@@ -343,15 +344,17 @@ class ItemController extends Controller
             ->where('userid', $userId)
             ->exists();
 
-        if (!empty($post['roleid']) && $post['roleid'] == "550e8400-e29b-41d4-a716-446655440002") {
-
+        if ($isWholesaler) {
             $query = DB::table('itemvariations as iv')
                 ->join('items as it', 'it.id', '=', 'iv.item_id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
-                ->leftJoin('wholesaler_prices as wp', function ($join) {
+                // FIX: added wp.orgid = $orgId so we don't attach another
+                // org's wholesaler price row to this item/variation.
+                ->leftJoin('wholesaler_prices as wp', function ($join) use ($orgId) {
                     $join->on('wp.itemid', '=', 'it.id')
                         ->on('wp.variation_id', '=', 'iv.id')
-                        ->where('wp.status', 'Y');
+                        ->where('wp.status', 'Y')
+                        ->where('wp.orgid', $orgId);
                 })
                 ->leftJoinSub(
                     DB::table('item_images')
@@ -407,40 +410,50 @@ class ItemController extends Controller
                     DB::raw('ROW_NUMBER() OVER (PARTITION BY dd.variation_id ORDER BY dd.created_at DESC) as rn')
                 );
 
-            // --- reusable SQL fragments ---
+            // ── Formula: ((variation_price - discount) - active_discount) + excise + vat ──
+            // Discounts are CHAINED: active_discount% is calculated off the price
+            // that's already had the variation discount subtracted, not off raw price.
+
+            // Step 1: variation-level discount (fixed or percentage of raw price)
             $variationDiscount = "
-    CASE
-        WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
-        WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
-        ELSE 0
-    END
-";
+            CASE
+                WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
+                WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+                ELSE 0
+            END
+        ";
 
+            // Price after step 1 — base for the active/campaign discount
+            $priceAfterVariationDiscount = "(p.price - ($variationDiscount))";
+
+            // Step 2: active/campaign discount, computed off price after variation discount
             $campaignDiscount = "
-    CASE
-        WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
-        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
-        ELSE 0
-    END
-";
+            CASE
+                WHEN ad.discount_type = 'percentage' THEN (($priceAfterVariationDiscount) * ad.discount_value / 100)
+                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                ELSE 0
+            END
+        ";
 
-            $priceAfterAllDiscounts = "(p.price - ($variationDiscount) - ($campaignDiscount))";
+            // Price after both discounts — single source of truth for `price`,
+            // `price_after_discount`, and the excise/vat "after" calculations.
+            $priceAfterAllDiscounts = "(($priceAfterVariationDiscount) - ($campaignDiscount))";
 
             $exciseBefore = "
-    CASE
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-        ELSE 0
-    END
-";
+            CASE
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                ELSE 0
+            END
+        ";
 
             $exciseAfter = "
-    CASE
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
-        WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-        ELSE 0
-    END
-";
+            CASE
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                ELSE 0
+            END
+        ";
 
             $vatBefore = "(p.price + ($exciseBefore)) * (i.vat_percent / 100)";
             $vatAfter  = "(($priceAfterAllDiscounts) + ($exciseAfter)) * (i.vat_percent / 100)";
@@ -466,38 +479,35 @@ class ItemController extends Controller
                     'iv.id as variationid',
                     'i.title as title',
                     'iv.value',
-                    DB::raw("
-            CASE
-                WHEN ad.discount_type IS NULL THEN p.price
-                WHEN ad.discount_type = 'percentage' THEN ROUND(CAST(p.price - (p.price * ad.discount_value / 100) AS numeric), 2)
-                WHEN ad.discount_type = 'fixed' THEN ROUND(CAST(p.price - ad.discount_amount AS numeric), 2)
-                ELSE p.price
-            END as price
-        "),
+                    // FIX: `price` now comes from the same chained
+                    // $priceAfterAllDiscounts used everywhere else, instead of
+                    // only checking `ad` and ignoring the variation discount.
+                    DB::raw("ROUND(CAST(($priceAfterAllDiscounts) AS numeric), 2) as price"),
+                    DB::raw("p.price as original_price"), // FIX: was referenced in the response but never selected
                     'im.images',
                     'ad.discount_type as discount_type',
                     DB::raw("
-            CASE
-                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
-                ELSE ad.discount_value
-            END as discount_value
-        "),
+                    CASE
+                        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                        ELSE ad.discount_value
+                    END as discount_value
+                "),
                     DB::raw("
-            CASE
-                WHEN ad.discount_type = 'percentage' THEN ad.discount_value
-                ELSE NULL
-            END as discount_percentage
-        "),
+                    CASE
+                        WHEN ad.discount_type = 'percentage' THEN ad.discount_value
+                        ELSE NULL
+                    END as discount_percentage
+                "),
                     DB::raw("ROUND(CAST(p.price + ($exciseBefore) + ($vatBefore) AS numeric), 2) as price_before_discount"),
                     DB::raw("ROUND(CAST(($priceAfterAllDiscounts) + ($exciseAfter) + ($vatAfter) AS numeric), 2) as price_after_discount")
                 )
-                ->whereRaw("p.status = 'Y'")
-                ->whereRaw("iv.status = 'Y'");
+                ->where('i.orgid', $orgId) // FIX: retail branch had no org scoping at all
+                ->where('p.status', 'Y')
+                ->where('iv.status', 'Y');
         }
 
         // ── Filter logic (shared for both) ──
-        $tableAlias = (!empty($post['roleid']) && $post['roleid'] == "550e8400-e29b-41d4-a716-446655440002")
-            ? 'it' : 'i';
+        $tableAlias = $isWholesaler ? 'it' : 'i';
 
         if (!empty($categoryIds) && !empty($subcategory_id)) {
             $query->join('category_items as ci', 'ci.itemid', '=', "{$tableAlias}.id")
@@ -547,6 +557,7 @@ class ItemController extends Controller
             ->where('p.status', 'Y')
             ->get()
             ->groupBy('productid');
+
         $wholesalerDetails = DB::table('wholesaler_price_details as wd')
             ->join('wholesaler_prices as wp', 'wp.id', '=', 'wd.wholesalermasterid')
             ->join('itemvariations as iv', 'iv.id', '=', 'wp.variation_id')
@@ -571,7 +582,6 @@ class ItemController extends Controller
             ->groupBy('wholesalermasterid')
             ->map(function ($details) {
                 return $details->map(function ($detail) {
-
                     $price = (float) $detail->price;
 
                     $exciseAmount = 0;
@@ -607,8 +617,7 @@ class ItemController extends Controller
                 })->values();
             });
 
-        if (!empty($post['roleid']) && $post['roleid'] == '550e8400-e29b-41d4-a716-446655440002') {
-
+        if ($isWholesaler) {
             $items = collect($data->items())->map(function ($row) use ($allVariations, $wholesalerDetails) {
                 return [
                     'productid'        => $row->productid,
@@ -628,21 +637,21 @@ class ItemController extends Controller
         } else {
             $items = collect($data->items())->map(function ($row) use ($allVariations) {
                 return [
-                    'productid'           => $row->productid,
-                    'title'               => $row->title,
-                    'variationid'         => $row->variationid,
-                    'value'               => $row->value,
-                    'price'               => $row->price,
-                    'original_price'      => $row->original_price ?? null,
-                    'discount_type'       => $row->discount_type ?? null,
-                    'discount_value'      => $row->discount_value ?? null,
-                    'discount_percentage' => $row->discount_percentage ?? null,
+                    'productid'             => $row->productid,
+                    'title'                 => $row->title,
+                    'variationid'           => $row->variationid,
+                    'value'                 => $row->value,
+                    'price'                 => $row->price,
+                    'original_price'        => $row->original_price ?? null,
+                    'discount_type'         => $row->discount_type ?? null,
+                    'discount_value'        => $row->discount_value ?? null,
+                    'discount_percentage'   => $row->discount_percentage ?? null,
                     'price_before_discount' => $row->price_before_discount ?? null,
-                    'price_after_discount' => $row->price_after_discount ?? null,
-                    'images'              => $row->images
+                    'price_after_discount'  => $row->price_after_discount ?? null,
+                    'images'                => $row->images
                         ? array_map(fn($img) => url('storage/items/' . trim($img)), explode(',', $row->images))
                         : [],
-                    'variations'          => $allVariations[$row->productid] ?? [],
+                    'variations'            => $allVariations[$row->productid] ?? [],
                 ];
             });
         }
@@ -849,7 +858,6 @@ class ItemController extends Controller
             'tab_id'         => 'sometimes|string|nullable',
             'subcategory_id' => 'sometimes|string|nullable',
             'brand_id'       => 'sometimes|string|nullable',
-
         ]);
 
         $perPage        = $request->input('per_page', 15);
@@ -859,9 +867,8 @@ class ItemController extends Controller
         $brandId        = $request->input('brand_id');
         $categoryIds    = [];
         $roleId         = $request->header('roleid');
-        // dd($roleId);
         $isWholesaler   = !empty($roleId) && $roleId == "550e8400-e29b-41d4-a716-446655440002";
-        // dd($isWholesaler);
+
         // ── Resolve tab ──
         if (!empty($tabId) && empty($categoryId)) {
             $tab = DB::table('home_tabs')
@@ -881,7 +888,8 @@ class ItemController extends Controller
             }
 
             if (strtolower($tab->tab_name) !== 'all') {
-                $categoryIds = DB::table('home_tab_categories')
+                // FIX: correct variable used for the pluck + empty check
+                $tabCategoryIds = DB::table('home_tab_categories')
                     ->where('home_tab_id', $tab->id)
                     ->pluck('category_id')
                     ->toArray();
@@ -893,6 +901,7 @@ class ItemController extends Controller
                         'result'  => []
                     ]);
                 }
+
                 // expand: if a tab category is a parent, include its children too
                 $categoryIds = $this->expandCategoryIds($tabCategoryIds);
             }
@@ -902,28 +911,25 @@ class ItemController extends Controller
         if ($isWholesaler) {
             $query = DB::table('items as i')
                 ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
-
                 ->leftJoin('wholesaler_prices as wp', function ($join) {
                     $join->whereColumn('wp.itemid', 'i.id')
                         ->whereColumn('wp.variation_id', 'iv.id')
                         ->where('wp.status', 'Y');
                 })
-
                 ->leftJoin(
                     DB::raw("
-                        (
-                            SELECT
-                                item_id,
-                                STRING_AGG(image::text, ',') AS images
-                            FROM item_images
-                            GROUP BY item_id
-                        ) AS im
-                    "),
+                    (
+                        SELECT
+                            item_id,
+                            STRING_AGG(image::text, ',') AS images
+                        FROM item_images
+                        GROUP BY item_id
+                    ) AS im
+                "),
                     'im.item_id',
                     '=',
                     'i.id'
                 )
-
                 ->select(
                     'i.id as productid',
                     'iv.id as variationid',
@@ -933,7 +939,6 @@ class ItemController extends Controller
                     'wp.id as wholesaler_price_id',
                     'iv.created_at'
                 )
-
                 ->where('iv.status', 'Y')
                 ->where('i.is_wholesale', 'Y')
                 ->groupBy(
@@ -966,43 +971,55 @@ class ItemController extends Controller
                     DB::raw('ROW_NUMBER() OVER (PARTITION BY dd.variation_id ORDER BY dd.created_at DESC) as rn')
                 );
 
-            // --- reusable SQL fragments ---
+            // ── Formula being implemented ──
+            // price = ((variation_price - discount) - active_discount) + excise + vat
+            // where active_discount% is calculated off (variation_price - discount),
+            // i.e. the two discounts are CHAINED, not both taken off the raw price.
+
+            // Step 1: variation-level discount (fixed or percentage of raw price)
             $variationDiscount = "
-                            CASE
-                                WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
-                                WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
-                                ELSE 0
-                            END
-                        ";
+            CASE
+                WHEN iv.discount_type = 'percentage' THEN (p.price * iv.discount / 100)
+                WHEN iv.discount_type = 'fixed' THEN iv.discount_amount
+                ELSE 0
+            END
+        ";
 
-                                    $campaignDiscount = "
-                            CASE
-                                WHEN ad.discount_type = 'percentage' THEN (p.price * ad.discount_value / 100)
-                                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
-                                ELSE 0
-                            END
-                        ";
+            // Price after step 1 — base for the active/campaign discount
+            $priceAfterVariationDiscount = "(p.price - ($variationDiscount))";
 
-                                    $priceAfterAllDiscounts = "(p.price - ($variationDiscount) - ($campaignDiscount))";
+            // Step 2: active/campaign discount, computed off price after variation discount
+            $campaignDiscount = "
+            CASE
+                WHEN ad.discount_type = 'percentage' THEN (($priceAfterVariationDiscount) * ad.discount_value / 100)
+                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                ELSE 0
+            END
+        ";
 
-                                    $exciseBefore = "
-                            CASE
-                                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
-                                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-                                ELSE 0
-                            END
-                        ";
+            // Price after both discounts — single source of truth for price,
+            // price_after_discount, and the excise/vat "after" calculations
+            $priceAfterAllDiscounts = "(($priceAfterVariationDiscount) - ($campaignDiscount))";
 
-                                    $exciseAfter = "
-                            CASE
-                                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
-                                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
-                                ELSE 0
-                            END
-                        ";
+            $exciseBefore = "
+            CASE
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN p.price * (i.excise_percentage / 100)
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                ELSE 0
+            END
+        ";
+
+            $exciseAfter = "
+            CASE
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'percentage' THEN ($priceAfterAllDiscounts) * (i.excise_percentage / 100)
+                WHEN i.excise_status = 'Y' AND i.excise_type = 'fixed' THEN i.excise_value
+                ELSE 0
+            END
+        ";
 
             $vatBefore = "(p.price + ($exciseBefore)) * (i.vat_percent / 100)";
             $vatAfter  = "(($priceAfterAllDiscounts) + ($exciseAfter)) * (i.vat_percent / 100)";
+
             $query = DB::table('items as i')
                 ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
                 ->join('retailer_prices as p', 'p.variation_id', '=', 'iv.id')
@@ -1024,92 +1041,66 @@ class ItemController extends Controller
                     'iv.id as variationid',
                     'i.title as title',
                     'i.brand_id as brand_id',
-                    DB::raw("
-            CASE
-                WHEN ad.discount_type IS NULL THEN p.price
-                WHEN ad.discount_type = 'percentage' THEN ROUND(CAST(p.price - (p.price * ad.discount_value / 100) AS numeric), 2)
-                WHEN ad.discount_type = 'fixed' THEN ROUND(CAST(p.price - ad.discount_amount AS numeric), 2)
-                ELSE p.price
-            END as price
-        "),
+                    DB::raw("ROUND(CAST(($priceAfterAllDiscounts) AS numeric), 2) as price"),
                     'im.images',
                     'ad.discount_type as discount_type',
                     DB::raw("
-            CASE
-                WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
-                ELSE ad.discount_value
-            END as discount_value
-        "),
+                    CASE
+                        WHEN ad.discount_type = 'fixed' THEN ad.discount_amount
+                        ELSE ad.discount_value
+                    END as discount_value
+                "),
                     DB::raw("
-            CASE
-                WHEN ad.discount_type = 'percentage' THEN ad.discount_value
-                ELSE NULL
-            END as discount_percentage
-        "),
+                    CASE
+                        WHEN ad.discount_type = 'percentage' THEN ad.discount_value
+                        ELSE NULL
+                    END as discount_percentage
+                "),
                     DB::raw("ROUND(CAST(p.price + ($exciseBefore) + ($vatBefore) AS numeric), 2) as price_before_discount"),
                     DB::raw("ROUND(CAST(($priceAfterAllDiscounts) + ($exciseAfter) + ($vatAfter) AS numeric), 2) as price_after_discount")
                 )
                 ->where('p.status', 'Y')
-                ->where('iv.status', 'Y')->groupBy(
+                ->where('iv.status', 'Y')
+                ->groupBy(
                     'i.id',
                     'i.title',
+                    'i.brand_id',
                     'iv.id',
                     'iv.value',
+                    'iv.discount_type',
+                    'iv.discount',
+                    'iv.discount_amount',
                     'im.images',
                     'p.price',
+                    'i.excise_status',
+                    'i.excise_type',
+                    'i.excise_value',
+                    'i.excise_percentage',
+                    'i.vat_percent',
                     'ad.discount_type',
                     'ad.discount_value',
-                    'ad.discount_amount'
+                    'ad.discount_amount',
+                    'iv.created_at'
                 );
         }
-        // dd($query);
-        // ── Filter logic (shared for both) ──
-        // if (!empty($categoryIds) && !empty($subcategory_id)) {
-        //     $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-        //         ->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
-        //         ->whereIn('ci.categoryid', $categoryIds)
-        //         ->where('sci.subcategoryid', $subcategory_id);
-        // } elseif (!empty($categoryIds) && !empty($categoryId)) {
-        //     $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-        //         ->where('ci.categoryid', $categoryId);
-        // } elseif (!empty($categoryIds)) {
-        //     $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-        //         ->whereIn('ci.categoryid', $categoryIds);
-        // } elseif (!empty($categoryId) && !empty($subcategory_id)) {
-        //     $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-        //         ->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
-        //         ->where('ci.categoryid', $categoryId)
-        //         ->where('sci.subcategoryid', $subcategory_id);
-        // } elseif (!empty($subcategory_id)) {
-        //     $query->join('sub_category_items as sci', 'sci.itemid', '=', 'i.id')
-        //         ->where('sci.subcategoryid', $subcategory_id);
-        // } elseif (!empty($categoryId)) {
-        //     $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
-        //         ->where('ci.categoryid', $categoryId);
-        // }
+
         // ── Filter logic (shared for both) ──
         if (!empty($categoryIds) && !empty($subcategory_id)) {
-            // tab categories + subcategory (child category) filter
             $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                 ->whereIn('ci.categoryid', array_merge($categoryIds, [$subcategory_id]));
         } elseif (!empty($categoryIds) && !empty($categoryId)) {
-            // tab categories + specific category
             $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                 ->whereIn('ci.categoryid', array_merge($categoryIds, [$categoryId]));
         } elseif (!empty($categoryIds)) {
-            // tab categories only
             $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                 ->whereIn('ci.categoryid', $categoryIds);
         } elseif (!empty($categoryId) && !empty($subcategory_id)) {
-            // specific parent category + child category filter
             $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                 ->whereIn('ci.categoryid', [$categoryId, $subcategory_id]);
         } elseif (!empty($subcategory_id)) {
-            // child category only (was sub_category_items, now just category_items)
             $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                 ->where('ci.categoryid', $subcategory_id);
         } elseif (!empty($categoryId)) {
-            // parent category only
             $query->join('category_items as ci', 'ci.itemid', '=', 'i.id')
                 ->where('ci.categoryid', $categoryId);
         }
@@ -1117,12 +1108,6 @@ class ItemController extends Controller
         // ── Brand filter ──
         if (!empty($brandId)) {
             $query->where('i.brand_id', $brandId);
-        }
-        // ── GroupBy ──
-        if ($isWholesaler) {
-            $query->groupBy('i.id', 'iv.id', 'i.title', 'i.brand_id', 'im.images', 'wp.id', 'iv.created_at');
-        } else {
-            $query->groupBy('i.id', 'p.price', 'iv.id', 'i.title', 'i.brand_id', 'im.images', 'iv.created_at');
         }
 
         $query->orderBy('iv.created_at', 'desc');
@@ -1187,7 +1172,6 @@ class ItemController extends Controller
                 ->groupBy('wholesalermasterid')
                 ->map(function ($details) {
                     return $details->map(function ($d) {
-
                         $price = (float) $d->price;
 
                         $exciseAmount = 0;
@@ -1247,7 +1231,6 @@ class ItemController extends Controller
             'result'  => $this->paginateResponse($items)
         ]);
     }
-
     public function search(Request $request)
     {
         try {
