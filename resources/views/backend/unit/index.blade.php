@@ -100,8 +100,7 @@
             bProcessing: true,
             bServerSide: true,
             ajax: {
-                url: '{{ route('
-                unit.list ') }}',
+                url: '{{ route('unit.list') }}',
                 type: 'POST',
             },
             oLanguage: {
@@ -169,8 +168,7 @@
 
             if ($('#unitForm').valid()) {
                 $.ajax({
-                    url: '{{ route('
-                    unit.save ') }}',
+                    url: '{{ route('unit.save') }}',
                     type: 'POST',
                     data: $('#unitForm').serialize(),
                     success: function(response) {
@@ -224,8 +222,7 @@
             if (!deleteId) return;
             showLoader();
 
-            $.post('{{ route('
-                    unit.delete ') }}', {
+            $.post('{{ route('unit.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })

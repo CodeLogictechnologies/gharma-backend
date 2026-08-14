@@ -95,8 +95,7 @@
             ],
             bProcessing: true,
             bServerSide: true,
-            sAjaxSource: '{{ route('
-            wholesaler.list ') }}',
+            sAjaxSource: '{{ route('wholesaler.list') }}',
             oLanguage: {
                 sEmptyTable: "<p class='no_data_message'>No data available.</p>"
             },
@@ -174,16 +173,14 @@
 
         // ── Add ───────────────────────────────────────────────────────
         $('#addItem').on('click', function() {
-            openItemModel('{{ route('
-                wholesaler.form ') }}', {}, 'GET');
+            openItemModel('{{ route('wholesaler.form') }}', {}, 'GET');
         });
 
         // ── Edit ──────────────────────────────────────────────────────
         $(document).on('click', '.editWholesaleprice', function(e) {
             e.preventDefault();
             openItemModel(
-                '{{ route('
-                wholesaler.form ') }}', {
+                '{{ route('wholesaler.form') }}', {
                     id: $(this).data('id'),
                     _token: '{{ csrf_token() }}'
                 },
@@ -203,8 +200,7 @@
         $('#confirmDelete').on('click', function() {
             if (!deleteId) return;
 
-            $.post('{{ route('
-                    wholesaler.delete ') }}', {
+            $.post('{{ route('wholesaler.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })
@@ -304,8 +300,7 @@
             e.preventDefault();
             var id = $(this).data('id');
             openItemModel(
-                '{{ route('
-                wholesaler.view ') }}', {
+                '{{ route('wholesaler.view') }}', {
                     id: id,
                     _token: '{{ csrf_token() }}'
                 },
@@ -324,8 +319,7 @@
                 return;
             }
 
-            $.get('{{ route('
-                    inventory.variations ') }}', {
+            $.get('{{ route('inventory.variations') }}', {
                         item_id: itemId,
                         _token: '{{ csrf_token() }}'
                     })

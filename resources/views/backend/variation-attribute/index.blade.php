@@ -99,8 +99,7 @@
             bProcessing: true,
             bServerSide: true,
             ajax: {
-                url: '{{ route('
-                variation - attribute.list ') }}',
+                url: '{{ route('variation-attribute.list') }}',
                 type: 'POST',
             },
             oLanguage: {
@@ -167,8 +166,7 @@
 
             if ($('#attributeForm').valid()) {
                 $.ajax({
-                    url: '{{ route('
-                    variation - attribute.save ') }}',
+                    url: '{{ route('variation-attribute.save') }}',
                     type: 'POST',
                     data: $('#attributeForm').serialize(),
                     success: function(response) {
@@ -221,8 +219,7 @@
             if (!deleteId) return;
             showLoader();
 
-            $.post('{{ route('
-                    variation - attribute.delete ') }}', {
+            $.post('{{ route('variation-attribute.delete') }}', {
                         id: deleteId,
                         _token: '{{ csrf_token() }}'
                     })
