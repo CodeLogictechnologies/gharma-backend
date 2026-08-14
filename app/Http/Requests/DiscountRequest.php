@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Carbon\Carbon;
 
 class DiscountRequest extends FormRequest
 {
@@ -165,38 +166,6 @@ class DiscountRequest extends FormRequest
     }
 
 
-    // public function withValidator($validator)
-    // {
-    //     $validator->after(function ($validator) {
-
-    //         if (empty($this->item_ids)) {
-    //             return;
-    //         }
-
-    //         $orgId = session('orgid'); // or session()->get('orgid')
-
-    //         $query = DB::table('discount_details as dd')
-    //             ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
-    //             ->where('dm.orgid', $orgId)
-    //             ->where('dm.status', 'Y')
-    //             ->whereIn('dd.variation_id', $this->item_ids);
-
-    //         // Ignore current record while editing
-    //         if (!empty($this->id)) {
-    //             $query->where('dm.id', '!=', $this->id);
-    //         }
-
-    //         $exists = $query->exists();
-
-    //         if ($exists) {
-    //             $validator->errors()->add(
-    //                 'item_ids',
-    //                 'One or more selected items already have a discount.'
-    //             );
-    //         }
-    //     });
-    // }
-
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
@@ -216,26 +185,38 @@ class DiscountRequest extends FormRequest
                 return;
             }
 
-            $orgId = session('orgid'); // or session()->get('orgid')
+            $orgId = session('orgid');
 
+            // discount_details always stores the item variation regardless of how it was
+            // selected (directly as an item, or via a category/sub category/brand), so a
+            // conflict check must look across all applies_to types, not just applies_to=item.
             $query = DB::table('discount_details as dd')
                 ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
                 ->where('dm.orgid', $orgId)
                 ->where('dm.status', 'Y')
-                ->where('dm.applies_to', 'item') // only conflict with other item-type discounts
-                ->whereIn('dd.variation_id', $this->item_ids);
+                ->whereIn('dd.variation_id', $this->item_ids)
+                ->select('dm.id', 'dm.title', 'dm.start_date_ad', 'dm.end_date_ad', 'dm.starts_time', 'dm.ends_time');
 
-            // Ignore current record while editing
+            // Ignore the discount being edited so it doesn't conflict with itself
             if (!empty($this->id)) {
                 $query->where('dm.id', '!=', $this->id);
             }
 
-            $exists = $query->exists();
+            $now = Carbon::now();
 
-            if ($exists) {
+            // start_date_ad/end_date_ad are DATE columns, so the active time window has to be
+            // reconstructed by pairing them with the separate starts_time/ends_time columns.
+            $activeConflict = $query->get()->first(function ($row) use ($now) {
+                $start = Carbon::parse($row->start_date_ad . ' ' . ($row->starts_time ?: '00:00'));
+                $end   = Carbon::parse($row->end_date_ad . ' ' . ($row->ends_time ?: '23:59'));
+
+                return $now->between($start, $end);
+            });
+
+            if ($activeConflict) {
                 $validator->errors()->add(
                     'item_ids',
-                    'One or more selected items already have an item-specific discount.'
+                    'One or more selected items already have an active discount ("' . $activeConflict->title . '").'
                 );
             }
         });
