@@ -98,7 +98,20 @@
 
         /* ── Remove leftover backdrops ───────────────────────────── */
         $('.modal-backdrop').remove();
-        $('body').removeClass('modal-open').css('padding-right', '');
+        $('body').removeClass('modal-open').css({ 'padding-right': '', 'overflow': '' });
+
+        /* ── Remove orphaned duplicate modals left over from a previous
+               tab load. Keep only the first (document-order) copy of each
+               id — that's always the freshly-loaded one — and dispose of
+               any extras regardless of where they live in the DOM. ────── */
+        ['userModel', 'deleteModal', 'statusModal'].forEach(function(id) {
+            var all = document.querySelectorAll('#' + id);
+            for (var i = 1; i < all.length; i++) {
+                var inst = bootstrap.Modal.getInstance(all[i]);
+                if (inst) inst.dispose();
+                all[i].remove();
+            }
+        });
 
         /* ── Move modals to body safely ──────────────────────────── */
         var userModelEl = document.getElementById('userModel');
@@ -114,7 +127,7 @@
             setTimeout(function() {
                 if ($('.modal.show').length === 0) {
                     $('.modal-backdrop').remove();
-                    $('body').removeClass('modal-open').css('padding-right', '');
+                    $('body').removeClass('modal-open').css({ 'padding-right': '', 'overflow': '' });
                 }
             }, 300);
         }
@@ -204,7 +217,7 @@
                 $(userModelEl).attr('aria-hidden', 'true').removeAttr('aria-modal role');
                 $('#userModelContent').html('');
                 $('.modal-backdrop').remove();
-                $('body').removeClass('modal-open').css('padding-right', '');
+                $('body').removeClass('modal-open').css({ 'padding-right': '', 'overflow': '' });
             }, 350);
         };
 
@@ -246,10 +259,11 @@
 
             var req = (method === 'POST') ? $.post(url, data) : $.get(url, data);
             req.done(function(response) {
+                // jQuery's .html() already runs embedded <script> tags when
+                // the inserted markup contains one (it internally falls back
+                // to .append()) — re-evaluating them here would double-run
+                // form.blade.php's setup script (double select2 init, etc.).
                 $('#userModelContent').html(response);
-                $('#userModelContent').find('script').each(function() {
-                    $.globalEval($(this).text());
-                });
                 new bootstrap.Modal(userModelEl, {
                     backdrop: 'static',
                     keyboard: false
