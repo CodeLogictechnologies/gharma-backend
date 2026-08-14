@@ -243,7 +243,7 @@
                 setTimeout(function() {
                     if ($('.modal.show').length === 0) {
                         $('.modal-backdrop').remove();
-                        $('body').removeClass('modal-open').css('padding-right', '');
+                        $('body').removeClass('modal-open').css({ 'padding-right': '', 'overflow': '' });
                     }
                 }, 300);
             }
@@ -408,7 +408,7 @@
                                 $(modalEl).removeClass('show').css('display', 'none');
                                 $('#userModelContent').html('');
                                 $('.modal-backdrop').remove();
-                                $('body').removeClass('modal-open').css('padding-right', '');
+                                $('body').removeClass('modal-open').css({ 'padding-right': '', 'overflow': '' });
                             }, 350);
                         }
 
