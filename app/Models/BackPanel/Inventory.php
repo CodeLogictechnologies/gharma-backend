@@ -74,7 +74,7 @@ class Inventory extends Model
             ->where('status', 'Y')
             ->whereNull('deleted_at')
             ->groupBy('variation_id');
-        
+
         $returnAgg = DB::table('purchase_return_voucher_items as prvi')
             ->join('purchase_return_vouchers as prv', 'prv.id', '=', 'prvi.purchase_return_voucher_id')
             ->select('prvi.variation_id', DB::raw('SUM(prvi.qty) as total_returned'))
@@ -90,7 +90,6 @@ class Inventory extends Model
             })
             ->leftJoinSub($salesAgg, 'o', 'o.variation_id', '=', 'iv.id')
             ->leftJoinSub($returnAgg, 'pr', 'pr.variation_id', '=', 'iv.id');
-
     }
 
     public static function list($post)
@@ -129,15 +128,15 @@ class Inventory extends Model
 
             $query = (clone $baseQuery)
                 ->selectRaw("
-                    i.id,
-                    pvi.total_qty as stock,
-                    COALESCE(pr.total_returned, 0) as returnqty,
-                    pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0) AS remainingqty,
-                    COALESCE(o.total_sold, 0) as soldqty,
-                    i.title,
-                    iv.attribute,
-                    iv.value as variation_value
-                ")
+        i.id,
+        pvi.total_qty as stock,
+        COALESCE(pr.total_returned, 0) as returnqty,
+        GREATEST(pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0), 0) AS remainingqty,
+        COALESCE(o.total_sold, 0) as soldqty,
+        i.title,
+        iv.attribute,
+        iv.value as variation_value
+    ")
                 ->whereRaw($cond, $bindings)
                 ->orderBy('i.id', 'desc');
 
@@ -311,15 +310,15 @@ class Inventory extends Model
             $rows = self::stockAggregateQuery()
                 ->where('i.orgid', $orgid)
                 ->selectRaw("
-                    iv.id as variation_id,
-                    i.id as item_id,
-                    i.title,
-                    iv.attribute,
-                    iv.value as variation_value,
-                    CAST(iv.threshold AS INTEGER) as threshold,
-                    pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0) AS remainingqty
+        iv.id as variation_id,
+        i.id as item_id,
+        i.title,
+        iv.attribute,
+        iv.value as variation_value,
+        CAST(iv.threshold AS INTEGER) as threshold,
+        GREATEST(pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0), 0) AS remainingqty
 
-                ")
+    ")
                 ->whereRaw('(pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0)) < CAST(iv.threshold AS INTEGER)')
                 ->orderByRaw('(pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0)) asc')
                 ->get();
