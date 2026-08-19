@@ -92,10 +92,17 @@ class SalesVoucher extends Model
                 ->first();
 
 
-            if (!$lastVoucher) {
+            // if (!$lastVoucher) {
+            //     return 1;
+            // }
+            // return $lastVoucher->voucher_number + 1;
+                        if (!$lastVoucher || $lastVoucher->voucher_number === null || $lastVoucher->voucher_number === '') {
                 return 1;
             }
-            return $lastVoucher->voucher_number + 1;
+
+            $numericPart = (int) preg_replace('/[^0-9]/', '', (string) $lastVoucher->voucher_number);
+
+            return $numericPart + 1;
         } catch (\Exception $e) {
             throw $e;
         }
