@@ -49,13 +49,12 @@ class OrderPlaceRequest extends FormRequest
 
             // ── Items Array ────────────────────────────────────
             'items'                => ['required', 'array', 'min:1'],
+            // 'items.*.variation_id' => ['required', 'uuid', 'exists:itemvariations,id'],
+            // 'items.*.quantity'     => ['required', 'integer', 'min:1', 'max:100'],
+            // 'items.*.price'        => ['required', 'integer', 'min:1'],
+            // 'total'               => ['required', 'min:1'],
             'items.*.variation_id' => ['required', 'uuid', 'exists:itemvariations,id'],
             'items.*.quantity'     => ['required', 'integer', 'min:1', 'max:100'],
-            'items.*.price'        => ['required', 'integer', 'min:1'],
-
-
-
-            'total'               => ['required', 'min:1'],
         ];
     }
 

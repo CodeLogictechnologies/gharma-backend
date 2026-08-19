@@ -56,11 +56,10 @@
                         _token: '{{ csrf_token() }}'
                     })
                     .done(function(response) {
-                        // jQuery's .html() already runs embedded <script> tags
-                        // when the inserted markup contains one (it internally
-                        // falls back to .append()) — re-evaluating them here
-                        // would execute this page's setup script twice.
                         $('#nav-tabContent').html(response);
+                        $('#nav-tabContent').find('script').each(function() {
+                            $.globalEval($(this).text());
+                        });
                     })
                     .fail(function() {
                         $('#nav-tabContent').html(

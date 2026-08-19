@@ -57,15 +57,25 @@ class AuthController extends SessionController
             'password' => $post['password'],
         ];
 
-        if (!Auth::attempt($credentials)) {
+        // if (!Auth::attempt($credentials)) {
+        //     throw new Exception('Invalid email/username or password.');
+        // }
+
+        // if ($user->user_status !== 'Approve') {
+        //     Auth::logout();
+        //     throw new Exception('Your account is ' . strtolower($user->user_status) . '. Please contact the administrator.');
+        // }
+
+        if (!Auth::validate($credentials)) {
             throw new Exception('Invalid email/username or password.');
         }
 
         if ($user->user_status !== 'Approve') {
-            Auth::logout();
             throw new Exception('Your account is ' . strtolower($user->user_status) . '. Please contact the administrator.');
         }
-        
+
+        Auth::login($user);
+
         // dd(auth()->user()->getRoleNames());
         $org = DB::table('userorganizations')
             ->where('userid', $user->id)
