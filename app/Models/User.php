@@ -483,7 +483,7 @@ class User extends Authenticatable implements JWTSubject
             // $limit  = !empty($get["length"]) ? (int)$get["length"] : 15;
             // $offset = !empty($get["start"])  ? (int)$get["start"]  : 0;
 
-            $limit  = !empty($get["length"]) ? (int)$get["length"] : (!empty($get["iDisplayLength"]) ? (int)$get["iDisplayLength"] : 15);
+            $limit = !empty($get["length"]) ? (int)$get["length"] : (!empty($get["iDisplayLength"]) ? (int)$get["iDisplayLength"] : 15);
             $offset = isset($get["start"]) && $get["start"] !== '' ? (int)$get["start"] : (!empty($get["iDisplayStart"]) ? (int)$get["iDisplayStart"] : 0);
 
             $query = User::query()
