@@ -156,53 +156,53 @@
         </thead>
         <tbody>
             @foreach ($orderDetail as $i => $line)
-                @php
-                    $amount = $line->price * $line->quantity;
-                    $lineDiscount = (float) ($line->total_discount_amount ?? 0);
-                @endphp
-                <tr>
-                    <td>{{ $i + 1 }}</td>
-                    <td>{{ $line->title }}</td>
-                    <td>{{ $line->value ?? '-' }}</td>
-                    <td class="num">{{ $line->quantity }}</td>
-                    <td class="num">{{ number_format($line->price, 2) }}</td>
-                    <td class="num">{{ number_format($amount, 2) }}</td>
-                    <td class="num">{{ number_format($lineDiscount, 2) }}</td>
-                    <td class="num">{{ number_format($line->excise_amount ?? 0, 2) }}</td>
-                    <td class="num">{{ number_format($line->vat_amount ?? 0, 2) }}</td>
-                </tr>
+            @php
+            $amount = $line->price * $line->quantity;
+            $discount = (float) ($line->discount_amount_per_variation ?? 0);
+            @endphp
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td>{{ $line->title }}</td>
+                <td>{{ $line->value ?? '-' }}</td>
+                <td class="num">{{ $line->quantity }}</td>
+                <td class="num">{{ number_format($line->price, 2) }}</td>
+                <td class="num">{{ number_format($amount, 2) }}</td>
+                <td class="num">{{ number_format($discount, 2) }}</td>
+                <td class="num">{{ number_format($line->excise_amount ?? 0, 2) }}</td>
+                <td class="num">{{ number_format($line->vat_amount ?? 0, 2) }}</td>
+            </tr>
             @endforeach
         </tbody>
     </table>
 
     @php
-        $beforeDiscountTotal = 0;
-        $discountTotal = 0;
-        $afterDiscountTotal = 0;
-        $exciseTotal = 0;
-        $vatTotal = 0;
-        $grandTotal = 0;
+    $beforeDiscountTotal = 0;
+    $discountTotal = 0;
+    $afterDiscountTotal = 0;
+    $exciseTotal = 0;
+    $vatTotal = 0;
+    $grandTotal = 0;
 
-        foreach ($orderDetail as $line) {
-            $qty   = (float) $line->quantity;
-            $price = (float) $line->price;
+    foreach ($orderDetail as $line) {
+    $qty = (float) $line->quantity;
+    $price = (float) $line->price;
 
-            $beforeDiscount = $price * $qty;
-            $discount       = (float) ($line->total_discount_amount ?? 0);
-            $afterDiscount  = $beforeDiscount - $discount;
+    $beforeDiscount = $price * $qty;
+    $discount = (float) ($line->discount_amount_per_variation ?? 0);
+    $afterDiscount = $beforeDiscount - $discount;
 
-            $excise = (float) ($line->excise_amount ?? 0);
-            $vat    = (float) ($line->vat_amount ?? 0);
+    $excise = (float) ($line->excise_amount ?? 0);
+    $vat = (float) ($line->vat_amount ?? 0);
 
-            $lineTotal = (float) $line->order_detail_total_price;
+    $lineTotal = (float) $line->order_detail_total_price;
 
-            $beforeDiscountTotal += $beforeDiscount;
-            $discountTotal       += $discount;
-            $afterDiscountTotal  += $afterDiscount;
-            $exciseTotal         += $excise;
-            $vatTotal            += $vat;
-            $grandTotal          += $lineTotal;
-        }
+    $beforeDiscountTotal += $beforeDiscount;
+    $discountTotal += $discount;
+    $afterDiscountTotal += $afterDiscount;
+    $exciseTotal += $excise;
+    $vatTotal += $vat;
+    $grandTotal += $lineTotal;
+    }
     @endphp
 
     <table class="totals">
@@ -212,7 +212,7 @@
         </tr>
         <tr>
             <td class="label" colspan="8">Discount</td>
-            <td class="value">- {{ number_format($discountTotal, 2) }}</td>
+            <td class="value">{{ number_format($discountTotal, 2) }}</td>
         </tr>
         <tr>
             <td class="label" colspan="8">After Discount</td>

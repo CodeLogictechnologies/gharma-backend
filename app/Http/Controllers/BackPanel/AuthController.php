@@ -65,6 +65,7 @@ class AuthController extends SessionController
             Auth::logout();
             throw new Exception('Your account is ' . strtolower($user->user_status) . '. Please contact the administrator.');
         }
+        
         // dd(auth()->user()->getRoleNames());
         $org = DB::table('userorganizations')
             ->where('userid', $user->id)
