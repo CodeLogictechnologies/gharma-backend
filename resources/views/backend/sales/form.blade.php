@@ -27,13 +27,6 @@
                 <div class="invalid-feedback">Date is required.</div>
             </div>
 
-            <!-- <div class="col-md-4">
-                <label class="form-label">Bill / Voucher No. <span class="text-danger">*</span></label>
-                <input type="text" name="voucher_no" class="form-control" placeholder="e.g. SV-001"
-                    value="{{ $voucher_no ?? '' }}" data-required>
-                <div class="invalid-feedback">Bill / Voucher No. is required.</div>
-            </div> -->
-
             <div class="col-md-5">
                 <label class="form-label">Customer <span class="text-danger">*</span></label>
                 <select name="customer_id" id="customerSelect" class="form-select" data-required>
@@ -342,6 +335,13 @@
             return Math.round((n + Number.EPSILON) * 100) / 100;
         }
 
+        /* ── Row template ────────────────────────────────────────────
+           NOTE: the excise/vat hidden inputs live INSIDE the last <td>.
+           Placing <input> tags directly as children of a <tr> (outside
+           any <td>) is invalid HTML — the browser will silently hoist
+           them out of the table when it parses the string, and then
+           $tr.find('.excise-amount-input') will find nothing. Keeping
+           them inside a <td> keeps them attached to the row. */
         function rowTemplate(idx) {
             var wholesaleOnly = getCustomerType() === 'wholesaler';
             return '' +
@@ -368,6 +368,10 @@
                 '<button type="button" class="btn btn-icon btn-danger remove-item-row" title="Remove item">' +
                 '<i class="bx bx-trash"></i>' +
                 '</button>' +
+                // Hidden per-unit tax breakdown, submitted with the form for record-keeping.
+                // Kept inside this <td> so they stay attached to the <tr>.
+                '<input type="hidden" name="items[' + idx + '][excise_amount]" class="excise-amount-input" value="0">' +
+                '<input type="hidden" name="items[' + idx + '][vat_amount]" class="vat-amount-input" value="0">' +
                 '</div>' +
                 '</td>' +
                 '</tr>';
@@ -480,6 +484,10 @@
                     loadVariationsForRow($tr, '', null);
                     $tr.find('.rate-input').val('');
                     $tr.find('.discount-col').text('-');
+                    $tr.data('exciseUnit', 0);
+                    $tr.data('vatUnit', 0);
+                    $tr.find('.excise-amount-input').val(0);
+                    $tr.find('.vat-amount-input').val(0);
                 }
             });
 
@@ -570,6 +578,12 @@
             return '-';
         }
 
+        /* ── Sets the row's rate to the FINAL, tax-inclusive price:
+           (price - variation discount - active Discount-module discount) + excise + vat
+           This value comes straight from SalesVoucher::getItemPricing()'s
+           `effective_price`. Excise/VAT per-unit amounts are stored both as
+           jQuery .data() (for quick JS math in recalcAll) and as hidden
+           inputs (so they actually get submitted to the backend). ── */
         function applyAutoRate($tr) {
             var itemId = $tr.find('.item-select').val();
             var variationId = $tr.find('.variation-select').val();
@@ -589,10 +603,27 @@
 
                 if (customerType === 'wholesaler') {
                     $tr.find('.discount-col').text('-');
+                    $tr.data('exciseUnit', 0);
+                    $tr.data('vatUnit', 0);
+                    $tr.find('.excise-amount-input').val(0);
+                    $tr.find('.vat-amount-input').val(0);
+                    $tr.find('.vat-col').text('-');
+                    $tr.find('.excise-col').text('-');
                     applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
                 } else if (pricing.retailer) {
+                    // Final rate already includes: -discount -discount +excise +vat
                     $tr.find('.rate-input').val(pricing.retailer.effective_price);
                     $tr.find('.discount-col').text(formatDiscount(pricing.retailer));
+
+                    // Per-unit breakdown — informational display + submitted for record-keeping,
+                    // NEVER re-added to totals (that would double-tax; rate is already final).
+                    $tr.data('exciseUnit', pricing.retailer.excise_amount || 0);
+                    $tr.data('vatUnit', pricing.retailer.vat_amount || 0);
+                    $tr.find('.excise-amount-input').val(pricing.retailer.excise_amount || 0);
+                    $tr.find('.vat-amount-input').val(pricing.retailer.vat_amount || 0);
+                    $tr.find('.excise-col').text((pricing.retailer.excise_amount || 0).toFixed(2));
+                    $tr.find('.vat-col').text((pricing.retailer.vat_amount || 0).toFixed(2));
+
                     recalcAll();
                 }
             });
@@ -622,6 +653,19 @@
             if (prefill.qty) $tr.find('.qty-input').val(prefill.qty);
             if (prefill.unit_rate) $tr.find('.rate-input').val(prefill.unit_rate);
 
+            // Prefill the per-unit excise/vat breakdown too, when editing a saved voucher
+            // (so the display columns + hidden inputs aren't left at 0 until a fresh fetch).
+            if (prefill.excise_amount !== undefined) {
+                $tr.data('exciseUnit', prefill.excise_amount || 0);
+                $tr.find('.excise-amount-input').val(prefill.excise_amount || 0);
+                $tr.find('.excise-col').text((parseFloat(prefill.excise_amount) || 0).toFixed(2));
+            }
+            if (prefill.vat_amount !== undefined) {
+                $tr.data('vatUnit', prefill.vat_amount || 0);
+                $tr.find('.vat-amount-input').val(prefill.vat_amount || 0);
+                $tr.find('.vat-col').text((parseFloat(prefill.vat_amount) || 0).toFixed(2));
+            }
+
             if (prefill.item_id && prefill.variation_id) {
                 // Fetch remaining stock for live validation without overwriting the already-saved rate.
                 fetchPricing(prefill.item_id, prefill.variation_id, function(pricing) {
@@ -641,64 +685,34 @@
             });
         }
 
+        /* ── recalcAll: rate is ALREADY the final tax-inclusive price, so
+           Amount = qty * rate IS the line total, excise/VAT included.
+           Excise/VAT footer rows are purely INFORMATIONAL (sum of the
+           per-unit breakdowns stored on each row) and are NOT added to
+           the grand total a second time. Bill Discount is an extra
+           discount applied on top of the already tax-inclusive subtotal. ── */
         function recalcAll() {
-            var subtotal = 0;
-            var rows = [];
+            var grandTotal = 0;
+            var infoExcise = 0;
+            var infoVat = 0;
 
             $('#itemRows tr.item-row').each(function() {
                 var $tr = $(this);
                 var qty = parseFloat($tr.find('.qty-input').val()) || 0;
-                var rate = parseFloat($tr.find('.rate-input').val()) || 0;
+                var rate = parseFloat($tr.find('.rate-input').val()) || 0; // final, tax-inclusive
                 var amount = round2(qty * rate);
                 $tr.find('.amount-display').val(amount.toFixed(2));
-                subtotal += amount;
-                rows.push({
-                    $tr: $tr,
-                    amount: amount,
-                    qty: qty,
-                    itemId: $tr.find('.item-select').val()
-                });
+
+                grandTotal += amount;
+                infoExcise += (parseFloat($tr.data('exciseUnit')) || 0) * qty;
+                infoVat    += (parseFloat($tr.data('vatUnit')) || 0) * qty;
             });
 
-
+            var subtotal = round2(grandTotal); // tax-inclusive line total, pre bill-discount
 
             var discountPercent = parseFloat($('#billDiscountPercent').val()) || 0;
             var discountAmount = round2(subtotal * discountPercent / 100);
-            var preVatBase = round2(subtotal - discountAmount);
-
-            var totalVat = 0;
-            var totalExcise = 0;
-
-            rows.forEach(function(r) {
-                var meta = itemsMeta[r.itemId];
-                var share = subtotal > 0 ? (r.amount / subtotal) * preVatBase : 0;
-
-                var exciseAmt = 0;
-                if (meta && meta.excise_status === 'Y') {
-                    if (meta.excise_type === 'percentage') {
-                        exciseAmt = round2(share * (parseFloat(meta.excise_percentage) || 0) / 100);
-                    } else if (meta.excise_type === 'fixed') {
-                        exciseAmt = round2((parseFloat(meta.excise_value) || 0) * r.qty);
-                    }
-                }
-
-                var taxableForVat = share + exciseAmt;
-                var vatPercent = meta && meta.vat_status === 'Y' ? meta.vat_percent : 0;
-                var vatAmt = round2(taxableForVat * vatPercent / 100);
-
-                totalVat += vatAmt;
-                totalExcise += exciseAmt;
-            });
-
-            var taxableAmount = round2(preVatBase + totalExcise);
-            var grandTotal = round2(taxableAmount + totalVat);
-
-            $('#subtotalDisplay').text(subtotal.toFixed(2));
-            $('#discountAmountDisplay').text(discountAmount.toFixed(2));
-            $('#exciseAmountDisplay').text(totalExcise.toFixed(2));
-            $('#taxableAmountDisplay').text(taxableAmount.toFixed(2));
-            $('#vatAmountDisplay').text(totalVat.toFixed(2));
-            $('#totalDisplay').text(grandTotal.toFixed(2));
+            var total = round2(subtotal - discountAmount);
 
             $('#subtotalDisplay').text(subtotal.toFixed(2));
             $('#subtotalInput').val(subtotal.toFixed(2));
@@ -706,17 +720,18 @@
             $('#discountAmountDisplay').text(discountAmount.toFixed(2));
             $('#discountAmountInput').val(discountAmount.toFixed(2));
 
-            $('#exciseAmountDisplay').text(totalExcise.toFixed(2));
-            $('#exciseAmountInput').val(totalExcise.toFixed(2));
+            // Informational only — already inside subtotal/rate, not added again to total.
+            $('#exciseAmountDisplay').text(infoExcise.toFixed(2));
+            $('#exciseAmountInput').val(infoExcise.toFixed(2));
 
-            $('#taxableAmountDisplay').text(taxableAmount.toFixed(2));
-            $('#taxableAmountInput').val(taxableAmount.toFixed(2));
+            $('#taxableAmountDisplay').text(subtotal.toFixed(2));
+            $('#taxableAmountInput').val(subtotal.toFixed(2));
 
-            $('#vatAmountDisplay').text(totalVat.toFixed(2));
-            $('#vatAmountInput').val(totalVat.toFixed(2));
+            $('#vatAmountDisplay').text(infoVat.toFixed(2));
+            $('#vatAmountInput').val(infoVat.toFixed(2));
 
-            $('#totalDisplay').text(grandTotal.toFixed(2));
-            $('#totalInput').val(grandTotal.toFixed(2));
+            $('#totalDisplay').text(total.toFixed(2));
+            $('#totalInput').val(total.toFixed(2));
         }
 
         /* ── Row events ───────────────────────────────────────────── */
@@ -734,9 +749,8 @@
                 $(this).val(existingItemId || '').trigger('change');
                 suppressItemChange = false;
 
-                window.prefillItemName = lastItemSearchTerm;   // ADD THIS
-    window.prefillProductCode = '';                // ADD THIS
-
+                window.prefillItemName = lastItemSearchTerm;
+                window.prefillProductCode = '';
 
                 if (typeof window.svOpenAddItemModal === 'function') {
                     window.svOpenAddItemModal(existingItemId || null);
@@ -760,29 +774,29 @@
         });
 
         $(document).on('change', '.product-code-select', function() {
-    if (suppressProductCodeChange) return;
+            if (suppressProductCodeChange) return;
 
-    var $tr = $(this).closest('tr');
-    var val = $(this).val();
+            var $tr = $(this).closest('tr');
+            var val = $(this).val();
 
-    if (val === '__add_product_code__') {
-        pendingItemRow = $tr;
-        var existingItemId = $tr.data('lastItemId');
-        var existingVariationId = $tr.find('.variation-select').val();
+            if (val === '__add_product_code__') {
+                pendingItemRow = $tr;
+                var existingItemId = $tr.data('lastItemId');
+                var existingVariationId = $tr.find('.variation-select').val();
 
-        suppressProductCodeChange = true;
-        $(this).val($tr.data('lastProductCode') || '').trigger('change');
-        suppressProductCodeChange = false;
+                suppressProductCodeChange = true;
+                $(this).val($tr.data('lastProductCode') || '').trigger('change');
+                suppressProductCodeChange = false;
 
-        window.prefillItemName = '';
-        window.prefillProductCode = lastProductCodeSearchTerm;
-        window.prefillVariationId = existingVariationId || '';
+                window.prefillItemName = '';
+                window.prefillProductCode = lastProductCodeSearchTerm;
+                window.prefillVariationId = existingVariationId || '';
 
-        if (typeof window.svOpenAddItemModal === 'function') {
-            window.svOpenAddItemModal(existingItemId || null);
-        }
-        return;
-    }
+                if (typeof window.svOpenAddItemModal === 'function') {
+                    window.svOpenAddItemModal(existingItemId || null);
+                }
+                return;
+            }
 
             var ref = productCodeIndex[val];
             if (!ref) return;
@@ -822,40 +836,33 @@
             recalcAll();
         });
 
-        // /* ── Track what the user typed while searching the customer dropdown ── */
-        // var lastCustomerSearchTerm = '';
-        // $(document).on('input', '#svModal .select2-search__field', function() {
-        //     lastCustomerSearchTerm = $(this).val();
-        // });
-
         /* ── Track what the user typed while searching customer/item/product-code dropdowns ── */
-var lastCustomerSearchTerm = '';
-var lastItemSearchTerm = '';
-var lastProductCodeSearchTerm = '';
-var activeSearchField = null;
+        var lastCustomerSearchTerm = '';
+        var lastItemSearchTerm = '';
+        var lastProductCodeSearchTerm = '';
+        var activeSearchField = null;
 
-$(document).on('select2:open', function(e) {
-    activeSearchField = $(e.target);
-});
+        $(document).on('select2:open', function(e) {
+            activeSearchField = $(e.target);
+        });
 
-$(document).on('input', '#svModal .select2-search__field', function() {
-    var val = $(this).val();
-    if (!activeSearchField) return;
+        $(document).on('input', '#svModal .select2-search__field', function() {
+            var val = $(this).val();
+            if (!activeSearchField) return;
 
-    if (activeSearchField.is('#customerSelect')) {
-        lastCustomerSearchTerm = val;
-    } else if (activeSearchField.hasClass('item-select')) {
-        lastItemSearchTerm = val;
-    } else if (activeSearchField.hasClass('product-code-select')) {
-        lastProductCodeSearchTerm = val;
-    }
-});
+            if (activeSearchField.is('#customerSelect')) {
+                lastCustomerSearchTerm = val;
+            } else if (activeSearchField.hasClass('item-select')) {
+                lastItemSearchTerm = val;
+            } else if (activeSearchField.hasClass('product-code-select')) {
+                lastProductCodeSearchTerm = val;
+            }
+        });
 
         $('#customerSelect').on('change', function() {
             var val = $(this).val();
 
             if (val === '__add_customer__') {
-                // Hand the typed term off so the Add Customer form can prefill Username with it
                 window.prefillCustomerName = lastCustomerSearchTerm;
                 $(document).trigger('sv:openAddCustomer', [lastCustomerSearchTerm]);
             }
@@ -883,31 +890,22 @@ $(document).on('input', '#svModal .select2-search__field', function() {
 
         /* ── Select2: keep "+ Add Customer" visible even when search has no matches ── */
         function customerMatcher(params, data) {
-            // No search term entered: show all options as-is
             if ($.trim(params.term) === '') {
                 return data;
             }
-
-            // Always keep the "+ Add Customer" option visible regardless of search term
             if (data.id === '__add_customer__') {
                 return data;
             }
-
-            // Skip options without text (e.g. placeholder groups)
             if (typeof data.text === 'undefined') {
                 return null;
             }
-
-            // Standard case-insensitive contains match for real customers
             if (data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1) {
                 return data;
             }
-
             return null;
         }
 
         /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
-        /* select2 and row insertion both need a laid-out (non display:none) container to size correctly */
         $(document).off('shown.bs.modal.salesVoucher', '#svModal')
             .on('shown.bs.modal.salesVoucher', '#svModal', function() {
                 $('#customerSelect').select2({
@@ -928,7 +926,9 @@ $(document).on('input', '#svModal .select2-search__field', function() {
                             item_id: li.item_id,
                             variation_id: li.variation_id,
                             qty: li.qty,
-                            unit_rate: li.unit_rate
+                            unit_rate: li.unit_rate,
+                            excise_amount: li.excise_amount,
+                            vat_amount: li.vat_amount
                         });
                     });
                 } else {
