@@ -96,7 +96,7 @@ class SalesVoucher extends Model
             //     return 1;
             // }
             // return $lastVoucher->voucher_number + 1;
-                        if (!$lastVoucher || $lastVoucher->voucher_number === null || $lastVoucher->voucher_number === '') {
+            if (!$lastVoucher || $lastVoucher->voucher_number === null || $lastVoucher->voucher_number === '') {
                 return 1;
             }
 
@@ -109,6 +109,98 @@ class SalesVoucher extends Model
     }
 
     /* Retailer (flat, discounted) and wholesaler (qty-tiered) pricing for a single item variation */
+    // public static function getItemPricing($post)
+    // {
+    //     $itemId      = $post['item_id'] ?? null;
+    //     $variationId = $post['variation_id'] ?? null;
+
+    //     $retailer       = null;
+    //     $wholesaleTiers = [];
+    //     $remaining      = 0;
+
+    //     if ($itemId && $variationId) {
+
+    //         $variation = DB::table('itemvariations')
+    //             ->where('id', $variationId)
+    //             ->where('item_id', $itemId)
+    //             ->where('status', 'Y')
+    //             ->select('price', 'discount_type', 'discount', 'discount_amount')
+    //             ->first();
+
+    //         if ($variation) {
+    //             $price = (float) $variation->price;
+
+    //             // Active discount from the Discount module (handles BOTH percentage and fixed)
+    //             $activeDiscount = DB::table('discount_details as dd')
+    //                 ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
+    //                 ->where('dd.variation_id', $variationId)
+    //                 ->where('dd.orgid', $post['orgid'])
+    //                 ->where('dd.status', 'Y')
+    //                 ->where('dm.status', 'Y')
+    //                 ->where('dm.start_date_ad', '<=', now())
+    //                 ->where('dm.end_date_ad', '>=', now())
+    //                 ->orderByDesc('dm.created_at')
+    //                 ->select('dd.discount_type', 'dd.discount_value', 'dd.total_amount')
+    //                 ->first();
+
+    //             if ($activeDiscount) {
+    //                 $mappedType = $activeDiscount->discount_type === 'percentage' ? 'percentage' : 'fixed';
+
+    //                 $retailer = [
+    //                     'price'               => round($price, 2),
+    //                     'effective_price'     => round((float) $activeDiscount->total_amount, 2),
+    //                     'discount_type'       => $mappedType,
+    //                     'discount_percentage' => $mappedType === 'percentage' ? $activeDiscount->discount_value : null,
+    //                     'discount_amount'     => $mappedType === 'fixed' ? $activeDiscount->discount_value : null,
+    //                 ];
+    //             } else {
+    //                 $discount = 0;
+
+    //                 if ($variation->discount_type === 'percentage' && $variation->discount !== null) {
+    //                     $discount = $price * (float) $variation->discount / 100;
+    //                 } elseif ($variation->discount_type === 'fixed' && $variation->discount_amount !== null) {
+    //                     $discount = (float) $variation->discount_amount;
+    //                 }
+
+    //                 $retailer = [
+    //                     'price'               => round($price, 2),
+    //                     'effective_price'     => round(max($price - $discount, 0), 2),
+    //                     'discount_type'       => $variation->discount_type,
+    //                     'discount_percentage' => $variation->discount,
+    //                     'discount_amount'     => $variation->discount_amount,
+    //                 ];
+    //             }
+    //         }
+
+    //         $wholesalerMasterId = DB::table('wholesaler_prices')
+    //             ->where('itemid', $itemId)
+    //             ->where('variation_id', $variationId)
+    //             ->where('status', 'Y')
+    //             ->value('id');
+
+    //         if ($wholesalerMasterId) {
+    //             $wholesaleTiers = DB::table('wholesaler_price_details')
+    //                 ->where('wholesalermasterid', $wholesalerMasterId)
+    //                 ->where('status', 'Y')
+    //                 ->orderBy('min_qty')
+    //                 ->select('min_qty', 'max_qty', 'price')
+    //                 ->get();
+    //         }
+
+    //         $remaining = Itemvariation::remainingStock(
+    //             $variationId,
+    //             $post['orgid'],
+    //             $post['exclude_ordermasterid'] ?? null
+    //         );
+    //     }
+
+    //     return [
+    //         'retailer'        => $retailer,
+    //         'wholesale_tiers' => $wholesaleTiers,
+    //         'remaining'       => $remaining,
+    //     ];
+    // }
+
     public static function getItemPricing($post)
     {
         $itemId      = $post['item_id'] ?? null;
@@ -120,17 +212,38 @@ class SalesVoucher extends Model
 
         if ($itemId && $variationId) {
 
-            $variation = DB::table('itemvariations')
-                ->where('id', $variationId)
-                ->where('item_id', $itemId)
-                ->where('status', 'Y')
-                ->select('price', 'discount_type', 'discount', 'discount_amount')
+            $variation = DB::table('itemvariations as iv')
+                ->join('items as i', 'i.id', '=', 'iv.item_id')
+                ->where('iv.id', $variationId)
+                ->where('iv.item_id', $itemId)
+                ->where('iv.status', 'Y')
+                ->select(
+                    'iv.price',
+                    'iv.discount_type',
+                    'iv.discount',
+                    'iv.discount_amount',
+                    'i.excise_status',
+                    'i.excise_type',
+                    'i.excise_percentage',
+                    'i.excise_value',
+                    'i.vat_status',
+                    'i.vat_percent'
+                )
                 ->first();
 
             if ($variation) {
-                $price = (float) $variation->price;
+                $basePrice = (float) $variation->price;
 
-                // Active discount from the Discount module (handles BOTH percentage and fixed)
+                /* Step 1: variation-level discount */
+                $variationDiscountAmt = 0;
+                if ($variation->discount_type === 'percentage' && $variation->discount !== null) {
+                    $variationDiscountAmt = round($basePrice * (float) $variation->discount / 100, 2);
+                } elseif ($variation->discount_type === 'fixed' && $variation->discount_amount !== null) {
+                    $variationDiscountAmt = round((float) $variation->discount_amount, 2);
+                }
+                $afterVariationDiscount = max(0, round($basePrice - $variationDiscountAmt, 2));
+
+                /* Step 2: active Discount-module rule (date/time gated) */
                 $activeDiscount = DB::table('discount_details as dd')
                     ->join('discount_masters as dm', 'dm.id', '=', 'dd.discount_master_id')
                     ->where('dd.variation_id', $variationId)
@@ -140,36 +253,60 @@ class SalesVoucher extends Model
                     ->where('dm.start_date_ad', '<=', now())
                     ->where('dm.end_date_ad', '>=', now())
                     ->orderByDesc('dm.created_at')
-                    ->select('dd.discount_type', 'dd.discount_value', 'dd.total_amount')
+                    ->select('dd.discount_type', 'dd.discount_value')
                     ->first();
 
+                $moduleDiscountAmt = 0;
+                $shownType = $variation->discount_type;
+                $shownPct  = $variation->discount_type === 'percentage' ? $variation->discount : null;
+                $shownFixed = $variation->discount_type === 'fixed' ? $variation->discount_amount : null;
+
                 if ($activeDiscount) {
-                    $mappedType = $activeDiscount->discount_type === 'percentage' ? 'percentage' : 'fixed';
-
-                    $retailer = [
-                        'price'               => round($price, 2),
-                        'effective_price'     => round((float) $activeDiscount->total_amount, 2),
-                        'discount_type'       => $mappedType,
-                        'discount_percentage' => $mappedType === 'percentage' ? $activeDiscount->discount_value : null,
-                        'discount_amount'     => $mappedType === 'fixed' ? $activeDiscount->discount_value : null,
-                    ];
-                } else {
-                    $discount = 0;
-
-                    if ($variation->discount_type === 'percentage' && $variation->discount !== null) {
-                        $discount = $price * (float) $variation->discount / 100;
-                    } elseif ($variation->discount_type === 'fixed' && $variation->discount_amount !== null) {
-                        $discount = (float) $variation->discount_amount;
+                    if ($activeDiscount->discount_type === 'percentage') {
+                        $moduleDiscountAmt = round($afterVariationDiscount * (float) $activeDiscount->discount_value / 100, 2);
+                        $shownType = 'percentage';
+                        $shownPct  = $activeDiscount->discount_value;
+                        $shownFixed = null;
+                    } else {
+                        $moduleDiscountAmt = round((float) $activeDiscount->discount_value, 2);
+                        $shownType  = 'fixed';
+                        $shownFixed = $activeDiscount->discount_value;
+                        $shownPct   = null;
                     }
-
-                    $retailer = [
-                        'price'               => round($price, 2),
-                        'effective_price'     => round(max($price - $discount, 0), 2),
-                        'discount_type'       => $variation->discount_type,
-                        'discount_percentage' => $variation->discount,
-                        'discount_amount'     => $variation->discount_amount,
-                    ];
                 }
+
+                $totalDiscountAmt   = round($variationDiscountAmt + $moduleDiscountAmt, 2);
+                $afterAllDiscounts  = max(0, round($basePrice - $totalDiscountAmt, 2));
+
+                /* Step 3: excise on the discounted price */
+                $exciseAmount = 0;
+                if ($variation->excise_status === 'Y') {
+                    if ($variation->excise_type === 'percentage') {
+                        $exciseAmount = round($afterAllDiscounts * (float) $variation->excise_percentage / 100, 2);
+                    } elseif ($variation->excise_type === 'fixed') {
+                        $exciseAmount = round((float) ($variation->excise_value ?? 0), 2);
+                    }
+                }
+                $afterExcise = round($afterAllDiscounts + $exciseAmount, 2);
+
+                /* Step 4: VAT on top of that */
+                $vatAmount = 0;
+                if ($variation->vat_status === 'Y') {
+                    $vatAmount = round($afterExcise * (float) ($variation->vat_percent ?? 0) / 100, 2);
+                }
+
+                $finalRate = round($afterExcise + $vatAmount, 2);
+
+                $retailer = [
+                    'price'               => round($basePrice, 2),
+                    'effective_price'     => $finalRate,     // <-- final tax-inclusive rate shown in the field
+                    'discount_type'       => $shownType,
+                    'discount_percentage' => $shownPct,
+                    'discount_amount'     => $shownFixed,
+                    'discount_total'      => $totalDiscountAmt, // per-unit, for breakdown display only
+                    'excise_amount'       => $exciseAmount,     // per-unit, informational
+                    'vat_amount'          => $vatAmount,         // per-unit, informational
+                ];
             }
 
             $wholesalerMasterId = DB::table('wholesaler_prices')
@@ -239,35 +376,23 @@ class SalesVoucher extends Model
                         'i.excise_percentage',
                         'i.excise_value',
                         'i.vat_status',
+                        'i.vat_percent',
                         'iv.discount_type',
-                        'iv.discount_amount',
-                        'i.vat_percent'
+                        'iv.discount_amount'
                     )
                     ->first();
 
                 if (!$variation) {
                     throw new \Exception("Item or variation not found for item_id: {$item['item_id']}");
                 }
+
                 $qty = (float) $item['qty'];
-                $unitPrice = (float) $item['unit_rate'];
+                $unitPrice = (float) $item['unit_rate']; // final, tax-inclusive rate as shown/edited on the form
 
-                $baseAmount = round($unitPrice * $qty, 2);
+                $baseAmount = round($unitPrice * $qty, 2); // this IS the line total, tax already included
 
+                // ── Discount amount: authoritative if the form submitted it, else fall back ──
                 $listPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
-
-                /*
-                 * Discount amount — prefer the exact discount that was shown/applied on the
-                 * form at sale time (submitted from the row's discount_type/discount_value
-                 * hidden inputs, sourced from getItemPricing()'s "retailer" block). This is
-                 * the authoritative value because it reflects the actual Discount-module rule
-                 * (or item-level discount) that was active when the sale happened.
-                 *
-                 * Falls back to reconstructing from (listPrice - unitPrice) * qty only when
-                 * those fields aren't present in the submission — e.g. rows saved before this
-                 * change, or wholesaler rows which don't carry a retailer discount at all.
-                 * NOTE: that fallback can be inaccurate if itemvariations.price has since
-                 * drifted from the price the discount was originally configured against.
-                 */
                 $lineDiscountType  = $item['discount_type'] ?? null;
                 $lineDiscountValue = isset($item['discount_value']) ? (float) $item['discount_value'] : null;
 
@@ -276,40 +401,26 @@ class SalesVoucher extends Model
                 } elseif ($lineDiscountType === 'fixed' && $lineDiscountValue !== null) {
                     $discountAmount = round($lineDiscountValue * $qty, 2);
                 } else {
-                    $discountAmount = round(max(($listPrice - $unitPrice) * $qty, 0), 2);
+                    $discountAmount = 0;
                 }
 
-                $amountAfterDiscount = $baseAmount;
-
+                // ── Excise / VAT: recomputed from item config purely for RECORD-KEEPING (reports/views),
+                //    NOT added again into the line total — unitPrice already contains them. ──
                 $exciseAmount = 0.00;
-
                 if ($variation->excise_status === 'Y') {
                     if ($variation->excise_type === 'percentage') {
-                        $exciseAmount = round(
-                            $amountAfterDiscount * ((float) $variation->excise_percentage / 100),
-                            2
-                        );
-                    } elseif ($variation->excise_type === 'fixed') {
-                        $exciseAmount = round(
-                            (float) ($variation->excise_value ?? 0) * $qty,
-                            2
-                        );
+                        // proportion the excise from what would have gone into this unit's rate
+                        $exciseAmount = round(($unitPrice - ($unitPrice / (1 + ((float)($variation->excise_percentage ?? 0) + (float)($variation->vat_percent ?? 0)) / 100))), 2);
+                        // NOTE: exact back-calculation is ambiguous once excise+VAT are compounded into one number.
+                        // Recommended: instead of back-deriving, submit excise_amount/vat_amount per line as hidden
+                        // fields from the pricing() response used to build the row, and just trust them here:
                     }
                 }
 
-                $amountAfterExcise = round($amountAfterDiscount + $exciseAmount, 2);
+                $exciseAmount = isset($item['excise_amount']) ? round((float) $item['excise_amount'] * $qty, 2) : 0;
+                $vatAmount    = isset($item['vat_amount'])    ? round((float) $item['vat_amount'] * $qty, 2)    : 0;
 
-                $vatAmount = 0.00;
-                $vatRate = (float) ($variation->vat_percent ?? 0);
-
-                if ($variation->vat_status === 'Y') {
-                    $vatAmount = round(
-                        $amountAfterExcise * ($vatRate / 100),
-                        2
-                    );
-                }
-
-                $lineTotal = round($amountAfterExcise + $vatAmount, 2);
+                $lineTotal = $baseAmount; // already tax-inclusive — do not add excise/vat again
 
                 $insertOrderDetails[] = [
                     'id'                             => (string) Str::uuid(),
@@ -321,17 +432,11 @@ class SalesVoucher extends Model
                     'discount_type'                  => $lineDiscountType ?? $variation->discount_type,
                     'discount_amount'                => $lineDiscountValue ?? ($variation->discount_amount ?? 0),
                     'discount_amount_per_variation'  => $discountAmount,
-                    'excise_type'                    => $variation->excise_status === 'Y'
-                        ? $variation->excise_type
-                        : null,
-                    'excise_percent'                 => $variation->excise_type === 'percentage'
-                        ? $variation->excise_percentage
-                        : 0,
-                    'excise_amount'                  => $exciseAmount,
-                    'vat_percent'                    => $variation->vat_status === 'Y'
-                        ? $vatRate
-                        : 0,
-                    'vat_amount'                     => $vatAmount,
+                    'excise_type'                    => $variation->excise_status === 'Y' ? $variation->excise_type : null,
+                    'excise_percent'                 => $variation->excise_type === 'percentage' ? $variation->excise_percentage : 0,
+                    'excise_amount'                  => $exciseAmount, // record-only
+                    'vat_percent'                    => $variation->vat_status === 'Y' ? $variation->vat_percent : 0,
+                    'vat_amount'                     => $vatAmount, // record-only
                     'order_detail_total_price'       => $lineTotal,
                     'created_at'                     => Carbon::now(),
                 ];
@@ -343,6 +448,125 @@ class SalesVoucher extends Model
                 $grandVat      += $vatAmount;
                 $grandTotal    += $lineTotal;
             }
+
+            // foreach ($post['items'] as $item) {
+
+            //     $variation = DB::table('itemvariations as iv')
+            //         ->join('items as i', 'i.id', '=', 'iv.item_id')
+            //         ->where('iv.id', $item['variation_id'])
+            //         ->where('iv.orgid', $post['orgid'])
+            //         ->select(
+            //             'iv.id as variation_id',
+            //             'iv.price',
+            //             'i.excise_status',
+            //             'i.excise_type',
+            //             'i.excise_percentage',
+            //             'i.excise_value',
+            //             'i.vat_status',
+            //             'iv.discount_type',
+            //             'iv.discount_amount',
+            //             'i.vat_percent'
+            //         )
+            //         ->first();
+
+            //     if (!$variation) {
+            //         throw new \Exception("Item or variation not found for item_id: {$item['item_id']}");
+            //     }
+            //     $qty = (float) $item['qty'];
+            //     $unitPrice = (float) $item['unit_rate'];
+
+            //     $baseAmount = round($unitPrice * $qty, 2);
+
+            //     $listPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
+
+            //     /*
+            //      * Discount amount — prefer the exact discount that was shown/applied on the
+            //      * form at sale time (submitted from the row's discount_type/discount_value
+            //      * hidden inputs, sourced from getItemPricing()'s "retailer" block). This is
+            //      * the authoritative value because it reflects the actual Discount-module rule
+            //      * (or item-level discount) that was active when the sale happened.
+            //      *
+            //      * Falls back to reconstructing from (listPrice - unitPrice) * qty only when
+            //      * those fields aren't present in the submission — e.g. rows saved before this
+            //      * change, or wholesaler rows which don't carry a retailer discount at all.
+            //      * NOTE: that fallback can be inaccurate if itemvariations.price has since
+            //      * drifted from the price the discount was originally configured against.
+            //      */
+            //     $lineDiscountType  = $item['discount_type'] ?? null;
+            //     $lineDiscountValue = isset($item['discount_value']) ? (float) $item['discount_value'] : null;
+
+            //     if ($lineDiscountType === 'percentage' && $lineDiscountValue !== null) {
+            //         $discountAmount = round(($listPrice * $lineDiscountValue / 100) * $qty, 2);
+            //     } elseif ($lineDiscountType === 'fixed' && $lineDiscountValue !== null) {
+            //         $discountAmount = round($lineDiscountValue * $qty, 2);
+            //     } else {
+            //         $discountAmount = round(max(($listPrice - $unitPrice) * $qty, 0), 2);
+            //     }
+
+            //     $amountAfterDiscount = $baseAmount;
+
+            //     $exciseAmount = 0.00;
+
+            //     if ($variation->excise_status === 'Y') {
+            //         if ($variation->excise_type === 'percentage') {
+            //             $exciseAmount = round(
+            //                 $amountAfterDiscount * ((float) $variation->excise_percentage / 100),
+            //                 2
+            //             );
+            //         } elseif ($variation->excise_type === 'fixed') {
+            //             $exciseAmount = round(
+            //                 (float) ($variation->excise_value ?? 0) * $qty,
+            //                 2
+            //             );
+            //         }
+            //     }
+
+            //     $amountAfterExcise = round($amountAfterDiscount + $exciseAmount, 2);
+
+            //     $vatAmount = 0.00;
+            //     $vatRate = (float) ($variation->vat_percent ?? 0);
+
+            //     if ($variation->vat_status === 'Y') {
+            //         $vatAmount = round(
+            //             $amountAfterExcise * ($vatRate / 100),
+            //             2
+            //         );
+            //     }
+
+            //     $lineTotal = round($amountAfterExcise + $vatAmount, 2);
+
+            //     $insertOrderDetails[] = [
+            //         'id'                             => (string) Str::uuid(),
+            //         'ordermasterid'                  => $orderMasterId,
+            //         'variation_id'                   => $variation->variation_id,
+            //         'quantity'                       => $qty,
+            //         'userid'                         => $customer_id,
+            //         'price'                          => $unitPrice,
+            //         'discount_type'                  => $lineDiscountType ?? $variation->discount_type,
+            //         'discount_amount'                => $lineDiscountValue ?? ($variation->discount_amount ?? 0),
+            //         'discount_amount_per_variation'  => $discountAmount,
+            //         'excise_type'                    => $variation->excise_status === 'Y'
+            //             ? $variation->excise_type
+            //             : null,
+            //         'excise_percent'                 => $variation->excise_type === 'percentage'
+            //             ? $variation->excise_percentage
+            //             : 0,
+            //         'excise_amount'                  => $exciseAmount,
+            //         'vat_percent'                    => $variation->vat_status === 'Y'
+            //             ? $vatRate
+            //             : 0,
+            //         'vat_amount'                     => $vatAmount,
+            //         'order_detail_total_price'       => $lineTotal,
+            //         'created_at'                     => Carbon::now(),
+            //     ];
+
+            //     $variationIds[] = $variation->variation_id;
+
+            //     $grandSubtotal += $baseAmount;
+            //     $grandExcise   += $exciseAmount;
+            //     $grandVat      += $vatAmount;
+            //     $grandTotal    += $lineTotal;
+            // }
 
             $bsdate = new BsdateController;
             $sales_vouchers_date_eng = $bsdate->nep_to_eng($post['voucher_date']);
