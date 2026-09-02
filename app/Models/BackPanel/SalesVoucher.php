@@ -306,6 +306,8 @@ class SalesVoucher extends Model
                     'discount_total'      => $totalDiscountAmt, // per-unit, for breakdown display only
                     'excise_amount'       => $exciseAmount,     // per-unit, informational
                     'vat_amount'          => $vatAmount,         // per-unit, informational
+                    'sp_item_only'        => round($afterVariationDiscount, 2), // ← NEW: SP with ONLY the item/variation-level discount (no promo/module discount) — this is what the "Amount" column should use
+
                 ];
             }
 
@@ -387,9 +389,12 @@ class SalesVoucher extends Model
                 }
 
                 $qty = (float) $item['qty'];
-                $unitPrice = (float) $item['unit_rate']; // final, tax-inclusive rate as shown/edited on the form
+                // NOTE: as of this change, unit_rate is SP — MRP minus discounts,
+                // EXCLUDING excise/VAT. The old assumption ("rate already tax-inclusive")
+                // no longer holds; excise/VAT are added back below.
+                $unitPrice = (float) $item['unit_rate'];
 
-                $baseAmount = round($unitPrice * $qty, 2); // this IS the line total, tax already included
+                $baseAmount = round($unitPrice * $qty, 2); // pre-tax line amount
 
                 // ── Discount amount: authoritative if the form submitted it, else fall back ──
                 $listPrice = (float) preg_replace('/[^0-9.\-]/', '', $variation->price);
@@ -404,23 +409,14 @@ class SalesVoucher extends Model
                     $discountAmount = 0;
                 }
 
-                // ── Excise / VAT: recomputed from item config purely for RECORD-KEEPING (reports/views),
-                //    NOT added again into the line total — unitPrice already contains them. ──
-                $exciseAmount = 0.00;
-                if ($variation->excise_status === 'Y') {
-                    if ($variation->excise_type === 'percentage') {
-                        // proportion the excise from what would have gone into this unit's rate
-                        $exciseAmount = round(($unitPrice - ($unitPrice / (1 + ((float)($variation->excise_percentage ?? 0) + (float)($variation->vat_percent ?? 0)) / 100))), 2);
-                        // NOTE: exact back-calculation is ambiguous once excise+VAT are compounded into one number.
-                        // Recommended: instead of back-deriving, submit excise_amount/vat_amount per line as hidden
-                        // fields from the pricing() response used to build the row, and just trust them here:
-                    }
-                }
-
+                // ── Excise / VAT: per-unit amounts submitted from the form (sourced from
+                //    getItemPricing()'s "retailer" block at the time the rate was fetched). ──
                 $exciseAmount = isset($item['excise_amount']) ? round((float) $item['excise_amount'] * $qty, 2) : 0;
                 $vatAmount    = isset($item['vat_amount'])    ? round((float) $item['vat_amount'] * $qty, 2)    : 0;
 
-                $lineTotal = $baseAmount; // already tax-inclusive — do not add excise/vat again
+                // Line total = pre-tax amount + excise + vat — unit_rate no longer bakes tax in,
+                // so it must be added back here (previously this was just $baseAmount).
+                $lineTotal = round($baseAmount + $exciseAmount + $vatAmount, 2);
 
                 $insertOrderDetails[] = [
                     'id'                             => (string) Str::uuid(),
@@ -578,6 +574,7 @@ class SalesVoucher extends Model
                 'orgid'                     => $post['orgid'],
                 'payment_method'            => $post['paymentmethod'] ?? 'COD',
                 'voucher_number'            => $post['voucher_no'],
+                'bill_type'                 => $post['bill_type'] ?? 'vat', 
                 'userid'                    => $post['customer_id'],
                 'addressid'                 => $post['addressid'] ?? null,
                 'order_master_subtotal'     => $post['subtotal'],
@@ -664,6 +661,7 @@ class SalesVoucher extends Model
             ->where('od.ordermasterid', $post['id'])
             ->select(
                 'om.id as ordermasterid',
+                'om.bill_type', 
                 'i.title',
                 'i.product_code as item_product_code',
                 'v.value',
@@ -700,6 +698,7 @@ class SalesVoucher extends Model
             ->select(
                 'om.id as ordermasterid',
                 'om.voucher_number',
+                'om.bill_type',
                 'om.created_at',
                 'u.name',
                 'om.order_master_subtotal as subtotal',

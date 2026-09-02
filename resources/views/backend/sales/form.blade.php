@@ -1,6 +1,45 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
     rel="stylesheet" />
+<style>
+    #svItemsTable input[type=number]::-webkit-outer-spin-button,
+    #svItemsTable input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    #svItemsTable input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    /* ── Highlight rows where a discount is actually applied ── */
+    #svItemsTable tr.item-row.has-discount td {
+        border-top: 2px solid #fd7e14;
+        border-bottom: 2px solid #fd7e14;
+    }
+
+    #svItemsTable tr.item-row.has-discount td:first-child {
+        border-left: 3px solid #fd7e14;
+    }
+
+    #svItemsTable tr.item-row.has-discount .discount-col {
+        color: #fd7e14;
+        font-weight: 600;
+    }
+
+    /* ── Abbreviated Bill mode: hide VAT / VAT Amt / Excise Duty columns entirely ── */
+    #svItemsTable.abbreviated-mode .col-vat,
+    #svItemsTable.abbreviated-mode .col-vatamt,
+    #svItemsTable.abbreviated-mode .col-excise,
+    #svItemsTable.abbreviated-mode .vat-th,
+    #svItemsTable.abbreviated-mode .vat-amt-th,
+    #svItemsTable.abbreviated-mode .excise-th,
+    #svItemsTable.abbreviated-mode .vat-col,
+    #svItemsTable.abbreviated-mode .vat-total-col,
+    #svItemsTable.abbreviated-mode .excise-col {
+        display: none;
+    }
+</style>
 
 <div class="modal-header">
     <h5 class="modal-title">
@@ -16,14 +55,14 @@
     <div class="modal-body">
 
         @if (isset($error))
-            <div class="alert alert-danger">{{ $error }}</div>
+        <div class="alert alert-danger">{{ $error }}</div>
         @endif
 
         <div class="row g-3 mb-3">
             <div class="col-md-3">
                 <label class="form-label">Date <span class="text-danger">*</span></label>
                 <input type="text" name="voucher_date" id="voucher_date" class="form-control" data-required
-                    value="{{ $voucher_date ?? '' }}">
+                    autocomplete="off" value="{{ $voucher_date ?? '' }}">
                 <div class="invalid-feedback">Date is required.</div>
             </div>
 
@@ -33,14 +72,33 @@
                     <option value="">-- Select Customer --</option>
                     <option value="__add_customer__">+ Add Customer</option>
                     @foreach ($customers as $customer)
-                        <option value="{{ $customer->id }}"
-                            data-customer-type="{{ strtolower($customer->customer_type ?? '') }}"
-                            {{ ($customer_id ?? '') == $customer->id ? 'selected' : '' }}>
-                            {{ $customer->username }} ({{ $customer->customer_type }})
-                        </option>
+                    <option value="{{ $customer->id }}"
+                        data-customer-type="{{ strtolower($customer->customer_type ?? '') }}"
+                        {{ ($customer_id ?? '') == $customer->id ? 'selected' : '' }}>
+                        {{ $customer->username }} ({{ $customer->customer_type }})
+                    </option>
                     @endforeach
                 </select>
                 <div class="invalid-feedback">Customer is required.</div>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Bill Type <span class="text-danger">*</span></label>
+                <select name="bill_type" id="billType" class="form-select" data-required>
+                    <option value="">Select Bill Type</option>
+
+                    <option value="vat_bill"
+                        {{ (($bill_type ?? '') === 'vat_bill') ? 'selected' : '' }}>
+                        VAT Bill
+                    </option>
+
+                    <option value="abbreviated_bill"
+                        {{ (($bill_type ?? '') === 'abbreviated_bill') ? 'selected' : '' }}>
+                        Abbreviated Bill
+                    </option>
+                </select>
+
+                <div class="invalid-feedback">Bill Type is required.</div>
             </div>
         </div>
 
@@ -52,20 +110,9 @@
             </div>
         </div>
 
-        <style>
-            #svItemsTable input[type=number]::-webkit-outer-spin-button,
-            #svItemsTable input[type=number]::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
-
-            #svItemsTable input[type=number] {
-                -moz-appearance: textfield;
-            }
-        </style>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="svItemsTable"
-                style="min-width:1250px; table-layout:fixed;">
+                style="min-width:1340px; table-layout:fixed;">
                 <colgroup>
                     <col style="width:40px;">
                     <col style="width:160px;">
@@ -75,8 +122,9 @@
                     <col style="width:210px;">
                     <col style="width:100px;">
                     <col style="width:120px;">
-                    <col style="width:80px;">
-                    <col style="width:120px;">
+                    <col class="col-vat" style="width:80px;">
+                    <col class="col-vatamt" style="width:90px;">
+                    <col class="col-excise" style="width:120px;">
                     <col style="width:60px;">
                 </colgroup>
                 <thead class="table-light">
@@ -89,8 +137,9 @@
                         <th id="rateColHeader">Rate with Discount <span class="text-danger">*</span></th>
                         <th>Discount</th>
                         <th>Amount</th>
-                        <th>VAT</th>
-                        <th>Excise Duty</th>
+                        <th class="vat-th">VAT</th>
+                        <th class="vat-amt-th">VAT Amt</th>
+                        <th class="excise-th">Excise Duty</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -126,21 +175,21 @@
                                 <input type="hidden" name="discount_amount" id="discountAmountInput" value="0">
                             </td>
                         </tr>
-                        <tr>
+                        <tr id="exciseAmountRow">
                             <th>Excise Amount</th>
                             <td class="text-end">
                                 <span id="exciseAmountDisplay">0.00</span>
                                 <input type="hidden" name="excise_amount" id="exciseAmountInput" value="0">
                             </td>
                         </tr>
-                        <tr>
+                        <tr id="taxableAmountRow">
                             <th>Taxable Amount</th>
                             <td class="text-end">
                                 <span id="taxableAmountDisplay">0.00</span>
                                 <input type="hidden" name="taxable_amount" id="taxableAmountInput" value="0">
                             </td>
                         </tr>
-                        <tr>
+                        <tr id="vatAmountRow">
                             <th>VAT Amount</th>
                             <td class="text-end">
                                 <span id="vatAmountDisplay">0.00</span>
@@ -177,18 +226,18 @@
 
         var itemsMeta = {};
         var itemIdOrder = [];
-        @foreach ($items as $item)
-            itemsMeta['{{ $item->itemid }}'] = {
-                itemname: @json($item->itemname),
-                vat_status: '{{ $item->vat_status }}',
-                vat_percent: @json((float) ($item->vat_percent ?? config('vat.default'))),
-                excise_status: '{{ $item->excise_status }}',
-                excise_type: @json($item->excise_type),
-                excise_percentage: @json($item->excise_percentage),
-                excise_value: @json($item->excise_value),
-                is_wholesale: @json($item->is_wholesale)
-            };
-            itemIdOrder.push('{{ $item->itemid }}');
+        @foreach($items as $item)
+        itemsMeta['{{ $item->itemid }}'] = {
+            itemname: @json($item->itemname),
+            vat_status: '{{ $item->vat_status }}',
+            vat_percent: @json((float)($item->vat_percent ?? config('vat.default'))),
+            excise_status: '{{ $item->excise_status }}',
+            excise_type: @json($item->excise_type),
+            excise_percentage: @json($item->excise_percentage),
+            excise_value: @json($item->excise_value),
+            is_wholesale: @json($item->is_wholesale)
+        };
+        itemIdOrder.push('{{ $item->itemid }}');
         @endforeach
 
         function buildItemOptionsHtml(wholesaleOnly) {
@@ -207,29 +256,29 @@
         var productCodeIndex = {};
         var productCodeMeta = {};
         var productCodeOrder = [];
-        @foreach ($items as $item)
-            @if (!empty($item->product_code))
-                productCodeIndex['i:{{ $item->itemid }}'] = {
-                    item_id: '{{ $item->itemid }}',
-                    variation_id: null
-                };
-                productCodeMeta['i:{{ $item->itemid }}'] = {
-                    code: @json($item->product_code),
-                    is_wholesale: @json($item->is_wholesale)
-                };
-                productCodeOrder.push('i:{{ $item->itemid }}');
-            @endif
+        @foreach($items as $item)
+        @if(!empty($item->product_code))
+        productCodeIndex['i:{{ $item->itemid }}'] = {
+            item_id: '{{ $item->itemid }}',
+            variation_id: null
+        };
+        productCodeMeta['i:{{ $item->itemid }}'] = {
+            code: @json($item->product_code),
+            is_wholesale: @json($item->is_wholesale)
+        };
+        productCodeOrder.push('i:{{ $item->itemid }}');
+        @endif
         @endforeach
-        @foreach ($itemVariations as $iv)
-            productCodeIndex['v:{{ $iv->variationid }}'] = {
-                item_id: '{{ $iv->itemid }}',
-                variation_id: '{{ $iv->variationid }}'
-            };
-            productCodeMeta['v:{{ $iv->variationid }}'] = {
-                code: @json($iv->product_code),
-                is_wholesale: @json($iv->is_wholesale)
-            };
-            productCodeOrder.push('v:{{ $iv->variationid }}');
+        @foreach($itemVariations as $iv)
+        productCodeIndex['v:{{ $iv->variationid }}'] = {
+            item_id: '{{ $iv->itemid }}',
+            variation_id: '{{ $iv->variationid }}'
+        };
+        productCodeMeta['v:{{ $iv->variationid }}'] = {
+            code: @json($iv->product_code),
+            is_wholesale: @json($iv->is_wholesale)
+        };
+        productCodeOrder.push('v:{{ $iv->variationid }}');
         @endforeach
 
         function buildProductCodeOptionsHtml(wholesaleOnly) {
@@ -335,13 +384,17 @@
             return Math.round((n + Number.EPSILON) * 100) / 100;
         }
 
-        /* ── Row template ────────────────────────────────────────────
-           NOTE: the excise/vat hidden inputs live INSIDE the last <td>.
-           Placing <input> tags directly as children of a <tr> (outside
-           any <td>) is invalid HTML — the browser will silently hoist
-           them out of the table when it parses the string, and then
-           $tr.find('.excise-amount-input') will find nothing. Keeping
-           them inside a <td> keeps them attached to the row. */
+        /* ── Bill Type helpers ── */
+        function isAbbreviated() {
+            return $('#billType').val() === 'abbreviated_bill';
+        }
+
+        function toggleBillTypeUI() {
+            var abbreviated = isAbbreviated();
+            $('#svItemsTable').toggleClass('abbreviated-mode', abbreviated);
+            $('#exciseAmountRow, #taxableAmountRow, #vatAmountRow').toggle(!abbreviated);
+        }
+
         function rowTemplate(idx) {
             var wholesaleOnly = getCustomerType() === 'wholesaler';
             return '' +
@@ -358,18 +411,17 @@
                 '][qty]" class="form-control qty-input" min="0.01" step="0.01" data-required>' +
                 '<div class="invalid-feedback"></div></td>' +
                 '<td><input type="number" name="items[' + idx +
-                '][unit_rate]" class="form-control rate-input" min="0" step="0.01" data-required></td>' +
+                '][unit_rate]" class="form-control rate-input" min="0" step="0.01" data-required readonly></td>' +
                 '<td class="text-center discount-col">-</td>' +
                 '<td><input type="text" class="form-control amount-display" readonly value="0.00"></td>' +
                 '<td class="text-center vat-col">-</td>' +
+                '<td class="text-center vat-total-col">-</td>' +
                 '<td class="text-center excise-col">-</td>' +
                 '<td>' +
                 '<div class="d-flex align-items-center justify-content-center">' +
                 '<button type="button" class="btn btn-icon btn-danger remove-item-row" title="Remove item">' +
                 '<i class="bx bx-trash"></i>' +
                 '</button>' +
-                // Hidden per-unit tax breakdown, submitted with the form for record-keeping.
-                // Kept inside this <td> so they stay attached to the <tr>.
                 '<input type="hidden" name="items[' + idx + '][excise_amount]" class="excise-amount-input" value="0">' +
                 '<input type="hidden" name="items[' + idx + '][vat_amount]" class="vat-amount-input" value="0">' +
                 '</div>' +
@@ -392,8 +444,12 @@
                     exciseText = 'N/A';
                 }
             }
+            $tr.data('exciseType', meta && meta.excise_status === 'Y' ? meta.excise_type : null);
+            $tr.data('excisePercentage', meta && meta.excise_status === 'Y' && meta.excise_type === 'percentage' ?
+                meta.excise_percentage : null);
             $tr.find('.vat-col').text(vatText);
             $tr.find('.excise-col').text(exciseText);
+            $tr.find('.vat-total-col').text('-');
         }
 
         function loadVariationsForRow($tr, itemId, selectedVariationId, callback) {
@@ -405,10 +461,10 @@
             }
             $varSelect.html('<option value="">Loading...</option>').prop('disabled', true);
             $.get('{{ route('inventory.variations') }}', {
-                    item_id: itemId,
-                    in_stock_only: 1,
-                    _token: '{{ csrf_token() }}'
-                })
+                        item_id: itemId,
+                        in_stock_only: 1,
+                        _token: '{{ csrf_token() }}'
+                    })
                 .done(function(resp) {
                     var html = '<option value="">-- None --</option>';
                     $.each(resp, function(i, v) {
@@ -433,7 +489,6 @@
             $tr.data('lastProductCode', val);
         }
 
-        /* ── Customer-type-aware item pricing (retailer flat/discounted, wholesaler qty-tiered) ── */
         var priceCache = {};
 
         function getCustomerType() {
@@ -445,7 +500,7 @@
             var isWholesaler = getCustomerType() === 'wholesaler';
             $('#rateColHeader').html(isWholesaler ?
                 'Rate <span class="text-danger">*</span>' :
-                'Rate with Discount <span class="text-danger">*</span>');
+                'Rate with Discount/<br>per unit </br><span class="text-danger">*</span>');
         }
 
         /* ── Restrict Item / Product Code dropdowns to wholesale-enabled items when a wholesaler customer is selected ── */
@@ -488,6 +543,8 @@
                     $tr.data('vatUnit', 0);
                     $tr.find('.excise-amount-input').val(0);
                     $tr.find('.vat-amount-input').val(0);
+                    $tr.find('.vat-total-col').text('-');
+                    $tr.find('.excise-col').text('-');
                 }
             });
 
@@ -501,11 +558,11 @@
                 return;
             }
             $.get('{{ route('sales.item-price') }}', {
-                    item_id: itemId,
-                    variation_id: variationId || '',
-                    exclude_ordermasterid: $('#salesVoucherForm input[name="id"]').val() || '',
-                    _token: '{{ csrf_token() }}'
-                })
+                        item_id: itemId,
+                        variation_id: variationId || '',
+                        exclude_ordermasterid: $('#salesVoucherForm input[name="id"]').val() || '',
+                        _token: '{{ csrf_token() }}'
+                    })
                 .done(function(resp) {
                     priceCache[key] = resp;
                     callback(resp);
@@ -542,14 +599,13 @@
             recalcAll();
         }
 
-        /* ── QTY must not exceed the variation's remaining stock (Inventory > Stock: stock - sold) ── */
         function validateQtyAgainstStock($tr) {
             var itemId = $tr.find('.item-select').val();
             var variationId = $tr.find('.variation-select').val();
             if (!itemId || !variationId) return true;
 
             var remaining = $tr.data('remaining');
-            if (typeof remaining === 'undefined') return true; // not loaded yet; server is the real gate
+            if (typeof remaining === 'undefined') return true;
 
             var $rows = $('#itemRows tr.item-row').filter(function() {
                 return $(this).find('.item-select').val() === itemId &&
@@ -578,20 +634,17 @@
             return '-';
         }
 
-        /* ── Sets the row's rate to the FINAL, tax-inclusive price:
-           (price - variation discount - active Discount-module discount) + excise + vat
-           This value comes straight from SalesVoucher::getItemPricing()'s
-           `effective_price`. Excise/VAT per-unit amounts are stored both as
-           jQuery .data() (for quick JS math in recalcAll) and as hidden
-           inputs (so they actually get submitted to the backend). ── */
         function applyAutoRate($tr) {
             var itemId = $tr.find('.item-select').val();
             var variationId = $tr.find('.variation-select').val();
             var customerType = getCustomerType();
 
             $tr.find('.discount-col').text('-');
+            $tr.removeClass('has-discount');
 
             if (!itemId || !variationId) {
+                $tr.find('.vat-total-col').text('-');
+                $tr.find('.excise-col').text('-');
                 return;
             }
 
@@ -603,28 +656,41 @@
 
                 if (customerType === 'wholesaler') {
                     $tr.find('.discount-col').text('-');
+                    $tr.removeClass('has-discount');
                     $tr.data('exciseUnit', 0);
                     $tr.data('vatUnit', 0);
                     $tr.find('.excise-amount-input').val(0);
                     $tr.find('.vat-amount-input').val(0);
                     $tr.find('.vat-col').text('-');
                     $tr.find('.excise-col').text('-');
+                    $tr.find('.vat-total-col').text('-');
                     applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
+                    // applyWholesaleRateForGroup() already calls recalcAll() once rates are set.
                 } else if (pricing.retailer) {
-                    // Final rate already includes: -discount -discount +excise +vat
-                    $tr.find('.rate-input').val(pricing.retailer.effective_price);
+                    // SP = MRP - (variation discount + active module discount), NO tax baked in.
+                    var sp = round2((parseFloat(pricing.retailer.price) || 0) -
+                        (parseFloat(pricing.retailer.discount_total) || 0));
+
+                    $tr.find('.rate-input').val(sp);
                     $tr.find('.discount-col').text(formatDiscount(pricing.retailer));
 
-                    // Per-unit breakdown — informational display + submitted for record-keeping,
-                    // NEVER re-added to totals (that would double-tax; rate is already final).
+                    var hasDiscount = pricing.retailer.discount_type &&
+                        (
+                            (pricing.retailer.discount_type === 'percentage' && parseFloat(pricing.retailer.discount_percentage) > 0) ||
+                            (pricing.retailer.discount_type === 'fixed' && parseFloat(pricing.retailer.discount_amount) > 0)
+                        );
+                    $tr.toggleClass('has-discount', !!hasDiscount);
+
+                    // Per-unit excise/VAT amounts (already ₹, converted server-side from % or fixed rules
+                    // for a SINGLE unit). Stashed here for recalcAll() to use — VAT column shows this
+                    // per-unit figure directly; Excise Duty column and VAT Amt column multiply it by qty.
                     $tr.data('exciseUnit', pricing.retailer.excise_amount || 0);
                     $tr.data('vatUnit', pricing.retailer.vat_amount || 0);
+                    $tr.data('spItemOnly', (pricing.retailer.sp_item_only !== undefined && pricing.retailer.sp_item_only !== null) ? parseFloat(pricing.retailer.sp_item_only) : sp);
                     $tr.find('.excise-amount-input').val(pricing.retailer.excise_amount || 0);
                     $tr.find('.vat-amount-input').val(pricing.retailer.vat_amount || 0);
-                    $tr.find('.excise-col').text((pricing.retailer.excise_amount || 0).toFixed(2));
-                    $tr.find('.vat-col').text((pricing.retailer.vat_amount || 0).toFixed(2));
 
-                    recalcAll();
+                    recalcAll(); // paints Amount, Excise Duty (unit*qty), and VAT Amt (rate+excise+vat)*qty
                 }
             });
         }
@@ -653,25 +719,29 @@
             if (prefill.qty) $tr.find('.qty-input').val(prefill.qty);
             if (prefill.unit_rate) $tr.find('.rate-input').val(prefill.unit_rate);
 
-            // Prefill the per-unit excise/vat breakdown too, when editing a saved voucher
-            // (so the display columns + hidden inputs aren't left at 0 until a fresh fetch).
+            var qtyForUnit = parseFloat(prefill.qty) || 1;
+
             if (prefill.excise_amount !== undefined) {
-                $tr.data('exciseUnit', prefill.excise_amount || 0);
-                $tr.find('.excise-amount-input').val(prefill.excise_amount || 0);
-                $tr.find('.excise-col').text((parseFloat(prefill.excise_amount) || 0).toFixed(2));
+                var exciseUnitVal = round2((parseFloat(prefill.excise_amount) || 0) / qtyForUnit);
+                $tr.data('exciseUnit', exciseUnitVal);
+                $tr.find('.excise-amount-input').val(exciseUnitVal);
             }
             if (prefill.vat_amount !== undefined) {
-                $tr.data('vatUnit', prefill.vat_amount || 0);
-                $tr.find('.vat-amount-input').val(prefill.vat_amount || 0);
-                $tr.find('.vat-col').text((parseFloat(prefill.vat_amount) || 0).toFixed(2));
+                var vatUnitVal = round2((parseFloat(prefill.vat_amount) || 0) / qtyForUnit);
+                $tr.data('vatUnit', vatUnitVal);
+                $tr.find('.vat-amount-input').val(vatUnitVal);
             }
 
             if (prefill.item_id && prefill.variation_id) {
-                // Fetch remaining stock for live validation without overwriting the already-saved rate.
                 fetchPricing(prefill.item_id, prefill.variation_id, function(pricing) {
                     if (pricing) {
                         $tr.data('remaining', pricing.remaining);
                         validateQtyAgainstStock($tr);
+
+                        if (pricing.retailer && pricing.retailer.sp_item_only !== undefined && pricing.retailer.sp_item_only !== null) {
+                            $tr.data('spItemOnly', parseFloat(pricing.retailer.sp_item_only));
+                            recalcAll();
+                        }
                     }
                 });
             }
@@ -685,34 +755,83 @@
             });
         }
 
-        /* ── recalcAll: rate is ALREADY the final tax-inclusive price, so
-           Amount = qty * rate IS the line total, excise/VAT included.
-           Excise/VAT footer rows are purely INFORMATIONAL (sum of the
-           per-unit breakdowns stored on each row) and are NOT added to
-           the grand total a second time. Bill Discount is an extra
-           discount applied on top of the already tax-inclusive subtotal. ── */
+        /* ── recalcAll:
+           - Amount column (display)     = qty * SP (rate-input).
+           - Excise Duty column (display)= excise/unit * qty.
+           - VAT Amt column (display)    = (rate + excise/unit + vat/unit) * qty.
+           - VAT column (display) is the per-unit ₹ VAT amount only, set in applyAutoRate()/newItemRow() —
+             it is NOT re-multiplied here.
+           - Real totals (Subtotal → Bill Discount → Taxable → VAT → Total) run on
+             qty * SP for subtotal, and separately accumulated excise/vat for the tax rows.
+           - Abbreviated Bill mode only changes the FINAL combination step: excise/VAT are
+             computed the same way per row, but are not added into Taxable Amount / Total,
+             and their summary rows + item-table columns are hidden via CSS. ── */
         function recalcAll() {
-            var grandTotal = 0;
+            var grandTotal = 0; // pre-tax, sum of qty*SP — drives Subtotal/Total
             var infoExcise = 0;
             var infoVat = 0;
 
             $('#itemRows tr.item-row').each(function() {
                 var $tr = $(this);
                 var qty = parseFloat($tr.find('.qty-input').val()) || 0;
-                var rate = parseFloat($tr.find('.rate-input').val()) || 0; // final, tax-inclusive
-                var amount = round2(qty * rate);
-                $tr.find('.amount-display').val(amount.toFixed(2));
+                var rate = parseFloat($tr.find('.rate-input').val()) || 0; // actual charged SP — still drives real totals below
+                var spItemOnly = parseFloat($tr.data('spItemOnly'));
+                if (isNaN(spItemOnly)) spItemOnly = rate; // fallback until pricing has loaded
 
-                grandTotal += amount;
-                infoExcise += (parseFloat($tr.data('exciseUnit')) || 0) * qty;
-                infoVat    += (parseFloat($tr.data('vatUnit')) || 0) * qty;
+                var exciseUnit = parseFloat($tr.data('exciseUnit')) || 0;
+                var vatUnit = parseFloat($tr.data('vatUnit')) || 0;
+
+                // ── Amount column: qty * SP-with-item-discount-only (excludes promo/module discount) ──
+                var displayAmount = round2(qty * spItemOnly);
+                $tr.find('.amount-display').val(displayAmount.toFixed(2));
+
+                // ── Excise Duty column: fixed-type multiplies by qty, percentage-type shows per-unit as-is ──
+                var exciseType = $tr.data('exciseType');
+                if (rate > 0 && exciseType === 'fixed') {
+                    var exciseLine = round2(exciseUnit * qty);
+                    $tr.find('.excise-col').text(exciseLine.toFixed(2));
+                } else if (rate > 0 && exciseType === 'percentage') {
+                    var excisePct = $tr.data('excisePercentage');
+                    $tr.find('.excise-col').text((excisePct != null ? excisePct : 0) + '%');
+                } else {
+                    $tr.find('.excise-col').text('-');
+                }
+
+                // ── VAT Amt column: (rate + excise/unit + vat/unit) * qty ──
+                if (rate > 0) {
+                    var vatAmtLine = round2((rate + exciseUnit + vatUnit) * qty);
+                    $tr.find('.vat-total-col').text(vatAmtLine.toFixed(2));
+                } else {
+                    $tr.find('.vat-total-col').text('-');
+                }
+
+                // ── Real totals math: based on the ACTUAL charged rate, not spItemOnly ──
+                grandTotal += round2(qty * rate);
+                infoExcise += exciseUnit * qty;
+                infoVat += vatUnit * qty;
             });
 
-            var subtotal = round2(grandTotal); // tax-inclusive line total, pre bill-discount
-
+            var subtotal = round2(grandTotal);
             var discountPercent = parseFloat($('#billDiscountPercent').val()) || 0;
             var discountAmount = round2(subtotal * discountPercent / 100);
-            var total = round2(subtotal - discountAmount);
+            var afterBillDiscount = round2(subtotal - discountAmount);
+
+            infoExcise = round2(infoExcise);
+            infoVat = round2(infoVat);
+
+            var taxableAmount, total;
+
+            if (isAbbreviated()) {
+                // Abbreviated Bill: no excise, no VAT added on top of Subtotal - Discount.
+                taxableAmount = afterBillDiscount;
+                total = afterBillDiscount;
+                infoExcise = 0;
+                infoVat = 0;
+            } else {
+                // VAT Bill: unchanged original behaviour.
+                taxableAmount = round2(afterBillDiscount + infoExcise);
+                total = round2(taxableAmount + infoVat);
+            }
 
             $('#subtotalDisplay').text(subtotal.toFixed(2));
             $('#subtotalInput').val(subtotal.toFixed(2));
@@ -720,12 +839,11 @@
             $('#discountAmountDisplay').text(discountAmount.toFixed(2));
             $('#discountAmountInput').val(discountAmount.toFixed(2));
 
-            // Informational only — already inside subtotal/rate, not added again to total.
             $('#exciseAmountDisplay').text(infoExcise.toFixed(2));
             $('#exciseAmountInput').val(infoExcise.toFixed(2));
 
-            $('#taxableAmountDisplay').text(subtotal.toFixed(2));
-            $('#taxableAmountInput').val(subtotal.toFixed(2));
+            $('#taxableAmountDisplay').text(taxableAmount.toFixed(2));
+            $('#taxableAmountInput').val(taxableAmount.toFixed(2));
 
             $('#vatAmountDisplay').text(infoVat.toFixed(2));
             $('#vatAmountInput').val(infoVat.toFixed(2));
@@ -803,8 +921,20 @@
 
             $tr.data('lastProductCode', val);
 
+            var $itemSelect = $tr.find('.item-select');
+            if ($itemSelect.find('option[value="' + ref.item_id + '"]').length === 0) {
+                var meta = itemsMeta[ref.item_id];
+                if (meta) {
+                    $itemSelect.select2('destroy');
+                    $itemSelect.append(
+                        '<option value="' + ref.item_id + '">' + escapeHtml(meta.itemname) + '</option>'
+                    );
+                    initItemSelect($tr);
+                }
+            }
+
             suppressItemChange = true;
-            $tr.find('.item-select').val(ref.item_id).trigger('change');
+            $itemSelect.val(ref.item_id).trigger('change');
             suppressItemChange = false;
 
             $tr.data('lastItemId', ref.item_id);
@@ -815,7 +945,6 @@
             recalcAll();
         });
 
-        /* ── New item created from the nested "Add Item" modal ─────── */
         $(document).off('item:created.sv').on('item:created.sv', function(e, item) {
             addNewItemOption(item);
 
@@ -836,7 +965,12 @@
             recalcAll();
         });
 
-        /* ── Track what the user typed while searching customer/item/product-code dropdowns ── */
+        /* ── Bill Type change: toggle column/row visibility and recalc totals ── */
+        $(document).on('change', '#billType', function() {
+            toggleBillTypeUI();
+            recalcAll();
+        });
+
         var lastCustomerSearchTerm = '';
         var lastItemSearchTerm = '';
         var lastProductCodeSearchTerm = '';
@@ -888,7 +1022,6 @@
             newItemRow();
         });
 
-        /* ── Select2: keep "+ Add Customer" visible even when search has no matches ── */
         function customerMatcher(params, data) {
             if ($.trim(params.term) === '') {
                 return data;
@@ -905,7 +1038,6 @@
             return null;
         }
 
-        /* ── Defer DOM-measurement-dependent init until the modal is actually visible ── */
         $(document).off('shown.bs.modal.salesVoucher', '#svModal')
             .on('shown.bs.modal.salesVoucher', '#svModal', function() {
                 $('#customerSelect').select2({
@@ -918,6 +1050,7 @@
                 });
 
                 updateRateColumnHeader();
+                toggleBillTypeUI();
 
                 var initialLineItems = @json($lineItems ?? []);
                 if (initialLineItems.length > 0) {
@@ -936,7 +1069,6 @@
                 }
             });
 
-        /* ── Client-side validation ───────────────────────────────── */
         window.svValidateForm = function($form) {
             var valid = true;
 

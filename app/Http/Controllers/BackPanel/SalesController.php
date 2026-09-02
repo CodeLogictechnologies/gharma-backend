@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BackPanel\Item;
 use App\Models\BackPanel\Itemvariation;
 use App\Models\BackPanel\SalesVoucher;
+use App\Http\Controllers\BsdateController;
 use App\Models\User;
 use App\Services\WebPushNotifier;
 use Illuminate\Database\QueryException;
@@ -110,6 +111,7 @@ class SalesController extends Controller
                 $data['order_id']              = $result->order_id;
                 $data['remarks']               = $result->remarks;
                 $data['bill_discount_percent'] = $result->bill_discount_percent;
+                $data['bill_type']             = $result->bill_type ?? 'vat'; // NEW — add right here
                 $data['lineItems']             = $result->items;
                 $data['customerOrders']        = !empty($result->customer_id)
                     ? SalesVoucher::getCustomerOrders([
@@ -119,8 +121,9 @@ class SalesController extends Controller
                     ])
                     : [];
             } else {
-                // $data['voucher_no']     = SalesVoucher::generateUniqueVoucherNo($post);
-                $data['customerOrders'] = [];
+                $bsdate = new BsdateController;
+                $data['voucher_date']    = $bsdate->eng_to_nep(Carbon::now()->format('Y-m-d'));
+                $data['customerOrders']  = [];
             }
         } catch (QueryException $e) {
             $data['error'] = $this->queryMessage;
@@ -192,6 +195,7 @@ class SalesController extends Controller
                 'voucher_date'       => 'required|date',
                 // 'voucher_no'         => 'required|string|max:255',
                 'customer_id'        => 'required',
+                'bill_type'           => 'required|in:vat,abbreviated', // NEW
                 'items'              => 'required|array|min:1',
                 'items.*.item_id'    => 'required',
                 'items.*.qty'        => 'required|numeric|min:0.01',
@@ -202,6 +206,8 @@ class SalesController extends Controller
                 'voucher_date.required'      => 'Date is required.',
                 // 'voucher_no.required'        => 'Bill / Voucher No. is required.',
                 'customer_id.required'       => 'Customer is required.',
+                'bill_type.required'         => 'Bill type is required.', // NEW
+                'bill_type.in'                => 'Invalid bill type.',      // NEW
                 'items.required'             => 'At least one item is required.',
                 'items.*.item_id.required'   => 'Item is required for each row.',
                 'items.*.qty.required'       => 'Quantity is required for each row.',
