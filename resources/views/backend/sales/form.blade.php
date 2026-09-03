@@ -97,6 +97,9 @@
                         Abbreviated Bill
                     </option>
                 </select>
+                <!-- <div class="form-text text-muted" id="billTypeWholesalerNote" style="display:none;">
+                    Abbreviated Bill is not available for wholesale customers.
+                </div> -->
 
                 <div class="invalid-feedback">Bill Type is required.</div>
             </div>
@@ -395,6 +398,27 @@
             $('#exciseAmountRow, #taxableAmountRow, #vatAmountRow').toggle(!abbreviated);
         }
 
+        /* ── Wholesaler customers: force VAT Bill, hide/disable Abbreviated Bill option ── */
+        function updateBillTypeOptions() {
+            var isWholesaler = getCustomerType() === 'wholesaler';
+            var $billType = $('#billType');
+            var $abbrOption = $billType.find('option[value="abbreviated_bill"]');
+
+            if (isWholesaler) {
+                if ($billType.val() === 'abbreviated_bill') {
+                    $billType.val('vat_bill');
+                }
+                $abbrOption.prop('disabled', true).hide();
+                $('#billTypeWholesalerNote').show();
+            } else {
+                $abbrOption.prop('disabled', false).show();
+                $('#billTypeWholesalerNote').hide();
+            }
+
+            toggleBillTypeUI();
+            recalcAll();
+        }
+
         function rowTemplate(idx) {
             var wholesaleOnly = getCustomerType() === 'wholesaler';
             return '' +
@@ -452,32 +476,58 @@
             $tr.find('.vat-total-col').text('-');
         }
 
+        /* ── FIX: request-token guard so an in-flight/late-resolving request can never
+           clobber a row that has since been removed or re-selected to a different item,
+           and .always() guarantees the "Loading..." state is cleared no matter what
+           (success, 4xx/5xx, network error, or timeout). ── */
+        var variationRequestSeq = 0;
+
         function loadVariationsForRow($tr, itemId, selectedVariationId, callback) {
             var $varSelect = $tr.find('.variation-select');
+
             if (!itemId) {
                 $varSelect.html('<option value="">-- None --</option>').prop('disabled', false);
                 if (typeof callback === 'function') callback();
                 return;
             }
+
+            var myRequestId = ++variationRequestSeq;
+            $tr.data('variationRequestId', myRequestId);
+
             $varSelect.html('<option value="">Loading...</option>').prop('disabled', true);
+
             $.get('{{ route('inventory.variations') }}', {
                         item_id: itemId,
                         in_stock_only: 1,
                         _token: '{{ csrf_token() }}'
                     })
                 .done(function(resp) {
+                    // Row was removed from the DOM, or the user picked a different item
+                    // while this request was in flight — ignore this stale response.
+                    if (!$.contains(document, $tr[0]) || $tr.data('variationRequestId') !== myRequestId) {
+                        return;
+                    }
+
                     var html = '<option value="">-- None --</option>';
-                    $.each(resp, function(i, v) {
-                        var sel = (selectedVariationId && String(selectedVariationId) === String(v
-                            .id)) ? 'selected' : '';
-                        html += '<option value="' + v.id + '" ' + sel + '>' + (v.attribute ? v
-                            .attribute + ': ' : '') + v.value + '</option>';
+                    $.each(resp || [], function(i, v) {
+                        var sel = (selectedVariationId && String(selectedVariationId) === String(v.id)) ? 'selected' : '';
+                        html += '<option value="' + v.id + '" ' + sel + '>' + (v.attribute ? v.attribute + ': ' : '') + v.value + '</option>';
                     });
-                    $varSelect.html(html).prop('disabled', false);
-                    if (typeof callback === 'function') callback();
+                    $varSelect.html(html);
                 })
                 .fail(function() {
-                    $varSelect.html('<option value="">Failed to load</option>').prop('disabled', false);
+                    if (!$.contains(document, $tr[0]) || $tr.data('variationRequestId') !== myRequestId) {
+                        return;
+                    }
+                    $varSelect.html('<option value="">Failed to load — click to retry</option>');
+                })
+                .always(function() {
+                    // Guarantees the dropdown is never left stuck on "Loading..." even if
+                    // something above throws or the request errors in an unexpected shape.
+                    if ($.contains(document, $tr[0]) && $tr.data('variationRequestId') === myRequestId) {
+                        $varSelect.prop('disabled', false);
+                    }
+                    if (typeof callback === 'function') callback();
                 });
         }
 
@@ -572,7 +622,11 @@
                 });
         }
 
-        function applyWholesaleRateForGroup(itemId, variationId, tiers) {
+               /* ── FIX: wholesale rows now compute excise/VAT off the matched tier price
+           when a tier matches. When NO tier covers the entered quantity, fall back to
+           retailer pricing (passed in as retailerPricing) so the row behaves like the
+           retail flow instead of going blank. ── */
+        function applyWholesaleRateForGroup(itemId, variationId, tiers, retailerPricing) {
             var $rows = $('#itemRows tr.item-row').filter(function() {
                 return $(this).find('.item-select').val() === itemId &&
                     $(this).find('.variation-select').val() === variationId;
@@ -593,9 +647,96 @@
                 }
             }
 
+            var meta = itemsMeta[itemId];
+
             $rows.each(function() {
-                $(this).find('.rate-input').val(tier ? tier.price : '');
+                var $tr = $(this);
+
+                if (tier) {
+                    var rate = parseFloat(tier.price) || 0;
+
+                    var exciseUnit = 0;
+                    var exciseText = '-';
+                    if (meta && meta.excise_status === 'Y') {
+                        if (meta.excise_type === 'percentage') {
+                            exciseUnit = round2(rate * (parseFloat(meta.excise_percentage) || 0) / 100);
+                            exciseText = meta.excise_percentage + '%';
+                        } else if (meta.excise_type === 'fixed') {
+                            exciseUnit = round2(parseFloat(meta.excise_value) || 0);
+                            exciseText = 'Rs ' + meta.excise_value + '/unit';
+                        }
+                    } else if (meta) {
+                        exciseText = 'N/A';
+                    }
+
+                    var vatUnit = 0;
+                    var vatText = meta ? (meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%') : '-';
+                    if (meta && meta.vat_status === 'Y') {
+                        vatUnit = round2((rate + exciseUnit) * (parseFloat(meta.vat_percent) || 0) / 100);
+                    }
+
+                    $tr.find('.rate-input').val(rate);
+                    $tr.find('.amount-display').attr('placeholder', '');
+                    $tr.find('.discount-col').text('-');
+                    $tr.removeClass('has-discount');
+
+                    $tr.data('spItemOnly', rate);
+                    $tr.data('exciseType', meta && meta.excise_status === 'Y' ? meta.excise_type : null);
+                    $tr.data('excisePercentage', meta && meta.excise_status === 'Y' && meta.excise_type === 'percentage' ? meta.excise_percentage : null);
+                    $tr.data('exciseUnit', exciseUnit);
+                    $tr.data('vatUnit', vatUnit);
+                    $tr.find('.excise-amount-input').val(exciseUnit);
+                    $tr.find('.vat-amount-input').val(vatUnit);
+                    $tr.find('.vat-col').text(vatText);
+                    $tr.find('.excise-col').text(exciseText);
+
+                } else if (retailerPricing) {
+                    var sp = round2((parseFloat(retailerPricing.price) || 0) -
+                        (parseFloat(retailerPricing.discount_total) || 0));
+
+                    $tr.find('.rate-input').val(sp);
+                    $tr.find('.amount-display').attr('placeholder', '');
+                    $tr.find('.discount-col').text(formatDiscount(retailerPricing));
+
+                    var hasDiscount = retailerPricing.discount_type &&
+                        (
+                            (retailerPricing.discount_type === 'percentage' && parseFloat(retailerPricing.discount_percentage) > 0) ||
+                            (retailerPricing.discount_type === 'fixed' && parseFloat(retailerPricing.discount_amount) > 0)
+                        );
+                    $tr.toggleClass('has-discount', !!hasDiscount);
+
+                    $tr.data('spItemOnly', (retailerPricing.sp_item_only !== undefined && retailerPricing.sp_item_only !== null) ? parseFloat(retailerPricing.sp_item_only) : sp);
+                    $tr.data('exciseType', meta && meta.excise_status === 'Y' ? meta.excise_type : null);
+                    $tr.data('excisePercentage', meta && meta.excise_status === 'Y' && meta.excise_type === 'percentage' ? meta.excise_percentage : null);
+                    $tr.data('exciseUnit', retailerPricing.excise_amount || 0);
+                    $tr.data('vatUnit', retailerPricing.vat_amount || 0);
+                    $tr.find('.excise-amount-input').val(retailerPricing.excise_amount || 0);
+                    $tr.find('.vat-amount-input').val(retailerPricing.vat_amount || 0);
+                    $tr.find('.vat-col').text(meta ? (meta.vat_status === 'Y' ? meta.vat_percent + '%' : '0%') : '-');
+                    $tr.find('.excise-col').text(
+                        meta && meta.excise_status === 'Y'
+                            ? (meta.excise_type === 'percentage' ? meta.excise_percentage + '%' : 'Rs ' + meta.excise_value + '/unit')
+                            : (meta ? 'N/A' : '-')
+                    );
+
+                } else {
+                    $tr.find('.rate-input').val('');
+                    $tr.find('.amount-display').attr('placeholder', 'No price set');
+                    $tr.find('.discount-col').text('-');
+                    $tr.removeClass('has-discount');
+                    $tr.data('spItemOnly', NaN);
+                    $tr.data('exciseType', null);
+                    $tr.data('excisePercentage', null);
+                    $tr.data('exciseUnit', 0);
+                    $tr.data('vatUnit', 0);
+                    $tr.find('.excise-amount-input').val(0);
+                    $tr.find('.vat-amount-input').val(0);
+                    $tr.find('.vat-col').text('-');
+                    $tr.find('.excise-col').text('-');
+                    $tr.find('.vat-total-col').text('-');
+                }
             });
+
             recalcAll();
         }
 
@@ -634,6 +775,8 @@
             return '-';
         }
 
+        /* ── FIX: wholesaler branch now just delegates to applyWholesaleRateForGroup(),
+           which itself sets discount/excise/vat data — no more hard-coded "-" here. ── */
         function applyAutoRate($tr) {
             var itemId = $tr.find('.item-select').val();
             var variationId = $tr.find('.variation-select').val();
@@ -654,20 +797,12 @@
                 $tr.data('remaining', pricing.remaining);
                 validateQtyAgainstStock($tr);
 
-                if (customerType === 'wholesaler') {
-                    $tr.find('.discount-col').text('-');
-                    $tr.removeClass('has-discount');
-                    $tr.data('exciseUnit', 0);
-                    $tr.data('vatUnit', 0);
-                    $tr.find('.excise-amount-input').val(0);
-                    $tr.find('.vat-amount-input').val(0);
-                    $tr.find('.vat-col').text('-');
-                    $tr.find('.excise-col').text('-');
-                    $tr.find('.vat-total-col').text('-');
-                    applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || []);
-                    // applyWholesaleRateForGroup() already calls recalcAll() once rates are set.
+                                if (customerType === 'wholesaler') {
+                    applyWholesaleRateForGroup(itemId, variationId, pricing.wholesale_tiers || [], pricing.retailer);
+                    // discount/excise/vat for wholesale rows are computed inside
+                    // applyWholesaleRateForGroup(): tier price when a tier matches,
+                    // otherwise falling back to retailer pricing.
                 } else if (pricing.retailer) {
-                    // SP = MRP - (variation discount + active module discount), NO tax baked in.
                     var sp = round2((parseFloat(pricing.retailer.price) || 0) -
                         (parseFloat(pricing.retailer.discount_total) || 0));
 
@@ -681,16 +816,13 @@
                         );
                     $tr.toggleClass('has-discount', !!hasDiscount);
 
-                    // Per-unit excise/VAT amounts (already ₹, converted server-side from % or fixed rules
-                    // for a SINGLE unit). Stashed here for recalcAll() to use — VAT column shows this
-                    // per-unit figure directly; Excise Duty column and VAT Amt column multiply it by qty.
                     $tr.data('exciseUnit', pricing.retailer.excise_amount || 0);
                     $tr.data('vatUnit', pricing.retailer.vat_amount || 0);
                     $tr.data('spItemOnly', (pricing.retailer.sp_item_only !== undefined && pricing.retailer.sp_item_only !== null) ? parseFloat(pricing.retailer.sp_item_only) : sp);
                     $tr.find('.excise-amount-input').val(pricing.retailer.excise_amount || 0);
                     $tr.find('.vat-amount-input').val(pricing.retailer.vat_amount || 0);
 
-                    recalcAll(); // paints Amount, Excise Duty (unit*qty), and VAT Amt (rate+excise+vat)*qty
+                    recalcAll();
                 }
             });
         }
@@ -755,37 +887,24 @@
             });
         }
 
-        /* ── recalcAll:
-           - Amount column (display)     = qty * SP (rate-input).
-           - Excise Duty column (display)= excise/unit * qty.
-           - VAT Amt column (display)    = (rate + excise/unit + vat/unit) * qty.
-           - VAT column (display) is the per-unit ₹ VAT amount only, set in applyAutoRate()/newItemRow() —
-             it is NOT re-multiplied here.
-           - Real totals (Subtotal → Bill Discount → Taxable → VAT → Total) run on
-             qty * SP for subtotal, and separately accumulated excise/vat for the tax rows.
-           - Abbreviated Bill mode only changes the FINAL combination step: excise/VAT are
-             computed the same way per row, but are not added into Taxable Amount / Total,
-             and their summary rows + item-table columns are hidden via CSS. ── */
         function recalcAll() {
-            var grandTotal = 0; // pre-tax, sum of qty*SP — drives Subtotal/Total
+            var grandTotal = 0;
             var infoExcise = 0;
             var infoVat = 0;
 
             $('#itemRows tr.item-row').each(function() {
                 var $tr = $(this);
                 var qty = parseFloat($tr.find('.qty-input').val()) || 0;
-                var rate = parseFloat($tr.find('.rate-input').val()) || 0; // actual charged SP — still drives real totals below
+                var rate = parseFloat($tr.find('.rate-input').val()) || 0;
                 var spItemOnly = parseFloat($tr.data('spItemOnly'));
-                if (isNaN(spItemOnly)) spItemOnly = rate; // fallback until pricing has loaded
+                if (isNaN(spItemOnly)) spItemOnly = rate;
 
                 var exciseUnit = parseFloat($tr.data('exciseUnit')) || 0;
                 var vatUnit = parseFloat($tr.data('vatUnit')) || 0;
 
-                // ── Amount column: qty * SP-with-item-discount-only (excludes promo/module discount) ──
                 var displayAmount = round2(qty * spItemOnly);
                 $tr.find('.amount-display').val(displayAmount.toFixed(2));
 
-                // ── Excise Duty column: fixed-type multiplies by qty, percentage-type shows per-unit as-is ──
                 var exciseType = $tr.data('exciseType');
                 if (rate > 0 && exciseType === 'fixed') {
                     var exciseLine = round2(exciseUnit * qty);
@@ -797,7 +916,6 @@
                     $tr.find('.excise-col').text('-');
                 }
 
-                // ── VAT Amt column: (rate + excise/unit + vat/unit) * qty ──
                 if (rate > 0) {
                     var vatAmtLine = round2((rate + exciseUnit + vatUnit) * qty);
                     $tr.find('.vat-total-col').text(vatAmtLine.toFixed(2));
@@ -805,7 +923,6 @@
                     $tr.find('.vat-total-col').text('-');
                 }
 
-                // ── Real totals math: based on the ACTUAL charged rate, not spItemOnly ──
                 grandTotal += round2(qty * rate);
                 infoExcise += exciseUnit * qty;
                 infoVat += vatUnit * qty;
@@ -819,19 +936,8 @@
             infoExcise = round2(infoExcise);
             infoVat = round2(infoVat);
 
-            var taxableAmount, total;
-
-            if (isAbbreviated()) {
-                // Abbreviated Bill: no excise, no VAT added on top of Subtotal - Discount.
-                taxableAmount = afterBillDiscount;
-                total = afterBillDiscount;
-                infoExcise = 0;
-                infoVat = 0;
-            } else {
-                // VAT Bill: unchanged original behaviour.
-                taxableAmount = round2(afterBillDiscount + infoExcise);
-                total = round2(taxableAmount + infoVat);
-            }
+            var taxableAmount = round2(afterBillDiscount + infoExcise);
+var total = round2(taxableAmount + infoVat);
 
             $('#subtotalDisplay').text(subtotal.toFixed(2));
             $('#subtotalInput').val(subtotal.toFixed(2));
@@ -889,6 +995,16 @@
             var variationId = $(this).val();
             syncProductCodeSelect($tr, itemId, variationId);
             applyAutoRate($tr);
+        });
+
+        /* ── FIX: allow clicking the "Failed to load — click to retry" option to retry ── */
+        $(document).on('mousedown', '.variation-select', function() {
+            var $select = $(this);
+            if ($select.find('option:selected').text() === 'Failed to load — click to retry') {
+                var $tr = $select.closest('tr');
+                var itemId = $tr.find('.item-select').val();
+                loadVariationsForRow($tr, itemId, null);
+            }
         });
 
         $(document).on('change', '.product-code-select', function() {
@@ -965,7 +1081,6 @@
             recalcAll();
         });
 
-        /* ── Bill Type change: toggle column/row visibility and recalc totals ── */
         $(document).on('change', '#billType', function() {
             toggleBillTypeUI();
             recalcAll();
@@ -1002,6 +1117,7 @@
             }
 
             updateRateColumnHeader();
+            updateBillTypeOptions();
             refreshItemFilterForAllRows();
             $('#itemRows tr.item-row').each(function() {
                 applyAutoRate($(this));
@@ -1050,6 +1166,7 @@
                 });
 
                 updateRateColumnHeader();
+                updateBillTypeOptions();
                 toggleBillTypeUI();
 
                 var initialLineItems = @json($lineItems ?? []);

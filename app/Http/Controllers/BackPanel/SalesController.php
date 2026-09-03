@@ -111,7 +111,7 @@ class SalesController extends Controller
                 $data['order_id']              = $result->order_id;
                 $data['remarks']               = $result->remarks;
                 $data['bill_discount_percent'] = $result->bill_discount_percent;
-                $data['bill_type']             = $result->bill_type ?? 'vat'; // NEW — add right here
+                $data['bill_type']             = $result->bill_type ?? 'vat_bill'; // NEW — add right here
                 $data['lineItems']             = $result->items;
                 $data['customerOrders']        = !empty($result->customer_id)
                     ? SalesVoucher::getCustomerOrders([
@@ -195,7 +195,7 @@ class SalesController extends Controller
                 'voucher_date'       => 'required|date',
                 // 'voucher_no'         => 'required|string|max:255',
                 'customer_id'        => 'required',
-                'bill_type'           => 'required|in:vat,abbreviated', // NEW
+                'bill_type' => 'required|in:vat_bill,abbreviated_bill',
                 'items'              => 'required|array|min:1',
                 'items.*.item_id'    => 'required',
                 'items.*.qty'        => 'required|numeric|min:0.01',

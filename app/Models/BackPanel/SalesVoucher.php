@@ -364,6 +364,9 @@ class SalesVoucher extends Model
 
             $customer_id = $post['customer_id'];
 
+            // ── NEW: abbreviated bills never carry excise/VAT at the line level ──
+
+
             foreach ($post['items'] as $item) {
 
                 $variation = DB::table('itemvariations as iv')
@@ -389,9 +392,6 @@ class SalesVoucher extends Model
                 }
 
                 $qty = (float) $item['qty'];
-                // NOTE: as of this change, unit_rate is SP — MRP minus discounts,
-                // EXCLUDING excise/VAT. The old assumption ("rate already tax-inclusive")
-                // no longer holds; excise/VAT are added back below.
                 $unitPrice = (float) $item['unit_rate'];
 
                 $baseAmount = round($unitPrice * $qty, 2); // pre-tax line amount
@@ -409,13 +409,13 @@ class SalesVoucher extends Model
                     $discountAmount = 0;
                 }
 
-                // ── Excise / VAT: per-unit amounts submitted from the form (sourced from
-                //    getItemPricing()'s "retailer" block at the time the rate was fetched). ──
+                // ── Excise / VAT: NEVER applied on abbreviated bills, regardless of what the
+                //    form submitted in items[].excise_amount / items[].vat_amount. This is the
+                //    server-side source of truth — closing the gap where the JS only zeroed the
+                //    SUMMARY totals but not each row's hidden excise/vat inputs. ──
                 $exciseAmount = isset($item['excise_amount']) ? round((float) $item['excise_amount'] * $qty, 2) : 0;
                 $vatAmount    = isset($item['vat_amount'])    ? round((float) $item['vat_amount'] * $qty, 2)    : 0;
 
-                // Line total = pre-tax amount + excise + vat — unit_rate no longer bakes tax in,
-                // so it must be added back here (previously this was just $baseAmount).
                 $lineTotal = round($baseAmount + $exciseAmount + $vatAmount, 2);
 
                 $insertOrderDetails[] = [
@@ -428,11 +428,11 @@ class SalesVoucher extends Model
                     'discount_type'                  => $lineDiscountType ?? $variation->discount_type,
                     'discount_amount'                => $lineDiscountValue ?? ($variation->discount_amount ?? 0),
                     'discount_amount_per_variation'  => $discountAmount,
-                    'excise_type'                    => $variation->excise_status === 'Y' ? $variation->excise_type : null,
-                    'excise_percent'                 => $variation->excise_type === 'percentage' ? $variation->excise_percentage : 0,
-                    'excise_amount'                  => $exciseAmount, // record-only
-                    'vat_percent'                    => $variation->vat_status === 'Y' ? $variation->vat_percent : 0,
-                    'vat_amount'                     => $vatAmount, // record-only
+                    'excise_type'    => ($variation->excise_status === 'Y') ? $variation->excise_type : null,
+                    'excise_percent' => ($variation->excise_type === 'percentage') ? $variation->excise_percentage : 0,
+                    'excise_amount'  => $exciseAmount,
+                    'vat_percent'    => ($variation->vat_status === 'Y') ? $variation->vat_percent : 0,
+                    'vat_amount'     => $vatAmount,
                     'order_detail_total_price'       => $lineTotal,
                     'created_at'                     => Carbon::now(),
                 ];
@@ -574,7 +574,7 @@ class SalesVoucher extends Model
                 'orgid'                     => $post['orgid'],
                 'payment_method'            => $post['paymentmethod'] ?? 'COD',
                 'voucher_number'            => $post['voucher_no'],
-                'bill_type'                 => $post['bill_type'] ?? 'vat', 
+                'bill_type'                 => $post['bill_type'] ?? 'vat_bill',
                 'userid'                    => $post['customer_id'],
                 'addressid'                 => $post['addressid'] ?? null,
                 'order_master_subtotal'     => $post['subtotal'],
@@ -661,7 +661,7 @@ class SalesVoucher extends Model
             ->where('od.ordermasterid', $post['id'])
             ->select(
                 'om.id as ordermasterid',
-                'om.bill_type', 
+                'om.bill_type',
                 'i.title',
                 'i.product_code as item_product_code',
                 'v.value',

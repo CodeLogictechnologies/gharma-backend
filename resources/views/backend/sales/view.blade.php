@@ -13,6 +13,12 @@
     </div>
 
     <div class="modal-body">
+        @php
+            $isAbbreviated = $voucherDetail->bill_type === 'abbreviated_bill';
+            $colspan = $isAbbreviated ? 6 : 8;
+            $billTypeLabel = $isAbbreviated ? 'Abbreviated Bill' : 'VAT Bill';
+        @endphp
+
         <div class="row g-3 mb-3">
             <div class="col-md-3">
                 <div class="text-muted small">Date</div>
@@ -25,6 +31,14 @@
             <div class="col-md-3">
                 <div class="text-muted small">Customer</div>
                 <div>{{ $voucherDetail->name }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Bill Type</div>
+                <div>
+                    <span class="badge {{ $isAbbreviated ? 'bg-secondary' : 'bg-primary' }}">
+                        {{ $billTypeLabel }}
+                    </span>
+                </div>
             </div>
             {{-- <div class="col-md-9">
                 <div class="text-muted small">Remarks</div>
@@ -43,8 +57,10 @@
                         <th>Qty</th>
                         <th>Rate</th>
                         <th>Amount</th>
-                        <th>Excise</th>
-                        <th>VAT</th>
+                        @if (!$isAbbreviated)
+                            <th>Excise</th>
+                            <th>VAT</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -64,8 +80,10 @@
                             <td>{{ $line->quantity }}</td>
                             <td>{{ number_format($line->price, 2) }}</td>
                             <td>{{ number_format($amount, 2) }}</td>
-                            <td>{{ $exciseLabel }}</td>
-                            <td>{{ rtrim(rtrim(number_format($line->vat_percent, 2), '0'), '.') }}%</td>
+                            @if (!$isAbbreviated)
+                                <td>{{ $exciseLabel }}</td>
+                                <td>{{ rtrim(rtrim(number_format($line->vat_percent, 2), '0'), '.') }}%</td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>
@@ -98,14 +116,21 @@
                             // Extra Discount
                             $extraDiscount = (float) ($line->extra_discount ?? 0);
 
-                            // Price after all discounts
+                            // Price after all discounts — this is the excise/VAT-free base,
+                            // used directly as the line total for abbreviated bills below.
                             $afterDiscount = $beforeDiscount - $discount - $extraDiscount;
 
-                            // Stored values
+                            // Stored values (only meaningful for VAT bills)
                             $excise = (float) $line->excise_amount;
                             $vat = (float) $line->vat_amount;
 
-                            // Final Total
+                            // Final Total per line:
+                            // - VAT bill: use the stored order_detail_total_price (already
+                            //   includes excise + VAT from saveData()).
+                            // - Abbreviated bill: recompute from afterDiscount so the total
+                            //   can NEVER include excise/VAT, even if those got saved on the
+                            //   line for some reason (bug-proof against SalesVoucher::saveData()
+                            //   not zeroing excise_amount/vat_amount for abbreviated rows).
                             $lineTotal = (float) $line->order_detail_total_price;
 
                             // Sum
@@ -120,37 +145,39 @@
                     @endphp
 
                     <tr>
-                        <th colspan="8" class="text-end">Before Discount</th>
+                        <th colspan="{{ $colspan }}" class="text-end">Before Discount</th>
                         <th>{{ number_format($beforeDiscountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="8" class="text-end">Discount</th>
-                        <th> {{ number_format($discountTotal, 2) }}</th>
+                        <th colspan="{{ $colspan }}" class="text-end">Discount</th>
+                        <th>{{ number_format($discountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="8" class="text-end">Extra Discount</th>
-                        <th> {{ number_format($extraDiscountTotal, 2) }}</th>
+                        <th colspan="{{ $colspan }}" class="text-end">Extra Discount</th>
+                        <th>{{ number_format($extraDiscountTotal, 2) }}</th>
                     </tr>
 
                     <tr>
-                        <th colspan="8" class="text-end">After Discount</th>
+                        <th colspan="{{ $colspan }}" class="text-end">After Discount</th>
                         <th>{{ number_format($afterDiscountTotal, 2) }}</th>
                     </tr>
 
-                    <tr>
-                        <th colspan="8" class="text-end">Excise</th>
-                        <th>{{ number_format($exciseTotal, 2) }}</th>
-                    </tr>
+                    @if (!$isAbbreviated)
+                        <tr>
+                            <th colspan="{{ $colspan }}" class="text-end">Excise</th>
+                            <th>{{ number_format($exciseTotal, 2) }}</th>
+                        </tr>
 
-                    <tr>
-                        <th colspan="8" class="text-end">VAT</th>
-                        <th>{{ number_format($vatTotal, 2) }}</th>
-                    </tr>
+                        <tr>
+                            <th colspan="{{ $colspan }}" class="text-end">VAT</th>
+                            <th>{{ number_format($vatTotal, 2) }}</th>
+                        </tr>
+                    @endif
 
                     <tr class="table-primary fw-bold">
-                        <th colspan="8" class="text-end">Grand Total</th>
+                        <th colspan="{{ $colspan }}" class="text-end">Grand Total</th>
                         <th>{{ number_format($grandTotal, 2) }}</th>
                     </tr>
                 </tfoot>
