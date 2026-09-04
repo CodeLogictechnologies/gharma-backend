@@ -130,9 +130,9 @@ class InventoryController extends Controller
             $array[$i]["sno"] = $i + 1;
             $array[$i]["stock"]          = $row->stock;
             // $array[$i]["returnqty"]    = $row->returnqty ?? 0;
-            $array[$i]["salesreturnqty"]     = $row->salesreturnqty ?? 0;
-            $array[$i]["purchasereturnqty"]  = $row->purchasereturnqty ?? 0;
-            $array[$i]["remainingqty"] = $row->remainingqty;
+            $array[$i]["salesreturnqty"]    = number_format($row->salesreturnqty ?? 0, 0);
+            $array[$i]["purchasereturnqty"] = number_format($row->purchasereturnqty ?? 0, 0);
+            $array[$i]["remainingqty"]      = number_format($row->remainingqty, 0);
             $array[$i]["soldqty"]   = $row->soldqty ?? 0;
             $array[$i]["title"]        = $row->title;
             $array[$i]["attribute"] = ($row->attribute ?? '-') . ': ' . ($row->variation_value ?? '-');
