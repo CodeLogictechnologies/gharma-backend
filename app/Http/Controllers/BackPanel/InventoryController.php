@@ -129,7 +129,9 @@ class InventoryController extends Controller
         foreach ($data as $row) {
             $array[$i]["sno"] = $i + 1;
             $array[$i]["stock"]          = $row->stock;
-            $array[$i]["returnqty"]    = $row->returnqty ?? 0;
+            // $array[$i]["returnqty"]    = $row->returnqty ?? 0;
+            $array[$i]["salesreturnqty"]     = $row->salesreturnqty ?? 0;
+            $array[$i]["purchasereturnqty"]  = $row->purchasereturnqty ?? 0;
             $array[$i]["remainingqty"] = $row->remainingqty;
             $array[$i]["soldqty"]   = $row->soldqty ?? 0;
             $array[$i]["title"]        = $row->title;
