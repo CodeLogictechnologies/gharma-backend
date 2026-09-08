@@ -91,6 +91,7 @@ class Fiscalyear extends Model
             DB::beginTransaction();
 
             $id = $post['id'] ?? null;
+            $isCurrent = $post['is_current'] ?? 'N';
 
             if ($id) {
 
@@ -100,22 +101,33 @@ class Fiscalyear extends Model
                         'start_date' => $post['start_date'],
                         'code'       => $post['code'],
                         'end_date'   => $post['end_date'],
-                        'is_current' => $post['is_current'] ?? 'N',
+                        'is_current' => $isCurrent,
                         'status'     => $post['status'] ?? 'Y',
                         'updated_at' => Carbon::now(),
                     ]);
             } else {
 
+                $id = (string) Str::uuid();
+
                 DB::table('fiscal_years')->insert([
-                    'id'         => (string) Str::uuid(),
+                    'id'         => $id,
                     'start_date' => $post['start_date'],
                     'code'       => $post['code'],
                     'end_date'   => $post['end_date'],
-                    'is_current' => $post['is_current'] ?? 'N',
+                    'is_current' => $isCurrent,
                     'status'     => $post['status'] ?? 'Y',
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
                 ]);
+            }
+
+            if ($isCurrent === 'Y') {
+                DB::table('fiscal_years')
+                    ->where('id', '!=', $id)
+                    ->update([
+                        'is_current' => 'N',
+                        'updated_at' => Carbon::now(),
+                    ]);
             }
 
             DB::commit();
