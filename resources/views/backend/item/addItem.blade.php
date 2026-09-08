@@ -746,7 +746,7 @@
                                     value="{{ $v['threshold'] ?? '' }}">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label mb-1">Price</label>
+                                <label class="form-label mb-1">MRP</label>
                                 <input type="number" name="variations[{{ $i }}][price]"
                                     class="form-control" placeholder="0.00" min="0" step="0.01"
                                     value="{{ $v['price'] ?? '' }}">
@@ -789,6 +789,13 @@
                                         class="form-control discount-amount-input" placeholder="e.g. 50"
                                         min="0" step="0.01" value="{{ $v['discount_amount'] ?? '' }}">
                                 </div>
+                            </div>
+
+                            {{-- Selling Price: auto-calculated = MRP - discount, read-only ── --}}
+                            <div class="col-md-2">
+                                <label class="form-label mb-1">SP</label>
+                                <input type="text" class="form-control sp-display" readonly
+                                    value="0.00" tabindex="-1">
                             </div>
                         </div>
                     </div>
@@ -974,38 +981,38 @@
 
         /* ── Prefill Product Code into a Variation row instead of the item-level field ──
    When editing an existing item, product codes belong to variations, not the item itself. */
-if (window.prefillProductCode) {
-    var isEditingExistingItem = !!$('#itemForm input[name="id"]').val();
+        if (window.prefillProductCode) {
+            var isEditingExistingItem = !!$('#itemForm input[name="id"]').val();
 
-    if (isEditingExistingItem) {
-        if (window.prefillVariationId) {
-            // A specific variation was already selected in the Sales row —
-            // the user wants to correct THAT variation's code, not add a new one.
-            var $targetRow = $('#variationsContainer .variation-row').filter(function() {
-                return $(this).find('input[name$="[variationid]"]').val() === window.prefillVariationId;
-            }).first();
+            if (isEditingExistingItem) {
+                if (window.prefillVariationId) {
+                    // A specific variation was already selected in the Sales row —
+                    // the user wants to correct THAT variation's code, not add a new one.
+                    var $targetRow = $('#variationsContainer .variation-row').filter(function() {
+                        return $(this).find('input[name$="[variationid]"]').val() === window.prefillVariationId;
+                    }).first();
 
-            if (!$targetRow.length) {
-                // Fallback: couldn't find it (shouldn't normally happen) — add a new row instead.
-                $('#variationsContainer').append(newVariationRow(varIdx++));
-                $targetRow = $('#variationsContainer .variation-row').last();
+                    if (!$targetRow.length) {
+                        // Fallback: couldn't find it (shouldn't normally happen) — add a new row instead.
+                        $('#variationsContainer').append(newVariationRow(varIdx++));
+                        $targetRow = $('#variationsContainer .variation-row').last();
+                    }
+
+                    $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
+                } else {
+                    // Item selected but no specific variation — add a NEW variation row for the incoming code.
+                    $('#variationsContainer').append(newVariationRow(varIdx++));
+                    var $targetRow = $('#variationsContainer .variation-row').last();
+                    $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
+                }
+            } else {
+                // Brand new item, no variations yet — the item-level code is the right place.
+                $('[name="product_code"]').val(window.prefillProductCode);
             }
 
-            $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
-        } else {
-            // Item selected but no specific variation — add a NEW variation row for the incoming code.
-            $('#variationsContainer').append(newVariationRow(varIdx++));
-            var $targetRow = $('#variationsContainer .variation-row').last();
-            $targetRow.find('input[name$="[product_code]"]').val(window.prefillProductCode);
+            window.prefillProductCode = '';
+            window.prefillVariationId = '';
         }
-    } else {
-        // Brand new item, no variations yet — the item-level code is the right place.
-        $('[name="product_code"]').val(window.prefillProductCode);
-    }
-
-    window.prefillProductCode = '';
-    window.prefillVariationId = '';
-}
 
         /* ─────────────────────────────────────────────
            QUICK-ADD CONFIG (must be before autoQuickSave)
@@ -1704,20 +1711,21 @@ if (window.prefillProductCode) {
         /* ─────────────────────────────────────────────
            VARIATION ROWS
         ───────────────────────────────────────────── */
-               const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
-function buildAttributeOptions(selectedId) {
-    if (!variationAttributeOptions.length) {
-        return '<option value="">No attributes defined</option>';
-    }
-    return variationAttributeOptions.map(a => {
-        const sel = (selectedId && a.id === selectedId) ? ' selected' : '';
-        return `<option value="${a.id}"${sel}>${a.name}</option>`;
-    }).join('');
-}
+        const variationAttributeOptions = @json($variationAttributes->map(fn($a) => ['id' => $a->id, 'name' => $a->name]));
 
-const variationUnitOptions = @json($units->map(fn($u) => ['id' => $u->id, 'name' => $u->unit_name]));
+        function buildAttributeOptions(selectedId) {
+            if (!variationAttributeOptions.length) {
+                return '<option value="">No attributes defined</option>';
+            }
+            return variationAttributeOptions.map(a => {
+                const sel = (selectedId && a.id === selectedId) ? ' selected' : '';
+                return `<option value="${a.id}"${sel}>${a.name}</option>`;
+            }).join('');
+        }
 
-function buildUnitOptions(selectedId) {
+        const variationUnitOptions = @json($units->map(fn($u) => ['id' => $u->id, 'name' => $u->unit_name]));
+
+        function buildUnitOptions(selectedId) {
             if (!variationUnitOptions.length) {
                 return '<option value="">No units defined</option>';
             }
@@ -1800,12 +1808,17 @@ function buildUnitOptions(selectedId) {
                                class="form-control discount-amount-input" placeholder="e.g. 50" min="0" step="0.01">
                     </div>
                 </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1">SP</label>
+                    <input type="text" class="form-control sp-display" readonly value="0.00" tabindex="-1">
+                </div>
             </div>
         </div>`;
         }
 
         $('#addVariation').on('click', () => {
             $('#variationsContainer').append(newVariationRow(varIdx++));
+            recalcSellingPrice($('#variationsContainer .variation-row').last());
         });
 
         $(document).on('click', '.remove-variation', function() {
@@ -1828,12 +1841,36 @@ function buildUnitOptions(selectedId) {
             if (type !== 'fixed') $amountCol.find('.discount-amount-input').val('');
         }
 
+        function recalcSellingPrice($row) {
+            var mrp = parseFloat($row.find('input[name$="[price]"]').val()) || 0;
+            var discountType = $row.find('.discount-type-select').val();
+
+            var discount = 0;
+            if (discountType === 'percentage') {
+                var pct = parseFloat($row.find('.discount-percentage-input').val()) || 0;
+                discount = mrp * pct / 100;
+            } else if (discountType === 'fixed') {
+                discount = parseFloat($row.find('.discount-amount-input').val()) || 0;
+            }
+
+            var sp = Math.max(mrp - discount, 0);
+            $row.find('.sp-display').val(sp.toFixed(2));
+        }
+
+
         $(document).on('change', '.discount-type-select', function() {
-            applyDiscountTypeUI($(this).closest('.variation-row'));
+            var $row = $(this).closest('.variation-row');
+            applyDiscountTypeUI($row);
+            recalcSellingPrice($row);
+        });
+
+        $(document).on('input', 'input[name$="[price]"], .discount-percentage-input, .discount-amount-input', function() {
+            recalcSellingPrice($(this).closest('.variation-row'));
         });
 
         $('.variation-row').each(function() {
             applyDiscountTypeUI($(this));
+            recalcSellingPrice($(this));
         });
 
         /* ─────────────────────────────────────────────
@@ -1957,14 +1994,14 @@ function buildUnitOptions(selectedId) {
 
                         if (typeof itemTable !== 'undefined') {
                             if (itemTable.fnDraw) {
-                            // old-style .dataTable() init (matches this app's usual pattern)
+                                // old-style .dataTable() init (matches this app's usual pattern)
                                 itemTable.fnDraw();
-                                } else if (itemTable.ajax) {
-                            // new-style .DataTable() init
-                            itemTable.ajax.reload(null, false);
-                        } else if (itemTable.api) {
-                            itemTable.api().ajax.reload(null, false);
-                        }
+                            } else if (itemTable.ajax) {
+                                // new-style .DataTable() init
+                                itemTable.ajax.reload(null, false);
+                            } else if (itemTable.api) {
+                                itemTable.api().ajax.reload(null, false);
+                            }
                         }
 
                         if (typeof window.refreshLowStockAlerts === 'function') {

@@ -30,7 +30,7 @@ class WholesalerPriceController extends Controller
 
     public function index()
     {
-        if (!auth()->user()->can('view.wholesaler-price')) {
+        if (!auth()->user()->can('view.wholesaler')) {
             abort(403);
         }
         $post['orgid'] = session('orgid');
@@ -46,7 +46,7 @@ class WholesalerPriceController extends Controller
     public function form(Request $request)
     {
         $id   = $request->id ?? null;
-        if (!auth()->user()->can(!empty($id) ? 'edit.wholesaler-price' : 'add.wholesaler-price')) {
+        if (!auth()->user()->can(!empty($id) ? 'edit.wholesaler' : 'add.wholesaler')) {
             abort(403);
         }
         $post = $request->all();
@@ -104,7 +104,7 @@ class WholesalerPriceController extends Controller
     public function save(Request $request)
     {
         try {
-            $action = !empty($request->id) ? 'edit.wholesaler-price' : 'add.wholesaler-price';
+            $action = !empty($request->id) ? 'edit.wholesaler' : 'add.wholesaler';
 
             if (!auth()->user()->can($action)) {
                 return json_encode(['type' => 'error', 'message' => 'You do not have permission to perform this action.']);
@@ -160,7 +160,7 @@ class WholesalerPriceController extends Controller
     public function delete(Request $request)
     {
         try {
-            if (!auth()->user()->can('delete.wholesaler-price')) {
+            if (!auth()->user()->can('delete.wholesaler')) {
                 throw new Exception('You do not have permission to delete this record.');
             }
 
@@ -217,7 +217,7 @@ class WholesalerPriceController extends Controller
 
     public function list(Request $request)
     {
-        if (!auth()->user()->can('view.wholesaler-price')) {
+        if (!auth()->user()->can('view.wholesaler')) {
             return response()->json(['recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
         }
 
@@ -243,13 +243,13 @@ class WholesalerPriceController extends Controller
 
             $action = '';
 
-            if (auth()->user()->can('view.wholesaler-price')) {
+            if (auth()->user()->can('view.wholesaler')) {
                 $action .= '<a href="javascript:;" title="View Data" class="tooltipdiv viewWholesaleprice" style="color:green;" data-id="' . $row->id .  '"><i class="bx bx-show-alt"></i></a>';
             }
-            if (auth()->user()->can('edit.wholesaler-price')) {
+            if (auth()->user()->can('edit.wholesaler')) {
                 $action .= '<a href="javascript:;" title="Edit Data" class="tooltipdiv editWholesaleprice" style="color:blue;" data-id="' . $row->id .  '"><i class="bx bx-edit-alt"></i></a>';
             }
-            if (auth()->user()->can('delete.wholesaler-price')) {
+            if (auth()->user()->can('delete.wholesaler')) {
                 $action .= '<a href="javascript:;" title="Delete Data" class="tooltipdiv deleteWholesaleprice" style="color:red;" data-id="' . $row->id .  '"><i class="bx bx-trash"></i></a>';
             }
             $array[$i]["action"]  = $action;
@@ -271,7 +271,7 @@ class WholesalerPriceController extends Controller
     public function view(Request $request)
     {
         try {
-            if (!auth()->user()->can('view.wholesaler-price')) {
+            if (!auth()->user()->can('view.wholesaler')) {
                 throw new Exception('You do not have permission to view this record.');
             }
 

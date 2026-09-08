@@ -22,7 +22,9 @@
                         <th>Variation</th>
                         <th>Stock</th>
                         <th>Sold Qty</th>
-                        <th>Return Qty</th>
+                        <!-- <th>Return Qty</th> -->
+                        <th>Sales Return Qty</th>
+                        <th>Purchase Return Qty</th>
                         <th>Remaining</th>
                     </tr>
                 </thead>
@@ -125,7 +127,7 @@
             },
             aoColumnDefs: [{
                 bSortable: false,
-                aTargets: [0, 4]
+                aTargets: [0, 4, 5, 6]
             }],
             aoColumns: [{
                     data: 'sno'
@@ -148,8 +150,14 @@
                 {
                     data: 'soldqty'
                 },
+                // {
+                //     data: 'returnqty'
+                // },
                 {
-                    data: 'returnqty'
+                    data: 'salesreturnqty'
+                },
+                {
+                    data: 'purchasereturnqty'
                 },
                 {
                     data: 'remainingqty'

@@ -337,7 +337,7 @@
         var BRAND_URL = '{{ url('admin/discount/brands') }}';
 
         // Pre-selected values when editing
-        var editSelectedItemIds = {!! json_encode(@$selected_item_ids ?? []) !!};
+        var editSelectedItemIds = {!!json_encode(@$selected_item_ids ?? []) !!};
         var editCategoryTargetId = '{{ @$category_target_id ?? '' }}';
         var editSubCategoryTargetId = '{{ @$sub_category_target_id ?? '' }}';
         var editSubSubCategoryTargetId = '{{ @$sub_sub_category_target_id ?? '' }}';

@@ -75,12 +75,22 @@ class Inventory extends Model
             ->whereNull('deleted_at')
             ->groupBy('variation_id');
 
-        $returnAgg = DB::table('purchase_return_voucher_items as prvi')
+        // Purchase returns — vendor returns against stock we bought in.
+        $purchaseReturnAgg = DB::table('purchase_return_voucher_items as prvi')
             ->join('purchase_return_vouchers as prv', 'prv.id', '=', 'prvi.purchase_return_voucher_id')
             ->select('prvi.variation_id', DB::raw('SUM(prvi.qty) as total_returned'))
             ->where('prv.status', 'Y')
             ->where('prv.return_status', 'Approved')
             ->groupBy('prvi.variation_id');
+
+        // Sales returns — customer returns against stock we sold out.
+        // NOTE: adjust table/column names here if these don't match your schema.
+        $salesReturnAgg = DB::table('sales_return_voucher_items as srvi')
+            ->join('sales_return_vouchers as srv', 'srv.id', '=', 'srvi.sales_return_voucher_id')
+            ->select('srvi.variation_id', DB::raw('SUM(srvi.qty) as total_returned'))
+            ->where('srv.status', 'Y')
+            ->where('srv.return_status', 'Approved')
+            ->groupBy('srvi.variation_id');
 
         return DB::table('items as i')
             ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
@@ -89,7 +99,24 @@ class Inventory extends Model
                     ->on('pvi.variation_id', '=', 'iv.id');
             })
             ->leftJoinSub($salesAgg, 'o', 'o.variation_id', '=', 'iv.id')
-            ->leftJoinSub($returnAgg, 'pr', 'pr.variation_id', '=', 'iv.id');
+            ->leftJoinSub($purchaseReturnAgg, 'pr', 'pr.variation_id', '=', 'iv.id')
+            ->leftJoinSub($salesReturnAgg, 'sr', 'sr.variation_id', '=', 'iv.id');
+
+        // $returnAgg = DB::table('purchase_return_voucher_items as prvi')
+        //     ->join('purchase_return_vouchers as prv', 'prv.id', '=', 'prvi.purchase_return_voucher_id')
+        //     ->select('prvi.variation_id', DB::raw('SUM(prvi.qty) as total_returned'))
+        //     ->where('prv.status', 'Y')
+        //     ->where('prv.return_status', 'Approved')
+        //     ->groupBy('prvi.variation_id');
+
+        // return DB::table('items as i')
+        //     ->join('itemvariations as iv', 'iv.item_id', '=', 'i.id')
+        //     ->joinSub($purchaseAgg, 'pvi', function ($join) {
+        //         $join->on('pvi.item_id', '=', 'i.id')
+        //             ->on('pvi.variation_id', '=', 'iv.id');
+        //     })
+        //     ->leftJoinSub($salesAgg, 'o', 'o.variation_id', '=', 'iv.id')
+        //     ->leftJoinSub($returnAgg, 'pr', 'pr.variation_id', '=', 'iv.id');
     }
 
     public static function list($post)
@@ -130,8 +157,14 @@ class Inventory extends Model
                 ->selectRaw("
         i.id,
         pvi.total_qty as stock,
-        COALESCE(pr.total_returned, 0) as returnqty,
-        GREATEST(pvi.total_qty - COALESCE(pr.total_returned, 0) - COALESCE(o.total_sold, 0), 0) AS remainingqty,
+        COALESCE(sr.total_returned, 0) as salesreturnqty,
+        COALESCE(pr.total_returned, 0) as purchasereturnqty,
+        GREATEST(
+            pvi.total_qty
+            - COALESCE(pr.total_returned, 0)
+            - (COALESCE(o.total_sold, 0) - COALESCE(sr.total_returned, 0)),
+            0
+        ) AS remainingqty,
         COALESCE(o.total_sold, 0) as soldqty,
         i.title,
         iv.attribute,
