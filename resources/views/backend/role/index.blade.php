@@ -189,7 +189,7 @@
             },
             {
                 label: 'Wholesaler',
-                key: 'wholesaler'
+                key: 'wholesaler-price'
             },
             {
                 label: 'Refunds Policy',
