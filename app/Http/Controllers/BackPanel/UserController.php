@@ -44,8 +44,7 @@ class UserController extends Controller
             }
 
             $rules = [
-                'first_name' => 'required|min:3|max:255',
-                'last_name'  => 'required|max:255',
+                'full_name' => 'required|min:3|max:255',
                 'phone'      => 'required|min:5|max:20',
                 'address'    => 'required',
                 'email'      => [
@@ -60,21 +59,18 @@ class UserController extends Controller
                         if ($exists) $fail('The email has already been taken.');
                     },
                 ],
-                'username' => 'required',
                 'gender'   => 'required',
                 'roles'    => 'required|array|min:1',
                 'image'    => 'nullable|mimes:jpg,jpeg,png|max:2048',
             ];
 
             $messages = [
-                'first_name.required'             => 'Please enter first name',
-                'first_name.min'                  => 'First name must be at least 3 characters',
-                'last_name.required'              => 'Please enter last name',
+                'full_name.required'             => 'Please enter Full name',
+                'full_name.min'                  => 'Full name must be at least 3 characters',
                 'phone.required'                  => 'Phone number is required',
                 'address.required'                => 'Address is required',
                 'email.required'                  => 'Email is required',
                 'email.regex' => 'Email must be a valid @gmail.com address',
-                'username.required'               => 'Username is required',
                 'gender.required'                 => 'Gender is required',
                 'roles.required'                  => 'Please select at least one role',
                 'image.mimes'                     => 'Profile image must be jpg, jpeg, or png',
@@ -139,7 +135,7 @@ class UserController extends Controller
                 User::updateUser($post);
 
                 DB::table('users')->where('id', $post['id'])->update([
-                    'name'       => $post['username'],
+                    'name'       => $post['full_name'],
                     'email'      => $post['email'],
                     'updated_at' => now(),
                 ]);
@@ -192,7 +188,7 @@ class UserController extends Controller
             $isWholesaler = $request->role_type === 'Wholesaler';
 
             $rules = [
-                'first_name' => 'required|min:3|max:255',
+                'full_name' => 'required|min:3|max:255',
                 'last_name'  => 'required|max:255',
                 'phone'      => 'required|min:5|max:20',
                 'address'    => 'required',
@@ -212,8 +208,8 @@ class UserController extends Controller
             ];
 
             $messages = [
-                'first_name.required' => 'Please enter first name',
-                'first_name.min'      => 'First name must be at least 3 characters',
+                'full_name.required' => 'Please enter first name',
+                'full_name.min'      => 'First name must be at least 3 characters',
                 'last_name.required'  => 'Please enter last name',
                 'phone.required'      => 'Phone number is required',
                 'address.required'    => 'Address is required',
@@ -254,7 +250,7 @@ class UserController extends Controller
             $newUuid = User::saveData($post);
             if (!$newUuid) throw new Exception('Could not save customer', 1);
 
-            $fullName = trim($post['first_name'] . ' ' . ($post['middle_name'] ?? '') . ' ' . $post['last_name']);
+            $fullName = trim($post['full_name'] . ' ' . ($post['middle_name'] ?? '') . ' ' . $post['last_name']);
             $fullName = preg_replace('/\s+/', ' ', $fullName);
 
             $type    = 'success';
@@ -293,7 +289,7 @@ class UserController extends Controller
 
             foreach ($data["data"] as $row) {
                 $array[$i]["sno"]     = $i + 1;
-                $array[$i]["name"]    = $row->name;
+                $array[$i]["name"]    = $row->full_name;
                 $array[$i]["email"]   = $row->email;
                 $array[$i]["address"] = $row->address ?? '-';
                 $array[$i]["phone"]   = $row->phone ?? '-';
@@ -368,7 +364,7 @@ class UserController extends Controller
                     <option value="Reject"  ' . ($row->user_status == "Reject"  ? "selected" : "") . '>Reject</option>
                 </select>';
 
-               $action  = '';
+                $action  = '';
                 if (auth()->user()->can('view.user')) {
                     $action .= '<a href="javascript:;" title="View"   class="tooltipdiv viewOrgInactive  " style="color:green;font-size:18px;" data-id="' . $row->id . '"><i class="bx bx-show"></i></a> ';
                 }
@@ -401,68 +397,64 @@ class UserController extends Controller
 
     public function form(Request $request)
     {
-        try {
-            $action = !empty($request->id) ? 'edit.user' : 'add.user';
+        // try {
+        $action = !empty($request->id) ? 'edit.user' : 'add.user';
 
-            if (!auth()->user()->can($action)) {
-                throw new Exception('You do not have permission to perform this action.');
-            }
-
-            $data              = [];
-            $data['rolesList'] = Role::getRole();
-            if (!empty($request->id)) {
-                $result = DB::table('users as u')
-                    ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
-                    ->select(
-                        'u.id',
-                        'u.name as username',
-                        'u.email',
-                        'p.first_name',
-                        'p.middle_name',
-                        'p.last_name',
-                        'p.gender',
-                        'p.phone',
-                        'p.address',
-                        'p.image',
-                        'p.company_name',
-                        // 'p.tax_number',
-                        // 'p.registration_number',
-                        'p.pan_number',
-                        'p.pan_image',
-                        // 'p.registration_number_image'
-                    )
-                    ->where('u.id', $request->id)
-                    ->first();
-
-                if (!$result) throw new Exception("User not found", 1);
-
-                $userRoles = DB::table('model_has_roles')
-                    ->where('model_id', $result->id)
-                    ->pluck('role_id')
-                    ->toArray();
-
-                $data['id']                        = $result->id;
-                $data['username']                  = $result->username;
-                $data['first_name']                = $result->first_name;
-                $data['middle_name']               = $result->middle_name;
-                $data['last_name']                 = $result->last_name;
-                $data['gender']                    = $result->gender;
-                $data['phone']                     = $result->phone;
-                $data['address']                   = $result->address;
-                $data['email']                     = $result->email;
-                $data['userRoles']                 = $userRoles;
-                $data['company_name']              = $result->company_name;
-                // $data['tax_number']                = $result->tax_number;
-                // $data['registration_number']       = $result->registration_number;
-                $data['pan_number']                = $result->pan_number;
-                $data['pan_image']                 = $result->pan_image;
-                // $data['registration_number_image'] = $result->registration_number_image;
-
-                if (!empty($result->image)) $data['image'] = $result->image;
-            }
-        } catch (Exception $e) {
-            $data['error'] = $e->getMessage();
+        if (!auth()->user()->can($action)) {
+            throw new Exception('You do not have permission to perform this action.');
         }
+
+        $data              = [];
+        $data['rolesList'] = Role::getRole();
+        if (!empty($request->id)) {
+            $result = DB::table('users as u')
+                ->leftJoin('profiles as p', 'p.user_id', '=', 'u.id')
+                ->select(
+                    'u.id',
+                    'u.name as username',
+                    'u.email',
+                    'p.full_name',
+                    'p.gender',
+                    'p.phone',
+                    'p.address',
+                    'p.image',
+                    'p.company_name',
+                    // 'p.tax_number',
+                    // 'p.registration_number',
+                    'p.pan_number',
+                    'p.pan_image',
+                    // 'p.registration_number_image'
+                )
+                ->where('u.id', $request->id)
+                ->first();
+
+            if (!$result) throw new Exception("User not found", 1);
+
+            $userRoles = DB::table('model_has_roles')
+                ->where('model_id', $result->id)
+                ->pluck('role_id')
+                ->toArray();
+
+            $data['id']                        = $result->id;
+            $data['username']                  = $result->username;
+            $data['full_name']                = $result->full_name;
+            $data['gender']                    = $result->gender;
+            $data['phone']                     = $result->phone;
+            $data['address']                   = $result->address;
+            $data['email']                     = $result->email;
+            $data['userRoles']                 = $userRoles;
+            $data['company_name']              = $result->company_name;
+            // $data['tax_number']                = $result->tax_number;
+            // $data['registration_number']       = $result->registration_number;
+            $data['pan_number']                = $result->pan_number;
+            $data['pan_image']                 = $result->pan_image;
+            // $data['registration_number_image'] = $result->registration_number_image;
+
+            if (!empty($result->image)) $data['image'] = $result->image;
+        }
+        // } catch (Exception $e) {
+        //     $data['error'] = $e->getMessage();
+        // }
 
         return view('backend.users.form', $data);
     }
@@ -527,9 +519,7 @@ class UserController extends Controller
                     'u.email',
                     'u.phone',
                     'u.user_status',
-                    'p.first_name',
-                    'p.middle_name',
-                    'p.last_name',
+                    'p.full_name',
                     'p.username',
                     'p.gender',
                     'p.phone as profile_phone',
@@ -549,7 +539,7 @@ class UserController extends Controller
             if (!$userDetails) throw new Exception("User not found");
 
             $fullName = trim(
-                ($userDetails->first_name ?? '') . ' ' .
+                ($userDetails->full_name ?? '') . ' ' .
                     ($userDetails->middle_name ?? '') . ' ' .
                     ($userDetails->last_name ?? '')
             );
@@ -610,7 +600,7 @@ class UserController extends Controller
         if (!auth()->user()->can('view.user')) {
             return '<div class="alert alert-danger">You do not have permission to view this data.</div>';
         }
-        
+
         switch ($request->input('tabid')) {
             case 'active':
                 return view('backend.users.index');

@@ -1,3 +1,5 @@
+
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -7,18 +9,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::table('roles')->insert([
-            'id'         => 4,
-            'name'       => 'Driver',
-            'status'     => 'Y',
-            'guard_name' => 'web',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // DB::table('roles')->insert([
+        //     'id'         => 4,
+        //     'name'       => 'Driver',
+        //     'status'     => 'Y',
+        //     'guard_name' => 'web',
+        //     'created_at' => now(),
+        //     'updated_at' => now(),
+        // ]);
     }
 
     public function down(): void
     {
-        DB::table('roles')->where('id', 4)->delete();
+        // DB::table('roles')->where('id', 4)->delete();
     }
 };

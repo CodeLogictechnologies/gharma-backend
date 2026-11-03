@@ -24,9 +24,9 @@ class PermissionController extends Controller
     //function to redirect to permission page
     public function index()
     {
-        if (!auth()->user()->can('view.permission')) {
-            abort(403);
-        }
+        // if (!auth()->user()->can('view.permission')) {
+        //     abort(403);
+        // }
 
         return view('backend.permission.index');
     }

@@ -21,6 +21,7 @@ use Exception;
 use GrahamCampbell\ResultType\Success;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\UpdateBusinessRequest;
 
 class ApiAuthController extends Controller
 {
@@ -56,7 +57,7 @@ class ApiAuthController extends Controller
     // -----------------------------------------------------------------------
     // POST /api/register
     // -----------------------------------------------------------------------
-    public function retailerRegister(Request $request)
+    public function retailerRegister(Request  $request)
     {
         $post = $request->all();
 
@@ -65,16 +66,13 @@ class ApiAuthController extends Controller
             $post['gender'] = ucfirst(strtolower(trim($post['gender'])));
         }
         $validator = Validator::make($post, [
-            'username'    => 'required|string|max:255|unique:users,name',
-            'email'       => 'required|string|email|max:255|unique:users',
-            'password'    => 'required|string|min:6|confirmed',
-            'first_name'  => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name'   => 'required|string|max:255',
-            'gender'      => 'required|in:Male,Female,Other',
-            'address'     => 'required',
-            'phone'       => 'required',
-            'image'       => 'required',
+            'full_name' => 'required|string|max:255',
+            'email'     => 'required|string|email|max:255|unique:users',
+            'password'  => 'required|string|min:6|confirmed',
+            'gender'    => 'required|in:Male,Female,Other',
+            'address'   => 'required',
+            'phone'     => 'required',
+            // 'image'     => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -101,28 +99,34 @@ class ApiAuthController extends Controller
         ], 201);
     }
 
+    private function profileStatus($user): array
+    {
+        $profile = DB::table('profiles')->where('user_id', $user->id)->first();
+
+        $required = ['company_name', 'pan_number']; // business details
+        $filled   = collect($required)->filter(fn($f) => !empty($profile?->$f));
+
+        return [
+            'hasBusiness'       => $filled->isNotEmpty(),            // false = no business info at all
+            'isProfileComplete' => $filled->count() === count($required), // false = something missing
+        ];
+    }
+
     public function wholesalerRegister(Request $request)
     {
         $post = $request->all();
 
-        // Normalize gender casing
         if (!empty($post['gender'])) {
             $post['gender'] = ucfirst(strtolower(trim($post['gender'])));
         }
-        $validator = Validator::make($post, [ 
-            'username'            => 'required|string|max:255',
-            'email'               => 'required|string|email|max:255|unique:users',
-            'password'            => 'required|string|min:6|confirmed',
-            'first_name'          => 'required|string|max:255',
-            'middle_name'         => 'nullable|string|max:255',
-            'last_name'           => 'required|string|max:255',
-            'gender'              => 'required|in:Male,Female,Other',
-            'address'             => 'required',
-            'phone'               => 'required',
-            'image'               => 'required',
-            'company_name'        => 'required',
-            'tax_number'          => 'required',
-            'registration_number' => 'required',
+        $validator = Validator::make($post, [
+            'full_name' => 'required|string|max:255',
+            'email'     => 'required|string|email|max:255|unique:users',
+            'password'  => 'required|string|min:6|confirmed',
+            'gender'    => 'required|in:Male,Female,Other',
+            'address'   => 'required',
+            'phone'     => 'required',
+            'image'     => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -152,19 +156,17 @@ class ApiAuthController extends Controller
                 'type' => 'refresh',
                 'exp'  => now()->addDays(30)->timestamp,
             ])->fromUser($user);
-
-            return response()->json([
-                'type'          => 'success',
-                'message'       => 'Wholesaler registered successfully.',
-                'token'         => $token,
-                'token_type'    => 'bearer',
-                'refresh_token' => $refreshToken,
-            ], 201);
-        } catch (QueryException $e) {
-            return response()->json([
-                'type'    => 'error',
-                'message' => 'Something Wrong',
-            ], 500);
+            return response()->json(array_merge([
+                'type'       => 'success',
+                'message'    => 'Login successful.',
+                'token'      => $token,
+                'token_type' => 'bearer',
+            ], $this->profileStatus($user)));
+            // } catch (QueryException $e) {
+            //     return response()->json([
+            //         'type'    => 'error',
+            //         'message' => 'Something Wrong',
+            //     ], 500);
         } catch (JWTException $e) {
             return response()->json([
                 'type'    => 'error',
@@ -589,5 +591,44 @@ class ApiAuthController extends Controller
             'type' => 'success',
             'message' => 'Password reset successful'
         ]);
+    }
+
+
+
+    public function updateBusiness(UpdateBusinessRequest $request)
+    {
+        $user = auth('api')->user();
+
+        $profile = DB::table('profiles')->where('user_id', $user->id)->first();
+
+        if (!$profile) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Profile not found.',
+            ], 404);
+        }
+
+        $data = $request->validated();
+
+        $update = [
+            'company_name' => $data['company_name'],
+            'pan_number'   => $data['pan_number'],
+            'updated_at'   => now(),
+        ];
+
+        if ($request->hasFile('pan_image')) {
+            $update['pan_image'] = User::storeImage($request->file('pan_image'), 'profiles', 'pan');
+        }
+
+        DB::table('profiles')->where('user_id', $user->id)->update($update);
+
+        return response()->json(array_merge([
+            'type'    => 'success',
+            'message' => 'Business details updated successfully.',
+            'data'    => [
+                'company_name' => $update['company_name'],
+                'pan_number'   => $update['pan_number'],
+            ],
+        ], $this->profileStatus($user)));
     }
 }

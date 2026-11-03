@@ -239,7 +239,7 @@ class User extends Authenticatable implements JWTSubject
             $newUuid  = (string) Str::uuid();
             $userData = [
                 'id'         => $newUuid,
-                'name'       => $post['username'],
+                'name'       => $post['full_name'],
                 'email'      => $post['email'],
                 'phone'      => $post['phone'],
                 'password'   => bcrypt($plainPassword),
@@ -293,10 +293,8 @@ class User extends Authenticatable implements JWTSubject
             $profileData = [
                 'id'                         => (string) Str::uuid(),
                 'user_id'                    => $newUuid,
-                'username'                   => $post['username'],
-                'first_name'                 => $post['first_name'],
-                'middle_name'                => $post['middle_name'] ?? null,
-                'last_name'                  => $post['last_name'],
+                'full_name'    => $post['full_name'],
+
                 'phone'                      => $post['phone'],
                 'address'                    => $post['address'],
                 'gender'                     => $post['gender'],
@@ -319,11 +317,11 @@ class User extends Authenticatable implements JWTSubject
 
             DB::commit();
 
-            SendUserPasswordMail::dispatch([
-                'name'     => $post['username'],
-                'email'    => $post['email'],
-                'password' => $plainPassword,
-            ]);
+            // SendUserPasswordMail::dispatch([
+            //     'name'     => $post['full_name'],
+            //     'email'    => $post['email'],
+            //     'password' => $plainPassword,
+            // ]);
 
             return $newUuid;
         } catch (Exception $e) {
@@ -373,9 +371,7 @@ class User extends Authenticatable implements JWTSubject
 
             $profileData = [
                 'username'                   => $post['username'] ?? '',
-                'first_name'                 => $post['first_name'] ?? '',
-                'middle_name'                => $post['middle_name'] ?? null,
-                'last_name'                  => $post['last_name'] ?? '',
+                'full_name'                 => $post['full_name'] ?? '',
                 'phone'                      => $post['phone'] ?? '',
                 'address'                    => $post['address'] ?? '',
                 'gender'                     => $post['gender'] ?? '',
@@ -492,9 +488,7 @@ class User extends Authenticatable implements JWTSubject
                     'users.user_status',
                     'users.name',
                     'users.email',
-                    'profiles.first_name',
-                    'profiles.middle_name',
-                    'profiles.last_name',
+                    'profiles.full_name',
                     'profiles.username',
                     'profiles.gender',
                     'profiles.phone',
