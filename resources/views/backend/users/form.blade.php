@@ -74,31 +74,10 @@
         {{-- Name Fields --}}
         <div class="row mb-2">
             <div class="col-md-4">
-                <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="first_name" id="first_name"
-                    placeholder="Enter first name" value="{{ @$first_name }}">
-                <div class="invalid-feedback">Enter first name</div>
-            </div>
-            <div class="col-md-4">
-                <label for="middle_name" class="form-label">Middle Name</label>
-                <input type="text" class="form-control" name="middle_name" id="middle_name"
-                    placeholder="Enter middle name" value="{{ @$middle_name }}">
-            </div>
-            <div class="col-md-4">
-                <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="last_name" id="last_name"
-                    placeholder="Enter last name" value="{{ @$last_name }}">
-                <div class="invalid-feedback">Enter last name</div>
-            </div>
-        </div>
-
-        {{-- Username, Email, Phone --}}
-        <div class="row mb-2">
-            <div class="col-md-4">
-                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="username" id="username"
-                    placeholder="Enter username" value="{{ @$username }}">
-                <div class="invalid-feedback">Enter username</div>
+                <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="full_name" id="full_name"
+                    placeholder="Enter first name" value="{{ @$full_name }}">
+                <div class="invalid-feedback">Enter full name</div>
             </div>
             <div class="col-md-4">
                 <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
@@ -113,6 +92,7 @@
                 <div class="invalid-feedback">Enter phone</div>
             </div>
         </div>
+
 
         {{-- Address, Gender, Roles --}}
         <div class="row mb-2">
@@ -328,7 +308,7 @@
         $('#userForm').validate({
             ignore: [],
             rules: {
-                first_name: 'required',
+                full_name: 'required',
                 last_name:  'required',
                 username:   'required',
                 email: {
@@ -345,7 +325,7 @@
                 }
             },
             messages: {
-                first_name: 'Enter first name',
+                full_name: 'Enter first name',
                 last_name:  'Enter last name',
                 username:   'Enter username',
                 email: {

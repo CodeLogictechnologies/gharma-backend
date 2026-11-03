@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Userorganization;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -12,9 +13,13 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             PermissionSeeder::class,
-            RolePermissionSeeder::class,
+            // RolePermissionSeeder::class,
             NepalAddressCoordinateSeeder::class,
-            OrderHeatmapSeeder::class,
+            // OrderHeatmapSeeder::class,
+            UserSeeder::class,
+            OrganizationSeeder::class,
+            UserOrganizationSeeder::class,
+            SuperAdminSeeder::class
         ]);
     }
 }

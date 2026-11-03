@@ -92,6 +92,9 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/items/search/save', [SearchHistoryController::class, 'searchSave']);
     Route::delete('/items/search/delete/', [SearchHistoryController::class, 'searchDelete']);
 
+    Route::post('/wholesaler/business/update', [ApiAuthController::class, 'updateBusiness']);
+
+
     Route::put('/change/password',      [ApiAuthController::class, 'changePassword']);
     Route::post('logout',          [ApiAuthController::class, 'logout']);
     Route::post('roleCheck',          [ApiAuthController::class, 'roleCheck']);

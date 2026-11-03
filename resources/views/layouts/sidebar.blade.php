@@ -61,14 +61,14 @@
         @endcan
 
         <!-- Organization Roles -->
-        @can('view.organization-role')
+        {{-- @can('view.organization-role') --}}
         <li class="menu-item {{ request()->routeIs('organization.role') ? 'active' : '' }}">
             <a href="{{ route('organization.role') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-shield"></i>
                 <div>Organization Roles</div>
             </a>
         </li>
-        @endcan
+        {{-- @endcan --}}
 
         {{-- Driver --}}
         <!-- Permission -->

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('order_details', function (Blueprint $table) {
             $table->string('variation_discount_type')->nullable()->after('price');
-            $table->string('excise_percent')->nullable()->after('variation_discount_type');
+            // $table->string('excise_percent')->nullable()->after('variation_discount_type');
             $table->decimal('variation_discount_amount', 10, 2)->nullable()->default(0)->after('variation_discount_type');
 
             $table->string('campaign_discount_type')->nullable()->after('variation_discount_amount');
