@@ -363,14 +363,12 @@ class User extends Authenticatable implements JWTSubject
             // }
 
             DB::table('users')->where('id', $userId)->update([
-                'name'       => $post['username'] ?? '',
+                'name'       => $post['full_name'] ?? '',
                 'phone'      => $post['phone'] ?? '',
-
                 'updated_at' => Carbon::now(),
             ]);
 
             $profileData = [
-                'username'                   => $post['username'] ?? '',
                 'full_name'                 => $post['full_name'] ?? '',
                 'phone'                      => $post['phone'] ?? '',
                 'address'                    => $post['address'] ?? '',

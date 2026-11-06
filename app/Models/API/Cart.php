@@ -337,6 +337,7 @@ class Cart extends Model
                         $join->on('ad.variation_id', '=', 'iv.id')
                             ->where('ad.rn', '=', 1);
                     })
+                    ->where('c.userid', $post['userid'])
                     ->select([
                         'c.id as cart_id',
                         'c.variation_id',
@@ -503,7 +504,6 @@ class Cart extends Model
 
             $result = Cart::where('variation_id', $post['variationid'])
                 ->where('userid', $post['userid'])
-                ->where('orgid', $post['orgid'])
                 ->delete();
 
             return $result;
