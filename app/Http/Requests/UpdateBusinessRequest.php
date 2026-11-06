@@ -10,15 +10,20 @@ class UpdateBusinessRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // auth is handled by the auth:api middleware
+        return true;
     }
 
     public function rules(): array
     {
         return [
-            'company_name' => 'required|string|max:255',
-            'pan_number'   => 'required|string|max:50',
-            'pan_image'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'company_name'        => 'required|string|max:255',
+            'tax_number'          => 'nullable|string|max:50',
+            'registration_number' => 'nullable|string|max:50',
+
+            'registration_image'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+
+            'pan_number'          => 'nullable|string|max:50',
+            'pan_image'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ];
     }
 

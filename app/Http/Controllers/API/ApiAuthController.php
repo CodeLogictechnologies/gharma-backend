@@ -25,9 +25,7 @@ use App\Http\Requests\UpdateBusinessRequest;
 
 class ApiAuthController extends Controller
 {
-    // -----------------------------------------------------------------------
-    // Helper: greeting + redirect based on Spatie role
-    // -----------------------------------------------------------------------
+
     private function getRoleResponse(User $user): array
     {
         if ($user->hasRole('admin')) {
@@ -46,7 +44,6 @@ class ApiAuthController extends Controller
             ];
         }
 
-        // Fallback — no role assigned
         return [
             'role'         => null,
             'greeting'     => 'Hello! Welcome back.',
@@ -54,14 +51,11 @@ class ApiAuthController extends Controller
         ];
     }
 
-    // -----------------------------------------------------------------------
-    // POST /api/register
-    // -----------------------------------------------------------------------
+
     public function retailerRegister(Request  $request)
     {
         $post = $request->all();
 
-        // Normalize gender casing 
         if (!empty($post['gender'])) {
             $post['gender'] = ucfirst(strtolower(trim($post['gender'])));
         }
@@ -70,9 +64,7 @@ class ApiAuthController extends Controller
             'email'     => 'required|string|email|max:255|unique:users',
             'password'  => 'required|string|min:6|confirmed',
             'gender'    => 'required|in:Male,Female,Other',
-            'address'   => 'required',
             'phone'     => 'required',
-            // 'image'     => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -94,8 +86,6 @@ class ApiAuthController extends Controller
             'message'    => 'Retailer registered successfully.',
             'token'      => $token,
             'token_type' => 'bearer',
-            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
-            // 'user'       => $user,
         ], 201);
     }
 
@@ -103,12 +93,12 @@ class ApiAuthController extends Controller
     {
         $profile = DB::table('profiles')->where('user_id', $user->id)->first();
 
-        $required = ['company_name', 'pan_number']; // business details
+        $required = ['company_name', 'pan_number'];
         $filled   = collect($required)->filter(fn($f) => !empty($profile?->$f));
 
         return [
-            'hasBusiness'       => $filled->isNotEmpty(),            // false = no business info at all
-            'isProfileComplete' => $filled->count() === count($required), // false = something missing
+            'hasBusiness'       => $filled->isNotEmpty(),
+            'isProfileComplete' => $filled->count() === count($required),
         ];
     }
 
@@ -124,9 +114,7 @@ class ApiAuthController extends Controller
             'email'     => 'required|string|email|max:255|unique:users',
             'password'  => 'required|string|min:6|confirmed',
             'gender'    => 'required|in:Male,Female,Other',
-            'address'   => 'required',
             'phone'     => 'required',
-            'image'     => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -162,11 +150,11 @@ class ApiAuthController extends Controller
                 'token'      => $token,
                 'token_type' => 'bearer',
             ], $this->profileStatus($user)));
-            // } catch (QueryException $e) {
-            //     return response()->json([
-            //         'type'    => 'error',
-            //         'message' => 'Something Wrong',
-            //     ], 500);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Something Wrong',
+            ], 500);
         } catch (JWTException $e) {
             return response()->json([
                 'type'    => 'error',
@@ -180,9 +168,6 @@ class ApiAuthController extends Controller
         }
     }
 
-    // -----------------------------------------------------------------------
-    // POST /api/login
-    // -----------------------------------------------------------------------
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -223,10 +208,9 @@ class ApiAuthController extends Controller
             ], 403);
         }
 
-        $post['userid'] = $user->id;
+        $user = JWTAuth::setToken($token)->authenticate();
 
-        // ── Get Spatie roles ───────────────────────────────────────────
-        $roles     = $user->getRoleNames();           // collection of role names
+        $roles     = $user->getRoleNames();
         $firstRole = $roles->first() ?? null;
         // $deviceToke = Userdevicetoken::saveDate($post);
 
@@ -242,28 +226,19 @@ class ApiAuthController extends Controller
         ])->fromUser($user);
 
 
-        // Merge base response with role-based greeting + redirect
         return response()->json(array_merge([
             'type'    => 'success',
             'message'    => 'Login successful.',
             'token'      => $token,
             'token_type' => 'bearer',
             'refresh_token' => $refreshToken,
-            // 'rolenamenote'         => $roles,                // e.g. ["Driver"]
-            // 'expires_in'    => config('jwt.ttl') * 60, 
-            // 'expires_in' => auth('api')->factory()->getTTL() * 60,
-            // 'user'       => $user,
-            // 'roles'      => $user->getRoleNames(),
-            'roles'         => $roleData->map(fn($r) => [   // ← roles with id and name
+            'roles'         => $roleData->map(fn($r) => [
                 'roleid'   => $r->role_id,
                 'rolename' => $r->role_name,
             ]),
         ]));
     }
 
-    // -----------------------------------------------------------------------
-    // POST /api/logout  (requires Bearer token)
-    // -----------------------------------------------------------------------
     public function logout()
     {
         try {
@@ -281,9 +256,6 @@ class ApiAuthController extends Controller
         }
     }
 
-    // -----------------------------------------------------------------------
-    // POST /api/refresh  (requires Bearer token)
-    // -----------------------------------------------------------------------
     public function refresh()
     {
         try {
@@ -295,7 +267,6 @@ class ApiAuthController extends Controller
                 ], 400);
             }
 
-            // ── Decode and verify this is actually a refresh token ─────────
             $payload = JWTAuth::setToken($oldToken)->getPayload();
 
             if ($payload->get('type') !== 'refresh') {
@@ -305,7 +276,6 @@ class ApiAuthController extends Controller
                 ], 401);
             }
 
-            // ── Check refresh token not expired ────────────────────────────
             if ($payload->get('exp') < now()->timestamp) {
                 return new JsonResponse([
                     "type"    => "error",
@@ -313,11 +283,9 @@ class ApiAuthController extends Controller
                 ], 401);
             }
 
-            // ── Issue a fresh access token for the user ────────────────────
             $user        = JWTAuth::setToken($oldToken)->toUser();
             $newAccess   = JWTAuth::fromUser($user);
 
-            // ── Optionally issue a new refresh token too ───────────────────
             $newRefresh  = JWTAuth::claims([
                 'type' => 'refresh',
                 'exp'  => now()->addDays(30)->timestamp,
@@ -342,94 +310,87 @@ class ApiAuthController extends Controller
         }
     }
 
-
-    // -----------------------------------------------------------------------
-    // GET /api/me  (requires Bearer token)
-    // -----------------------------------------------------------------------
-
     public function userDetail(Request $request)
     {
-        // try {
+        try {
+            $user = auth('api')->user();
 
-        $user = auth('api')->user();
+            if (!$user) {
+                throw new Exception("Unauthorized user");
+            }
+            $payload = JWTAuth::parseToken()->getPayload();
+            $profile = $payload->get('profile');
+            $post = $request->all();
+            $post['userid'] = $profile['userid'];
+            $post['orgid']  = $profile['orgid'];
 
-        if (!$user) {
-            throw new Exception("Unauthorized user");
+            $result = User::getDataUser($post);
+
+            if (!$result) {
+                throw new Exception("User not found");
+            }
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'User fetched successfully',
+                'data' => $result
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Something went wrong'
+            ], 500);
+        } catch (Exception $e) {
+
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
         }
-        $payload = JWTAuth::parseToken()->getPayload();
-        $profile = $payload->get('profile');
-        $post = $request->all();
-        $post['userid'] = $profile['userid'];
-        $post['orgid']  = $profile['orgid'];
-
-        $result = User::getDataUser($post);
-
-        if (!$result) {
-            throw new Exception("User not found");
-        }
-
-        return response()->json([
-            'type' => 'success',
-            'message' => 'User fetched successfully',
-            'data' => $result
-        ]);
-        // } catch (QueryException $e) {
-
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => 'Something went wrong'
-        //     ], 500);
-        // } catch (Exception $e) {
-
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => $e->getMessage()
-        //     ], 400);
-        // }
     }
-    // -----------------------------------------------------------------------
-    // PUT /api/me/update  (requires Bearer token)
-    // -----------------------------------------------------------------------
+
     public function updateProfile(Request $request)
     {
-        // try {
+        try {
 
-        $user = auth('api')->user();
+            $user = auth('api')->user();
 
-        if (!$user) {
-            throw new Exception("Unauthorized user");
+            if (!$user) {
+                throw new Exception("Unauthorized user");
+            }
+
+            $post = $request->all();
+            $post['userid'] = $user->id;
+
+            if (!empty($post['gender'])) {
+                $post['gender'] = ucfirst(strtolower(trim($post['gender'])));
+            }
+
+            $result = User::updateUser($post);
+
+            if (!$result) {
+                throw new Exception("User not updated");
+            }
+
+            return response()->json([
+                'type' => 'success',
+                'message' => 'User updated successfully',
+            ]);
+        } catch (QueryException $e) {
+
+            return response()->json([
+                'type' => 'error',
+                'message' => 'Something went wrong'
+            ], 500);
+        } catch (Exception $e) {
+
+            return response()->json([
+                'type' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
         }
-
-        $post = $request->all();
-        $post['userid'] = $user->id;
-
-        $result = User::updateUser($post);
-
-        // if (!$result) {
-        //     throw new Exception("User not updated");
-        // }
-
-        return response()->json([
-            'type' => 'success',
-            'message' => 'User updated successfully',
-        ]);
-        // } catch (QueryException $e) {
-
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => 'Something went wrong'
-        //     ], 500);
-        // } catch (Exception $e) {
-
-        //     return response()->json([
-        //         'type' => 'error',
-        //         'message' => $e->getMessage()
-        //     ], 400);
-        // }
     }
-    // -----------------------------------------------------------------------
-    // PUT /api/me/password  (requires Bearer token)
-    // -----------------------------------------------------------------------
+
     public function changePassword(Request $request)
     {
 
@@ -518,7 +479,6 @@ class ApiAuthController extends Controller
         return json_encode(['type' => $type, 'message' => $message]);
     }
 
-    // 2. VERIFY OTP
     public function verifyOtp(Request $request)
     {
 
@@ -551,7 +511,6 @@ class ApiAuthController extends Controller
         ]);
     }
 
-    // 3. RESET PASSWORD
     public function resetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -584,7 +543,6 @@ class ApiAuthController extends Controller
         $user->password = bcrypt($request->password);
         $user->save();
 
-        // delete OTP
         DB::table('otps')->where('email', $request->email)->delete();
 
         return response()->json([
@@ -594,12 +552,28 @@ class ApiAuthController extends Controller
     }
 
 
+    private static function storeImage($file, string $folder = 'profiles', string $prefix = ''): string
+    {
+        $fileName = time() . ($prefix ? '_' . $prefix : '') . '_' . Str::random(10)
+            . '.' . $file->getClientOriginalExtension();
+        $file->storeAs($folder, $fileName, 'public');
+        return $fileName;
+    }
 
     public function updateBusiness(UpdateBusinessRequest $request)
     {
         $user = auth('api')->user();
 
-        $profile = DB::table('profiles')->where('user_id', $user->id)->first();
+        if (!$user) {
+            return response()->json([
+                'type'    => 'error',
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $profile = DB::table('profiles')
+            ->where('user_id', $user->id)
+            ->first();
 
         if (!$profile) {
             return response()->json([
@@ -611,23 +585,45 @@ class ApiAuthController extends Controller
         $data = $request->validated();
 
         $update = [
-            'company_name' => $data['company_name'],
-            'pan_number'   => $data['pan_number'],
-            'updated_at'   => now(),
+            'company_name'        => $data['company_name'] ?? null,
+            // 'tax_number'          => $data['tax_number'] ?? null,
+            'registration_number' => $data['registration_number'] ?? null,
+            'pan_number'          => $data['pan_number'] ?? null,
+            'updated_at'          => now(),
         ];
 
+        // PAN image
         if ($request->hasFile('pan_image')) {
-            $update['pan_image'] = User::storeImage($request->file('pan_image'), 'profiles', 'pan');
+            $update['pan_image'] = self::storeImage(
+                $request->file('pan_image'),
+                'profiles',
+                'pan'
+            );
         }
 
-        DB::table('profiles')->where('user_id', $user->id)->update($update);
+        // Registration image
+        if ($request->hasFile('registration_image')) {
+            $update['registration_image'] = User::storeImage(
+                $request->file('registration_image'),
+                'profiles',
+                'reg'
+            );
+        }
+
+        DB::table('profiles')
+            ->where('user_id', $user->id)
+            ->update($update);
 
         return response()->json(array_merge([
             'type'    => 'success',
             'message' => 'Business details updated successfully.',
             'data'    => [
-                'company_name' => $update['company_name'],
-                'pan_number'   => $update['pan_number'],
+                'company_name'        => $update['company_name'],
+                'tax_number'          => $update['tax_number'],
+                'registration_number' => $update['registration_number'],
+                'pan_number'          => $update['pan_number'],
+                'pan_image'           => $update['pan_image'] ?? $profile->pan_image,
+                'registration_image'  => $update['registration_image'] ?? $profile->registration_image,
             ],
         ], $this->profileStatus($user)));
     }
